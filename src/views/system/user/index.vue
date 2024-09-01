@@ -41,8 +41,13 @@
       <el-table v-loading="loading" :data="userList" @selection-change="handleSelectionChange">
          <el-table-column type="selection" width="50" align="center" />
          <el-table-column label="会员编号" align="center" key="userId" prop="userId" v-if="columns[0].visible" />
-         <el-table-column label="会员姓名" align="center" key="nickName" prop="nickName" v-if="columns[2].visible"
-            :show-overflow-tooltip="true" />
+         <el-table-column label="会员姓名" align="center" v-if="columns[2].visible">
+            <template #default="scope">
+               <el-tooltip content="查看会员详情" placement="top">
+                  <el-button link @click="showUserInfo(scope.row)">{{ scope.row.nickName }}</el-button>
+               </el-tooltip>
+            </template>
+         </el-table-column>
          <el-table-column label="会员账号" align="center" key="userName" prop="userName" v-if="columns[1].visible"
             :show-overflow-tooltip="true" />
          <el-table-column label="手机号码" align="center" key="phonenumber" prop="phonenumber" v-if="columns[4].visible"
@@ -56,7 +61,11 @@
          :show-overflow-tooltip="true" /> -->
          <el-table-column label="微信标识" align="center" prop="openId" :show-overflow-tooltip="true"
             v-if="columns[10].visible" />
-         <el-table-column label="性别" align="center" key="sex" prop="sex" v-if="columns[11].visible" />
+         <el-table-column label="性别" align="center" key="sex" v-if="columns[11].visible">
+            <template #default="scope">
+               <dict-tag :options="sys_user_sex" :value="scope.row.sex" />
+            </template>
+         </el-table-column>
          <el-table-column label="会员积分" align="center" v-if="columns[12].visible">
             <template #default="scope">
                <el-tooltip content="查看历史记录" placement="top">
@@ -91,7 +100,11 @@
                </template>
             </template>
          </el-table-column>
-         <el-table-column label="黑灰名单" align="center" key="identify" prop="identify" v-if="columns[14].visible" />
+         <el-table-column label="黑灰名单" align="center" key="identify" v-if="columns[14].visible">
+            <template #default="scope">
+               <dict-tag :options="sys_user_identify" :value="scope.row.identify" />
+            </template>
+         </el-table-column>
          <el-table-column label="账号状态" align="center" key="status" v-if="columns[5].visible">
             <template #default="scope">
                <el-switch v-model="scope.row.status" active-value="0" inactive-value="1"
@@ -229,20 +242,34 @@
             </el-table-column>
          </el-table>
       </el-dialog>
+
+      <!-- 展示会员信息详情 -->
+      <el-dialog v-model="userInfoOpen" :show-close="false" width="500px" append-to-body>
+         <UserDetailsCard :user="userInfo" />
+      </el-dialog>
    </div>
 </template>
 
 <script setup name="User">
 import { changeUserStatus, listUser, resetUserPwd, delUser, getUser, updateUser, addUser } from "@/api/system/user";
 import { listRecord } from "@/api/system/record";
+import UserDetailsCard from './info.vue';
 
 const { proxy } = getCurrentInstance();
-const { sys_normal_disable, sys_user_tags, sys_user_sex, sys_user_type } = proxy.useDict("sys_normal_disable", "sys_user_tags", "sys_user_sex", "sys_user_type");
+const {
+   sys_normal_disable,
+   sys_user_tags,
+   sys_user_sex,
+   sys_user_type,
+   sys_user_identify
+} = proxy.useDict("sys_normal_disable", "sys_user_tags", "sys_user_sex", "sys_user_type", "sys_user_identify");
 
 const userList = ref([]);
 const integralList = ref([]);
 const integralLoading = ref(true);
 const integralListOpen = ref(false);
+const userInfoOpen = ref(false);
+const userInfo = ref({});
 const open = ref(false);
 const loading = ref(true);
 const showSearch = ref(true);
@@ -456,6 +483,12 @@ function queryIntegralList(userId) {
       integralList.value = response.rows;
       integralLoading.value = false;
    });
+};
+
+/* 展示用户信息详情 */
+function showUserInfo(info) {
+   userInfoOpen.value = true;
+   userInfo.value = info;
 };
 
 /** 提交按钮 */

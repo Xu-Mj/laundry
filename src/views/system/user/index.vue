@@ -56,10 +56,15 @@
          :show-overflow-tooltip="true" /> -->
          <el-table-column label="微信标识" align="center" prop="openId" :show-overflow-tooltip="true"
             v-if="columns[10].visible" />
-         <el-table-column label="性别" align="center" key="sex" prop="sex" :show-overflow-tooltip="true"
-            v-if="columns[11].visible" />
-         <el-table-column label="会员积分" align="center" key="integral" prop="integral" :show-overflow-tooltip="true"
-            v-if="columns[12].visible" />
+         <el-table-column label="性别" align="center" key="sex" prop="sex" v-if="columns[11].visible" />
+         <el-table-column label="会员积分" align="center" v-if="columns[12].visible">
+            <template #default="scope">
+               <el-tooltip content="查看历史记录" placement="top">
+                  <el-button link @click="queryIntegralList(scope.row.userId)" v-hasPermi="['system:record:list']">{{
+                     scope.row.integral }}</el-button>
+               </el-tooltip>
+            </template>
+         </el-table-column>
          <el-table-column label="会员等级" align="center" key="postName" prop="postName" v-if="columns[8].visible" />
          <el-table-column label="会员画像" align="center" key="userTags" prop="userTags" v-if="columns[13].visible">
             <template #default="scope">
@@ -211,17 +216,33 @@
             </div>
          </template>
       </el-dialog>
+
+      <!-- 会员积分历史记录 -->
+      <el-dialog v-model="integralListOpen" width="600px" append-to-body>
+         <el-table v-loading="integralLoading" :data="integralList">
+            <el-table-column label="ID" align="center" prop="id" />
+            <el-table-column label="本次使用积分数量" align="center" prop="identify" />
+            <el-table-column label="使用时间" align="center" prop="createTime" width="160">
+               <template #default="scope">
+                  <span>{{ parseTime(scope.row.createTime) }}</span>
+               </template>
+            </el-table-column>
+         </el-table>
+      </el-dialog>
    </div>
 </template>
 
 <script setup name="User">
 import { changeUserStatus, listUser, resetUserPwd, delUser, getUser, updateUser, addUser } from "@/api/system/user";
+import { listRecord } from "@/api/system/record";
 
-const router = useRouter();
 const { proxy } = getCurrentInstance();
 const { sys_normal_disable, sys_user_tags, sys_user_sex, sys_user_type } = proxy.useDict("sys_normal_disable", "sys_user_tags", "sys_user_sex", "sys_user_type");
 
 const userList = ref([]);
+const integralList = ref([]);
+const integralLoading = ref(true);
+const integralListOpen = ref(false);
 const open = ref(false);
 const loading = ref(true);
 const showSearch = ref(true);
@@ -424,6 +445,16 @@ function handleUpdate(row) {
       title.value = "修改会员";
       form.password = "";
       console.log(form.value)
+   });
+};
+
+/* 根据用户id查询积分使用列表 */
+function queryIntegralList(userId) {
+   integralListOpen.value = true;
+   integralLoading.value = true;
+   listRecord({ userId }).then(response => {
+      integralList.value = response.rows;
+      integralLoading.value = false;
    });
 };
 

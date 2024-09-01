@@ -125,6 +125,7 @@
 .pagination-container .el-pagination {
 	right: 0;
 	position: absolute;
+	--el-pagination-border-radius: .3rem;
 }
 
 @media ( max-width : 768px) {

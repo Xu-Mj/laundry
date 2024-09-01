@@ -276,6 +276,7 @@ function handleScroll() {
       height: 26px;
       line-height: 26px;
       border: 1px solid #d8dce5;
+      border-radius: .2rem;
       color: #495060;
       background: #fff;
       padding: 0 8px;

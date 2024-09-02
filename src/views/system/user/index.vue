@@ -66,6 +66,7 @@
                <dict-tag :options="sys_user_sex" :value="scope.row.sex" />
             </template>
          </el-table-column>
+         <el-table-column label="会员住址" align="center" key="address" prop="address" v-if="columns[15].visible" />
          <el-table-column label="会员积分" align="center" v-if="columns[12].visible">
             <template #default="scope">
                <el-tooltip content="查看历史记录" placement="top">
@@ -216,6 +217,13 @@
             </el-row>
             <el-row>
                <el-col :span="24">
+                  <el-form-item label="会员住址">
+                     <el-input v-model="form.address" type="textarea" placeholder="请输入内容"></el-input>
+                  </el-form-item>
+               </el-col>
+            </el-row>
+            <el-row>
+               <el-col :span="24">
                   <el-form-item label="备注">
                      <el-input v-model="form.remark" type="textarea" placeholder="请输入内容"></el-input>
                   </el-form-item>
@@ -301,6 +309,7 @@ const columns = ref([
    { key: 12, label: `会员积分`, visible: true },
    { key: 13, label: `会员画像`, visible: true },
    { key: 14, label: `黑灰名单`, visible: false },
+   { key: 14, label: `会员住址`, visible: false },
 ]);
 
 const data = reactive({

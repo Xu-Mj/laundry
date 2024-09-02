@@ -84,14 +84,21 @@
   box-sizing: content-box;
 }
 
-.el-menu--collapse
-  > div
-  > .el-submenu
-  > .el-submenu__title
-  .el-submenu__icon-arrow {
+.el-menu--collapse>div>.el-submenu>.el-submenu__title .el-submenu__icon-arrow {
   display: none;
 }
 
-.el-dropdown .el-dropdown-link{
+.el-dropdown .el-dropdown-link {
   color: var(--el-color-primary) !important;
+}
+
+/*
+    给所有表格空项加上--
+  */
+.el-table .el-table__body td .cell:empty::after,
+.el-table .el-table__body td .cell>span:empty::after,
+.el-table .el-table__body td .cell .approval:empty::after,
+.el-table .el-table__body td .cell div:empty::after,
+.el-table .el-table__body td .cell .line-limit-length:empty::after {
+  content: '-';
 }

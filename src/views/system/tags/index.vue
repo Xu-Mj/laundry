@@ -267,7 +267,6 @@ function handleStatusChange(row) {
 
 /* 标签类别变化触发查询 */
 function selectChange() {
-  console.log("selectChange")
   queryParams.value.pageNum = 1;
   getList();
 }

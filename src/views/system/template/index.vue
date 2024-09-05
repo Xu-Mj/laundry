@@ -50,7 +50,7 @@
       <el-table-column label="备注" align="center" prop="remark" />
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template #default="scope">
-          <el-button link type="primary" icon="Promotion" @click="handleSendPanel">发送</el-button>
+          <el-button link type="primary" icon="Promotion" @click="handleSendPanel(scope.row)">发送</el-button>
           <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)"
             v-hasPermi="['system:template:edit']">修改</el-button>
           <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)"
@@ -105,7 +105,7 @@
         </el-col>
         <el-col :span="12">
           <el-button v-if="!sendAll" @click="handleSelectUser">选择</el-button>
-          <el-button type="primary" @click="send">立即发送</el-button>
+          <el-button type="primary" @click="send" v-hasPermi="['system:template:send']">立即发送</el-button>
         </el-col>
       </el-row>
       <el-row class="user-list-area">
@@ -122,7 +122,7 @@
 </template>
 
 <script setup name="Template">
-import { listTemplate, getTemplate, delTemplate, addTemplate, updateTemplate } from "@/api/system/template";
+import { listTemplate, getTemplate, delTemplate, addTemplate, updateTemplate, sendNotice } from "@/api/system/template";
 import { listUser } from "@/api/system/user";
 
 const { proxy } = getCurrentInstance();
@@ -140,6 +140,7 @@ const multiple = ref(true);
 const total = ref(0);
 const title = ref("");
 
+const currentNotice = ref(null);
 const sendAll = ref(true);
 
 const data = reactive({
@@ -275,7 +276,8 @@ async function selectUser() {
   userList.value = response.rows;
 };
 
-async function handleSendPanel() {
+async function handleSendPanel(row) {
+  currentNotice.value = row;
   sendOpen.value = true;
   await selectUser();
   if (sendAll.value) {
@@ -306,8 +308,16 @@ function delItem(user) {
 
 /** 发送按钮操作 */
 function send() {
+  console.log(currentNotice.value)
+  const tempId = currentNotice.value.tempId;
   const ids = userList.value.filter(item => item.selected).map(item => item.userId);
   // 发送通知
+  sendNotice({ userIds: ids, tempId: tempId }).then(response => {
+    proxy.$modal.msgSuccess("发送成功");
+    sendOpen.value = false;
+  }).catch(() => {
+
+  });
 }
 
 getList();

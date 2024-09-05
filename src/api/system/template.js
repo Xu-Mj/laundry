@@ -42,3 +42,12 @@ export function delTemplate(tempId) {
     method: 'delete'
   })
 }
+
+// 删除通知模板管理
+export function sendNotice(data) {
+  return request({
+    url: '/system/template/send' ,
+    method: 'post',
+    data: data
+  })
+}

@@ -87,8 +87,9 @@
       <el-table-column label="适用衣物" align="center" prop="applicableCloths" v-if="columns[16].visible">
         <template #default="scope">
           <el-tag type="primary"
-            v-for="item, index in scope.row.applicableCloths ? scope.row.applicableCloths.split(',') : []" :key="index">{{
-            item }}</el-tag>
+            v-for="item, index in scope.row.applicableCloths ? scope.row.applicableCloths.split(',') : []"
+            :key="index">{{
+              item }}</el-tag>
         </template>
       </el-table-column>
       <el-table-column label="卡券状态" align="center" prop="status">
@@ -111,7 +112,8 @@
       v-model:limit="queryParams.pageSize" @pagination="getList" />
 
     <!-- 添加或修改卡券对话框 -->
-    <el-dialog :title="title" v-model="open" width="650px" lock-scroll modal :close-on-click-modal="false" append-to-body>
+    <el-dialog :title="title" v-model="open" width="650px" lock-scroll modal :close-on-click-modal="false"
+      append-to-body>
       <el-form ref="couponRef" :model="form" :rules="rules" label-width="110px">
         <el-form-item label="卡券名称" prop="couponTitle">
           <el-input v-model="form.couponTitle" placeholder="请输入卡券名称" />
@@ -120,13 +122,15 @@
           <el-col :span="12">
             <el-tooltip content="售价" placement="top">
               <el-form-item label="卡券面值" prop="couponValue">
-                <el-input-number v-model="form.couponValue" @change="form.usageValue=form.couponValue" controls-position="right" placeholder="请输入卡券面值" />
+                <el-input-number v-model="form.couponValue" @change="form.usageValue = form.couponValue"
+                  controls-position="right" placeholder="请输入卡券面值" />
               </el-form-item>
             </el-tooltip>
           </el-col>
           <el-col :span="12">
             <el-form-item label="卡券价值" prop="usageValue">
-              <el-input-number v-model="form.usageValue" :min="form.couponValue" controls-position="right" placeholder="请输入卡券价值" />
+              <el-input-number v-model="form.usageValue" :min="form.couponValue" controls-position="right"
+                placeholder="请输入卡券价值" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -219,7 +223,7 @@
           </el-select>
         </el-form-item>
         <el-form-item label="适用衣物" prop="applicableCloths">
-          <el-select v-model="form.applicableCloths" placeholder="适用衣物" clearable multiple filterable remote
+          <el-select v-model="form.applicableClothsArr" placeholder="适用衣物" clearable multiple filterable remote
             reserve-keyword remote-show-suffix :remote-method="getClothingList" :loading="clothListloading">
             <el-option v-for="item in clothList" :key="item.clothingId"
               :label="item.clothingName + '-' + item.clothingNumber" :value="item.clothingName" />
@@ -502,6 +506,9 @@ function handleUpdate(row) {
   const _couponId = row.couponId || ids.value
   getCoupon(_couponId).then(response => {
     form.value = response.data;
+    if (form.value.applicableCloths) {
+      form.value.applicableClothsArr = form.value.applicableCloths.split(",");
+    }
     open.value = true;
     title.value = "修改卡券";
   });
@@ -511,6 +518,10 @@ function handleUpdate(row) {
 function submitForm() {
   proxy.$refs["couponRef"].validate(valid => {
     if (valid) {
+      if (form.value.applicableClothsArr && form.value.applicableClothsArr.length > 0) {
+        form.value.applicableCloths = form.value.applicableClothsArr.join(",");
+        delete form.value.applicableClothsArr;
+      }
       if (form.value.couponId != null) {
         updateCoupon(form.value).then(response => {
           proxy.$modal.msgSuccess("修改成功");
@@ -518,9 +529,6 @@ function submitForm() {
           getList();
         });
       } else {
-        if (form.value.applicableCloths) {
-          form.value.applicableCloths = form.value.applicableCloths.join(",");
-        }
         addCoupon(form.value).then(response => {
           proxy.$modal.msgSuccess("新增成功");
           open.value = false;

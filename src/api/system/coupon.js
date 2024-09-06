@@ -26,6 +26,15 @@ export function addCoupon(data) {
   })
 }
 
+// 购买卡券
+export function buyCoupon(data) {
+  return request({
+    url: '/system/coupon/buy',
+    method: 'post',
+    data: data
+  })
+}
+
 // 修改卡券
 export function updateCoupon(data) {
   return request({

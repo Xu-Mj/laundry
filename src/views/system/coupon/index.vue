@@ -37,7 +37,7 @@
       </el-col>
       <el-col :span="1.5">
         <el-button type="success" :disabled="selectedList.length == 0" plain icon="Sell"
-          @click="showSell = true">卡券销售</el-button>
+          @click="handleShowSell">卡券销售</el-button>
       </el-col>
       <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" :columns="columns"></right-toolbar>
     </el-row>
@@ -63,20 +63,34 @@
       <el-table-column label="单用户数量限制" align="center" prop="customerSaleCount" width="120" v-if="columns[7].visible" />
       <el-table-column label="有效时间-起" align="center" prop="validFrom" width="100" v-if="columns[9].visible">
         <template #default="scope">
-          <span>{{ parseTime(scope.row.validFrom, '{y}-{m}-{d}') }}</span>
+          <span>{{ parseTime(scope.row.validFrom, '{y}-{m}-{d} {h}:{i}:{s}') }}</span>
         </template>
       </el-table-column>
       <el-table-column label="有效时间-止" align="center" prop="validTo" width="100" v-if="columns[10].visible">
         <template #default="scope">
-          <span>{{ parseTime(scope.row.validTo, '{y}-{m}-{d}') }}</span>
+          <span>{{ parseTime(scope.row.validTo, '{y}-{m}-{d} {h}:{i}:{s}') }}</span>
         </template>
       </el-table-column>
       <el-table-column label="自动延期" align="center" prop="autoDelay" v-if="columns[11].visible" />
       <el-table-column label="卡券价值" align="center" prop="usageValue" v-if="columns[12].visible" />
       <el-table-column label="限制条件" align="center" prop="usageLimit" v-if="columns[13].visible" />
-      <el-table-column label="适用品类" align="center" prop="applicableCategory" v-if="columns[14].visible" />
-      <el-table-column label="适用分类" align="center" prop="applicableStyle" v-if="columns[15].visible" />
-      <el-table-column label="适用衣物" align="center" prop="applicableCloths" v-if="columns[16].visible" />
+      <el-table-column label="适用品类" align="center" prop="applicableCategory" v-if="columns[14].visible">
+        <template #default="scope">
+          <dict-tag :options="sys_cloth_cate" :value="scope.row.applicableCategory" />
+        </template>
+      </el-table-column>
+      <el-table-column label="适用分类" align="center" prop="applicableStyle" v-if="columns[15].visible">
+        <template #default="scope">
+          <dict-tag :options="sys_cloth_style" :value="scope.row.applicableStyle" />
+        </template>
+      </el-table-column>
+      <el-table-column label="适用衣物" align="center" prop="applicableCloths" v-if="columns[16].visible">
+        <template #default="scope">
+          <el-tag type="primary"
+            v-for="item, index in scope.row.applicableCloths ? scope.row.applicableCloths.split(',') : []" :key="index">{{
+            item }}</el-tag>
+        </template>
+      </el-table-column>
       <el-table-column label="卡券状态" align="center" prop="status">
         <template #default="scope">
           <dict-tag :options="sys_coupon_status" :value="scope.row.status" />
@@ -97,20 +111,22 @@
       v-model:limit="queryParams.pageSize" @pagination="getList" />
 
     <!-- 添加或修改卡券对话框 -->
-    <el-dialog :title="title" v-model="open" width="650px" append-to-body>
+    <el-dialog :title="title" v-model="open" width="650px" lock-scroll modal :close-on-click-modal="false" append-to-body>
       <el-form ref="couponRef" :model="form" :rules="rules" label-width="110px">
         <el-form-item label="卡券名称" prop="couponTitle">
           <el-input v-model="form.couponTitle" placeholder="请输入卡券名称" />
         </el-form-item>
         <el-row>
           <el-col :span="12">
-            <el-form-item label="卡券面值" prop="couponValue">
-              <el-input-number v-model="form.couponValue" controls-position="right" placeholder="请输入卡券面值" />
-            </el-form-item>
+            <el-tooltip content="售价" placement="top">
+              <el-form-item label="卡券面值" prop="couponValue">
+                <el-input-number v-model="form.couponValue" @change="form.usageValue=form.couponValue" controls-position="right" placeholder="请输入卡券面值" />
+              </el-form-item>
+            </el-tooltip>
           </el-col>
           <el-col :span="12">
             <el-form-item label="卡券价值" prop="usageValue">
-              <el-input-number v-model="form.usageValue" controls-position="right" placeholder="请输入卡券价值" />
+              <el-input-number v-model="form.usageValue" :min="form.couponValue" controls-position="right" placeholder="请输入卡券价值" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -179,34 +195,34 @@
         <el-row>
           <el-col :span="12">
             <el-form-item label="有效期-起" prop="validFrom">
-              <el-date-picker clearable v-model="form.validFrom" type="date" value-format="YYYY-MM-DD"
+              <el-date-picker clearable v-model="form.validFrom" type="datetime" value-format="YYYY-MM-DD HH:mm:ss"
                 placeholder="请选择有效期-起">
               </el-date-picker>
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="有效期-止" prop="validTo">
-              <el-date-picker clearable v-model="form.validTo" type="date" value-format="YYYY-MM-DD"
+              <el-date-picker clearable v-model="form.validTo" type="datetime" value-format="YYYY-MM-DD HH:mm:ss"
                 placeholder="请选择有效期-止">
               </el-date-picker>
             </el-form-item>
           </el-col>
         </el-row>
         <el-form-item label="适用品类" prop="applicableCategory">
-          <el-select v-model="form.applicable_category" placeholder="适用品类" clearable>
+          <el-select v-model="form.applicableCategory" placeholder="适用品类" clearable>
             <el-option v-for="dict in sys_cloth_cate" :key="dict.value" :label="dict.label" :value="dict.value" />
           </el-select>
         </el-form-item>
         <el-form-item label="适用分类" prop="applicableStyle">
-          <el-select v-model="form.applicable_style" placeholder="适用分类" clearable>
+          <el-select v-model="form.applicableStyle" placeholder="适用分类" clearable>
             <el-option v-for="dict in sys_cloth_style" :key="dict.value" :label="dict.label" :value="dict.value" />
           </el-select>
         </el-form-item>
         <el-form-item label="适用衣物" prop="applicableCloths">
-          <el-select v-model="form.applicable_cloths" placeholder="适用衣物" clearable filterable remote remote-show-suffix
-            :remote-method="getClothingList" :loading="clothListloading">
+          <el-select v-model="form.applicableCloths" placeholder="适用衣物" clearable multiple filterable remote
+            reserve-keyword remote-show-suffix :remote-method="getClothingList" :loading="clothListloading">
             <el-option v-for="item in clothList" :key="item.clothingId"
-              :label="item.clothingName + '-' + item.clothingNumber" :value="item.clothingId" />
+              :label="item.clothingName + '-' + item.clothingNumber" :value="item.clothingName" />
           </el-select>
         </el-form-item>
         <el-form-item label="卡券描述" prop="remark">
@@ -222,40 +238,69 @@
     </el-dialog>
 
     <!-- show sell coupon -->
-    <el-dialog v-model="showSell" title="查看卡券" width="800px">
-      <el-form :model="sellForm" label-width="90px">
-        <el-form-item label="会员身份">
+    <el-dialog v-model="showSell" title="销售卡券" width="800px">
+      <el-form ref="sellFormRef" :model="sellForm" label-width="90px" :rules="sellRules">
+        <el-form-item label="会员身份" prop="userId">
           <el-select v-model="sellForm.userId" filterable remote reserve-keyword placeholder="请输入手机号码搜索"
             remote-show-suffix :remote-method="searchUserByTel" :loading="searchUserloading" style="width: 240px">
             <el-option v-for="item in userList" :key="item.userId" :label="item.nickName + '\t' + item.phonenumber"
               :value="item.userId" />
           </el-select>
         </el-form-item>
-        <el-form-item label="卡券信息">
-          <el-row v-for="item in selectedList" :key="item.couponId" style="width: 100%;">
-            <el-col :span="8">
-              <el-form-item label="卡券名称：">
-                {{ item.couponTitle }}
-              </el-form-item>
-            </el-col>
-            <el-col :span="8">
-              {{ item.validTo }}
-            </el-col>
-          </el-row>
-        </el-form-item>
-        <el-button type="primary" @click="buyCoupon">立即购买</el-button>
+        <el-row>
+          <h3 class="title">卡券信息</h3>
+        </el-row>
+        <el-table :data="selectedList" border>
+          <el-table-column label="序号" align="center" type="index" width="60" />
+          <el-table-column label="卡券名称" align="center" key="couponTitle" prop="couponTitle" />
+          <el-table-column label="有效期" align="center" key="validTo" prop="validTo" />
+          <el-table-column label="数量" align="center" key="validTo">
+            <template #default="scope">
+              <el-input-number v-model="scope.row.count" :min="0"
+                :max="scope.row.customerSaleCount < scope.row.customerSaleTotal ? scope.row.customerSaleCount : scope.row.customerSaleTotal"
+                controls-position="right" />
+            </template>
+          </el-table-column>
+        </el-table>
+        <el-row>
+          <h3 class="title">支付方式</h3>
+        </el-row>
+        <el-row>
+          <el-form-item>
+            <el-radio-group v-model="sellForm.paymentMethod">
+              <el-radio v-for="dict in sys_payment_method" :key="dict.value" :label="dict.label" :value="dict.value" />
+            </el-radio-group>
+          </el-form-item>
+        </el-row>
+        <el-row>
+          <h3 class="title">备注信息</h3>
+        </el-row>
+        <el-row>
+          <el-form-item style="width: 100%;">
+            <el-input type="textarea" v-model="sellForm.remark" placeholder="备注信息" />
+          </el-form-item>
+        </el-row>
+        <el-row>
+          <el-col :span="21" class="cash">
+            总价：{{ totalPrice }}
+          </el-col>
+          <el-col :span="3" justify="center" align="right">
+            <el-button type="primary" @click="buy">立即购买</el-button>
+          </el-col>
+        </el-row>
       </el-form>
     </el-dialog>
   </div>
 </template>
 
 <script setup name="Coupon">
-import { listCoupon, getCoupon, delCoupon, addCoupon, updateCoupon } from "@/api/system/coupon";
+import { listCoupon, getCoupon, delCoupon, addCoupon, updateCoupon, buyCoupon } from "@/api/system/coupon";
 import { listUser } from "@/api/system/user";
 import { listClothing } from "@/api/system/clothing";
-import { ref } from "vue";
+import { ref, computed } from "vue";
 
 const { proxy } = getCurrentInstance();
+
 const {
   sys_coupon_status,
   sys_del_status,
@@ -263,7 +308,8 @@ const {
   sys_coupon_customer_invalid,
   sys_coupon_auto_delay,
   sys_cloth_style,
-  sys_cloth_cate
+  sys_cloth_cate,
+  sys_payment_method
 } =
   proxy.useDict(
     "sys_coupon_status",
@@ -272,7 +318,8 @@ const {
     "sys_coupon_customer_invalid",
     "sys_coupon_auto_delay",
     "sys_cloth_style",
-    "sys_cloth_cate"
+    "sys_cloth_cate",
+    "sys_payment_method"
   );
 
 const couponList = ref([]);
@@ -312,7 +359,9 @@ const columns = ref([
 
 const data = reactive({
   form: {},
-  sellForm: {},
+  sellForm: {
+    paymentMethod: "05"
+  },
   selectedList: [],
   queryParams: {
     pageNum: 1,
@@ -320,16 +369,6 @@ const data = reactive({
     couponNumber: null,
     couponType: null,
     couponTitle: null,
-    couponValue: null,
-    minSpend: null,
-    customerInvalid: null,
-    customerSaleTotal: null,
-    customerSaleCount: null,
-    validFrom: null,
-    validTo: null,
-    autoDelay: null,
-    usageValue: null,
-    usageLimit: null,
     applicableCategory: null,
     applicableStyle: null,
     applicableCloths: null,
@@ -354,10 +393,16 @@ const data = reactive({
       { required: true, message: "有效期-止不能为空", trigger: "blur" },
       { validator: validateValidTo, trigger: "blur" }
     ],
+  },
+  sellRules: {
+    userId: [
+      { required: true, message: "会员信息不能为空", trigger: "blur" }
+    ],
+
   }
 });
 
-const { queryParams, form, sellForm, selectedList, rules } = toRefs(data);
+const { queryParams, form, sellForm, selectedList, rules, sellRules } = toRefs(data);
 
 /* 校验截至有效日期要大于起始日期 */
 function validateValidFrom(rules, value, callback) {
@@ -376,6 +421,13 @@ function validateValidTo(rules, value, callback) {
     callback();
   }
 };
+
+/* 动态计算销售卡券时的总金额 */
+const totalPrice = computed(() => {
+  return selectedList.value.reduce((accumulator, curItem) => {
+    return accumulator + curItem.couponValue * curItem.count;
+  }, 0);
+});
 
 /** 查询卡券列表 */
 function getList() {
@@ -433,7 +485,7 @@ function resetQuery() {
 
 // 多选框选中数据
 function handleSelectionChange(selection) {
-  selection.forEach(item => item.number = 1);
+  selection.forEach(item => item.count = 1);
   selectedList.value = selection;
 }
 
@@ -466,6 +518,9 @@ function submitForm() {
           getList();
         });
       } else {
+        if (form.value.applicableCloths) {
+          form.value.applicableCloths = form.value.applicableCloths.join(",");
+        }
         addCoupon(form.value).then(response => {
           proxy.$modal.msgSuccess("新增成功");
           open.value = false;
@@ -493,6 +548,20 @@ function selectChange() {
   getList();
 }
 
+function resetSellForm() {
+  sellForm.value = {
+    userId: null,
+    coupons: null,
+    remark: null,
+    paymentMethod: "05"
+  };
+  proxy.resetForm("sellFormRef");
+}
+
+function handleShowSell() {
+  showSell.value = true;
+  resetSellForm();
+}
 /* 根据手机号搜索用户列表 */
 function searchUserByTel(tel) {
   // if (!tel || tel.length < 4) { return }
@@ -504,8 +573,18 @@ function searchUserByTel(tel) {
 }
 
 /* 购买卡券 */
-function buyCoupon() {
-  console.log(sellForm);
+function buy() {
+  proxy.$refs["sellFormRef"].validate(valid => {
+    if (valid) {
+      const coupons = selectedList.value.filter(item => item.count > 0).map(({ couponId, count }) => ({ couponId, count }));
+      sellForm.value.coupons = coupons;
+      console.log(sellForm.value);
+      buyCoupon(sellForm.value).then(res => {
+        proxy.$modal.msgSuccess("购买成功");
+        showSell.value = false;
+      }).catch();
+    }
+  });
 }
 
 /* 获取衣物列表 */
@@ -518,3 +597,15 @@ function getClothingList(name) {
 }
 getList();
 </script>
+
+<style scoped>
+.title {
+  border-bottom: 1px solid gray;
+}
+
+.cash {
+  display: flex;
+  justify-content: right;
+  align-items: center;
+}
+</style>

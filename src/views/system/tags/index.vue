@@ -33,7 +33,7 @@
           v-hasPermi="['system:tags:remove']">删除</el-button>
       </el-col>
       <el-col :span="1.5">
-        <el-button type="success" plain icon="Edit" :disabled="single" @click="handleUpdate"
+        <el-button type="success" plain icon="Edit" :disabled="single" @click="handleUpdate({}, true)"
           v-hasPermi="['system:tags:edit']">修改使用计数</el-button>
       </el-col>
       <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
@@ -60,7 +60,7 @@
       <el-table-column label="备注" align="center" prop="remark" />
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template #default="scope">
-          <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)"
+          <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row, false)"
             v-hasPermi="['system:tags:edit']">修改</el-button>
           <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)"
             v-hasPermi="['system:tags:remove']">删除</el-button>
@@ -72,7 +72,8 @@
       v-model:limit="queryParams.pageSize" @pagination="getList" />
 
     <!-- 添加或修改对话框 -->
-    <el-dialog :title="title" v-model="open" width="500px" append-to-body>
+    <el-dialog :title="title" v-model="open" width="500px" @opened="refNumberGetFocus" @closed="refNumberFocus = false"
+      append-to-body>
       <el-form ref="tagsRef" :model="form" :rules="rules" label-width="80px">
         <el-form-item label="标签类别" prop="tagOrder">
           <el-select v-model="form.tagOrder" placeholder="类别" clearable style="width: 240px">
@@ -85,7 +86,7 @@
         <el-row>
           <el-col :span="12">
             <el-form-item label="使用次数" prop="refNum">
-              <el-input-number v-model="form.refNum" :min="0" controls-position="right" />
+              <el-input-number v-model="form.refNum" ref="refNum" :min="0" controls-position="right" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -129,6 +130,8 @@ const single = ref(true);
 const multiple = ref(true);
 const total = ref(0);
 const title = ref("");
+const refNumberFocus = ref(false);
+const refNum = ref();
 
 const data = reactive({
   form: {},
@@ -196,6 +199,13 @@ function resetQuery() {
   handleQuery();
 }
 
+/* 点击修改使用计数时，输入框获取焦点 */
+function refNumberGetFocus() {
+  if (refNumberFocus.value) {
+    refNum.value.focus();
+  }
+}
+
 // 多选框选中数据
 function handleSelectionChange(selection) {
   ids.value = selection.map(item => item.tagId);
@@ -211,7 +221,8 @@ function handleAdd() {
 }
 
 /** 修改按钮操作 */
-function handleUpdate(row) {
+function handleUpdate(row, focus) {
+  refNumberFocus.value = focus;
   reset();
   const _tagId = row.tagId || ids.value
   getTags(_tagId).then(response => {
@@ -256,7 +267,7 @@ function handleDelete(row) {
 /** 标签状态修改 */
 function handleStatusChange(row) {
   let text = row.status === "0" ? "启用" : "停用";
-  proxy.$modal.confirm('确认要"' + text + '""' + row.tagName + '"标签吗?').then(function () {
+  proxy.$modal.confirm('确认要' + text + '"' + row.tagName + '"标签吗?').then(function () {
     return changeTagStatus(row.tagId, row.status);
   }).then(() => {
     proxy.$modal.msgSuccess(text + "成功");

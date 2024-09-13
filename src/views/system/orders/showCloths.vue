@@ -73,8 +73,11 @@
         </div>
 
         <!-- 展示照片 -->
-        <el-dialog title="照片" class="picture-list" v-model="showPicture" width="400px" append-to-body>
-            <img :src="pictureUrl + item" v-for="(item, index) in pictureList" :key="index" fit="contain" />
+        <el-dialog title="照片" v-model="showPicture" width="400px" append-to-body>
+            <div class="img-container">
+                <el-image class="img-item" :preview-src-list="pictureList" :src="item"
+                    v-for="(item, index) in pictureList" :key="index" fit="contain" />
+            </div>
         </el-dialog>
         <!-- 添加或修改订单包含的衣物清单对话框 -->
         <el-dialog :title="title" v-model="showHangUp" width="400px" :show-close="false" append-to-body
@@ -117,7 +120,6 @@ import { listCloths, addCloths, updateCloths } from "@/api/system/cloths";
 import { listTags } from "@/api/system/tags";
 import { ref } from "vue";
 import { getCloths } from "@/api/system/cloths";
-import { getPic } from "../../../api/system/cloths";
 
 const props = defineProps({
     orderId: {
@@ -149,7 +151,6 @@ const brandList = ref([]);
 
 const afterSaleDisabled = ref(true);
 const compensationDisabled = ref(true);
-// const headers = ref({ Authorization: "Bearer " + getToken() });
 const baseUrl = import.meta.env.VITE_APP_BASE_API;
 const pictureUrl = ref(baseUrl + "/system/cloths/download/");
 const data = reactive({
@@ -227,34 +228,43 @@ function getList() {
 }
 
 /* 初始化列表数据 */
-function initList() {
+async function initList() {
+    const promises = [];
+
     // 获取颜色列表
-    if (colorList.value.length == 0) {
-        listTags({ tagOrder: '003' }).then(response => {
+    if (colorList.value.length === 0) {
+        const colorPromise = listTags({ tagOrder: '003' }).then(response => {
             colorList.value = response.rows;
         });
+        promises.push(colorPromise);
     }
 
     // 获取瑕疵列表
-    if (flawList.value.length == 0) {
-        listTags({ tagOrder: '001' }).then(response => {
+    if (flawList.value.length === 0) {
+        const flawPromise = listTags({ tagOrder: '001' }).then(response => {
             flawList.value = response.rows;
         });
+        promises.push(flawPromise);
     }
 
     // 获取预估列表
-    if (estimateList.value.length == 0) {
-        listTags({ tagOrder: '002' }).then(response => {
+    if (estimateList.value.length === 0) {
+        const estimatePromise = listTags({ tagOrder: '002' }).then(response => {
             estimateList.value = response.rows;
         });
+        promises.push(estimatePromise);
     }
 
     // 获取品牌列表
-    if (brandList.value.length == 0) {
-        listTags({ tagOrder: '004' }).then(response => {
+    if (brandList.value.length === 0) {
+        const brandPromise = listTags({ tagOrder: '004' }).then(response => {
             brandList.value = response.rows;
         });
+        promises.push(brandPromise);
     }
+
+    // 等待所有异步操作完成防止衣物列表数据加载完后这里的数据没有准备好而出错
+    await Promise.all(promises);
 }
 // 取消按钮
 function cancel() {
@@ -368,16 +378,21 @@ function handleShowPicture(row, flag) {
     showPicture.value = true;
     getCloths(row.clothId).then(response => {
         if (flag) {
-            pictureList.value = response.data.beforePics ? response.data.beforePics.split(',') : [];
+            pictureList.value = response.data.beforePics ?
+                response.data.beforePics.split(',').map(item => pictureUrl.value + item) : [];
         } else {
-            pictureList.value = response.data.afterPics ? response.data.afterPics.split(',') : [];
+            pictureList.value = response.data.afterPics ?
+                response.data.afterPics.split(',').map(item => pictureUrl.value + item) : [];
         }
         console.log(pictureList.value)
     });
 
 }
-initList();
-getList();
+
+onMounted(async () => {
+    await initList();  // 确保 initList 完成
+    getList();         // 在 initList 完成后调用
+});
 </script>
 
 <style scoped>
@@ -399,11 +414,17 @@ getList();
     align-items: center;
 }
 
-.picture-list {
+.img-container {
     display: flex;
-    flex-direction: column;
-    justify-content: center;
+    flex-wrap: wrap;
+    justify-content: flex-start;
     align-items: center;
     gap: 1rem;
+}
+
+.img-item {
+    flex: 1 1 calc(33.333% - 1rem);
+    /* 每行 3 个元素 */
+    box-sizing: border-box;
 }
 </style>

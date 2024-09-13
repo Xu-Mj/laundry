@@ -122,14 +122,14 @@
                         <el-radio-group v-model="form.clothingCategory">
                             <el-radio v-for="dict in sys_cloth_cate" :key="dict.value" :value="dict.value">{{
                                 dict.label
-                                }}</el-radio>
+                            }}</el-radio>
                         </el-radio-group>
                     </el-form-item>
                     <el-form-item label="衣物类别">
                         <el-radio-group v-model="form.clothingStyle">
                             <el-radio v-for="dict in sys_cloth_style" :key="dict.value" :value="dict.value">{{
                                 dict.label
-                                }}</el-radio>
+                            }}</el-radio>
                         </el-radio-group>
                     </el-form-item>
                     <el-row class="footer-btn">
@@ -166,7 +166,7 @@
                         <el-radio-group class="color-radio-group" v-model="form.clothingId" @change="step2ClothChange">
                             <el-radio v-for="color in clothingList" :key="color.clothingId" :value="color.clothingId">{{
                                 color.clothingName
-                                }}</el-radio>
+                            }}</el-radio>
                         </el-radio-group>
                     </el-row>
                     <el-row class="footer-btn">
@@ -372,7 +372,7 @@
                     <el-row>
                         <el-col :span="12">
                             <el-form-item>
-                                <el-input type="textarea" v-model="form.remark" class="remark" />
+                                <el-input type="textarea" v-model="form.remark" class="remark" placeholder="点击输入备注信息"/>
                             </el-form-item>
                         </el-col>
                         <el-col :span="12" class="final-btn">
@@ -517,6 +517,7 @@ function getList() {
         })
     }
 }
+
 // 取消按钮
 function cancel() {
     open.value = false;
@@ -603,6 +604,7 @@ async function initList() {
 
     // 等待所有异步操作完成防止衣物列表数据加载完后这里的数据没有准备好而出错
     await Promise.all(promises);
+    console.log('初始化完成')
 }
 
 /** 新增按钮操作 */
@@ -889,8 +891,11 @@ function handleCloseUploadPic() {
     showUploadPicture.value = false;
 }
 
-await initList();
-getList();
+onMounted(async () => {
+    await initList();  // 确保 initList 完成
+    console.log('准备获取列表');
+    getList();         // 在 initList 完成后调用
+});
 </script>
 <style scoped>
 .app-container {

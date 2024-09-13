@@ -343,7 +343,7 @@
           <el-col class="right" :span="5">
             <div class="btn-container">
               <button type="button" @click="submitForm">取衣收款</button>
-              <button type="button" @click="">卡券购买</button>
+              <button type="button" @click="handleShowCouponSale">卡券购买</button>
               <button type="button" @click="createAndPay">收衣收款</button>
               <button type="button" @click="cancel">取 消</button>
             </div>
@@ -420,6 +420,12 @@
         </div>
       </template>
     </el-dialog>
+
+    <!-- 卡券售卖弹窗 -->
+    <el-dialog title="卡券购买" v-model="showCouponSale" width="1080px" append-to-body lock-scroll modal
+      :close-on-click-modal="false">
+      <CouponSale :userId="form.userId" :submit="submitCouponSale" />"
+    </el-dialog>
   </div>
 </template>
 
@@ -430,8 +436,6 @@ import { listOrders, getOrders, delOrders, addOrders, updateOrders } from "@/api
 import { listUser, getUser } from "@/api/system/user";
 import { delCloths } from "@/api/system/cloths";
 import { listUserCoupon } from '@/api/system/user_coupon';
-import AddCloth from "./addCloth.vue";
-import ShowCloths from './showCloths.vue';
 import { isCurrentTimeWithinRange, getFutureDate } from "@/utils";
 import { listDispatch } from '@/api/system/dispatch';
 import { refund } from '@/api/system/orders';
@@ -439,6 +443,9 @@ import { addRecord } from '@/api/system/notice_record';
 import { listTemplate } from '@/api/system/template';
 import { getRefundInfo, pay } from "@/api/system/orders";
 import { getConfigKey } from '@/api/system/config';
+import AddCloth from "./addCloth.vue";
+import ShowCloths from './showCloths.vue';
+import CouponSale from './couponSale.vue';
 
 const { proxy } = getCurrentInstance();
 const {
@@ -481,6 +488,7 @@ const showNoticeDialog = ref(false);
 const showRefundDialog = ref(false);
 const showCreateUser = ref(false);
 const showPaymentDialog = ref(false);
+const showCouponSale = ref(false);
 const loading = ref(true);
 const showSearch = ref(true);
 const ids = ref([]);
@@ -556,7 +564,6 @@ const { queryParams, form, paymentForm, refundForm, notifyForm, rules, refundRul
 watch(() => form.value.cloths, (newVal) => {
   console.log('form.cloths changed:', newVal);
   checkCoupon();
-  console.log('user coupon list', userCouponList.value)
   if (form.value.adjust.totalAmount) {
     proxy.$modal.msgWarning('衣物列表发生变动，请重新填写订单金额');
     form.adjust.totalAmount = null;
@@ -564,9 +571,20 @@ watch(() => form.value.cloths, (newVal) => {
   adjustInput();
 });
 
-function changeCoupon(couponType) {
-  console.log('changeCoupon', paymentForm.value, couponType)
+/* 卡券购买完成后的回调，重新获取卡券列表 */
+function submitCouponSale() {
+  listUserCoupon({ userId: form.userId }).then(response => {
+    userCouponList.value = response.rows;
+    checkCoupon();
+  });
+  showCouponSale.value = false;
+}
 
+function handleShowCouponSale() {
+  showCouponSale.value = true;
+}
+
+function changeCoupon(couponType) {
   if (couponType == 1) {
     paymentForm.value.couponId = null;
     paymentForm.value.bonusAmount = 0;
@@ -641,7 +659,6 @@ function checkCoupon() {
 
   // 判断每个卡券是否有效
   for (const item of userCouponList.value) {
-    console.log(item)
     item.isValid = true;
     item.unValidReason = '';
     // 判断有效期
@@ -704,12 +721,16 @@ function cancel() {
     .then(() => {
       // 请求服务器删除添加的衣物列表
       if (!form.value.orderId && form.value.cloths.length > 0) {
-        delCloths(form.value.cloths.map(item => item.clothId)).catch(res => {
+        delCloths(form.value.cloths.map(item => item.clothId)).then(res => {
+          reset();
+          open.value = false;
+        }).catch(res => {
           console.error(res)
         })
+      } else {
+        open.value = false;
+        reset();
       }
-      open.value = false;
-      reset();
     })
     .catch(() => {
       // catch error
@@ -781,11 +802,11 @@ function resetQuery() {
 }
 
 // 多选框选中数据
-function handleSelectionChange(selection) {
-  ids.value = selection.map(item => item.orderId);
-  single.value = selection.length != 1;
-  multiple.value = !selection.length;
-}
+// function handleSelectionChange(selection) {
+//   ids.value = selection.map(item => item.orderId);
+//   single.value = selection.length != 1;
+//   multiple.value = !selection.length;
+// }
 
 /** 新增按钮操作 */
 function handleAdd() {
@@ -829,7 +850,6 @@ function submitForm() {
         proxy.$modal.msgError("衣物信息不能为空");
         return;
       }
-      debugger
       form.value.clothsIds = form.value.cloths.map(item => item.clothId);
       if (form.value.adjust.adjustValueAdd || form.value.adjust.adjustValueSub || form.value.adjust.totalAmount) {
         form.value.adjust.orderId = form.value.orderId;

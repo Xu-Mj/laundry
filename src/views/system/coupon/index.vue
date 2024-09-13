@@ -186,14 +186,20 @@
         </el-row>
         <el-row>
           <el-col :span="12">
-            <el-form-item label="总量限制" prop="customerSaleTotal">
-              <el-input-number v-model="form.customerSaleTotal" controls-position="right" placeholder="请输入总量限制" />
-            </el-form-item>
+            <el-tooltip content="卡券可出售总量限制，'-1'为不限制">
+              <el-form-item label="总量限制" prop="customerSaleTotal">
+                <el-input-number min="-1" v-model="form.customerSaleTotal" controls-position="right"
+                  placeholder="-1为不限制" />
+              </el-form-item>
+            </el-tooltip>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="单用户数量限制" prop="customerSaleCount">
-              <el-input-number v-model="form.customerSaleCount" controls-position="right" placeholder="请输入单用户数量限制" />
-            </el-form-item>
+            <el-tooltip content="单用户可购买数量限制，'-1'为不限制">
+              <el-form-item label="单用户数量限制" prop="customerSaleCount">
+                <el-input-number :min="-1" v-model="form.customerSaleCount" controls-position="right"
+                  placeholder="-1为不限制" />
+              </el-form-item>
+            </el-tooltip>
           </el-col>
         </el-row>
         <el-row>
@@ -260,8 +266,10 @@
           <el-table-column label="有效期" align="center" key="validTo" prop="validTo" />
           <el-table-column label="数量" align="center" key="validTo">
             <template #default="scope">
-              <el-input-number v-model="scope.row.count" :min="0"
-                :max="scope.row.customerSaleCount < scope.row.customerSaleTotal ? scope.row.customerSaleCount : scope.row.customerSaleTotal"
+              <el-input-number v-model="scope.row.count" :min="0" :max="(scope.row.customerSaleCount != -1 && scope.row.customerSaleTotal != -1)
+                ? Math.min(scope.row.customerSaleCount, scope.row.customerSaleTotal)
+                : (scope.row.customerSaleTotal != -1 ? scope.row.customerSaleTotal
+                  : (scope.row.customerSaleCount != -1 ? scope.row.customerSaleCount : Infinity))"
                 controls-position="right" />
             </template>
           </el-table-column>
@@ -570,6 +578,7 @@ function handleShowSell() {
   showSell.value = true;
   resetSellForm();
 }
+
 /* 根据手机号搜索用户列表 */
 function searchUserByTel(tel) {
   // if (!tel || tel.length < 4) { return }

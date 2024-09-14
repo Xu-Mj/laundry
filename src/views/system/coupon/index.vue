@@ -52,7 +52,7 @@
           <dict-tag :options="sys_coupon_type" :value="scope.row.couponType" />
         </template>
       </el-table-column>
-      <el-table-column label="卡券面值" align="center" prop="couponValue" v-if="columns[3].visible" />
+      <el-table-column label="售卖价格" align="center" prop="couponValue" v-if="columns[3].visible" />
       <el-table-column label="最低消费金额" align="center" prop="minSpend" width="120" v-if="columns[4].visible" />
       <el-table-column label="客户可见" align="center" prop="customerInvalid" v-if="columns[5].visible">
         <template #default="scope">
@@ -121,9 +121,9 @@
         <el-row>
           <el-col :span="12">
             <el-tooltip content="售价" placement="top">
-              <el-form-item label="卡券面值" prop="couponValue">
+              <el-form-item label="售卖价格" prop="couponValue">
                 <el-input-number v-model="form.couponValue" @change="form.usageValue = form.couponValue"
-                  controls-position="right" placeholder="请输入卡券面值" />
+                  controls-position="right" placeholder="请输入售卖价格" />
               </el-form-item>
             </el-tooltip>
           </el-col>

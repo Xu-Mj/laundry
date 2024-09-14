@@ -8,18 +8,16 @@
         <el-input v-model="queryParams.userId" placeholder="请输入会员手机号" clearable @keyup.enter="handleQuery" />
       </el-form-item>
       <el-form-item label="时效预警" prop="costTimeAlarm">
-        <el-select v-model="queryParams.costTimeAlarm" style="width: 150px;" placeholder="请选择">
-          <el-option v-for="dict in sys_cost_time_alarm" :key="dict.value" :label="dict.label"
-            :value="dict.value"></el-option>
+        <el-select v-model="queryParams.costTimeAlarm" @change="handleQuery" clearable style="width: 150px;" placeholder="请选择">
+          <el-option v-for="dict in sys_cost_time_alarm" :key="dict.value" :label="dict.label" :value="dict.value" />
         </el-select>
       </el-form-item>
       <el-form-item label="取件码" prop="pickupCode">
         <el-input v-model="queryParams.pickupCode" placeholder="请输入取件码" clearable @keyup.enter="handleQuery" />
       </el-form-item>
       <el-form-item label="支付状态" prop="paymentStatus">
-        <el-select v-model="queryParams.paymentStatus" style="width: 150px;" placeholder="请选择支付状态">
-          <el-option v-for="dict in sys_payment_status" :key="dict.value" :label="dict.label"
-            :value="dict.value"></el-option>
+        <el-select v-model="queryParams.paymentStatus" @change="handleQuery" clearable style="width: 150px;" placeholder="请选择支付状态">
+          <el-option v-for="dict in sys_payment_status" :key="dict.value" :label="dict.label" :value="dict.value" />
         </el-select>
       </el-form-item>
       <el-form-item>
@@ -304,7 +302,7 @@
                 </el-form-item>
               </el-col>
               <el-col :span="4">
-                <el-button type="primary" @click="printOrder">打印</el-button>
+                <el-button type="primary" plain @click="printOrder">打印</el-button>
               </el-col>
 
             </el-row>
@@ -339,13 +337,12 @@
               </div>
             </el-form-item>
           </el-col>
-          <el-divider direction="vertical" border-style="dashed" style="height: auto;" />
-          <el-col class="right" :span="5">
+          <el-col class="right" :span="6">
             <div class="btn-container">
-              <button type="button" @click="submitForm">取衣收款</button>
-              <button type="button" @click="handleShowCouponSale">卡券购买</button>
-              <button type="button" @click="createAndPay">收衣收款</button>
-              <button type="button" @click="cancel">取 消</button>
+              <el-button type="success" plain @click="createAndPay">收衣收款</el-button>
+              <el-button type="info" plain @click="handleShowCouponSale">卡券购买</el-button>
+              <el-button type="primary" plain @click="submitForm">保 存</el-button>
+              <el-button type="warning" plain @click="cancel">取 消</el-button>
             </div>
           </el-col>
         </el-row>
@@ -532,20 +529,11 @@ const data = reactive({
     orderType: null,
   },
   rules: {
-    orderNumber: [
-      { required: true, message: "订单编码不能为空", trigger: "blur" }
-    ],
     businessType: [
       { required: true, message: "业务类型不能为空", trigger: "change" }
     ],
     userId: [
       { required: true, message: "所属会员ID不能为空", trigger: "blur" }
-    ],
-    desireCompleteTime: [
-      { required: true, message: "预计完成时间不能为空", trigger: "blur" }
-    ],
-    deliveryMode: [
-      { required: true, message: "取回方式不能为空", trigger: "change" }
     ],
     source: [
       { required: true, message: "订单来源不能为空", trigger: "blur" }
@@ -717,6 +705,11 @@ function getList() {
 
 // 取消按钮
 function cancel() {
+  if (!form.value.userId) {
+    reset();
+    open.value = false;
+    return;
+  }
   ElMessageBox.confirm('确认取消操作订单？此操作不可逆！')
     .then(() => {
       // 请求服务器删除添加的衣物列表
@@ -1112,6 +1105,7 @@ getList();
   display: flex;
   justify-content: center;
   align-items: center;
+  border-left: 1px dashed #ccc;
 }
 
 .btn-container {
@@ -1119,18 +1113,16 @@ getList();
   grid-template-columns: repeat(2, 1fr);
   /* 创建两列，每列等宽 */
   grid-template-rows: repeat(2, 1fr);
+  justify-content: center;
+  align-items: center;
   /* 创建两行，每行等高 */
   gap: 1rem;
 
   button {
     width: 100%;
-    height: 2rem;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    cursor: pointer;
-    border-radius: .2rem;
-
+    height: 2.5rem;
+    margin: 0;
+    font-size: large;
   }
 }
 

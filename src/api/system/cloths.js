@@ -50,6 +50,15 @@ export function updateCloths(data) {
   })
 }
 
+// 上挂
+export function hangup(data) {
+  return request({
+    url: '/system/cloths/hang',
+    method: 'put',
+    data: data
+  })
+}
+
 // 删除订单包含的衣物清单
 export function delCloths(orderClothId) {
   return request({

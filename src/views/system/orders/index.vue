@@ -224,7 +224,7 @@
     </el-dialog>
     <!-- 衣物列表弹窗 -->
     <el-dialog title="衣物" v-model="showClothListDialog" width="1440px" append-to-body>
-      <ShowCloths :orderId="currentOrderId" :key="currentOrderId" />
+      <ShowCloths :orderId="currentOrderId" :flashList="getList" :key="currentOrderId" />
     </el-dialog>
 
     <!-- 添加或修改洗护服务订单对话框 -->

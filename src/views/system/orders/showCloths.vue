@@ -9,7 +9,7 @@
                         scope.row.clothingColor).tagName : '' }}
                 </template>
             </el-table-column>
-            <el-table-column label="服务类型" align="center">
+            <el-table-column label="服务类型" :width="120" align="center">
                 <template #default="scope">
                     <span class="service-type">
                         <dict-tag :options="sys_service_type" :value="scope.row.serviceType" />
@@ -56,11 +56,13 @@
             <el-table-column label="操作" align="center" :width="280" class-name="small-padding fixed-width">
                 <template #default="scope">
                     <el-button link type="primary" icon="Picture" @click="handleShowPicture(scope.row, true)"
-                        v-hasPermi="['system:cloths:edit']">洗前图像</el-button>
+                        v-hasPermi="['system:cloths:edit']">洗前</el-button>
                     <el-button link type="primary" icon="Picture" @click="handleShowPicture(scope.row, false)"
-                        v-hasPermi="['system:cloths:edit']">洗后图像</el-button>
+                        v-hasPermi="['system:cloths:edit']">洗后</el-button>
                     <el-button link type="primary" icon="Top" @click="handleShowHangUp(scope.row)"
-                        v-if="scope.row.clothingStatus == '01'" v-hasPermi="['system:cloths:remove']">上挂</el-button>
+                        v-if="scope.row.clothingStatus == '01'" v-hasPermi="['system:cloths:remove']">
+                        上挂
+                    </el-button>
                 </template>
             </el-table-column>
         </el-table>
@@ -68,8 +70,9 @@
         <!-- <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum"
             v-model:limit="queryParams.pageSize" @pagination="getList" /> -->
         <div class="footer">
-            <el-button type="warning" :disabled="afterSaleDisabled" @click="afterSale">售后</el-button>
-            <el-button type="danger" :disabled="compensationDisabled" @click="compensate">赔偿</el-button>
+            <el-button type="success" plain :disabled="pickupDisabled" @click="afterSale">取走</el-button>
+            <el-button type="warning" plain :disabled="afterSaleDisabled" @click="afterSale">售后</el-button>
+            <el-button type="danger" plain :disabled="compensationDisabled" @click="compensate">赔偿</el-button>
         </div>
 
         <!-- 展示照片 -->
@@ -79,7 +82,7 @@
                     v-for="(item, index) in pictureList" :key="index" fit="contain" />
             </div>
         </el-dialog>
-        <!-- 添加或修改订单包含的衣物清单对话框 -->
+        <!-- 上挂对话框 -->
         <el-dialog :title="title" v-model="showHangUp" width="400px" :show-close="false" append-to-body
             :before-close="closeHangUpDialog">
             <el-form ref="hangUpRef" :model="hangForm" :rules="hangRules" label-width="80px">
@@ -96,11 +99,11 @@
                             currentCloth.clothingBrand).tagName : '' }}
                 </el-form-item>
 
-                <el-form-item label="衣挂位置" prop="hangLocationCode">
-                    <el-input v-model="hangForm.hangLocationCode" placeholder="请输入上挂位置编码" />
+                <el-form-item label="衣挂位置" prop="hangLocationId">
+                    <el-input v-model="hangForm.hangLocationId" placeholder="请输入上挂位置编码" />
                 </el-form-item>
-                <el-form-item label="衣挂编号" prop="hangClothCode">
-                    <el-input v-model="hangForm.hangClothCode" placeholder="请输入上挂衣物编码" />
+                <el-form-item label="衣挂编号" prop="hangerNumber">
+                    <el-input v-model="hangForm.hangerNumber" placeholder="请输入上挂衣物编码" />
                 </el-form-item>
                 <el-form-item label="备注信息" prop="hangRemark">
                     <el-input type="textarea" v-model="hangForm.hangRemark" placeholder="请输入上挂描述信息" />
@@ -119,13 +122,18 @@
 import { listCloths, addCloths, updateCloths } from "@/api/system/cloths";
 import { listTags } from "@/api/system/tags";
 import { ref } from "vue";
-import { getCloths } from "@/api/system/cloths";
+import { getCloths, hangup } from "@/api/system/cloths";
+import { getAvailableRack } from "@/api/system/rack";
 
 const props = defineProps({
     orderId: {
         type: Number,
         required: true,
         default: 0
+    },
+    flashList:{
+        type: Function,
+        required: true,
     }
 });
 
@@ -151,6 +159,7 @@ const brandList = ref([]);
 
 const afterSaleDisabled = ref(true);
 const compensationDisabled = ref(true);
+const pickupDisabled = ref(true);
 const baseUrl = import.meta.env.VITE_APP_BASE_API;
 const pictureUrl = ref(baseUrl + "/system/cloths/download/");
 const data = reactive({
@@ -201,7 +210,7 @@ const data = reactive({
         clothingNumber: [
             { required: true, message: "衣物编码不能为空", trigger: "change" }
         ],
-        hangLocationCode: [
+        hangLocationId: [
             { required: true, message: "衣挂位置不能为空", trigger: "blur" }
         ],
         hangClothCode: [
@@ -308,11 +317,16 @@ function handleSelectionChange(selection) {
         afterSaleDisabled.value = true;
     }
 
+    // 当勾选的订单中有已上挂的衣物，则显示取走/赔偿按钮
     if (selectionList.value.find(item => item.clothingStatus == '02')) {
+        pickupDisabled.value = false;
         compensationDisabled.value = false;
     } else {
+        pickupDisabled.value = true;
         compensationDisabled.value = true;
     }
+
+
 }
 
 
@@ -340,9 +354,17 @@ function submitForm() {
 
 /* 显示上挂 */
 function handleShowHangUp(row) {
-    showHangUp.value = true;
-    currentCloth.value = row;
-    console.log(row)
+    // 查找最合适的衣挂位置
+    getAvailableRack().then(res => {
+        showHangUp.value = true;
+        currentCloth.value = row;
+        hangForm.value = {
+            clothId: row.clothId,
+            hangLocationId: res.data.id,
+            hangerNumber: res.data.remainingCapacity,
+            hangRemark: null
+        };
+    })
 }
 
 /* 赔偿 */
@@ -357,6 +379,14 @@ function hangUp() {
             if (valid) {
                 console.log(currentCloth.value)
                 console.log(hangForm.value)
+                hangup(hangForm.value).then(res => {
+                    proxy.$modal.msgSuccess("上挂成功");
+                    showHangUp.value = false;
+                    getList();
+                    props.flashList();
+                }).catch(res => {
+                    proxy.$modal.msgError(res.msg);
+                })
             }
         });
     }

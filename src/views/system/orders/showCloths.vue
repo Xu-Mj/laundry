@@ -50,8 +50,12 @@
             </el-table-column>
             <el-table-column label="取回方式" align="center" prop="deliveryMode" />
             <el-table-column label="取回时间" align="center" prop="deliveredTime" />
-            <!-- <el-table-column label="上挂位置编码" align="center" prop="hangLocationCode" />
-            <el-table-column label="上挂衣物编码" align="center" prop="hangClothCode" />
+            <el-table-column label="上挂位置" align="center">
+                <template #default="scope">
+                    {{ scope.row.hangLocationCode? scope.row.hangerName + '-' + scope.row.hangerNumber : '' }}
+                </template>
+            </el-table-column>
+            <!-- <el-table-column label="上挂衣物编码" align="center" prop="hangClothCode" />
             <el-table-column label="上挂描述信息" align="center" prop="hangRemark" /> -->
             <el-table-column label="操作" align="center" :width="280" class-name="small-padding fixed-width">
                 <template #default="scope">

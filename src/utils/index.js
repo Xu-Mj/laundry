@@ -1,5 +1,35 @@
 import { parseTime } from './ruoyi'
 
+export function isCurrentTimeWithinRange(validFrom, validTo) {
+  const currentTime = new Date(); // 当前时间
+  const startTime = new Date(validFrom); // 有效期开始时间
+  const endTime = new Date(validTo); // 有效期结束时间
+
+  // 判断当前时间是否在有效期内
+  return currentTime >= startTime && currentTime <= endTime;
+}
+
+/**
+ * 计算从当前日期起到指定天数后的日期
+ * @param {number} days 需要计算的天数
+ * @returns {Date} 计算后的日期
+ */
+export function getFutureDate(days) {
+  // 判断参数合法性，若不合法则默认为7天
+  const validDays = typeof days === 'number' && days >= 0 ? days : 7;
+
+  // 获取当前日期
+  const currentDate = new Date();
+  
+  // 创建一个新的日期对象，避免修改当前日期对象
+  const futureDate = new Date(currentDate);
+  
+  // 添加指定的天数
+  futureDate.setDate(currentDate.getDate() + validDays);
+  
+  return formatDate(futureDate);
+}
+
 /**
  * 表格时间格式化
  */

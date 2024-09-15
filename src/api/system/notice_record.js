@@ -42,3 +42,20 @@ export function delRecord(noticeId) {
     method: 'delete'
   })
 }
+
+// 删除所有通知记录管理
+export function delAllRecord() {
+  return request({
+    url: '/system/notice-record/',
+    method: 'delete'
+  })
+}
+
+// 删除30天通知记录管理
+export function delRecordsByDay(day) {
+  return request({
+    url: '/system/notice-record/day/' + day,
+    method: 'delete'
+  })
+}
+

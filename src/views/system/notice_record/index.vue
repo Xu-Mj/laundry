@@ -73,6 +73,7 @@
 
 <script setup name="Record">
 import { listRecord, getRecord, delRecord, addRecord, updateRecord } from "@/api/system/notice_record";
+import { delAllRecord, delRecordsByDay } from "../../../api/system/notice_record";
 
 const { proxy } = getCurrentInstance();
 const { sys_notice_result, sys_notice_method } = proxy.useDict("sys_notice_result", "sys_notice_method");
@@ -226,12 +227,19 @@ function submitForm() {
 
 /** 删除按钮操作 */
 function handleDelete() {
+  delRecordsByDay(30).then(res => {
+    proxy.$modal.msgSuccess("删除成功");
+    getList();
+  })
 
 }
 
 /** 清空所有按钮操作 */
 function handleDeleteAll() {
-
+  delAllRecord().then(res => {
+    proxy.$modal.msgSuccess("删除成功");
+    getList();
+  })
 }
 
 /** 导出按钮操作 */

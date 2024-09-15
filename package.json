@@ -10,7 +10,7 @@
     "build:prod": "vite build",
     "build:stage": "vite build --mode staging",
     "preview": "vite preview",
-    "electron": "electron ." 
+    "electron": "electron ."
   },
   "repository": {
     "type": "git",
@@ -29,6 +29,8 @@
     "jsencrypt": "3.3.2",
     "nprogress": "0.2.0",
     "pinia": "2.1.7",
+    "pinyin": "^4.0.0-alpha.2",
+    "segmentit": "^2.0.3",
     "vue": "3.4.31",
     "vue-cropper": "1.1.1",
     "vue-router": "4.4.0"

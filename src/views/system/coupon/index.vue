@@ -52,7 +52,7 @@
           <dict-tag :options="sys_coupon_type" :value="scope.row.couponType" />
         </template>
       </el-table-column>
-      <el-table-column label="卡券面值" align="center" prop="couponValue" v-if="columns[3].visible" />
+      <el-table-column label="售卖价格" align="center" prop="couponValue" v-if="columns[3].visible" />
       <el-table-column label="最低消费金额" align="center" prop="minSpend" width="120" v-if="columns[4].visible" />
       <el-table-column label="客户可见" align="center" prop="customerInvalid" v-if="columns[5].visible">
         <template #default="scope">
@@ -121,9 +121,9 @@
         <el-row>
           <el-col :span="12">
             <el-tooltip content="售价" placement="top">
-              <el-form-item label="卡券面值" prop="couponValue">
+              <el-form-item label="售卖价格" prop="couponValue">
                 <el-input-number v-model="form.couponValue" @change="form.usageValue = form.couponValue"
-                  controls-position="right" placeholder="请输入卡券面值" />
+                  controls-position="right" placeholder="请输入售卖价格" />
               </el-form-item>
             </el-tooltip>
           </el-col>
@@ -186,14 +186,20 @@
         </el-row>
         <el-row>
           <el-col :span="12">
-            <el-form-item label="总量限制" prop="customerSaleTotal">
-              <el-input-number v-model="form.customerSaleTotal" controls-position="right" placeholder="请输入总量限制" />
-            </el-form-item>
+            <el-tooltip content="卡券可出售总量限制，'-1'为不限制">
+              <el-form-item label="总量限制" prop="customerSaleTotal">
+                <el-input-number min="-1" v-model="form.customerSaleTotal" controls-position="right"
+                  placeholder="-1为不限制" />
+              </el-form-item>
+            </el-tooltip>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="单用户数量限制" prop="customerSaleCount">
-              <el-input-number v-model="form.customerSaleCount" controls-position="right" placeholder="请输入单用户数量限制" />
-            </el-form-item>
+            <el-tooltip content="单用户可购买数量限制，'-1'为不限制">
+              <el-form-item label="单用户数量限制" prop="customerSaleCount">
+                <el-input-number :min="-1" v-model="form.customerSaleCount" controls-position="right"
+                  placeholder="-1为不限制" />
+              </el-form-item>
+            </el-tooltip>
           </el-col>
         </el-row>
         <el-row>
@@ -260,8 +266,10 @@
           <el-table-column label="有效期" align="center" key="validTo" prop="validTo" />
           <el-table-column label="数量" align="center" key="validTo">
             <template #default="scope">
-              <el-input-number v-model="scope.row.count" :min="0"
-                :max="scope.row.customerSaleCount < scope.row.customerSaleTotal ? scope.row.customerSaleCount : scope.row.customerSaleTotal"
+              <el-input-number v-model="scope.row.count" :min="0" :max="(scope.row.customerSaleCount != -1 && scope.row.customerSaleTotal != -1)
+                ? Math.min(scope.row.customerSaleCount, scope.row.customerSaleTotal)
+                : (scope.row.customerSaleTotal != -1 ? scope.row.customerSaleTotal
+                  : (scope.row.customerSaleCount != -1 ? scope.row.customerSaleCount : Infinity))"
                 controls-position="right" />
             </template>
           </el-table-column>
@@ -570,6 +578,7 @@ function handleShowSell() {
   showSell.value = true;
   resetSellForm();
 }
+
 /* 根据手机号搜索用户列表 */
 function searchUserByTel(tel) {
   // if (!tel || tel.length < 4) { return }

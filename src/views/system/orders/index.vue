@@ -8,7 +8,8 @@
         <el-input v-model="queryParams.userId" placeholder="请输入会员手机号" clearable @keyup.enter="handleQuery" />
       </el-form-item>
       <el-form-item label="时效预警" prop="costTimeAlarm">
-        <el-select v-model="queryParams.costTimeAlarm" @change="handleQuery" clearable style="width: 150px;" placeholder="请选择">
+        <el-select v-model="queryParams.costTimeAlarm" @change="handleQuery" clearable style="width: 150px;"
+          placeholder="请选择">
           <el-option v-for="dict in sys_cost_time_alarm" :key="dict.value" :label="dict.label" :value="dict.value" />
         </el-select>
       </el-form-item>
@@ -16,7 +17,8 @@
         <el-input v-model="queryParams.pickupCode" placeholder="请输入取件码" clearable @keyup.enter="handleQuery" />
       </el-form-item>
       <el-form-item label="支付状态" prop="paymentStatus">
-        <el-select v-model="queryParams.paymentStatus" @change="handleQuery" clearable style="width: 150px;" placeholder="请选择支付状态">
+        <el-select v-model="queryParams.paymentStatus" @change="handleQuery" clearable style="width: 150px;"
+          placeholder="请选择支付状态">
           <el-option v-for="dict in sys_payment_status" :key="dict.value" :label="dict.label" :value="dict.value" />
         </el-select>
       </el-form-item>
@@ -224,7 +226,7 @@
     </el-dialog>
     <!-- 衣物列表弹窗 -->
     <el-dialog title="衣物" v-model="showClothListDialog" width="1440px" append-to-body>
-      <ShowCloths :orderId="currentOrderId" :flashList="getList" :key="currentOrderId" />
+      <ShowCloths :orderId="currentOrderId" :flashList="getList" :userId="currentUserId" :key="currentOrderId" />
     </el-dialog>
 
     <!-- 添加或修改洗护服务订单对话框 -->
@@ -270,13 +272,6 @@
             <el-input v-model="form.adjust.remark" placeholder="备注信息" />
           </el-col>
         </el-form-item>
-        <!-- 用来测试，具体方式还没有确定 -->
-        <!-- <el-form-item label="取回方式">
-          <el-radio-group v-model="form.deliveryMode">
-            <el-radio v-for="item in sys_delivery_mode" :key="item.value" :value="item.value" :label="item.label">{{
-              item.label }}</el-radio>
-          </el-radio-group>
-        </el-form-item> -->
         <!-- 底部左侧信息区域，以及右侧按钮区域 -->
         <el-divider border-style="dashed" />
         <el-row class="footer">
@@ -489,8 +484,6 @@ const showCouponSale = ref(false);
 const loading = ref(true);
 const showSearch = ref(true);
 const ids = ref([]);
-const single = ref(true);
-const multiple = ref(true);
 const total = ref(0);
 const title = ref("");
 const expressInfo = ref({});
@@ -501,6 +494,7 @@ const priceDiff = ref(0);
 const couponStorageCardId = ref([]);
 
 const currentOrderId = ref(0);
+const currentUserId = ref(null);
 
 /* 单据打印数量 */
 const printCount = ref(1);
@@ -1001,6 +995,7 @@ function printOrder() {
 /* 展示衣物列表 */
 function showClothList(row) {
   currentOrderId.value = row.orderId;
+  currentUserId.value = row.userId;
   showClothListDialog.value = true;
 }
 

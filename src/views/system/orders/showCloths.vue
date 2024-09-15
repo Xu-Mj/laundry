@@ -52,7 +52,7 @@
             <el-table-column label="取回时间" align="center" prop="deliveredTime" />
             <el-table-column label="上挂位置" align="center">
                 <template #default="scope">
-                    {{ scope.row.hangLocationCode? scope.row.hangerName + '-' + scope.row.hangerNumber : '' }}
+                    {{ scope.row.hangLocationCode ? scope.row.hangerName + '-' + scope.row.hangerNumber : '' }}
                 </template>
             </el-table-column>
             <!-- <el-table-column label="上挂衣物编码" align="center" prop="hangClothCode" />
@@ -74,7 +74,7 @@
         <!-- <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum"
             v-model:limit="queryParams.pageSize" @pagination="getList" /> -->
         <div class="footer">
-            <el-button type="success" plain :disabled="pickupDisabled" @click="afterSale">取走</el-button>
+            <el-button type="success" plain :disabled="pickupDisabled" @click="handlePickup">取走</el-button>
             <el-button type="warning" plain :disabled="afterSaleDisabled" @click="afterSale">售后</el-button>
             <el-button type="danger" plain :disabled="compensationDisabled" @click="compensate">赔偿</el-button>
         </div>
@@ -119,6 +119,26 @@
                 </div>
             </template>
         </el-dialog>
+
+        <!-- 取走对话框 -->
+        <el-dialog title="取走" v-model="showPickUpDialog" width="500px" append-to-body>
+            <el-form ref="pickupRef" :model="pickupForm" :rules="pickupRules" label-width="80px">
+                <el-form-item label="取走方式">
+                    <el-radio-group v-model="pickupForm.deliveryMode">
+                        <el-radio v-for="dict in sys_delivery_mode" :key="dict.value" :value="dict.value">
+                            {{ dict.label }}
+                        </el-radio>
+                    </el-radio-group>
+                </el-form-item>
+            </el-form>
+            <!-- 取消确认 -->
+            <template #footer>
+                <div class="pickup-footer">
+                    <el-button type="primary" @click="pickup">确认取走</el-button>
+                    <el-button type="primary" @click="cancelPickup">取消</el-button>
+                </div>
+            </template>
+        </el-dialog>
     </div>
 </template>
 
@@ -135,7 +155,7 @@ const props = defineProps({
         required: true,
         default: 0
     },
-    flashList:{
+    flashList: {
         type: Function,
         required: true,
     }
@@ -143,14 +163,15 @@ const props = defineProps({
 
 const { proxy } = getCurrentInstance();
 
-const { sys_cloth_cate, sys_clothing_status, sys_service_type, sys_service_requirement, } =
-    proxy.useDict("sys_cloth_cate", "sys_clothing_status", "sys_service_type", "sys_service_requirement");
+const { sys_delivery_mode, sys_clothing_status, sys_service_type, sys_service_requirement, } =
+    proxy.useDict("sys_delivery_mode", "sys_clothing_status", "sys_service_type", "sys_service_requirement");
 
 const selectionList = ref([]);
 const clothsList = ref([]);
 const pictureList = ref([]);
 const currentCloth = ref({});
 const showPicture = ref(false);
+const showPickUpDialog = ref(false);
 const open = ref(false);
 const loading = ref(true);
 const showHangUp = ref(false);
@@ -169,6 +190,7 @@ const pictureUrl = ref(baseUrl + "/system/cloths/download/");
 const data = reactive({
     form: {},
     hangForm: {},
+    pickupForm: {},
     queryParams: {
         pageNum: 1,
         pageSize: 10,
@@ -220,10 +242,11 @@ const data = reactive({
         hangClothCode: [
             { required: true, message: "衣挂编号不能为空", trigger: "blur" }
         ]
-    }
+    },
+    pickupRules: {}
 });
 
-const { queryParams, form, hangForm, hangRules } = toRefs(data);
+const { pickupForm, form, hangForm, hangRules } = toRefs(data);
 
 /** 查询订单包含的衣物清单列表 */
 function getList() {
@@ -312,6 +335,24 @@ function reset() {
     proxy.resetForm("clothsRef");
 }
 
+// 重置取走form
+function resetPickupForm() {
+    pickupForm.value = {
+        orderClothId: null,
+        clothingId: null,
+        clothingCategory: null,
+        clothingStyle: null,
+        clothingColor: null,
+        clothingFlaw: null,
+        estimate: null,
+        clothingBrand: null,
+        serviceType: null,
+        serviceRequirement: null,
+        beforePics: null,
+    }
+    proxy.resetForm("pickupRef");
+}
+
 // 多选框选中数据
 function handleSelectionChange(selection) {
     selectionList.value = selection;
@@ -329,32 +370,8 @@ function handleSelectionChange(selection) {
         pickupDisabled.value = true;
         compensationDisabled.value = true;
     }
-
-
 }
 
-
-
-/** 提交按钮 */
-function submitForm() {
-    proxy.$refs["clothsRef"].validate(valid => {
-        if (valid) {
-            if (form.value.orderClothId != null) {
-                updateCloths(form.value).then(response => {
-                    proxy.$modal.msgSuccess("修改成功");
-                    open.value = false;
-                    getList();
-                });
-            } else {
-                addCloths(form.value).then(response => {
-                    proxy.$modal.msgSuccess("新增成功");
-                    open.value = false;
-                    getList();
-                });
-            }
-        }
-    });
-}
 
 /* 显示上挂 */
 function handleShowHangUp(row) {
@@ -422,6 +439,21 @@ function handleShowPicture(row, flag) {
     });
 
 }
+
+// 显示取走
+function handlePickup() {
+    showPickUpDialog.value = true;
+}
+
+function pickup() {
+
+}
+
+function cancelPickup() {
+    showPickUpDialog.value = false;
+    resetPickupForm();
+}
+
 
 onMounted(async () => {
     await initList();  // 确保 initList 完成

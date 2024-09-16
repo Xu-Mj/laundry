@@ -4,8 +4,8 @@
       <el-form-item label="订单编码" prop="orderNumber">
         <el-input v-model="queryParams.orderNumber" placeholder="请输入订单编码" clearable @keyup.enter="handleQuery" />
       </el-form-item>
-      <el-form-item label="手机号" prop="userId">
-        <el-input v-model="queryParams.userId" placeholder="请输入会员手机号" clearable @keyup.enter="handleQuery" />
+      <el-form-item label="手机号" prop="phonenumber">
+        <el-input v-model="queryParams.phonenumber" placeholder="请输入会员手机号" clearable @keyup.enter="handleQuery" />
       </el-form-item>
       <el-form-item label="时效预警" prop="costTimeAlarm">
         <el-select v-model="queryParams.costTimeAlarm" @change="handleQuery" clearable style="width: 150px;"
@@ -511,7 +511,7 @@ const data = reactive({
     pageSize: 10,
     orderNumber: null,
     businessType: null,
-    userId: null,
+    phonenumber: null,
     desireCompleteTime: null,
     costTimeAlarm: null,
     pickupCode: null,

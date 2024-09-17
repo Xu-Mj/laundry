@@ -237,10 +237,10 @@
           <el-col :span="6">
             <el-form-item label="会员身份" prop="userId">
               <el-select v-model="form.userId" filterable :clearable="true" remote reserve-keyword
-                placeholder="请输入手机号码搜索" remote-show-suffix :remote-method="searchUserByTel" :loading="searchUserloading"
-                @change="selectUser" value-key="userId" style="width: 240px">
-                <el-option v-for="item in userList" :key="item.userId" :label="item.nickName + '\t' + item.phonenumber"
-                  :value="item.userId" />
+                placeholder="请输入手机号码搜索" allow-create @blur="handleBlur" remote-show-suffix
+                :remote-method="searchUserByTel" @change="selectUser" value-key="userId" style="width: 240px">
+                <el-option v-for="item in userListRes" :key="item.userId"
+                  :label="item.nickName + '\t' + item.phonenumber" :value="item.userId" />
               </el-select>
             </el-form-item>
           </el-col>
@@ -438,6 +438,7 @@ import { getConfigKey } from '@/api/system/config';
 import AddCloth from "./addCloth.vue";
 import ShowCloths from './showCloths.vue';
 import CouponSale from './couponSale.vue';
+import { addUser } from "../../../api/system/user";
 
 const { proxy } = getCurrentInstance();
 const {
@@ -467,6 +468,7 @@ const {
 const ordersList = ref([]);
 // 用户列表，创建/更新订单时选择框使用
 const userList = ref([]);
+const userListRes = ref([]);
 // 用户卡券列表
 const userCouponList = ref([]);
 // 通知模板列表
@@ -552,7 +554,14 @@ watch(() => form.value.cloths, (newVal) => {
   }
   adjustInput();
 });
-
+// 处理失去焦点的情况，保留用户输入
+const handleBlur = (event) => {
+  const inputValue = event.target.value;
+  if (!userListRes.value.some(item => item.userId === form.value.userId)) {
+    // 没有搜索结果且没有选择项时，保留输入
+    form.value.userId = inputValue;
+  }
+};
 /* 卡券购买完成后的回调，重新获取卡券列表 */
 function submitCouponSale() {
   listUserCoupon({ userId: form.userId }).then(response => {
@@ -798,12 +807,15 @@ function resetQuery() {
 /** 新增按钮操作 */
 function handleAdd() {
   reset();
-  open.value = true;
   title.value = "添加洗护服务订单";
   // 获取预计完成时间
   getConfigKey('desire_complete_time').then(res => {
     form.value.desireCompleteTime = getFutureDate(res.msg);
-  })
+  });
+  listUser().then(res => {
+    userList.value = res.rows;
+    open.value = true;
+  });
 }
 
 /** 修改按钮操作 */
@@ -822,6 +834,10 @@ function handleUpdate(row) {
     title.value = "修改服务订单";
   });
 
+  listUser().then(res => {
+    userList.value = res.rows;
+    userListRes.value = userList.value;
+  });
   // 获取用户卡券列表
   listUserCoupon({ userId: row.userId }).then(response => {
     userCouponList.value = response.rows;
@@ -829,9 +845,9 @@ function handleUpdate(row) {
 }
 
 /** 提交按钮 */
-function submitForm() {
+async function submitForm() {
   console.log(form.value)
-  proxy.$refs["ordersRef"].validate(valid => {
+  proxy.$refs["ordersRef"].validate(async valid => {
     if (valid) {
       if (!form.value.cloths || form.value.cloths.length == 0) {
         proxy.$modal.msgError("衣物信息不能为空");
@@ -840,6 +856,20 @@ function submitForm() {
       form.value.clothsIds = form.value.cloths.map(item => item.clothId);
       if (form.value.adjust.adjustValueAdd || form.value.adjust.adjustValueSub || form.value.adjust.totalAmount) {
         form.value.adjust.orderId = form.value.orderId;
+      }
+      console.log('user info:', showCreateUser.value, form.value.userId, form.value.nickName)
+      if (showCreateUser.value) {
+        try {
+          const res = await addUser({
+            phonenumber: form.value.userId,
+            nickName: form.value.nickName
+          });
+
+          form.value.userId = res.data; // 设置返回的用户ID
+        } catch (err) {
+          proxy.$modal.msgError(err);
+          return; // 当 addUser 出错时，中断执行
+        }
       }
       if (form.value.orderId != null) {
         updateOrders(form.value).then(response => {
@@ -950,15 +980,21 @@ function handleDelete(row) {
 
 /** 按手机号搜索会员 */
 function searchUserByTel(tel) {
-  searchUserloading.value = true;
-  listUser({ phonenumber: tel }).then(res => {
-    searchUserloading.value = false;
-    userList.value = res.rows;
-    // 没有查到数据
-    if (!userList.value || userList.value.length == 0) {
-      showCreateUser.value = true;
+  userListRes.value = userList.value.filter(item => item.phonenumber.includes(tel));
+  if (userListRes.value.length == 0) {
+    showCreateUser.value = true;
+    form.value.nickName = null;
+    userCouponList.value = [];
+  } else {
+    if (userListRes.value.length == 1) {
+      form.value.nickName = userListRes.value[0].nickName;
+      // 查询会员卡券信息
+      listUserCoupon({ userId: form.value.userId }).then(response => {
+        userCouponList.value = response.rows;
+      });
     }
-  });
+    showCreateUser.value = false;
+  }
 }
 
 
@@ -974,6 +1010,10 @@ const handleClose = (done) => {
 
 /* 选择会员信息 */
 function selectUser(userId) {
+  if (!userId || userId.length == 0) {
+    form.value.nickName = null;
+    return;
+  }
   const item = userList.value.find(item => { return item.userId === userId });
   form.value.nickName = item.nickName;
   // 查询会员卡券信息

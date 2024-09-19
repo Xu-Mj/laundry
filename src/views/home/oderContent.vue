@@ -197,7 +197,7 @@
             </el-form-item>
             <el-form-item label="储值卡">
                 <!-- 列出储值卡列表 -->
-                <el-checkbox-group v-model="couponStorageCardId" @change="changeCoupon(1)">
+                <el-checkbox-group v-if="selectedOrders.length<2" v-model="couponStorageCardId" @change="changeCoupon(1)">
                     <el-checkbox v-for="card in userCouponList.filter(item => item.coupon.couponType == '000')"
                         :disabled="!card.isValid" :key="card.ucId" :value="card.ucId">
                         {{ card.coupon.couponTitle }}
@@ -207,9 +207,10 @@
                         {{ card.isValid ? '' : '(' + card.unValidReason + ')' }}
                     </el-checkbox>
                 </el-checkbox-group>
+                <span v-else>多个订单暂时不支持使用卡券</span>
             </el-form-item>
             <el-form-item label="优惠券">
-                <el-radio-group v-model="paymentForm.couponId" @change="changeCoupon(2)">
+                <el-radio-group v-if="selectedOrders.length<2" v-model="paymentForm.couponId" @change="changeCoupon(2)">
                     <el-radio v-for="card in userCouponList.filter(item => item.coupon.couponType !== '000')"
                         :disabled="!card.isValid" :key="card.ucId" :value="card.ucId">
                         {{ card.coupon.couponTitle }}
@@ -219,6 +220,7 @@
                         {{ card.isValid ? '' : '(' + card.unValidReason + ')' }}
                     </el-radio>
                 </el-radio-group>
+                <span v-else>多个订单暂时不支持使用卡券</span>
             </el-form-item>
             <el-row>
                 <el-col :span="8">

@@ -9,6 +9,15 @@ export function listOrders(query) {
   })
 }
 
+// 查询洗护服务订单列表
+export function selectListExceptCompleted(query) {
+  return request({
+    url: '/system/orders/list/4index',
+    method: 'get',
+    params: query
+  })
+}
+
 // 查询洗护服务订单详细
 export function getOrders(orderId) {
   return request({

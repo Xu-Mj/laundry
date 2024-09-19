@@ -41,6 +41,23 @@ export function addCloths(data) {
   })
 }
 
+// 取走
+export function delivery(data) {
+  return request({
+    url: '/system/cloths/delivery',
+    method: 'post',
+    data: data
+  })
+}
+
+// 取走
+export function pickUp(ids) {
+  return request({
+    url: '/system/cloths/pickup/' + ids,
+    method: 'post',
+  })
+}
+
 // 修改订单包含的衣物清单
 export function updateCloths(data) {
   return request({

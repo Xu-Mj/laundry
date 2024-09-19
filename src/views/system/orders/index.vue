@@ -424,7 +424,7 @@
 <script setup name="Orders">
 import { watch } from "vue";
 import { ElMessageBox } from 'element-plus'
-import { listOrders, getOrders, delOrders, addOrders, updateOrders } from "@/api/system/orders";
+import { listOrders, getOrders, delOrders, addOrders, updateOrders,getRefundInfo, pay  } from "@/api/system/orders";
 import { listUser, getUser } from "@/api/system/user";
 import { delCloths } from "@/api/system/cloths";
 import { listUserCoupon } from '@/api/system/user_coupon';
@@ -433,7 +433,6 @@ import { listDispatch } from '@/api/system/dispatch';
 import { refund } from '@/api/system/orders';
 import { addRecord } from '@/api/system/notice_record';
 import { listTemplate } from '@/api/system/template';
-import { getRefundInfo, pay } from "@/api/system/orders";
 import { getConfigKey } from '@/api/system/config';
 import AddCloth from "./addCloth.vue";
 import ShowCloths from './showCloths.vue';

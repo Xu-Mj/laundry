@@ -85,7 +85,7 @@
          v-model:limit="queryParams.pageSize" @pagination="getList" />
 
       <!-- 添加或修改参数配置对话框 -->
-      <el-dialog :title="title" v-model="open" width="500px" append-to-body>
+      <el-dialog :title="title" v-model="open" :show-close="false" width="500px" append-to-body>
          <el-form ref="dataRef" :model="form" :rules="rules" label-width="80px">
             <el-form-item label="字典类型">
                <el-input v-model="form.dictType" :disabled="true" />
@@ -246,7 +246,6 @@ function resetQuery() {
 function handleAdd() {
    reset();
    open.value = true;
-   title.value = "添加字典数据";
    form.value.dictType = queryParams.value.dictType;
 }
 

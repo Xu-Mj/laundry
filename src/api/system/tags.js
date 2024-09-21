@@ -35,6 +35,15 @@ export function updateTags(data) {
   })
 }
 
+// 修改用于配置系统中用到的所有标准化的数据，包括衣物类型、衣物颜色、洗前瑕疵、以后预估等
+export function updateTagsRefNum(data) {
+  return request({
+    url: '/system/tags/update-ref-num',
+    method: 'put',
+    data: data
+  })
+}
+
 // 删除用于配置系统中用到的所有标准化的数据，包括衣物类型、衣物颜色、洗前瑕疵、以后预估等
 export function delTags(tagId) {
   return request({

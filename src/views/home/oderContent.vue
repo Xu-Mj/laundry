@@ -258,7 +258,7 @@ import { selectListExceptCompleted, pay } from "@/api/system/orders";
 import { listCloths, getCloths } from "@/api/system/cloths";
 import { listTags } from "@/api/system/tags";
 import { onMounted } from "vue";
-import { delivery, pickUp } from "../../api/system/cloths";
+import { delivery, pickUp } from ".@/api/system/cloths";
 import { listUserCoupon } from '@/api/system/user_coupon';
 import { isCurrentTimeWithinRange } from "@/utils";
 
@@ -660,6 +660,7 @@ watch(() => props.visible, async (newVal) => {
         getList(); // 当 visible 变为 true 时，加载数据
     } else {
         showOrderDialog.value = false; // 隐藏对话框
+        ordersList.value = [];
     }
 });
 

@@ -258,7 +258,7 @@ import { selectListExceptCompleted, pay } from "@/api/system/orders";
 import { listCloths, getCloths } from "@/api/system/cloths";
 import { listTags } from "@/api/system/tags";
 import { onMounted } from "vue";
-import { delivery, pickUp } from ".@/api/system/cloths";
+import { delivery, pickUp } from "@/api/system/cloths";
 import { listUserCoupon } from '@/api/system/user_coupon';
 import { isCurrentTimeWithinRange } from "@/utils";
 

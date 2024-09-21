@@ -48,8 +48,16 @@
                     <dict-tag :options="sys_clothing_status" :value="scope.row.clothingStatus" />
                 </template>
             </el-table-column>
-            <el-table-column label="取回方式" align="center" prop="deliveryMode" />
-            <el-table-column label="取回时间" align="center" prop="deliveredTime" />
+            <el-table-column label="取回方式" align="center" prop="pickupMethod">
+                <template #default="scope">
+                    <dict-tag :options="sys_delivery_mode" :value="scope.row.pickupMethod" />
+                </template>
+            </el-table-column>
+            <el-table-column label="取回时间" align="center" prop="pickupTime" width="180">
+                <template #default="scope">
+                    <span>{{ parseTime(scope.row.pickupTime, '{y}-{m}-{d}') }}</span>
+                </template>
+            </el-table-column>
             <el-table-column label="上挂位置" align="center">
                 <template #default="scope">
                     {{ scope.row.hangLocationCode ? scope.row.hangerName + '-' + scope.row.hangerNumber : '' }}
@@ -76,7 +84,7 @@
         <div class="footer">
             <el-button type="success" plain :disabled="pickupDisabled" @click="handlePickup">取走</el-button>
             <el-button type="warning" plain :disabled="afterSaleDisabled" @click="afterSale">售后</el-button>
-            <el-button type="danger" plain :disabled="compensationDisabled" @click="compensate">赔偿</el-button>
+            <el-button type="danger" plain :disabled="compensationDisabled" @click="handleCompensate">赔偿</el-button>
         </div>
 
         <!-- 展示照片 -->
@@ -86,6 +94,7 @@
                     v-for="(item, index) in pictureList" :key="index" fit="contain" />
             </div>
         </el-dialog>
+
         <!-- 上挂对话框 -->
         <el-dialog :title="title" v-model="showHangUp" width="400px" :show-close="false" append-to-body
             :before-close="closeHangUpDialog">
@@ -139,15 +148,41 @@
                 </div>
             </template>
         </el-dialog>
+
+        <!-- 赔偿对话框 -->
+        <el-dialog title="赔偿" v-model="showCompensationDialog" width="500px" append-to-body>
+            <el-form ref="compensationRef" :model="compensationForm" :rules="compensationRules" label-width="80px">
+                <el-form-item label="支出账目">
+                    <el-input v-model="compensationForm.expTitle" />
+                </el-form-item>
+                <el-form-item label="对方账户">
+                    <el-input v-model="compensationForm.recvAccountTitle" disabled />
+                </el-form-item>
+                <el-form-item label="赔偿金额">
+                    <el-input-number controls-position="right" v-model="compensationForm.expAmount"
+                        placeholder="请输入赔偿金额" />
+                </el-form-item>
+                <el-form-item label="备注信息">
+                    <el-input type="textarea" v-model="compensationForm.remark" placeholder="请输入备注信息" />
+                </el-form-item>
+            </el-form>
+            <template #footer>
+                <div class="compensation-footer">
+                    <el-button type="primary" @click="compensate">确认赔偿</el-button>
+                </div>
+            </template>
+        </el-dialog>
     </div>
 </template>
 
 <script setup name="Cloths">
-import { listCloths, addCloths, updateCloths } from "@/api/system/cloths";
+import { listCloths } from "@/api/system/cloths";
 import { listTags } from "@/api/system/tags";
 import { ref } from "vue";
 import { getCloths, hangup } from "@/api/system/cloths";
 import { getAvailableRack } from "@/api/system/rack";
+import { getUser } from "@/api/system/user";
+import { addExpenditure } from "@/api/system/expenditure";
 
 const props = defineProps({
     orderId: {
@@ -157,6 +192,10 @@ const props = defineProps({
     },
     flashList: {
         type: Function,
+        required: true,
+    },
+    userId: {
+        type: String,
         required: true,
     }
 });
@@ -172,7 +211,7 @@ const pictureList = ref([]);
 const currentCloth = ref({});
 const showPicture = ref(false);
 const showPickUpDialog = ref(false);
-const open = ref(false);
+const showCompensationDialog = ref(false);
 const loading = ref(true);
 const showHangUp = ref(false);
 const total = ref(0);
@@ -191,27 +230,7 @@ const data = reactive({
     form: {},
     hangForm: {},
     pickupForm: {},
-    queryParams: {
-        pageNum: 1,
-        pageSize: 10,
-        clothingId: null,
-        clothingCategory: null,
-        clothingStyle: null,
-        clothingColor: null,
-        clothingFlaw: null,
-        estimate: null,
-        clothingBrand: null,
-        serviceType: null,
-        serviceRequirement: null,
-        beforePics: null,
-        afterPics: null,
-        notes: null,
-        processMarkup: null,
-        priceValue: null,
-        hangLocationCode: null,
-        hangClothCode: null,
-        hangRemark: null,
-    },
+    compensationForm: {},
     rules: {
         clothingId: [
             { required: true, message: "衣物唯一标识ID不能为空", trigger: "blur" }
@@ -246,8 +265,7 @@ const data = reactive({
     pickupRules: {}
 });
 
-const { pickupForm, form, hangForm, hangRules } = toRefs(data);
-
+const { pickupForm, compensationForm, hangForm, hangRules } = toRefs(data);
 /** 查询订单包含的衣物清单列表 */
 function getList() {
     // 判断是否有订单id
@@ -302,38 +320,6 @@ async function initList() {
     // 等待所有异步操作完成防止衣物列表数据加载完后这里的数据没有准备好而出错
     await Promise.all(promises);
 }
-// 取消按钮
-function cancel() {
-    open.value = false;
-    reset();
-}
-
-// 表单重置
-function reset() {
-    currentCloth.value = {}
-    form.value = {
-        orderClothId: null,
-        clothingId: null,
-        clothingCategory: null,
-        clothingStyle: null,
-        clothingColor: null,
-        clothingFlaw: null,
-        estimate: null,
-        clothingBrand: null,
-        serviceType: null,
-        serviceRequirement: null,
-        beforePics: null,
-        afterPics: null,
-        notes: null,
-        processMarkup: null,
-        priceValue: null,
-        hangLocationCode: null,
-        hangClothCode: null,
-        hangRemark: null,
-        createTime: null
-    };
-    proxy.resetForm("clothsRef");
-}
 
 // 重置取走form
 function resetPickupForm() {
@@ -381,6 +367,7 @@ function handleShowHangUp(row) {
         currentCloth.value = row;
         hangForm.value = {
             clothId: row.clothId,
+            clothingNumber: row.hangClothCode,
             hangLocationId: res.data.id,
             hangerNumber: res.data.remainingCapacity,
             hangRemark: null
@@ -389,7 +376,31 @@ function handleShowHangUp(row) {
 }
 
 /* 赔偿 */
-function compensate(row) {
+function compensate() {
+    addExpenditure(compensationForm.value).then(res => {
+        proxy.$modal.msgSuccess("赔偿成功");
+        showCompensationDialog.value = false;
+    })
+}
+
+function handleCompensate() {
+    getUser(props.userId).then(res => {
+        showCompensationDialog.value = true;
+        const title = selectionList.value[0].clothInfo.clothingName;
+        if (selectionList.value.length > 1) {
+            title += '...';
+        }
+        compensationForm.value = {
+            expTitle: title,
+            recvAccountTitle: res.data.userName,
+            recvAccount: res.data.userId,
+            expAmount: null,
+            expType: "01",
+            orderId: props.orderId,
+            clothIds: selectionList.value.map(item => item.clothId).join(','),
+            remark: null,
+        }
+    });
 }
 
 /* 上挂 */

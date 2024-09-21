@@ -4,11 +4,12 @@
       <el-form-item label="订单编码" prop="orderNumber">
         <el-input v-model="queryParams.orderNumber" placeholder="请输入订单编码" clearable @keyup.enter="handleQuery" />
       </el-form-item>
-      <el-form-item label="手机号" prop="userId">
-        <el-input v-model="queryParams.userId" placeholder="请输入会员手机号" clearable @keyup.enter="handleQuery" />
+      <el-form-item label="手机号" prop="phonenumber">
+        <el-input v-model="queryParams.phonenumber" placeholder="请输入会员手机号" clearable @keyup.enter="handleQuery" />
       </el-form-item>
       <el-form-item label="时效预警" prop="costTimeAlarm">
-        <el-select v-model="queryParams.costTimeAlarm" @change="handleQuery" clearable style="width: 150px;" placeholder="请选择">
+        <el-select v-model="queryParams.costTimeAlarm" @change="handleQuery" clearable style="width: 150px;"
+          placeholder="请选择">
           <el-option v-for="dict in sys_cost_time_alarm" :key="dict.value" :label="dict.label" :value="dict.value" />
         </el-select>
       </el-form-item>
@@ -16,7 +17,8 @@
         <el-input v-model="queryParams.pickupCode" placeholder="请输入取件码" clearable @keyup.enter="handleQuery" />
       </el-form-item>
       <el-form-item label="支付状态" prop="paymentStatus">
-        <el-select v-model="queryParams.paymentStatus" @change="handleQuery" clearable style="width: 150px;" placeholder="请选择支付状态">
+        <el-select v-model="queryParams.paymentStatus" @change="handleQuery" clearable style="width: 150px;"
+          placeholder="请选择支付状态">
           <el-option v-for="dict in sys_payment_status" :key="dict.value" :label="dict.label" :value="dict.value" />
         </el-select>
       </el-form-item>
@@ -224,7 +226,7 @@
     </el-dialog>
     <!-- 衣物列表弹窗 -->
     <el-dialog title="衣物" v-model="showClothListDialog" width="1440px" append-to-body>
-      <ShowCloths :orderId="currentOrderId" :flashList="getList" :key="currentOrderId" />
+      <ShowCloths :orderId="currentOrderId" :flashList="getList" :userId="currentUserId" :key="currentOrderId" />
     </el-dialog>
 
     <!-- 添加或修改洗护服务订单对话框 -->
@@ -235,10 +237,10 @@
           <el-col :span="6">
             <el-form-item label="会员身份" prop="userId">
               <el-select v-model="form.userId" filterable :clearable="true" remote reserve-keyword
-                placeholder="请输入手机号码搜索" remote-show-suffix :remote-method="searchUserByTel" :loading="searchUserloading"
-                @change="selectUser" value-key="userId" style="width: 240px">
-                <el-option v-for="item in userList" :key="item.userId" :label="item.nickName + '\t' + item.phonenumber"
-                  :value="item.userId" />
+                placeholder="请输入手机号码搜索" allow-create @blur="handleBlur" remote-show-suffix
+                :remote-method="searchUserByTel" @change="selectUser" value-key="userId" style="width: 240px">
+                <el-option v-for="item in userListRes" :key="item.userId"
+                  :label="item.nickName + '\t' + item.phonenumber" :value="item.userId" />
               </el-select>
             </el-form-item>
           </el-col>
@@ -270,13 +272,6 @@
             <el-input v-model="form.adjust.remark" placeholder="备注信息" />
           </el-col>
         </el-form-item>
-        <!-- 用来测试，具体方式还没有确定 -->
-        <!-- <el-form-item label="取回方式">
-          <el-radio-group v-model="form.deliveryMode">
-            <el-radio v-for="item in sys_delivery_mode" :key="item.value" :value="item.value" :label="item.label">{{
-              item.label }}</el-radio>
-          </el-radio-group>
-        </el-form-item> -->
         <!-- 底部左侧信息区域，以及右侧按钮区域 -->
         <el-divider border-style="dashed" />
         <el-row class="footer">
@@ -429,7 +424,7 @@
 <script setup name="Orders">
 import { watch } from "vue";
 import { ElMessageBox } from 'element-plus'
-import { listOrders, getOrders, delOrders, addOrders, updateOrders } from "@/api/system/orders";
+import { listOrders, getOrders, delOrders, addOrders, updateOrders,getRefundInfo, pay  } from "@/api/system/orders";
 import { listUser, getUser } from "@/api/system/user";
 import { delCloths } from "@/api/system/cloths";
 import { listUserCoupon } from '@/api/system/user_coupon';
@@ -438,11 +433,11 @@ import { listDispatch } from '@/api/system/dispatch';
 import { refund } from '@/api/system/orders';
 import { addRecord } from '@/api/system/notice_record';
 import { listTemplate } from '@/api/system/template';
-import { getRefundInfo, pay } from "@/api/system/orders";
 import { getConfigKey } from '@/api/system/config';
 import AddCloth from "./addCloth.vue";
 import ShowCloths from './showCloths.vue';
 import CouponSale from './couponSale.vue';
+import { addUser } from "../../../api/system/user";
 
 const { proxy } = getCurrentInstance();
 const {
@@ -472,6 +467,7 @@ const {
 const ordersList = ref([]);
 // 用户列表，创建/更新订单时选择框使用
 const userList = ref([]);
+const userListRes = ref([]);
 // 用户卡券列表
 const userCouponList = ref([]);
 // 通知模板列表
@@ -489,8 +485,6 @@ const showCouponSale = ref(false);
 const loading = ref(true);
 const showSearch = ref(true);
 const ids = ref([]);
-const single = ref(true);
-const multiple = ref(true);
 const total = ref(0);
 const title = ref("");
 const expressInfo = ref({});
@@ -501,6 +495,7 @@ const priceDiff = ref(0);
 const couponStorageCardId = ref([]);
 
 const currentOrderId = ref(0);
+const currentUserId = ref(null);
 
 /* 单据打印数量 */
 const printCount = ref(1);
@@ -517,7 +512,7 @@ const data = reactive({
     pageSize: 10,
     orderNumber: null,
     businessType: null,
-    userId: null,
+    phonenumber: null,
     desireCompleteTime: null,
     costTimeAlarm: null,
     pickupCode: null,
@@ -558,7 +553,14 @@ watch(() => form.value.cloths, (newVal) => {
   }
   adjustInput();
 });
-
+// 处理失去焦点的情况，保留用户输入
+const handleBlur = (event) => {
+  const inputValue = event.target.value;
+  if (!userListRes.value.some(item => item.userId === form.value.userId)) {
+    // 没有搜索结果且没有选择项时，保留输入
+    form.value.userId = inputValue;
+  }
+};
 /* 卡券购买完成后的回调，重新获取卡券列表 */
 function submitCouponSale() {
   listUserCoupon({ userId: form.userId }).then(response => {
@@ -804,12 +806,15 @@ function resetQuery() {
 /** 新增按钮操作 */
 function handleAdd() {
   reset();
-  open.value = true;
   title.value = "添加洗护服务订单";
   // 获取预计完成时间
   getConfigKey('desire_complete_time').then(res => {
     form.value.desireCompleteTime = getFutureDate(res.msg);
-  })
+  });
+  listUser().then(res => {
+    userList.value = res.rows;
+    open.value = true;
+  });
 }
 
 /** 修改按钮操作 */
@@ -828,6 +833,10 @@ function handleUpdate(row) {
     title.value = "修改服务订单";
   });
 
+  listUser().then(res => {
+    userList.value = res.rows;
+    userListRes.value = userList.value;
+  });
   // 获取用户卡券列表
   listUserCoupon({ userId: row.userId }).then(response => {
     userCouponList.value = response.rows;
@@ -835,9 +844,9 @@ function handleUpdate(row) {
 }
 
 /** 提交按钮 */
-function submitForm() {
+async function submitForm() {
   console.log(form.value)
-  proxy.$refs["ordersRef"].validate(valid => {
+  proxy.$refs["ordersRef"].validate(async valid => {
     if (valid) {
       if (!form.value.cloths || form.value.cloths.length == 0) {
         proxy.$modal.msgError("衣物信息不能为空");
@@ -846,6 +855,20 @@ function submitForm() {
       form.value.clothsIds = form.value.cloths.map(item => item.clothId);
       if (form.value.adjust.adjustValueAdd || form.value.adjust.adjustValueSub || form.value.adjust.totalAmount) {
         form.value.adjust.orderId = form.value.orderId;
+      }
+      console.log('user info:', showCreateUser.value, form.value.userId, form.value.nickName)
+      if (showCreateUser.value) {
+        try {
+          const res = await addUser({
+            phonenumber: form.value.userId,
+            nickName: form.value.nickName
+          });
+
+          form.value.userId = res.data; // 设置返回的用户ID
+        } catch (err) {
+          proxy.$modal.msgError(err);
+          return; // 当 addUser 出错时，中断执行
+        }
       }
       if (form.value.orderId != null) {
         updateOrders(form.value).then(response => {
@@ -956,15 +979,21 @@ function handleDelete(row) {
 
 /** 按手机号搜索会员 */
 function searchUserByTel(tel) {
-  searchUserloading.value = true;
-  listUser({ phonenumber: tel }).then(res => {
-    searchUserloading.value = false;
-    userList.value = res.rows;
-    // 没有查到数据
-    if (!userList.value || userList.value.length == 0) {
-      showCreateUser.value = true;
+  userListRes.value = userList.value.filter(item => item.phonenumber.includes(tel));
+  if (userListRes.value.length == 0) {
+    showCreateUser.value = true;
+    form.value.nickName = null;
+    userCouponList.value = [];
+  } else {
+    if (userListRes.value.length == 1) {
+      form.value.nickName = userListRes.value[0].nickName;
+      // 查询会员卡券信息
+      listUserCoupon({ userId: form.value.userId }).then(response => {
+        userCouponList.value = response.rows;
+      });
     }
-  });
+    showCreateUser.value = false;
+  }
 }
 
 
@@ -980,6 +1009,10 @@ const handleClose = (done) => {
 
 /* 选择会员信息 */
 function selectUser(userId) {
+  if (!userId || userId.length == 0) {
+    form.value.nickName = null;
+    return;
+  }
   const item = userList.value.find(item => { return item.userId === userId });
   form.value.nickName = item.nickName;
   // 查询会员卡券信息
@@ -1001,6 +1034,7 @@ function printOrder() {
 /* 展示衣物列表 */
 function showClothList(row) {
   currentOrderId.value = row.orderId;
+  currentUserId.value = row.userId;
   showClothListDialog.value = true;
 }
 

@@ -71,23 +71,9 @@ const props = defineProps({
 const { proxy } = getCurrentInstance();
 
 const {
-    sys_coupon_status,
-    sys_del_status,
-    sys_coupon_type,
-    sys_coupon_customer_invalid,
-    sys_coupon_auto_delay,
-    sys_cloth_style,
-    sys_cloth_cate,
     sys_payment_method
 } =
     proxy.useDict(
-        "sys_coupon_status",
-        "sys_del_status",
-        "sys_coupon_type",
-        "sys_coupon_customer_invalid",
-        "sys_coupon_auto_delay",
-        "sys_cloth_style",
-        "sys_cloth_cate",
         "sys_payment_method"
     );
 

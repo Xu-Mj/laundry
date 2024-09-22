@@ -84,7 +84,7 @@
       v-model:limit="queryParams.pageSize" @pagination="getList" />
 
     <!-- 添加或修改价格管理对话框 -->
-    <el-dialog :title="title" v-model="open" width="500px" @opened="refNumberGetFocus" @closed="refNumberFocus = false"
+    <el-dialog :title="title" v-model="open" :show-close="false" width="500px" @opened="refNumberGetFocus" @closed="refNumberFocus = false"
       append-to-body>
       <el-form ref="priceRef" :model="form" :rules="rules" label-width="80px">
         <el-row>
@@ -336,7 +336,6 @@ function handleSelectionChange(selection) {
 function handleAdd() {
   reset();
   open.value = true;
-  title.value = "添加价格管理";
 }
 
 /** 修改按钮操作 */

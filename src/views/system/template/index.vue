@@ -22,10 +22,6 @@
           v-hasPermi="['system:template:add']">新增</el-button>
       </el-col>
       <el-col :span="1.5">
-        <el-button type="success" plain icon="Edit" :disabled="single" @click="handleUpdate"
-          v-hasPermi="['system:template:edit']">修改</el-button>
-      </el-col>
-      <el-col :span="1.5">
         <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleDelete"
           v-hasPermi="['system:template:remove']">删除</el-button>
       </el-col>
@@ -104,25 +100,56 @@
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-button v-if="!sendAll" @click="handleSelectUser">选择</el-button>
+          <el-button v-if="!sendAll" @click="selectUserOpen = !selectUserOpen">选择</el-button>
           <el-button type="primary" @click="send" v-hasPermi="['system:template:send']">立即发送</el-button>
         </el-col>
       </el-row>
-      <el-row class="user-list-area">
-        <span v-for="user in userList" :key="user.userId" :class="user.selected ? 'user-item selected' : 'user-item'">
-          <span v-if="user.selected" class="del-mask" @click="delItem(user)">点击删除</span>
-          <span v-else="!user.selected" class="add-mask" @click="delItem(user)">点击添加</span>
-          <span> {{ user.nickName }}</span>
-          <span> {{ user.phonenumber }}</span>
-        </span>
+      <el-row class="user-list-area" v-if="!sendAll">
+        <template v-for="user in userList" :key="user.userId">
+          <span v-if="user.selected" :class="user.selected ? 'user-item selected' : 'user-item'">
+            <span v-if="user.selected" class="del-mask" @click="delItem(user)">点击删除</span>
+            <!-- <span v-else="!user.selected" class="add-mask" @click="delItem(user)">点击添加</span> -->
+            <span> {{ user.nickName }}</span>
+            <span> {{ user.phonenumber }}</span>
+          </span>
+        </template>
       </el-row>
     </el-dialog>
 
+    <el-dialog title="选择用户" v-model="selectUserOpen" width="650px" :show-close="false" append-to-body>
+      <el-row>
+        <el-form :inline="true" label-width="60px">
+          <el-form-item label="手机号">
+            <el-input @input="filterUserListByTel" v-model="filterUserByTel" placeholder="请输入手机号" />
+          </el-form-item>
+          <el-form-item label="积分">
+            <el-input-number @input="queryUserListByScore" :min="0" v-model="filterUserByScore" placeholder="请输入积分进行过滤" />
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary" @click="selectAllUsers">全选</el-button>
+          </el-form-item>
+        </el-form>
+      </el-row>
+      <el-row>
+        <template v-for="user in userList" :key="user.userId">
+          <el-checkbox v-show="user.show" v-model="user.selected">
+            {{ user.nickName + '-' + user.phonenumber }}
+          </el-checkbox>
+        </template>
+      </el-row>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button type="primary" @click="selectUserOpen = !selectUserOpen">确 定</el-button>
+          <el-button @click="() => { userList.forEach(user => user.selected = false); selectUserOpen = false; }">取
+            消</el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup name="Template">
-import { listTemplate, getTemplate, delTemplate, addTemplate, updateTemplate, sendNotice } from "@/api/system/template";
+import { listTemplate, getTemplate, delTemplate, addTemplate, updateTemplate, sendNotice, sendNotice2All } from "@/api/system/template";
 import { listUser } from "@/api/system/user";
 
 const { proxy } = getCurrentInstance();
@@ -132,6 +159,7 @@ const templateList = ref([]);
 const userList = ref([]);
 const open = ref(false);
 const sendOpen = ref(false);
+const selectUserOpen = ref(false);
 const loading = ref(true);
 const showSearch = ref(true);
 const ids = ref([]);
@@ -139,6 +167,8 @@ const single = ref(true);
 const multiple = ref(true);
 const total = ref(0);
 const title = ref("");
+const filterUserByTel = ref(null);
+const filterUserByScore = ref(null);
 
 const currentNotice = ref(null);
 const sendAll = ref(true);
@@ -199,6 +229,15 @@ function reset() {
     remark: null
   };
   proxy.resetForm("templateRef");
+}
+
+/** 选择所有用户 */
+function selectAllUsers() {
+  userList.value.forEach(item => {
+    if (item.show) {
+      item.selected = true;
+    }
+  });
 }
 
 /** 搜索按钮操作 */
@@ -274,15 +313,16 @@ function handleDelete(row) {
 async function selectUser() {
   const response = await listUser({});
   userList.value = response.rows;
+  userList.value.forEach(item => { item.selected = false; item.show = true; });
 };
 
 async function handleSendPanel(row) {
   currentNotice.value = row;
   sendOpen.value = true;
   await selectUser();
-  if (sendAll.value) {
-    userList.value.map(item => item.selected = true);
-  }
+  // if (sendAll.value) {
+  //   userList.value.map(item => item.selected = true);
+  // }
 }
 
 /* 处理选择通知会员按钮变化 */
@@ -306,18 +346,58 @@ function delItem(user) {
   })
 }
 
+// 根据手机号过滤
+function filterUserListByTel(tel) {
+  userList.value.forEach(user => {
+    if (user.phonenumber.includes(tel)) {
+      user.show = true;
+    } else {
+      user.show = false;
+      user.selected = false;
+    }
+  })
+}
+
+// 根据手机号过滤
+function queryUserListByScore(score) {
+  userList.value.forEach(user => {
+    if (user.integral >= score) {
+      user.show = true;
+    } else {
+      user.show = false;
+      user.selected = false;
+    }
+  });
+  console.log(userList.value);
+  
+}
+
 /** 发送按钮操作 */
 function send() {
   console.log(currentNotice.value)
   const tempId = currentNotice.value.tempId;
-  const ids = userList.value.filter(item => item.selected).map(item => item.userId);
-  // 发送通知
-  sendNotice({ userIds: ids, tempId: tempId }).then(response => {
-    proxy.$modal.msgSuccess("发送成功");
-    sendOpen.value = false;
-  }).catch(() => {
+  if (sendAll.value) {
+    sendNotice2All(tempId).then(response => {
+      proxy.$modal.msgSuccess("发送成功");
+      sendOpen.value = false;
+    }).catch(() => {
 
-  });
+    });
+  } else {
+    const ids = userList.value.filter(item => item.selected).map(item => item.userId);
+    if (ids.length == 0) {
+      proxy.$modal.msgError("请选择要发送的用户");
+      return;
+    }
+    // 发送通知
+    sendNotice({ userIds: ids, tempId: tempId }).then(response => {
+      proxy.$modal.msgSuccess("发送成功");
+      sendOpen.value = false;
+      userList.value.forEach(user => user.selected = false);
+    }).catch(() => {
+
+    });
+  }
 }
 
 getList();

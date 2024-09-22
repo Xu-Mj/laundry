@@ -34,7 +34,13 @@ export function updatePrice(data) {
     data: data
   })
 }
-
+export function updatePriceRefNum(data) {
+  return request({
+    url: '/system/price/update-ref-num',
+    method: 'put',
+    data: data
+  })
+}
 // 删除价格管理
 export function delPrice(priceId) {
   return request({

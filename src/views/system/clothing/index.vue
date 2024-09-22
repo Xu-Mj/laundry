@@ -207,7 +207,7 @@ const data = reactive({
   }
 });
 
-const { queryParams, form, tagNumForm, rules } = toRefs(data);
+const { queryParams, form, tagNumForm, rules, tagNumFormRules } = toRefs(data);
 
 // 自定义校验最低价格函数
 function validateMinPrice(rule, value, callback) {

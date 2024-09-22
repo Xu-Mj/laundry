@@ -2,7 +2,8 @@
   <div class="app-container">
     <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="68px">
       <el-form-item label="订单类别" prop="orderType">
-        <el-select v-model="queryParams.orderType" placeholder="订单类别" clearable style="width: 100px;">
+        <el-select v-model="queryParams.orderType" @change="selectChange" placeholder="订单类别" clearable
+          style="width: 100px;">
           <el-option v-for="dict in sys_price_order_type" :key="dict.value" :label="dict.label" :value="dict.value" />
         </el-select>
       </el-form-item>
@@ -20,7 +21,7 @@
         <el-button type="primary" plain icon="Plus" @click="handleAdd" v-hasPermi="['system:price:add']">新增</el-button>
       </el-col>
       <el-col :span="1.5">
-        <el-button type="success" plain icon="Edit" :disabled="single" @click="handleUpdate"
+        <el-button type="success" plain icon="Edit" :disabled="ids.length == 0" @click="showUpdateRefNum = true"
           v-hasPermi="['system:price:edit']">设置使用计数</el-button>
       </el-col>
       <el-col :span="1.5">
@@ -42,14 +43,14 @@
       <el-table-column label="价格名称" align="center" prop="priceName" />
       <el-table-column label="价格" align="center" prop="priceValue" />
       <el-table-column label="折扣系数" align="center" prop="priceDiscount" />
-      <el-table-column label="适用衣物" align="center" prop="applicableCloths">
+      <!-- <el-table-column label="适用衣物" align="center" prop="applicableCloths">
         <template #default="scope">
           <el-tag type="primary"
             v-for="item, index in scope.row.applicableCloths ? scope.row.applicableCloths.split(',') : []"
             :key="index">{{
               item }}</el-tag>
         </template>
-      </el-table-column>
+      </el-table-column> -->
       <el-table-column label="显示顺序" align="center" prop="orderNum" />
       <el-table-column label="使用计数" align="center" prop="clothingDegree" />
       <el-table-column label="备注" align="center" prop="remark" />
@@ -58,11 +59,11 @@
           <span>{{ parseTime(scope.row.createdAt, '{y}-{m}-{d}') }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="更新时间" align="center" prop="updatedAt" width="180">
+      <!-- <el-table-column label="更新时间" align="center" prop="updatedAt" width="180">
         <template #default="scope">
           <span>{{ parseTime(scope.row.updatedAt, '{y}-{m}-{d}') }}</span>
         </template>
-      </el-table-column>
+      </el-table-column> -->
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template #default="scope">
           <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)"
@@ -94,8 +95,8 @@
         </el-row>
         <el-row>
           <el-col :span="12">
-            <el-form-item label="订单类型" prop="orderType">
-              <el-select v-model="form.orderType" placeholder="请选择订单类型">
+            <el-form-item label="订单类别" prop="orderType">
+              <el-select v-model="form.orderType" placeholder="请选择订单类别">
                 <el-option v-for="dict in sys_price_order_type" :key="dict.value" :label="dict.label"
                   :value="dict.value" />
               </el-select>
@@ -107,13 +108,13 @@
             </el-form-item>
           </el-col>
         </el-row>
-        <el-form-item label="适用衣物" prop="applicableCloths">
+        <!-- <el-form-item label="适用衣物" prop="applicableCloths">
           <el-select v-model="form.applicableClothsArr" placeholder="适用衣物" clearable multiple filterable remote
             reserve-keyword remote-show-suffix :remote-method="getClothingList" :loading="clothListloading">
             <el-option v-for="item in clothList" :key="item.clothingId"
               :label="item.clothingName + '-' + item.clothingNumber" :value="item.clothingName" />
           </el-select>
-        </el-form-item>
+        </el-form-item> -->
         <el-row>
           <el-col :span="12">
             <el-form-item label="显示顺序" prop="orderNum">
@@ -138,11 +139,26 @@
         </div>
       </template>
     </el-dialog>
+
+    <!-- 修改使用次数对话框 -->
+    <el-dialog title="修改使用次数" v-model="showUpdateRefNum" width="500px" :show-close="false" append-to-body>
+      <el-form ref="tagNumRef" :model="tagNumForm" :rules="refNumFormRules" label-width="80px">
+        <el-form-item label="使用次数" prop="refNumber">
+          <el-input-number :min="0" v-model="tagNumForm.refNumber" placeholder="请输入使用次数" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button type="primary" @click="updateRefNum">确 定</el-button>
+          <el-button @click="cancelUpdateRefNum">取 消</el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup name="Price">
-import { listPrice, getPrice, delPrice, addPrice, updatePrice } from "@/api/system/price";
+import { listPrice, getPrice, delPrice, addPrice, updatePrice,updatePriceRefNum } from "@/api/system/price";
 import { listClothing } from "@/api/system/clothing";
 
 const { proxy } = getCurrentInstance();
@@ -151,6 +167,7 @@ const { sys_price_order_type } = proxy.useDict("sys_price_order_type");
 const priceList = ref([]);
 const clothList = ref([]);
 const open = ref(false);
+const showUpdateRefNum = ref(false);
 const clothListloading = ref(false);
 const loading = ref(true);
 const showSearch = ref(true);
@@ -164,6 +181,7 @@ const refNum = ref();
 
 const data = reactive({
   form: {},
+  tagNumForm: {},
   queryParams: {
     pageNum: 1,
     pageSize: 10,
@@ -182,14 +200,17 @@ const data = reactive({
     ],
     orderNum: [
       { required: true, message: "显示顺序不能为空", trigger: "blur" }
-    ],
+    ],/* 
     applicableCloths: [
       { required: true, message: "适用衣物不能为空", trigger: "blur" }
-    ],
+    ], */
+  },
+  refNumFormRules: {
+    refNumber: [{ required: true, message: "使用次数不能为空", trigger: "blur" }],
   }
 });
 
-const { queryParams, form, rules } = toRefs(data);
+const { queryParams, form, tagNumForm, rules, refNumFormRules } = toRefs(data);
 
 /** 查询价格管理列表 */
 function getList() {
@@ -199,6 +220,25 @@ function getList() {
     total.value = response.total;
     loading.value = false;
   });
+}
+
+function updateRefNum() {
+  proxy.$refs["tagNumRef"].validate(valid => {
+    if (valid) {
+      updatePriceRefNum({ tagIds: ids.value, refNum: tagNumForm.value.refNumber }).then(res => {
+        proxy.$modal.msgSuccess("修改成功");
+        showUpdateRefNum.value = false;
+        tagNumForm.value.refNumber = 0;
+        getList();
+      })
+    }
+  })
+}
+
+// 取消按钮
+function cancelUpdateRefNum() {
+  showUpdateRefNum.value = false;
+  tagNumForm.value = { refNumber: 0 };
 }
 
 // 取消按钮
@@ -314,6 +354,11 @@ function refNumberGetFocus() {
   }
 }
 
+/* 订单类别变化触发查询 */
+function selectChange() {
+  queryParams.value.pageNum = 1;
+  getList();
+}
 
 getList();
 </script>

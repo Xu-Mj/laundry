@@ -95,7 +95,7 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="价格" prop="priceValue">
-              <el-input v-model="form.priceValue" placeholder="请输入价格" />
+              <el-input-number v-model="form.priceValue" placeholder="请输入价格" :disabled="isPriceValueDisabled" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -110,7 +110,7 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="折扣系数" prop="priceDiscount">
-              <el-input v-model="form.priceDiscount" placeholder="请输入折扣系数" />
+              <el-input-number v-model="form.priceDiscount" placeholder="请输入折扣系数" :disabled="isPriceDiscountDisabled" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -201,9 +201,6 @@ const data = reactive({
     priceName: [
       { required: true, message: "价格名称不能为空", trigger: "blur" }
     ],
-    priceValue: [
-      { required: true, message: "价格不能为空", trigger: "blur" }
-    ],
     orderNum: [
       { required: true, message: "显示顺序不能为空", trigger: "blur" }
     ],/* 
@@ -217,7 +214,34 @@ const data = reactive({
 });
 
 const { queryParams, form, tagNumForm, rules, refNumFormRules } = toRefs(data);
+// 是否禁用 priceValue 和 priceDiscount
+const isPriceValueDisabled = ref(false);
+const isPriceDiscountDisabled = ref(false);
 
+// 监听 priceValue 和 priceDiscount 的变化
+watch(
+  () => form.value.priceValue,
+  (newValue) => {
+    // 如果 priceValue 有值，则禁用 priceDiscount，否则启用
+    if (newValue) {
+      isPriceDiscountDisabled.value = true;
+    } else {
+      isPriceDiscountDisabled.value = false;
+    }
+  }
+);
+
+watch(
+  () => form.value.priceDiscount,
+  (newValue) => {
+    // 如果 priceDiscount 有值，则禁用 priceValue，否则启用
+    if (newValue) {
+      isPriceValueDisabled.value = true;
+    } else {
+      isPriceValueDisabled.value = false;
+    }
+  }
+);
 /** 查询价格管理列表 */
 function getList() {
   loading.value = true;
@@ -333,6 +357,10 @@ function handleUpdate(row) {
 function submitForm() {
   proxy.$refs["priceRef"].validate(valid => {
     if (valid) {
+      if (!form.value.priceValue && !form.value.priceDiscount) {
+        proxy.$modal.msgError('价格和折扣至少填写一个');
+        return;
+      }
       if (form.value.applicableClothsArr && form.value.applicableClothsArr.length > 0) {
         form.value.applicableCloths = form.value.applicableClothsArr.join(",");
         delete form.value.applicableClothsArr;

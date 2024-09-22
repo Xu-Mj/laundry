@@ -71,7 +71,11 @@
           <span>{{ parseTime(scope.row.validTo, '{y}-{m}-{d} {h}:{i}:{s}') }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="自动延期" align="center" prop="autoDelay" v-if="columns[11].visible" />
+      <el-table-column label="自动延期" align="center" prop="autoDelay" v-if="columns[11].visible">
+        <template #default="scope">
+          <dict-tag :options="sys_coupon_auto_delay" :value="scope.row.autoDelay" />
+        </template>
+      </el-table-column>
       <el-table-column label="卡券价值" align="center" prop="usageValue" v-if="columns[12].visible" />
       <el-table-column label="限制条件" align="center" prop="usageLimit" v-if="columns[13].visible" />
       <el-table-column label="适用品类" align="center" prop="applicableCategory" v-if="columns[14].visible">

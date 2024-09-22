@@ -27,7 +27,7 @@ const version = ref('3.8.8')
  * dark: 是否为暗黑主题
  */
 const menus = ref([
-  { 'name': '收衣收鞋', 'type': 'primary', onClick: () => { console.log('hello'); open.value = true } },
+  { 'name': '收衣收鞋', 'type': 'primary', onClick: () => { open.value = true } },
   { 'name': '取衣取鞋', 'type': 'primary', onClick: () => { showOrderDialog.value = true } },
   { 'name': '上挂', 'type': 'primary' },
   { 'name': '交期预警', 'type': 'warning' },

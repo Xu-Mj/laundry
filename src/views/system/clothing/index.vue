@@ -30,7 +30,7 @@
           v-hasPermi="['system:clothing:remove']">批量删除</el-button>
       </el-col>
       <el-col :span="1.5">
-        <el-button type="success" plain icon="Edit" :disabled="single" @click="handleUpdate"
+        <el-button type="success" plain icon="Edit" :disabled="ids.length == 0" @click="showUpdateRefNum = true"
           v-hasPermi="['system:clothing:edit']">设置使用计数</el-button>
       </el-col>
       <!-- <el-col :span="1.5">
@@ -130,11 +130,26 @@
         </div>
       </template>
     </el-dialog>
+
+    <!-- 修改使用次数对话框 -->
+    <el-dialog title="修改使用次数" v-model="showUpdateRefNum" width="500px" :show-close="false" append-to-body>
+      <el-form ref="tagNumRef" :model="tagNumForm" :rules="tagNumFormRules" label-width="80px">
+        <el-form-item label="使用次数" prop="refNumber">
+          <el-input-number :min="0" v-model="tagNumForm.refNumber" placeholder="请输入使用次数" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button type="primary" @click="updateRefNum">确 定</el-button>
+          <el-button @click="cancelUpdateRefNum">取 消</el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup name="Clothing">
-import { listClothing, getClothing, delClothing, addClothing, updateClothing } from "@/api/system/clothing";
+import { listClothing, getClothing, delClothing, addClothing, updateClothing, updateClothingRefNum } from "@/api/system/clothing";
 
 const { proxy } = getCurrentInstance();
 
@@ -143,6 +158,7 @@ const { sys_cloth_style, sys_cloth_cate } = proxy.useDict("sys_cloth_style", "sy
 const clothingList = ref([]);
 const open = ref(false);
 const loading = ref(true);
+const showUpdateRefNum = ref(false);
 const showSearch = ref(true);
 const ids = ref([]);
 const single = ref(true);
@@ -152,6 +168,7 @@ const title = ref("");
 
 const data = reactive({
   form: {},
+  tagNumForm: {},
   queryParams: {
     pageNum: 1,
     pageSize: 10,
@@ -184,10 +201,13 @@ const data = reactive({
       { required: true, message: "最低价格不能为空", trigger: "blur" },
       { validator: validateMinPrice, trigger: 'blur' }
     ],
+  },
+  refNumFormRules: {
+    refNumber: [{ required: true, message: "使用次数不能为空", trigger: "blur" }],
   }
 });
 
-const { queryParams, form, rules } = toRefs(data);
+const { queryParams, form, tagNumForm, rules } = toRefs(data);
 
 // 自定义校验最低价格函数
 function validateMinPrice(rule, value, callback) {
@@ -197,6 +217,25 @@ function validateMinPrice(rule, value, callback) {
     callback();
   }
 };
+
+function updateRefNum() {
+  proxy.$refs["tagNumRef"].validate(valid => {
+    if (valid) {
+      updateClothingRefNum({ tagIds: ids.value, refNum: tagNumForm.value.refNumber }).then(res => {
+        proxy.$modal.msgSuccess("修改成功");
+        showUpdateRefNum.value = false;
+        tagNumForm.value.refNumber = 0;
+        getList();
+      })
+    }
+  })
+}
+
+// 取消按钮
+function cancelUpdateRefNum() {
+  showUpdateRefNum.value = false;
+  tagNumForm.value = { refNumber: 0 };
+}
 
 /** 查询衣物管理列表 */
 function getList() {

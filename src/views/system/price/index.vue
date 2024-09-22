@@ -7,8 +7,8 @@
           <el-option v-for="dict in sys_price_order_type" :key="dict.value" :label="dict.label" :value="dict.value" />
         </el-select>
       </el-form-item>
-      <el-form-item label="衣物名称" prop="applicableDegree">
-        <el-input v-model="queryParams.applicableDegree" placeholder="请输入衣物名称" clearable @keyup.enter="handleQuery" />
+      <el-form-item label="价格名称" prop="priceName">
+        <el-input v-model="queryParams.priceName" placeholder="请输入价格名称" clearable @keyup.enter="handleQuery" />
       </el-form-item>
       <el-form-item>
         <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
@@ -53,6 +53,12 @@
       </el-table-column> -->
       <el-table-column label="显示顺序" align="center" prop="orderNum" />
       <el-table-column label="使用计数" align="center" prop="clothingDegree" />
+      <el-table-column label="标签状态" align="center" width="100">
+        <template #default="scope">
+          <el-switch v-model="scope.row.status" active-value="0" inactive-value="1"
+            @change="handleStatusChange(scope.row)"></el-switch>
+        </template>
+      </el-table-column>
       <el-table-column label="备注" align="center" prop="remark" />
       <el-table-column label="创建时间" align="center" prop="createdAt" width="180">
         <template #default="scope">
@@ -158,7 +164,7 @@
 </template>
 
 <script setup name="Price">
-import { listPrice, getPrice, delPrice, addPrice, updatePrice,updatePriceRefNum } from "@/api/system/price";
+import { listPrice, getPrice, delPrice, addPrice, updatePrice, updatePriceRefNum } from "@/api/system/price";
 import { listClothing } from "@/api/system/clothing";
 
 const { proxy } = getCurrentInstance();
@@ -261,6 +267,18 @@ function reset() {
     remark: null,
   };
   proxy.resetForm("priceRef");
+}
+
+/** 标签状态修改 */
+function handleStatusChange(row) {
+  let text = row.status === "0" ? "启用" : "停用";
+  proxy.$modal.confirm('确认要' + text + '"' + row.priceName + '"标签吗?').then(function () {
+    return updatePrice({ priceId: row.priceId, status: row.status });
+  }).then(() => {
+    proxy.$modal.msgSuccess(text + "成功");
+  }).catch(function () {
+    row.status = row.status === "0" ? "1" : "0";
+  });
 }
 
 /** 搜索按钮操作 */

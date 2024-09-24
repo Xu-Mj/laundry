@@ -196,19 +196,14 @@
 <script setup name="CreateOrders">
 import { watch } from "vue";
 import { ElMessageBox } from 'element-plus'
-import { listOrders, getOrders, delOrders, addOrders, updateOrders, getRefundInfo, pay } from "@/api/system/orders";
-import { listUser, getUser } from "@/api/system/user";
+import { listOrders, getOrders, delOrders, addOrders, updateOrders, pay } from "@/api/system/orders";
+import { listUser, addUser } from "@/api/system/user";
 import { delCloths } from "@/api/system/cloths";
 import { listUserCoupon } from '@/api/system/user_coupon';
 import { isCurrentTimeWithinRange, getFutureDate } from "@/utils";
-import { listDispatch } from '@/api/system/dispatch';
-import { refund } from '@/api/system/orders';
-import { addRecord } from '@/api/system/notice_record';
-import { listTemplate } from '@/api/system/template';
 import { getConfigKey } from '@/api/system/config';
 import AddCloth from "./addCloth.vue";
 import CouponSale from './couponSale.vue';
-import { addUser } from "@/api/system/user";
 const props = defineProps({
     orderId: {
         type: Number,
@@ -263,22 +258,12 @@ const userCouponList = ref([]);
 // 通知模板列表
 const noticeTempList = ref([]);
 const open = ref(false);
-const searchUserloading = ref(false);
-const showClothListDialog = ref(false);
-const showExpressInfoDialog = ref(false);
-const showDeliveryInfoDialog = ref(false);
-const showNoticeDialog = ref(false);
-const showRefundDialog = ref(false);
 const showCreateUser = ref(false);
 const showPaymentDialog = ref(false);
 const showCouponSale = ref(false);
 const loading = ref(true);
-const showSearch = ref(true);
-const ids = ref([]);
 const total = ref(0);
 const title = ref("");
-const expressInfo = ref({});
-const deliveryInfo = ref({});
 const totalPrice = ref(0);
 // 差价
 const priceDiff = ref(0);
@@ -479,35 +464,6 @@ function getList() {
     });
 }
 
-// // 取消按钮
-// function cancel() {
-//     if (!form.value.userId) {
-//         reset();
-//         open.value = false;
-//         // props.toggle();
-//         return true;
-//     }
-//     ElMessageBox.confirm('确认取消操作订单？此操作不可逆！')
-//         .then(() => {
-//             // 请求服务器删除添加的衣物列表
-//             if (!form.value.orderId && form.value.cloths.length > 0) {
-//                 delCloths(form.value.cloths.map(item => item.clothId)).then(res => {
-//                     reset();
-//                     open.value = false;
-//                     props.toggle();
-//                 }).catch(res => {
-//                     console.error(res)
-//                 })
-//             } else {
-//                 open.value = false;
-//                 reset();
-//                 props.toggle();
-//             }
-//         })
-//         .catch(() => {
-//             // catch error
-//         })
-// }
 // 取消按钮
 function cancel() {
     return new Promise((resolve, reject) => {

@@ -35,11 +35,11 @@
             </el-form-item>
             <el-form-item label="店主调价">
                 <el-col :span="12" class="adjust-price-group">
-                    <el-input type="number" :min="0" @input="adjustInput" v-model="form.adjust.adjustValueSub"
+                    <el-input type="number" :min="0" :max="1000" @input="adjustInput" v-model="form.adjust.adjustValueSub"
                         placeholder="请输入调减金额" />
-                    <el-input type="number" :min="0" @input="adjustInput" v-model="form.adjust.adjustValueAdd"
+                    <el-input type="number" :min="0" :max="1000" @input="adjustInput" v-model="form.adjust.adjustValueAdd"
                         placeholder="请输入调增金额" />
-                    <el-input type="number" :min="0" @input="adjustInput" v-model="form.adjust.totalAmount"
+                    <el-input type="number" :min="0" :max="Infinity" @input="adjustInput" v-model="form.adjust.totalAmount"
                         placeholder="请输入总金额" />
                     <el-input v-model="form.adjust.remark" placeholder="备注信息" />
                 </el-col>
@@ -53,7 +53,7 @@
 
                             <el-form-item label="总件数：">{{ form.cloths.length }}</el-form-item>
                         </el-col>
-                        <el-col :span="4">
+                        <el-col :span="5">
                             <el-form-item label="总金额：">
                                 {{ totalPrice }}
                             </el-form-item>
@@ -68,7 +68,7 @@
                                 <el-input-number :min="1" v-model="printCount" controls-position="right" />
                             </el-form-item>
                         </el-col>
-                        <el-col :span="4">
+                        <el-col :span="3">
                             <el-button type="primary" plain @click="printOrder">打印</el-button>
                         </el-col>
 
@@ -272,8 +272,10 @@ const couponStorageCardId = ref([]);
 const currentOrderId = ref(props.orderId);
 const currentUserId = ref(props.userId);
 
+const ordersRef = ref();
 /* 单据打印数量 */
 const printCount = ref(1);
+const phoneRegex = /^1[3-9]\d{9}$/;
 
 const data = reactive({
     form: {
@@ -288,7 +290,22 @@ const data = reactive({
             { required: true, message: "业务类型不能为空", trigger: "change" }
         ],
         userId: [
-            { required: true, message: "所属会员ID不能为空", trigger: "blur" }
+            { required: true, message: "所属会员不能为空", trigger: "blur" },
+            {
+                validator: (rule, value, callback) => {
+                    // 当没有匹配到任何会员时才进行手机号格式校验
+                    const isNewUser = !userListRes.value.some(item => item.userId === form.value.userId);
+                    if (isNewUser && !phoneRegex.test(value)) {
+                        callback(new Error("请输入正确的手机号"));
+                    } else {
+                        callback();
+                    }
+                },
+                trigger: 'blur'
+            }
+        ],
+        nickName: [
+            { required: true, message: "所属会员姓名不能为空", trigger: "blur" }
         ],
         source: [
             { required: true, message: "订单来源不能为空", trigger: "blur" }
@@ -312,6 +329,7 @@ watch(() => form.value.cloths, (newVal) => {
     adjustInput();
 });
 
+
 // 处理失去焦点的情况，保留用户输入
 const handleBlur = (event) => {
     const inputValue = event.target.value;
@@ -319,7 +337,9 @@ const handleBlur = (event) => {
         // 没有搜索结果且没有选择项时，保留输入
         form.value.userId = inputValue;
     }
+    ordersRef.value.validateField('userId');
 };
+
 /* 卡券购买完成后的回调，重新获取卡券列表 */
 function submitCouponSale() {
     listUserCoupon({ userId: form.value.userId }).then(response => {
@@ -732,7 +752,7 @@ if (props.orderId !== 0) {
 }
 
 defineExpose({
-  cancel,
+    cancel,
 });
 </script>
 

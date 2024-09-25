@@ -10,7 +10,12 @@
         <el-table :data="couponList" border @selection-change="handleSelectionChange">
             <el-table-column type="selection" width="55" align="center" />
             <el-table-column label="卡券名称" align="center" key="couponTitle" prop="couponTitle" />
-            <el-table-column label="有效期" align="center" key="validTo" prop="validTo" />
+            <el-table-column label="卡券类型" align="center" key="couponType" prop="couponType">
+                <template #default="scope">
+                    <dict-tag :options="sys_coupon_type" :value="scope.row.couponType" />
+                </template>
+            </el-table-column>
+            <el-table-column label="价格" align="center" key="couponValue" prop="couponValue" />
             <el-table-column label="数量" align="center">
                 <template #default="scope">
                     <el-input-number v-model="scope.row.count" :min="0" :max="(scope.row.customerSaleCount != -1 && scope.row.customerSaleTotal != -1)
@@ -27,9 +32,9 @@
         <el-row>
             <el-form-item>
                 <el-radio-group v-model="sellForm.paymentMethod">
-                    <el-radio v-for="dict in sys_payment_method" :key="dict.value" :label="dict.label"
-                        :value="dict.value" />
-                </el-radio-group>
+              <el-radio v-for="dict in sys_coupon_payment_method" :key="dict.value" :label="dict.label"
+                :value="dict.value" />
+            </el-radio-group>
             </el-form-item>
         </el-row>
         <el-row>
@@ -52,7 +57,7 @@
 </template>
 
 <script setup name="CouponSale">
-import { listCoupon, buyCoupon } from "@/api/system/coupon";
+import { listCoupon4sale, buyCoupon } from "@/api/system/coupon";
 import { getUser } from "@/api/system/user";
 import { listClothing } from "@/api/system/clothing";
 import { ref, computed } from "vue";
@@ -71,10 +76,12 @@ const props = defineProps({
 const { proxy } = getCurrentInstance();
 
 const {
-    sys_payment_method
+    sys_coupon_payment_method,
+    sys_coupon_type
 } =
     proxy.useDict(
-        "sys_payment_method"
+        "sys_coupon_payment_method",
+        "sys_coupon_type"
     );
 
 const couponList = ref([]);
@@ -130,8 +137,9 @@ function getList() {
     getUser(props.userId).then(response => {
         user.value = response.data;
     });
-    listCoupon().then(response => {
+    listCoupon4sale().then(response => {
         couponList.value = response.rows;
+        couponList.value.forEach(item => item.count =1);
         // total.value = response.total;
         loading.value = false;
     });

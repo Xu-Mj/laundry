@@ -568,7 +568,7 @@ function handleAdd() {
         open.value = true;
     });
     // 获取价格列表
-    listPrice({ orderType: form.value.source }).then(res => {
+    listPrice({ orderType: form.value.source,status: 0 }).then(res => {
         priceList.value = res.rows;
     });
 }

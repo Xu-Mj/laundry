@@ -53,7 +53,7 @@
       </el-table-column> -->
       <el-table-column label="显示顺序" align="center" prop="orderNum" />
       <el-table-column label="使用计数" align="center" prop="clothingDegree" />
-      <el-table-column label="标签状态" align="center" width="100">
+      <el-table-column label="状态" align="center" width="100">
         <template #default="scope">
           <el-switch v-model="scope.row.status" active-value="0" inactive-value="1"
             @change="handleStatusChange(scope.row)"></el-switch>
@@ -84,8 +84,8 @@
       v-model:limit="queryParams.pageSize" @pagination="getList" />
 
     <!-- 添加或修改价格管理对话框 -->
-    <el-dialog :title="title" v-model="open" :show-close="false" width="500px" @opened="refNumberGetFocus" @closed="refNumberFocus = false"
-      append-to-body>
+    <el-dialog :title="title" v-model="open" :show-close="false" width="500px" @opened="refNumberGetFocus"
+      @closed="refNumberFocus = false" append-to-body>
       <el-form ref="priceRef" :model="form" :rules="rules" label-width="80px">
         <el-row>
           <el-col :span="12">
@@ -121,6 +121,13 @@
               :label="item.clothingName + '-' + item.clothingNumber" :value="item.clothingName" />
           </el-select>
         </el-form-item> -->
+
+        <el-form-item label="状态">
+          <el-radio-group v-model="form.status">
+            <el-radio v-for="dict in sys_normal_disable" :key="dict.value" :value="dict.value">{{ dict.label
+              }}</el-radio>
+          </el-radio-group>
+        </el-form-item>
         <el-row>
           <el-col :span="12">
             <el-form-item label="显示顺序" prop="orderNum">
@@ -168,7 +175,7 @@ import { listPrice, getPrice, delPrice, addPrice, updatePrice, updatePriceRefNum
 import { listClothing } from "@/api/system/clothing";
 
 const { proxy } = getCurrentInstance();
-const { sys_price_order_type } = proxy.useDict("sys_price_order_type");
+const { sys_price_order_type, sys_normal_disable } = proxy.useDict("sys_price_order_type", "sys_normal_disable");
 
 const priceList = ref([]);
 const clothList = ref([]);
@@ -286,6 +293,7 @@ function reset() {
     priceValue: null,
     priceDiscount: null,
     applicableCloths: null,
+    status: "0",
     orderNum: 0,
     clothingDegree: 0,
     remark: null,

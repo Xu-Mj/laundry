@@ -1,9 +1,26 @@
 <template>
     <!-- show sell coupon -->
-    <el-form ref="sellFormRef" :model="sellForm" label-width="90px">
-        <el-form-item label="会员身份" prop="userId">
+    <el-form ref="sellFormRef" :model="sellForm" :rules="rules" label-width="90px">
+        <el-form-item v-if="props.userId && props.userId != 0" label="会员身份" prop="userId">
             {{ user.nickName }} - {{ user.phonenumber }}
         </el-form-item>
+        <el-row v-else>
+            <el-col :span="6">
+                <el-form-item label="会员身份" prop="userId">
+                    <el-select v-model="sellForm.userId" filterable :clearable="true" remote reserve-keyword
+                        placeholder="请输入手机号码搜索" allow-create @blur="handleBlur" remote-show-suffix
+                        :remote-method="searchUserByTel" @change="selectUser" value-key="userId" style="width: 240px">
+                        <el-option v-for="item in userListRes" :key="item.userId"
+                            :label="item.nickName + '\t' + item.phonenumber" :value="item.userId" />
+                    </el-select>
+                </el-form-item>
+            </el-col>
+            <el-col :span="6">
+                <el-form-item label="会员姓名" prop="nickName">
+                    <el-input v-model="sellForm.nickName" placeholder="请输入会员姓名" />
+                </el-form-item>
+            </el-col>
+        </el-row>
         <el-row>
             <h3 class="title">卡券信息</h3>
         </el-row>
@@ -32,9 +49,9 @@
         <el-row>
             <el-form-item>
                 <el-radio-group v-model="sellForm.paymentMethod">
-              <el-radio v-for="dict in sys_coupon_payment_method" :key="dict.value" :label="dict.label"
-                :value="dict.value" />
-            </el-radio-group>
+                    <el-radio v-for="dict in sys_coupon_payment_method" :key="dict.value" :label="dict.label"
+                        :value="dict.value" />
+                </el-radio-group>
             </el-form-item>
         </el-row>
         <el-row>
@@ -58,18 +75,17 @@
 
 <script setup name="CouponSale">
 import { listCoupon4sale, buyCoupon } from "@/api/system/coupon";
-import { getUser } from "@/api/system/user";
+import { getUser, listUserWithNoLimit, addUser } from "@/api/system/user";
 import { listClothing } from "@/api/system/clothing";
 import { ref, computed } from "vue";
 
 const props = defineProps({
     userId: {
         type: String,
-        required: true
     },
     submit: {
         type: Function,
-        required: true
+        default: (data) =>{}
     }
 });
 
@@ -89,6 +105,13 @@ const clothList = ref([]);
 const clothListloading = ref(false);
 const loading = ref(true);
 const user = ref({});
+const needCreateUser = ref(false);
+const searchUserloading = ref(false);
+
+const userListRes = ref([]);
+const userList = ref([]);
+const sellFormRef = ref();
+const phoneRegex = /^1[3-9]\d{9}$/;
 
 // 列显隐信息
 const columns = ref([
@@ -119,9 +142,62 @@ const data = reactive({
         paymentMethod: "05"
     },
     selectedList: [],
+    rules: {
+        userId: [
+            { required: true, message: "所属会员不能为空", trigger: "blur" },
+            {
+                validator: (rule, value, callback) => {
+                    // 当没有匹配到任何会员时才进行手机号格式校验
+                    const isNewUser = !userListRes.value.some(item => item.userId === sellForm.value.userId);
+                    if (isNewUser && !phoneRegex.test(value)) {
+                        callback(new Error("请输入正确的手机号"));
+                    } else {
+                        callback();
+                    }
+                },
+                trigger: 'blur'
+            }
+        ],
+        nickName: [
+            { required: true, message: "所属会员姓名不能为空", trigger: "blur" }
+        ],
+    }
 });
 
-const { sellForm, selectedList } = toRefs(data);
+const { sellForm, selectedList, rules } = toRefs(data);
+
+
+/* 选择会员信息 */
+function selectUser(userId) {
+    if (!userId || userId.length == 0) {
+        sellForm.value.nickName = null;
+        return;
+    }
+    const item = userList.value.find(item => { return item.userId === userId });
+    sellForm.value.nickName = item.nickName;
+}
+
+/* 根据手机号搜索用户列表 */
+function searchUserByTel(tel) {
+    userListRes.value = userList.value.filter(item => item.phonenumber.includes(tel));
+    if (userListRes.value.length == 0) {
+        // 没找到，需要创建用户
+        needCreateUser.value = true;
+        sellForm.value.nickName = null;
+    } else {
+        needCreateUser.value = false;
+    }
+}
+
+// 处理失去焦点的情况，保留用户输入
+const handleBlur = (event) => {
+    const inputValue = event.target.value;
+    if (!userListRes.value.some(item => item.userId === sellForm.value.userId)) {
+        // 没有搜索结果且没有选择项时，保留输入
+        sellForm.value.userId = inputValue;
+    }
+    sellFormRef.value.validateField('userId');
+};
 
 
 /* 动态计算销售卡券时的总金额 */
@@ -134,13 +210,20 @@ const totalPrice = computed(() => {
 /** 查询卡券列表 */
 function getList() {
     loading.value = true;
-    getUser(props.userId).then(response => {
-        user.value = response.data;
-    });
+    if (!props.userId || props.userId == 0) {
+        searchUserloading.value = true;
+        listUserWithNoLimit().then(res => {
+            searchUserloading.value = false;
+            userList.value = res.rows;
+        });
+    } else {
+        getUser(props.userId).then(response => {
+            user.value = response.data;
+        });
+    }
     listCoupon4sale().then(response => {
         couponList.value = response.rows;
-        couponList.value.forEach(item => item.count =1);
-        // total.value = response.total;
+        couponList.value.forEach(item => item.count = 1);
         loading.value = false;
     });
 }
@@ -163,18 +246,35 @@ function resetSellForm() {
 
 /* 购买卡券 */
 function buy() {
-    proxy.$refs["sellFormRef"].validate(valid => {
+    proxy.$refs["sellFormRef"].validate(async valid => {
         if (valid) {
             const coupons = selectedList.value.filter(item => item.count > 0).map(({ couponId, count }) => ({ couponId, count }));
             if (coupons.length === 0) {
                 proxy.$modal.msgWarning("请选择购买卡券");
                 return;
             }
+
+            if (needCreateUser.value) {
+                try {
+                    const res = await addUser({
+                        phonenumber: sellForm.value.userId,
+                        nickName: sellForm.value.nickName
+                    });
+
+                    sellForm.value.userId = res.data; // 设置返回的用户ID
+                } catch (err) {
+                    proxy.$modal.msgError(err);
+                    return; // 当 addUser 出错时，中断执行
+                }
+            }
+
             sellForm.value.coupons = coupons;
-            console.log(sellForm.value);
             buyCoupon(sellForm.value).then(res => {
                 proxy.$modal.msgSuccess("购买成功");
                 props.submit(sellForm.value);
+                resetSellForm();
+                selectedList.value = [];
+                getList();
             }).catch();
         }
     });

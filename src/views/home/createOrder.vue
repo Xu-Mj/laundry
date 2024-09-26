@@ -207,7 +207,7 @@
         <!-- 卡券售卖弹窗 -->
         <el-dialog title="卡券购买" v-model="showCouponSale" width="1080px" append-to-body lock-scroll modal
             :close-on-click-modal="false">
-            <CouponSale :userId="form.userId" :key="showCouponSale" :submit="submitCouponSale" />"
+            <CouponSale :userId="form.userId" :key="showCouponSale" :submit="submitCouponSale" />
         </el-dialog>
     </div>
 </template>
@@ -217,7 +217,7 @@ import { watch } from "vue";
 import { ElMessageBox } from 'element-plus'
 import { getOrders, addOrders, updateOrders, pay } from "@/api/system/orders";
 import { listPrice } from "@/api/system/price";
-import { listUser, addUser } from "@/api/system/user";
+import { listUserWithNoLimit, addUser } from "@/api/system/user";
 import { delCloths } from "@/api/system/cloths";
 import { listUserCoupon } from '@/api/system/user_coupon';
 import { isCurrentTimeWithinRange, getFutureDate } from "@/utils";
@@ -563,7 +563,7 @@ function handleAdd() {
     getConfigKey('desire_complete_time').then(res => {
         form.value.desireCompleteTime = getFutureDate(res.msg);
     });
-    listUser().then(res => {
+    listUserWithNoLimit().then(res => {
         userList.value = res.rows;
         open.value = true;
     });
@@ -591,7 +591,7 @@ function handleUpdate() {
         });
     });
 
-    listUser().then(res => {
+    listUserWithNoLimit().then(res => {
         userList.value = res.rows;
         userListRes.value = userList.value;
     });

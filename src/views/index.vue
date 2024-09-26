@@ -10,7 +10,13 @@
     <OrderContent :visible="showOrderDialog" :taggle="handleShowOrderDialog" />
     <el-dialog :title="title" v-model="open" width="1440px" append-to-body lock-scroll modal :before-close="cancel"
       :close-on-click-modal="false">
-      <CreateOrder :orderId="0" :userId="0" :toggle="() => { open = !open }" :refresh="()=>{}" :key="open"/>
+      <CreateOrder :orderId="0" :userId="0" :toggle="() => { open = !open }" :refresh="() => { }" :key="open" />
+    </el-dialog>
+
+    <!-- 卡券售卖弹窗 -->
+    <el-dialog title="卡券购买" v-model="showCouponSale" width="1080px" append-to-body lock-scroll modal
+      :close-on-click-modal="false">
+      <CouponSale :key="showCouponSale" />
     </el-dialog>
   </div>
 </template>
@@ -19,6 +25,7 @@
 import { ref } from 'vue';
 import OrderContent from '@/views/home/oderContent.vue'
 import CreateOrder from '@/views/home/createOrder.vue'
+import CouponSale from '@/views/home/couponSale.vue'
 
 const version = ref('3.8.8')
 /*
@@ -32,7 +39,7 @@ const menus = ref([
   { 'name': '上挂', 'type': 'primary' },
   { 'name': '交期预警', 'type': 'warning' },
   { 'name': '派送提醒', 'type': 'primary' },
-  { 'name': '卡券销售', 'type': 'primary' },
+  { 'name': '卡券销售', 'type': 'primary', onClick: () => { showCouponSale.value = true } },
   { 'name': '收款', 'type': 'primary' },
   { 'name': '撤单处理', 'type': 'danger' },
   { 'name': '新增会员', 'type': 'primary' },
@@ -48,6 +55,7 @@ const menus = ref([
   { 'name': '新增支出', 'type': 'success' },
   { 'name': '营销推送', 'type': 'success', color: '#626aef', dark: false },
 ])
+const showCouponSale = ref(false);
 
 const showOrderDialog = ref(false);
 const open = ref(false);

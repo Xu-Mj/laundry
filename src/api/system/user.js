@@ -10,6 +10,14 @@ export function listUser(query) {
   })
 }
 
+// 查询用户列表
+export function listUserWithNoLimit() {
+  return request({
+    url: '/system/user/list-with-no-limit',
+    method: 'get',
+  })
+}
+
 // 查询用户详细
 export function getUser(userId) {
   return request({

@@ -52,7 +52,10 @@
       </el-table-column>
       <el-table-column label="所属分类" align="center" prop="clothingStyle">
         <template #default="scope">
-          <dict-tag :options="sys_cloth_style" :value="scope.row.clothingStyle" />
+          <!-- <dict-tag :options="sys_cloth_style" :value="scope.row.clothingStyle" /> -->
+          <el-tag :type="getStyleCss(scope.row)">
+            {{ getStyle(scope.row) }}
+          </el-tag>
         </template>
       </el-table-column>
       <el-table-column label="基准价格" align="center" prop="clothingBasePrice" />
@@ -82,15 +85,18 @@
         <el-row>
           <el-col :span="12">
             <el-form-item label="衣物品类" prop="clothingCategory">
-              <el-select v-model="form.clothingCategory" placeholder="衣物品类" clearable style="width: 240px">
+              <el-select v-model="form.clothingCategory" placeholder="衣物品类" @change="cateChange" clearable
+                style="width: 240px">
                 <el-option v-for="dict in sys_cloth_cate" :key="dict.value" :label="dict.label" :value="dict.value" />
               </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="所属分类" prop="clothingStyle">
-              <el-select v-model="form.clothingStyle" placeholder="所属分类" clearable style="width: 240px">
-                <el-option v-for="dict in sys_cloth_style" :key="dict.value" :label="dict.label" :value="dict.value" />
+              <el-select v-model="form.clothingStyle" placeholder="所属分类" no-data-text="请先选择所属品类" clearable
+                style="width: 240px">
+                <el-option v-for="dict in clothStyleList" :key="dict.dictValue" :label="dict.dictLabel"
+                  :value="dict.dictValue" />
               </el-select>
             </el-form-item>
           </el-col>
@@ -150,11 +156,15 @@
 
 <script setup name="Clothing">
 import { listClothing, getClothing, delClothing, addClothing, updateClothing, updateClothingRefNum } from "@/api/system/clothing";
+import { getDicts } from '@/api/system/dict/data'
 
 const { proxy } = getCurrentInstance();
 
 const { sys_cloth_style, sys_cloth_cate } = proxy.useDict("sys_cloth_style", "sys_cloth_cate");
 
+// 动态查询字典列表
+const clothStyleList = ref([]);
+const dictList = ref([]);
 const clothingList = ref([]);
 const open = ref(false);
 const loading = ref(true);
@@ -217,6 +227,37 @@ function validateMinPrice(rule, value, callback) {
     callback();
   }
 };
+
+function getStyleCss(row) {
+  const result = dictList.value.filter(item => item.dictType == 'sys_cloth_style' + row.clothingCategory).find(item => item.dictValue ===
+    row.clothingStyle);
+  return result ? result.listClass : 'default';
+}
+// 查找分类
+function getStyle(row) {
+  const result = dictList.value.filter(item => item.dictType == 'sys_cloth_style' + row.clothingCategory)
+    .find(item => item.dictValue === row.clothingStyle);
+  return result ? result.dictLabel : row.clothingStyle;
+}
+
+// 初始化所需要的字典数据
+function initDictList() {
+  sys_cloth_cate.value.forEach(item => {
+    getDicts("sys_cloth_style" + item.value).then(res => {
+      if (res.data && res.data.length > 0) {
+        dictList.value.push(...res.data);
+      }
+      console.log(dictList.value)
+    })
+  })
+}
+
+// 当品类发生变化时动态查询子分类列表
+function cateChange(value) {
+  getDicts("sys_cloth_style" + value).then(res => {
+    clothStyleList.value = res.data;
+  })
+}
 
 function updateRefNum() {
   proxy.$refs["tagNumRef"].validate(valid => {
@@ -339,18 +380,12 @@ function handleDelete(row) {
   }).catch(() => { });
 }
 
-/** 导出按钮操作 */
-function handleExport() {
-  proxy.download('system/clothing/export', {
-    ...queryParams.value
-  }, `clothing_${new Date().getTime()}.xlsx`)
-}
-
 /* 衣物类别变化触发查询 */
 function selectChange() {
   queryParams.value.pageNum = 1;
   getList();
 }
 
+initDictList()
 getList();
 </script>

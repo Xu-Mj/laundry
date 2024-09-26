@@ -120,17 +120,17 @@
             <el-form ref="clothsRef" :model="form" :rules="rules" class="form-container">
                 <div v-show="step == 0">
                     <el-form-item label="衣物品类">
-                        <el-radio-group v-model="form.clothingCategory">
-                            <el-radio v-for="dict in sys_cloth_cate" :key="dict.value" :value="dict.value">{{
-                                dict.label
-                            }}</el-radio>
+                        <el-radio-group v-model="form.clothingCategory" @change="cateChange">
+                            <el-radio v-for="dict in sys_cloth_cate" :key="dict.value" :value="dict.value">
+                                {{ dict.label }}
+                            </el-radio>
                         </el-radio-group>
                     </el-form-item>
                     <el-form-item label="衣物类别">
                         <el-radio-group v-model="form.clothingStyle">
-                            <el-radio v-for="dict in sys_cloth_style" :key="dict.value" :value="dict.value">{{
-                                dict.label
-                            }}</el-radio>
+                            <el-radio v-for="dict in clothStyleList" :key="dict.dictValue" :value="dict.dictValue">
+                                {{ dict.dictLabel }}
+                            </el-radio>
                         </el-radio-group>
                     </el-form-item>
                     <el-row class="footer-btn">
@@ -371,9 +371,10 @@
 import { listHistoryCloths, delCloths, addCloths, updateCloths } from "@/api/system/cloths";
 import { Camera, CoffeeCup, CollectionTag, CopyDocument, PictureRounded, User, WarningFilled } from "@element-plus/icons-vue";
 import { listClothing, addClothing } from "@/api/system/clothing";
+import { getDicts } from '@/api/system/dict/data'
 import { listTags, addTags } from "@/api/system/tags";
 import pinyin from 'pinyin';
-import { ref, reactive, toRefs, watch, } from "vue";
+import { ref, reactive, toRefs } from "vue";
 import { listCloths } from "@/api/system/cloths";
 import { getToken } from "@/utils/auth";
 
@@ -401,6 +402,7 @@ const emit = defineEmits(['update:value']);
 
 // 选择衣物时展示的衣物列表
 const clothingList = ref([]);
+const clothStyleList = ref([]);
 // 该用户洗过的衣物历史记录
 const clothHistoryList = ref([]);
 const open = ref(false);
@@ -459,6 +461,12 @@ const data = reactive({
 
 const { form, rules } = toRefs(data);
 
+// 当品类发生变化时动态查询子分类列表
+function cateChange(value) {
+    getDicts("sys_cloth_style" + value).then(res => {
+        clothStyleList.value = res.data;
+    })
+}
 function handlePreview(file) {
     dialogImageUrl.value = file.url;
     dialogVisible.value = true;
@@ -587,6 +595,7 @@ function handleAdd() {
     reset();
     open.value = true;
     title.value = "添加衣物";
+    cateChange(form.value.clothingCategory);
 }
 
 /** 修改按钮操作 */
@@ -883,7 +892,6 @@ function handleCloseUploadPic() {
 
 onMounted(async () => {
     await initList();  // 确保 initList 完成
-    console.log('准备获取列表');
     getList();         // 在 initList 完成后调用
 });
 </script>

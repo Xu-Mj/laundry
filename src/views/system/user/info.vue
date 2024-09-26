@@ -78,20 +78,16 @@
             </div>
             <!-- 卡券列表信息 -->
             <div class="detail-item">
-                <span class="detail-label">卡券:</span>
+                <span class="detail-label">拥有卡券:</span>
                 <template v-if="coupons && coupons.length > 0">
                     <div class="user-tags-container">
-                        <template v-for="(card, index) in coupons.filter(item => item.coupon.couponType == '000')"
-                            :key="index">
+                        <span v-for="(card, index) in coupons" :key="index">
                             {{ card.coupon.couponTitle }}
                             -余额
                             {{ card.availableValue }}
                             {{ card.coupon.couponType == '000' ? '元' : '次' }}
-                        </template>
-                        <template v-for="card in coupons.filter(item => item.coupon.couponType !== '000')"
-                            :disabled="!card.isValid" :key="card.ucId" :value="card.ucId">
-                            {{ card.coupon.couponTitle }}
-                        </template>
+                            {{ index === coupons.length - 1 ? '' : '|' }}
+                        </span>
                     </div>
                 </template>
             </div>
@@ -149,21 +145,23 @@ if (props.user && props.user.userId) {
 .user-details {
     display: flex;
     flex-direction: column;
+    gap: 1rem;
 }
 
 .detail-item {
     display: flex;
     align-items: center;
-    margin-bottom: 8px;
+    gap: .5rem;
 }
 
 .detail-label {
     font-weight: bold;
-    margin-right: 8px;
+    flex-shrink: 0;
 }
 
 .user-tags-container {
     display: flex;
     flex-wrap: wrap;
+    gap: .3rem
 }
 </style>

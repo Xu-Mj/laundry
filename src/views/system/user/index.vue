@@ -44,7 +44,7 @@
          <el-table-column label="会员姓名" align="center" v-if="columns[1].visible">
             <template #default="scope">
                <el-tooltip content="查看会员详情" placement="top">
-                  <el-button link @click="showUserInfo(scope.row)">{{ scope.row.nickName }}</el-button>
+                  <el-button link type="primary" @click="showUserInfo(scope.row)">{{ scope.row.nickName }}</el-button>
                </el-tooltip>
             </template>
          </el-table-column>
@@ -256,7 +256,7 @@
 
       <!-- 展示会员信息详情 -->
       <el-dialog v-model="userInfoOpen" :show-close="false" width="500px" append-to-body>
-         <UserDetailsCard :user="userInfo" />
+         <UserDetailsCard :user="userInfo" :key="userInfo.userId"/>
       </el-dialog>
    </div>
 </template>

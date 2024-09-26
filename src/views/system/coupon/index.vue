@@ -340,7 +340,7 @@
         <el-row>
           <h3 class="title">卡券信息</h3>
         </el-row>
-        <el-table :data="selectedList" border>
+        <el-table :data="selectedList" max-height="15rem" border>
           <el-table-column label="序号" align="center" type="index" width="60" />
           <el-table-column label="卡券名称" align="center" key="couponTitle" prop="couponTitle" />
           <el-table-column label="有效期" align="center">
@@ -348,7 +348,7 @@
               {{ parseTime(scope.row.validFrom, '{y}-{m}-{d}') + ' ~ ' + parseTime(scope.row.validTo, '{y}-{m}-{d}') }}
             </template>
           </el-table-column>
-          <el-table-column label="数量" align="center" key="validTo">
+          <el-table-column label="数量" align="center">
             <template #default="scope">
               <el-input-number v-model="scope.row.count" :min="0" :max="(scope.row.customerSaleCount != -1 && scope.row.customerSaleTotal != -1)
                 ? Math.min(scope.row.customerSaleCount, scope.row.customerSaleTotal)

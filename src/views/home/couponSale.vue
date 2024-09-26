@@ -7,7 +7,7 @@
         <el-row>
             <h3 class="title">卡券信息</h3>
         </el-row>
-        <el-table :data="couponList" border @selection-change="handleSelectionChange">
+        <el-table :data="couponList" max-height="15rem" border @selection-change="handleSelectionChange">
             <el-table-column type="selection" width="55" align="center" />
             <el-table-column label="卡券名称" align="center" key="couponTitle" prop="couponTitle" />
             <el-table-column label="卡券类型" align="center" key="couponType" prop="couponType">

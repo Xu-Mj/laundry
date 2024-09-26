@@ -18,6 +18,9 @@
       :close-on-click-modal="false">
       <CouponSale :key="showCouponSale" />
     </el-dialog>
+
+    <!-- 新增会员 -->
+     <AddUser :visible="showAddUserDialog" :key="showAddUserDialog" :taggle="() => { showAddUserDialog = !showAddUserDialog }" />
   </div>
 </template>
 
@@ -26,14 +29,22 @@ import { ref } from 'vue';
 import OrderContent from '@/views/home/oderContent.vue'
 import CreateOrder from '@/views/home/createOrder.vue'
 import CouponSale from '@/views/home/couponSale.vue'
+import AddUser from '@/views/home/addUser.vue'
 
 const version = ref('3.8.8')
+
+const showCouponSale = ref(false);
+
+const showOrderDialog = ref(false);
+const showAddUserDialog = ref(false);
+const open = ref(false);
+
 /*
  * 菜单
  * color: 自定义颜色
  * dark: 是否为暗黑主题
  */
-const menus = ref([
+ const menus = ref([
   { 'name': '收衣收鞋', 'type': 'primary', onClick: () => { open.value = true } },
   { 'name': '取衣取鞋', 'type': 'primary', onClick: () => { showOrderDialog.value = true } },
   { 'name': '上挂', 'type': 'primary' },
@@ -42,7 +53,7 @@ const menus = ref([
   { 'name': '卡券销售', 'type': 'primary', onClick: () => { showCouponSale.value = true } },
   { 'name': '收款', 'type': 'primary' },
   { 'name': '撤单处理', 'type': 'danger' },
-  { 'name': '新增会员', 'type': 'primary' },
+  { 'name': '新增会员', 'type': 'primary', onClick: () => { showAddUserDialog.value = true} },
   { 'name': '事故处理', 'type': 'danger' },
   { 'name': '线上预约', 'type': 'success' },
   { 'name': '取件预约', 'type': 'success' },
@@ -54,11 +65,7 @@ const menus = ref([
   { 'name': '经营对账', 'type': 'success' },
   { 'name': '新增支出', 'type': 'success' },
   { 'name': '营销推送', 'type': 'success', color: '#626aef', dark: false },
-])
-const showCouponSale = ref(false);
-
-const showOrderDialog = ref(false);
-const open = ref(false);
+]);
 function handleShowOrderDialog() {
   showOrderDialog.value = !showOrderDialog.value;
 }

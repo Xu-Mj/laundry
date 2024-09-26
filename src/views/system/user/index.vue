@@ -40,19 +40,19 @@
 
       <el-table v-loading="loading" :data="userList" @selection-change="handleSelectionChange">
          <el-table-column type="selection" width="50" align="center" />
-         <el-table-column label="会员编号" align="center" key="userId" prop="userId" v-if="columns[0].visible" />
-         <el-table-column label="会员姓名" align="center" v-if="columns[2].visible">
+         <!-- <el-table-column label="会员编号" align="center" key="userId" prop="userId" v-if="columns[0].visible" /> -->
+         <el-table-column label="会员姓名" align="center" v-if="columns[1].visible">
             <template #default="scope">
                <el-tooltip content="查看会员详情" placement="top">
-                  <el-button link @click="showUserInfo(scope.row)">{{ scope.row.nickName }}</el-button>
+                  <el-button link type="primary" @click="showUserInfo(scope.row)">{{ scope.row.nickName }}</el-button>
                </el-tooltip>
             </template>
          </el-table-column>
-         <el-table-column label="会员账号" align="center" key="userName" prop="userName" v-if="columns[1].visible"
+         <el-table-column label="会员账号" align="center" key="userName" prop="userName" v-if="columns[0].visible"
             :show-overflow-tooltip="true" />
-         <el-table-column label="手机号码" align="center" key="phonenumber" prop="phonenumber" v-if="columns[4].visible"
+         <el-table-column label="手机号码" align="center" key="phonenumber" prop="phonenumber" v-if="columns[3].visible"
             width="120" />
-         <el-table-column label="会员类型" align="center" key="userType" prop="userType" v-if="columns[7].visible">
+         <el-table-column label="会员类型" align="center" key="userType" prop="userType" v-if="columns[6].visible">
             <template #default="scope">
                <dict-tag :options="sys_user_type" :value="scope.row.userType" />
             </template>
@@ -60,30 +60,27 @@
          <!-- <el-table-column label="会员组织" align="center" key="deptName" prop="dept.deptName" v-if="columns[3].visible"
          :show-overflow-tooltip="true" /> -->
          <el-table-column label="微信标识" align="center" prop="openId" :show-overflow-tooltip="true"
-            v-if="columns[10].visible" />
-         <el-table-column label="性别" align="center" key="sex" v-if="columns[11].visible">
+            v-if="columns[9].visible" />
+         <el-table-column label="性别" align="center" key="sex" v-if="columns[10].visible">
             <template #default="scope">
                <dict-tag :options="sys_user_sex" :value="scope.row.sex" />
             </template>
          </el-table-column>
-         <el-table-column label="会员住址" align="center" key="address" prop="address" v-if="columns[15].visible" />
-         <el-table-column label="会员积分" align="center" v-if="columns[12].visible">
+         <el-table-column label="会员住址" align="center" key="address" prop="address" v-if="columns[14].visible" />
+         <el-table-column label="会员积分" align="center" v-if="columns[11].visible">
             <template #default="scope">
                <el-tooltip content="查看历史记录" placement="top">
-                  <el-button link @click="queryIntegralList(scope.row.userId)" v-hasPermi="['system:record:list']">{{
-                     scope.row.integral }}</el-button>
+                  <el-button type="primary" link @click="queryIntegralList(scope.row.userId)"
+                     v-hasPermi="['system:record:list']">{{
+                        scope.row.integral }}</el-button>
                </el-tooltip>
             </template>
          </el-table-column>
-         <el-table-column label="会员等级" align="center" key="postName" prop="postName" v-if="columns[8].visible" />
-         <el-table-column label="会员画像" align="center" key="userTags" prop="userTags" v-if="columns[13].visible">
+         <el-table-column label="会员等级" align="center" key="postName" prop="postName" v-if="columns[7].visible" />
+         <el-table-column label="会员画像" align="center" key="userTags" prop="userTags" v-if="columns[12].visible">
             <template #default="scope">
-               <!-- 检查 userTags 是否为空或为 null -->
-               <template v-if="!scope.row.userTags || scope.row.userTags.trim() === ''">
-                  <span>-</span>
-               </template>
                <!-- 如果 userTags 不为空，则显示 dict-tag，并设置 el-tooltip -->
-               <template v-else>
+               <template v-if="scope.row.userTags && scope.row.userTags.trim() !== ''">
                   <!-- el-tooltip 组件包裹 dict-tag -->
                   <el-tooltip class="item" v-if="scope.row.tagsRemark" effect="dark" :content="scope.row.tagsRemark"
                      placement="top">
@@ -95,24 +92,26 @@
                   </el-tooltip>
                   <!-- 如果没有会员画像备注，那么不要显示tooltip -->
                   <template v-else>
-                     <dict-tag v-for="(item, index) in scope.row.userTags.split(',')" :key="index"
-                        :options="sys_user_tags" :value="item.trim()" />
+                     <div class="user-tags-container">
+                        <dict-tag v-for="(item, index) in scope.row.userTags.split(',')" :key="index"
+                           :options="sys_user_tags" :value="item.trim()" />
+                     </div>
                   </template>
                </template>
             </template>
          </el-table-column>
-         <el-table-column label="黑灰名单" align="center" key="identify" v-if="columns[14].visible">
+         <el-table-column label="黑灰名单" align="center" key="identify" v-if="columns[13].visible">
             <template #default="scope">
                <dict-tag :options="sys_user_identify" :value="scope.row.identify" />
             </template>
          </el-table-column>
-         <el-table-column label="账号状态" align="center" key="status" v-if="columns[5].visible">
+         <el-table-column label="账号状态" align="center" key="status" v-if="columns[4].visible">
             <template #default="scope">
                <el-switch v-model="scope.row.status" active-value="0" inactive-value="1"
                   @change="handleStatusChange(scope.row)"></el-switch>
             </template>
          </el-table-column>
-         <el-table-column label="创建时间" align="center" prop="createTime" v-if="columns[6].visible" width="160">
+         <el-table-column label="创建时间" align="center" prop="createTime" v-if="columns[5].visible" width="160">
             <template #default="scope">
                <span>{{ parseTime(scope.row.createTime) }}</span>
             </template>
@@ -130,7 +129,11 @@
                      v-hasPermi="['system:user:remove']"></el-button>
                </el-tooltip>
                <el-tooltip content="兑换" placement="top">
-                  <el-button link type="primary" icon="Shop" @click="handleResetPwd(scope.row)"
+                  <el-button link type="primary" icon="Shop" @click=""
+                     v-hasPermi="['system:user:resetPwd']"></el-button>
+               </el-tooltip>
+               <el-tooltip content="重置密码" placement="top">
+                  <el-button link type="primary" icon="Key" @click="handleResetPwd(scope.row)"
                      v-hasPermi="['system:user:resetPwd']"></el-button>
                </el-tooltip>
             </template>
@@ -140,7 +143,7 @@
          v-model:limit="queryParams.pageSize" @pagination="getList" />
 
       <!-- 添加或修改会员配置对话框 -->
-      <el-dialog :title="title" v-model="open" width="600px" append-to-body close-on-click-modal="false">
+      <el-dialog v-model="open" width="600px" append-to-body :show-close="false" close-on-click-modal="false">
          <el-form :model="form" :rules="rules" ref="userRef" label-width="80px">
             <el-row>
                <el-col :span="12">
@@ -253,7 +256,7 @@
 
       <!-- 展示会员信息详情 -->
       <el-dialog v-model="userInfoOpen" :show-close="false" width="500px" append-to-body>
-         <UserDetailsCard :user="userInfo" />
+         <UserDetailsCard :user="userInfo" :key="userInfo.userId"/>
       </el-dialog>
    </div>
 </template>
@@ -294,7 +297,6 @@ const roleOptions = ref([]);
 
 // 列显隐信息
 const columns = ref([
-   { key: 0, label: `会员编号`, visible: false },
    { key: 1, label: `会员账号`, visible: true },
    { key: 2, label: `会员姓名`, visible: true },
    { key: 3, label: `归属组织`, visible: true },
@@ -366,7 +368,6 @@ function handleTelQuery() {
 function resetQuery() {
    proxy.resetForm("queryRef");
    queryParams.value.deptId = undefined;
-   proxy.$refs.deptTreeRef.setCurrentKey(null);
    handleQuery();
 };
 
@@ -546,6 +547,7 @@ getList();
    display: flex;
    justify-content: center;
    align-items: center;
-   flex-flow: row wrap
+   flex-flow: row wrap;
+   gap: .5rem;
 }
 </style>

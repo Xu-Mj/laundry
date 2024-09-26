@@ -9,6 +9,15 @@ export function listCoupon(query) {
   })
 }
 
+// 查询卡券列表
+export function listCoupon4sale(query) {
+  return request({
+    url: '/system/coupon/list4sale',
+    method: 'get',
+    params: query
+  })
+}
+
 // 查询卡券详细
 export function getCoupon(couponId) {
   return request({

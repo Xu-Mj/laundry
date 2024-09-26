@@ -33,7 +33,7 @@
           v-hasPermi="['system:tags:remove']">删除</el-button>
       </el-col>
       <el-col :span="1.5">
-        <el-button type="success" plain icon="Edit" :disabled="single" @click="handleUpdate({}, true)"
+        <el-button type="success" plain icon="Edit" :disabled="ids.length==0" @click="()=>{showUpdateRefNum = true}"
           v-hasPermi="['system:tags:edit']">修改使用计数</el-button>
       </el-col>
       <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
@@ -112,17 +112,33 @@
         </div>
       </template>
     </el-dialog>
+
+    <!-- 修改使用次数对话框 -->
+    <el-dialog title="修改使用次数" v-model="showUpdateRefNum" width="500px" :show-close="false" append-to-body>
+      <el-form ref="tagNumRef" :model="tagNumForm" :rules="tagNumFormRules" label-width="80px">
+        <el-form-item label="使用次数" prop="refNumber">
+          <el-input-number :min="0" v-model="tagNumForm.refNumber" placeholder="请输入使用次数" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button type="primary" @click="updateRefNum">确 定</el-button>
+          <el-button @click="cancelUpdateRefNum">取 消</el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup name="Tags">
-import { listTags, getTags, delTags, addTags, updateTags, changeTagStatus } from "@/api/system/tags";
+import { listTags, getTags, delTags, addTags, updateTags, updateTagsRefNum, changeTagStatus } from "@/api/system/tags";
 
 const { proxy } = getCurrentInstance();
 const { sys_normal_disable, sys_tag_order } = proxy.useDict("sys_normal_disable", "sys_tag_order");
 
 const tagsList = ref([]);
 const open = ref(false);
+const showUpdateRefNum = ref(false);
 const loading = ref(true);
 const showSearch = ref(true);
 const ids = ref([]);
@@ -135,6 +151,7 @@ const refNum = ref();
 
 const data = reactive({
   form: {},
+  tagNumForm: {},
   queryParams: {
     pageNum: 1,
     pageSize: 10,
@@ -151,10 +168,13 @@ const data = reactive({
       { required: true, message: "标签名称不能为空", trigger: "blur" }
     ],
     orderNum: [{ required: true, message: "标签顺序不能为空", trigger: "blur" }],
+  },
+  refNumFormRules: {
+    refNumber: [{ required: true, message: "使用次数不能为空", trigger: "blur" }],
   }
 });
 
-const { queryParams, form, rules } = toRefs(data);
+const { queryParams, form, tagNumForm, rules, tagNumFormRules } = toRefs(data);
 
 /** 查询标签列表 */
 function getList() {
@@ -170,6 +190,12 @@ function getList() {
 function cancel() {
   open.value = false;
   reset();
+}
+
+// 取消按钮
+function cancelUpdateRefNum() {
+  showUpdateRefNum.value = false;
+  tagNumForm.value = { refNumber: 0 };
 }
 
 // 表单重置
@@ -217,7 +243,6 @@ function handleSelectionChange(selection) {
 function handleAdd() {
   reset();
   open.value = true;
-  title.value = "添加标签";
 }
 
 /** 修改按钮操作 */
@@ -230,6 +255,19 @@ function handleUpdate(row, focus) {
     open.value = true;
     title.value = "修改标签";
   });
+}
+
+function updateRefNum() {
+  proxy.$refs["tagNumRef"].validate(valid => {
+    if (valid) {
+      updateTagsRefNum({ tagIds: ids.value, refNum: tagNumForm.value.refNumber }).then(res => {
+        proxy.$modal.msgSuccess("修改成功");
+        showUpdateRefNum.value = false;
+        tagNumForm.value.refNumber = 0;
+        getList();
+      })
+    }
+  })
 }
 
 /** 提交按钮 */

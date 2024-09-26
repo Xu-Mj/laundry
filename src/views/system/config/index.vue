@@ -50,7 +50,7 @@
 
       <el-table v-loading="loading" :data="configList" @selection-change="handleSelectionChange">
          <el-table-column type="selection" width="55" align="center" />
-         <el-table-column label="参数主键" align="center" prop="configId" />
+         <!-- <el-table-column label="参数主键" align="center" prop="configId" /> -->
          <el-table-column label="参数名称" align="center" prop="configName" :show-overflow-tooltip="true" />
          <el-table-column label="参数键名" align="center" prop="configKey" :show-overflow-tooltip="true" />
          <el-table-column label="参数键值" align="center" prop="configValue" :show-overflow-tooltip="true" />
@@ -79,7 +79,7 @@
          v-model:limit="queryParams.pageSize" @pagination="getList" />
 
       <!-- 添加或修改参数配置对话框 -->
-      <el-dialog :title="title" v-model="open" width="500px" append-to-body>
+      <el-dialog :title="title" v-model="open" :show-close="false" width="500px" append-to-body>
          <el-form ref="configRef" :model="form" :rules="rules" label-width="80px">
             <el-form-item label="参数名称" prop="configName">
                <el-input v-model="form.configName" placeholder="请输入参数名称" />
@@ -197,7 +197,6 @@ function handleSelectionChange(selection) {
 function handleAdd() {
    reset();
    open.value = true;
-   title.value = "添加参数";
 }
 
 /** 修改按钮操作 */

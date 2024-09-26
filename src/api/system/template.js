@@ -43,11 +43,19 @@ export function delTemplate(tempId) {
   })
 }
 
-// 删除通知模板管理
+// 发送通知
 export function sendNotice(data) {
   return request({
-    url: '/system/template/send' ,
+    url: '/system/template/send',
     method: 'post',
     data: data
+  })
+}
+
+// 发送通知给所有会员
+export function sendNotice2All(tempId) {
+  return request({
+    url: '/system/template/send-2all/' + tempId,
+    method: 'post',
   })
 }

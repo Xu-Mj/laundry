@@ -83,8 +83,9 @@
             </el-dialog>
         </el-dialog>
         <!-- 添加或修改订单包含的衣物清单对话框 -->
-        <el-dialog :title="title" v-model="open" width="1000px" modal :close-on-click-modal="false" @closed="reset()"
-            append-to-body>
+        <el-dialog :title="title" v-model="open" width="1080px" modal :close-on-click-modal="false" @closed="reset()"
+            @keydown.enter.native="handleEnterKeyDown" @keydown.right.native="handleEnterKeyDown"
+            @keydown.left.native="handleLeftKeyDown" append-to-body>
             <el-steps :active="step" finish-status="success" simple>
                 <el-step title="选择品类" :icon="CopyDocument" v-if="step !== 6" />
                 <el-step title="选择衣物" :icon="User" v-if="step !== 6" />
@@ -114,22 +115,22 @@
                     :title="form.clothingBrand ? brandList.find(item => { return item.tagId == form.clothingBrand }).tagName : '没有选择品牌'"
                     :icon="CollectionTag" v-if="step == 6" />
 
-                <el-button type="" v-show="step == 6" class="steps-btn" @click="step = 0">编辑</el-button>
+                <el-button type="primary" v-show="step == 6" class="steps-btn" @click="step = 0">编辑</el-button>
             </el-steps>
             <el-form ref="clothsRef" :model="form" :rules="rules" class="form-container">
                 <div v-show="step == 0">
                     <el-form-item label="衣物品类">
-                        <el-radio-group v-model="form.clothingCategory">
-                            <el-radio v-for="dict in sys_cloth_cate" :key="dict.value" :value="dict.value">{{
-                                dict.label
-                            }}</el-radio>
+                        <el-radio-group v-model="form.clothingCategory" @change="cateChange">
+                            <el-radio v-for="dict in sys_cloth_cate" :key="dict.value" :value="dict.value">
+                                {{ dict.label }}
+                            </el-radio>
                         </el-radio-group>
                     </el-form-item>
                     <el-form-item label="衣物类别">
                         <el-radio-group v-model="form.clothingStyle">
-                            <el-radio v-for="dict in sys_cloth_style" :key="dict.value" :value="dict.value">{{
-                                dict.label
-                            }}</el-radio>
+                            <el-radio v-for="dict in clothStyleList" :key="dict.dictValue" :value="dict.dictValue">
+                                {{ dict.dictLabel }}
+                            </el-radio>
                         </el-radio-group>
                     </el-form-item>
                     <el-row class="footer-btn">
@@ -140,7 +141,8 @@
                 <div v-show="step == 1">
                     <el-form-item label="衣物名称">
                         <div class="input-btn-row">
-                            <el-input v-model="clothNameInput" @input="searchCloth" placeholder="请输衣物名称首字母或衣物名称" />
+                            <el-input v-model="clothNameInput" ref="clothNameRef" @input="searchCloth"
+                                placeholder="请输衣物名称首字母或衣物名称" />
                             <el-button v-if="showAddClothBtn" type="primary" @click="handleAddCloth">新增</el-button>
                         </div>
                     </el-form-item>
@@ -162,7 +164,7 @@
                         </div>
                     </el-form-item>
                     <!-- 展示衣物标签 -->
-                    <el-row>
+                    <el-row class="item-list-area">
                         <el-radio-group class="color-radio-group" v-model="form.clothingId" @change="step2ClothChange">
                             <el-radio v-for="color in clothingList" :key="color.clothingId" :value="color.clothingId">{{
                                 color.clothingName
@@ -183,7 +185,7 @@
                         </div>
                     </el-form-item>
                     <!-- 展示颜色 -->
-                    <el-row>
+                    <el-row class="item-list-area">
                         <el-radio-group class="color-radio-group" v-model="form.clothingColor">
                             <el-radio v-for="color in colorList" :key="color.tagId" :value="color.tagId">
                                 <el-tooltip :content="color.tagNumber">
@@ -195,7 +197,7 @@
                     <el-row class="footer-btn">
                         <el-button type="primary" @click="preStep">上一步</el-button>
                         <el-button type="primary" @click="nextStep">下一步</el-button>
-                        <el-button type="primary" @click="nextStep">跳过</el-button>
+                        <el-button type="primary" @click="jump2last">跳过后续步骤</el-button>
                     </el-row>
                 </div>
                 <div v-show="step == 3">
@@ -207,7 +209,7 @@
                         </div>
                     </el-form-item>
                     <!-- 展示瑕疵 -->
-                    <el-row>
+                    <el-row class="item-list-area">
                         <el-checkbox-group class="color-radio-group" v-model="form.clothingFlawArr">
                             <el-checkbox v-for="item in flawList" :key="item.tagId" :value="item.tagId">
                                 <el-tooltip :content="item.tagNumber">
@@ -219,7 +221,7 @@
                     <el-row class="footer-btn">
                         <el-button type="primary" @click="preStep">上一步</el-button>
                         <el-button type="primary" @click="nextStep">下一步</el-button>
-                        <el-button type="primary" @click="nextStep">跳过</el-button>
+                        <el-button type="primary" @click="jump2last">跳过后续步骤</el-button>
                     </el-row>
                 </div>
                 <div v-show="step == 4">
@@ -231,7 +233,7 @@
                         </div>
                     </el-form-item>
                     <!-- 展示洗后预估标签 -->
-                    <el-row>
+                    <el-row class="item-list-area">
                         <el-checkbox-group class="color-radio-group" v-model="form.estimateArr">
                             <el-checkbox v-for="item in estimateList" :key="item.tagId" :value="item.tagId">
                                 <el-tooltip :content="item.tagNumber">
@@ -243,7 +245,7 @@
                     <el-row class="footer-btn">
                         <el-button type="primary" @click="preStep">上一步</el-button>
                         <el-button type="primary" @click="nextStep">下一步</el-button>
-                        <el-button type="primary" @click="nextStep">跳过</el-button>
+                        <el-button type="primary" @click="jump2last">跳过后续步骤</el-button>
                     </el-row>
                 </div>
                 <div v-show="step == 5">
@@ -255,7 +257,7 @@
                         </div>
                     </el-form-item>
                     <!-- 展示品牌 -->
-                    <el-row>
+                    <el-row class="item-list-area">
                         <el-radio-group class="color-radio-group" v-model="form.clothingBrand">
                             <el-radio v-for="color in brandList" :key="color.tagId" :value="color.tagId">
                                 <el-tooltip :content="color.tagNumber">
@@ -267,17 +269,13 @@
                     <el-row class="footer-btn">
                         <el-button type="primary" @click="preStep">上一步</el-button>
                         <el-button type="primary" @click="nextStep">下一步</el-button>
-                        <el-button type="primary" @click="nextStep">跳过</el-button>
+                        <el-button type="primary" @click="jump2last">跳过后续步骤</el-button>
                     </el-row>
                 </div>
                 <div v-show="step == 6">
                     <el-row>
                         <el-col :span="12">
                             <el-form-item label="服务类型">
-                                <!-- <el-checkbox-group v-model="form.serviceTypeArr">
-                                    <el-checkbox v-for="type_ in sys_service_type" :key="type_.value"
-                                        :value="type_.value" :label="type_.label" />
-                                </el-checkbox-group> -->
                                 <el-radio-group v-model="form.serviceType">
                                     <el-radio v-for="type_ in sys_service_type" :key="type_.value" :value="type_.value"
                                         :label="type_.label">{{ type_.label }}</el-radio>
@@ -286,10 +284,6 @@
                         </el-col>
                         <el-col :span="12">
                             <el-form-item label="服务要求">
-                                <!-- <el-checkbox-group v-model="form.serviceRequirementArr">
-                                    <el-checkbox v-for="type_ in sys_service_requirement" :key="type_.value"
-                                        :value="type_.value" :label="type_.label" />
-                                </el-checkbox-group> -->
                                 <el-radio-group v-model="form.serviceRequirement">
                                     <el-radio v-for="type_ in sys_service_requirement" :key="type_.value"
                                         :value="type_.value" :label="type_.label">{{ type_.label }}</el-radio>
@@ -300,7 +294,8 @@
                     <el-row>
                         <el-col :span="12" class="markup">
                             <el-form-item label="收费价格">
-                                <el-input-number v-model="form.priceValue" :min="0" controls-position="right" />
+                                {{ form.priceValue }}
+                                <!-- <el-input-number v-model="form.priceValue" :min="0" controls-position="right" /> -->
                             </el-form-item>
                         </el-col>
                         <el-col :span="12" class="markup">
@@ -330,13 +325,6 @@
                                     <dict-tag :options="sys_service_type" :value="scope.row.serviceType" />
                                 </template>
                             </el-table-column>
-                            <!-- <template #default="scope">
-                                    <el-tag type="primary"
-                                        v-for="item, index in scope.row.serviceType ? scope.row.serviceType.split(',') : []"
-                                        :key="index">{{
-                                        item }}</el-tag>
-                                </template>
-                            </el-table-column> -->
                             <el-table-column label="洗后预估" align="center" prop="estimate">
                                 <template #default="scope">
                                     <el-tag v-for="tagId in scope.row.estimateArr" :key="item" type="primary">
@@ -358,13 +346,6 @@
                                         :value="scope.row.serviceRequirement" />
                                 </template>
                             </el-table-column>
-                            <!-- <template #default="scope">
-                                    <el-tag type="primary"
-                                        v-for="item, index in scope.row.serviceRequirement ? scope.row.serviceRequirement.split(',') : []"
-                                        :key="index">{{
-                                        item }}</el-tag>
-                                </template>
-                            </el-table-column> -->
                             <el-table-column label="价格" align="center" prop="priceValue" />
                             <el-table-column label="补充信息" align="center" prop="hangRemark" />
                         </el-table>
@@ -372,7 +353,7 @@
                     <el-row>
                         <el-col :span="12">
                             <el-form-item>
-                                <el-input type="textarea" v-model="form.remark" class="remark" placeholder="点击输入备注信息"/>
+                                <el-input type="textarea" v-model="form.remark" class="remark" placeholder="点击输入备注信息" />
                             </el-form-item>
                         </el-col>
                         <el-col :span="12" class="final-btn">
@@ -380,20 +361,8 @@
                             <el-button type="primary" @click="cancel">取消</el-button>
                         </el-col>
                     </el-row>
-                    <!-- <el-row class="footer-btn" v-show="step !== 6">
-                        <el-button type="primary" @click="preStep">上一步</el-button>
-                        <el-button type="primary" @click="nextStep">下一步</el-button>
-                        <el-button type="primary" @click="nextStep">跳过</el-button>
-                    </el-row> -->
                 </div>
-
             </el-form>
-            <!-- <template #footer>
-                <div class="dialog-footer">
-                    <el-button type="primary" @click="submitForm">确 定</el-button>
-                    <el-button @click="cancel">取 消</el-button>
-                </div>
-            </template> -->
         </el-dialog>
     </div>
 </template>
@@ -402,11 +371,11 @@
 import { listHistoryCloths, delCloths, addCloths, updateCloths } from "@/api/system/cloths";
 import { Camera, CoffeeCup, CollectionTag, CopyDocument, PictureRounded, User, WarningFilled } from "@element-plus/icons-vue";
 import { listClothing, addClothing } from "@/api/system/clothing";
+import { getDicts } from '@/api/system/dict/data'
 import { listTags, addTags } from "@/api/system/tags";
 import pinyin from 'pinyin';
-import { ref, reactive, toRefs, watch, } from "vue";
+import { ref, reactive, toRefs } from "vue";
 import { listCloths } from "@/api/system/cloths";
-import ImageUpload from "@/components/ImageUpload";
 import { getToken } from "@/utils/auth";
 
 const props = defineProps({
@@ -430,14 +399,10 @@ const { sys_cloth_cate, sys_cloth_style, sys_service_type, sys_service_requireme
 // 添加衣物的列表
 const clothList = ref([]);
 const emit = defineEmits(['update:value']);
-// 当值变化时 emit 更新事件
-// watch(clothList, (newVal) => {
-//     console.log('clothList changed:', newVal);
-//     emit('update:value', newVal);
-// }, { deep: true });
 
 // 选择衣物时展示的衣物列表
 const clothingList = ref([]);
+const clothStyleList = ref([]);
 // 该用户洗过的衣物历史记录
 const clothHistoryList = ref([]);
 const open = ref(false);
@@ -470,12 +435,9 @@ const baseUrl = import.meta.env.VITE_APP_BASE_API;
 const uploadBeforeImgUrl = ref(baseUrl + `/system/cloths/upload?isPre=true&clothId=`); // 上传的图片服务器地址
 const uploadAfterImgUrl = ref(baseUrl + `/system/cloths/upload?isPre=false&clothId=`); // 上传的图片服务器地址
 const dialogImageUrl = ref("");
+const clothNameRef = ref();
 const dialogVisible = ref(false);// 预览
-function handlePreview(file) {
-    dialogImageUrl.value = file.url;
-    dialogVisible.value = true;
-    console.log(dialogImageUrl.value)
-}
+
 const data = reactive({
     form: {},
     rules: {
@@ -498,6 +460,27 @@ const data = reactive({
 });
 
 const { form, rules } = toRefs(data);
+
+// 当品类发生变化时动态查询子分类列表
+function cateChange(value) {
+    getDicts("sys_cloth_style" + value).then(res => {
+        clothStyleList.value = res.data;
+    })
+}
+function handlePreview(file) {
+    dialogImageUrl.value = file.url;
+    dialogVisible.value = true;
+    console.log(dialogImageUrl.value)
+}
+
+function handleEnterKeyDown() {
+    console.log('enter')
+    nextStep();
+}
+
+function handleLeftKeyDown() {
+    preStep();
+}
 
 // 当订单id不为空时那么为修改操作
 function getList() {
@@ -572,7 +555,7 @@ async function initList() {
 
     // 获取颜色列表
     if (colorList.value.length === 0) {
-        const colorPromise = listTags({ tagOrder: '003' }).then(response => {
+        const colorPromise = listTags({ tagOrder: '003', status: "0" }).then(response => {
             colorList.value = response.rows;
         });
         promises.push(colorPromise);
@@ -580,7 +563,7 @@ async function initList() {
 
     // 获取瑕疵列表
     if (flawList.value.length === 0) {
-        const flawPromise = listTags({ tagOrder: '001' }).then(response => {
+        const flawPromise = listTags({ tagOrder: '001', status: "0" }).then(response => {
             flawList.value = response.rows;
         });
         promises.push(flawPromise);
@@ -588,7 +571,7 @@ async function initList() {
 
     // 获取预估列表
     if (estimateList.value.length === 0) {
-        const estimatePromise = listTags({ tagOrder: '002' }).then(response => {
+        const estimatePromise = listTags({ tagOrder: '002', status: "0" }).then(response => {
             estimateList.value = response.rows;
         });
         promises.push(estimatePromise);
@@ -596,7 +579,7 @@ async function initList() {
 
     // 获取品牌列表
     if (brandList.value.length === 0) {
-        const brandPromise = listTags({ tagOrder: '004' }).then(response => {
+        const brandPromise = listTags({ tagOrder: '004', status: "0" }).then(response => {
             brandList.value = response.rows;
         });
         promises.push(brandPromise);
@@ -612,6 +595,7 @@ function handleAdd() {
     reset();
     open.value = true;
     title.value = "添加衣物";
+    cateChange(form.value.clothingCategory);
 }
 
 /** 修改按钮操作 */
@@ -682,7 +666,22 @@ function preStep() {
 
 /* 下一步 */
 function nextStep() {
-    step.value++;
+    // 校验衣物是否选择
+    if (step.value === 1 && !form.value.clothingId) {
+        return;
+    }
+    if (step.value !== 6) {
+        step.value++;
+    }
+
+    if (step.value === 1 && clothNameRef.value) {
+        clothNameRef.value.focus();
+    }
+}
+
+/* 跳过后续步骤 */
+function jump2last() {
+    step.value = 6;
 }
 
 /* 获取衣物列表 */
@@ -893,7 +892,6 @@ function handleCloseUploadPic() {
 
 onMounted(async () => {
     await initList();  // 确保 initList 完成
-    console.log('准备获取列表');
     getList();         // 在 initList 完成后调用
 });
 </script>
@@ -976,5 +974,10 @@ onMounted(async () => {
         justify-content: flex-start;
         gap: .25rem;
     }
+}
+
+.item-list-area {
+    width: 100%;
+    max-height: 3rem;
 }
 </style>

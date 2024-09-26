@@ -231,13 +231,13 @@
     <el-dialog :title="title" v-model="open" width="1440px" append-to-body lock-scroll modal  :before-close="cancel"
       :close-on-click-modal="false">
       <CreateOrder ref="createOrderRef" :orderId="currentOrderId" :userId="currentUserId" :toggle="() => { open = !open }" :refresh="getList"
-        :key="currentOrderId" />
+        :key="open" />
     </el-dialog>
   </div>
 </template>
 
 <script setup name="Orders">
-import { listOrders, delOrders, addOrders, updateOrders, getRefundInfo, pay } from "@/api/system/orders";
+import { listOrders, getRefundInfo } from "@/api/system/orders";
 import { getUser } from "@/api/system/user";
 import { listDispatch } from '@/api/system/dispatch';
 import { refund } from '@/api/system/orders';

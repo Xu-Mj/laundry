@@ -35,6 +35,14 @@ export function updateClothing(data) {
   })
 }
 
+export function updateClothingRefNum(data) {
+  return request({
+    url: '/system/clothing/update-ref-num',
+    method: 'put',
+    data: data
+  })
+}
+
 // 删除衣物管理
 export function delClothing(clothingId) {
   return request({

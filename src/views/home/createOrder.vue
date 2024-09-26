@@ -23,9 +23,18 @@
             <el-form-item label="订单来源" prop="source">
                 <el-radio-group v-model="form.source">
                     <el-radio v-for="dict in sys_price_order_type" :key="dict.value" :label="dict.label"
-                        :value="dict.value">{{
-                            dict.label
-                        }}</el-radio>
+                        :value="dict.value">
+                        {{ dict.label }}
+                    </el-radio>
+                </el-radio-group>
+            </el-form-item>
+            <!-- 价格管理 -->
+            <el-form-item class="price-group">
+                <el-radio-group v-model="form.priceId">
+                    <el-radio v-for="item in priceList" @click="(event) => priceChange(event, item.priceId)"
+                        :key="item.priceId" :label="item.priceName" :value="item.priceId">
+                        {{ item.priceName }}
+                    </el-radio>
                 </el-radio-group>
             </el-form-item>
             <el-form-item label="衣物信息">
@@ -35,12 +44,12 @@
             </el-form-item>
             <el-form-item label="店主调价">
                 <el-col :span="12" class="adjust-price-group">
-                    <el-input type="number" :min="0" @input="adjustInput" v-model="form.adjust.adjustValueSub"
-                        placeholder="请输入调减金额" />
-                    <el-input type="number" :min="0" @input="adjustInput" v-model="form.adjust.adjustValueAdd"
-                        placeholder="请输入调增金额" />
-                    <el-input type="number" :min="0" @input="adjustInput" v-model="form.adjust.totalAmount"
-                        placeholder="请输入总金额" />
+                    <el-input type="number" :min="0" :max="1000" @input="adjustInput"
+                        v-model="form.adjust.adjustValueSub" placeholder="请输入调减金额" />
+                    <el-input type="number" :min="0" :max="1000" @input="adjustInput"
+                        v-model="form.adjust.adjustValueAdd" placeholder="请输入调增金额" />
+                    <el-input type="number" :min="0" :max="Infinity" @input="adjustInput"
+                        v-model="form.adjust.totalAmount" placeholder="请输入总金额" />
                     <el-input v-model="form.adjust.remark" placeholder="备注信息" />
                 </el-col>
             </el-form-item>
@@ -53,7 +62,7 @@
 
                             <el-form-item label="总件数：">{{ form.cloths.length }}</el-form-item>
                         </el-col>
-                        <el-col :span="4">
+                        <el-col :span="5">
                             <el-form-item label="总金额：">
                                 {{ totalPrice }}
                             </el-form-item>
@@ -68,7 +77,7 @@
                                 <el-input-number :min="1" v-model="printCount" controls-position="right" />
                             </el-form-item>
                         </el-col>
-                        <el-col :span="4">
+                        <el-col :span="3">
                             <el-button type="primary" plain @click="printOrder">打印</el-button>
                         </el-col>
 
@@ -109,7 +118,7 @@
                         <el-button type="success" plain @click="createAndPay">收衣收款</el-button>
                         <el-button type="info" plain :disabled="!form.userId"
                             @click="handleShowCouponSale">卡券购买</el-button>
-                        <el-button type="primary" plain @click="submitForm">保 存</el-button>
+                        <el-button type="primary" plain @click="submitForm">取衣收款</el-button>
                         <el-button type="warning" plain @click="cancel">取 消</el-button>
                     </div>
                 </el-col>
@@ -124,11 +133,21 @@
                     {{ paymentForm.payNumber }}
                 </el-form-item>
                 <el-form-item label="支付方式">
-                    <el-radio-group v-model="paymentForm.paymentMethod">
-                        <el-radio v-for="dict in sys_payment_method" :key="dict.value" :label="dict.value">
-                            {{ dict.label }}
-                        </el-radio>
-                    </el-radio-group>
+                    <template v-if="form.source === '01'">
+                        美团结转
+                    </template>
+                    <template v-else-if="form.source === '02'">
+                        抖音结转
+                    </template>
+                    <template v-else>
+                        <el-radio-group v-model="paymentForm.paymentMethod">
+                            <template v-for="dict in sys_payment_method" :key="dict.value">
+                                <el-radio v-if="dict.value !== '03' && dict.value !== '04'" :value="dict.value">
+                                    {{ dict.label }}
+                                </el-radio>
+                            </template>
+                        </el-radio-group>
+                    </template>
                 </el-form-item>
                 <el-form-item label="储值卡">
                     <!-- 列出储值卡列表 -->
@@ -188,7 +207,7 @@
         <!-- 卡券售卖弹窗 -->
         <el-dialog title="卡券购买" v-model="showCouponSale" width="1080px" append-to-body lock-scroll modal
             :close-on-click-modal="false">
-            <CouponSale :userId="form.userId" :submit="submitCouponSale" />"
+            <CouponSale :userId="form.userId" :key="showCouponSale" :submit="submitCouponSale" />"
         </el-dialog>
     </div>
 </template>
@@ -196,19 +215,16 @@
 <script setup name="CreateOrders">
 import { watch } from "vue";
 import { ElMessageBox } from 'element-plus'
-import { listOrders, getOrders, delOrders, addOrders, updateOrders, getRefundInfo, pay } from "@/api/system/orders";
-import { listUser, getUser } from "@/api/system/user";
+import { getOrders, addOrders, updateOrders, pay } from "@/api/system/orders";
+import { listPrice } from "@/api/system/price";
+import { listUser, addUser } from "@/api/system/user";
 import { delCloths } from "@/api/system/cloths";
 import { listUserCoupon } from '@/api/system/user_coupon';
 import { isCurrentTimeWithinRange, getFutureDate } from "@/utils";
-import { listDispatch } from '@/api/system/dispatch';
-import { refund } from '@/api/system/orders';
-import { addRecord } from '@/api/system/notice_record';
-import { listTemplate } from '@/api/system/template';
 import { getConfigKey } from '@/api/system/config';
 import AddCloth from "./addCloth.vue";
 import CouponSale from './couponSale.vue';
-import { addUser } from "@/api/system/user";
+
 const props = defineProps({
     orderId: {
         type: Number,
@@ -231,26 +247,12 @@ const props = defineProps({
 });
 const { proxy } = getCurrentInstance();
 const {
-    sys_cost_time_alarm,
-    sys_payment_status,
     sys_price_order_type,
-    sys_business_type,
-    sys_delivery_mode,
-    sys_order_type,
-    sys_order_status,
     sys_payment_method,
-    sys_notice_method,
 } =
     proxy.useDict(
-        'sys_cost_time_alarm',
-        'sys_payment_status',
         "sys_price_order_type",
-        "sys_business_type",
-        "sys_delivery_mode",
-        "sys_order_type",
-        "sys_order_status",
         "sys_payment_method",
-        "sys_notice_method",
     );
 
 // 订单列表
@@ -261,24 +263,14 @@ const userListRes = ref([]);
 // 用户卡券列表
 const userCouponList = ref([]);
 // 通知模板列表
-const noticeTempList = ref([]);
+const priceList = ref([]);
 const open = ref(false);
-const searchUserloading = ref(false);
-const showClothListDialog = ref(false);
-const showExpressInfoDialog = ref(false);
-const showDeliveryInfoDialog = ref(false);
-const showNoticeDialog = ref(false);
-const showRefundDialog = ref(false);
 const showCreateUser = ref(false);
 const showPaymentDialog = ref(false);
 const showCouponSale = ref(false);
 const loading = ref(true);
-const showSearch = ref(true);
-const ids = ref([]);
 const total = ref(0);
 const title = ref("");
-const expressInfo = ref({});
-const deliveryInfo = ref({});
 const totalPrice = ref(0);
 // 差价
 const priceDiff = ref(0);
@@ -287,8 +279,10 @@ const couponStorageCardId = ref([]);
 const currentOrderId = ref(props.orderId);
 const currentUserId = ref(props.userId);
 
+const ordersRef = ref();
 /* 单据打印数量 */
 const printCount = ref(1);
+const phoneRegex = /^1[3-9]\d{9}$/;
 
 const data = reactive({
     form: {
@@ -303,7 +297,22 @@ const data = reactive({
             { required: true, message: "业务类型不能为空", trigger: "change" }
         ],
         userId: [
-            { required: true, message: "所属会员ID不能为空", trigger: "blur" }
+            { required: true, message: "所属会员不能为空", trigger: "blur" },
+            {
+                validator: (rule, value, callback) => {
+                    // 当没有匹配到任何会员时才进行手机号格式校验
+                    const isNewUser = !userListRes.value.some(item => item.userId === form.value.userId);
+                    if (isNewUser && !phoneRegex.test(value)) {
+                        callback(new Error("请输入正确的手机号"));
+                    } else {
+                        callback();
+                    }
+                },
+                trigger: 'blur'
+            }
+        ],
+        nickName: [
+            { required: true, message: "所属会员姓名不能为空", trigger: "blur" }
         ],
         source: [
             { required: true, message: "订单来源不能为空", trigger: "blur" }
@@ -327,6 +336,12 @@ watch(() => form.value.cloths, (newVal) => {
     adjustInput();
 });
 
+// 处理价格radio 选中事件
+function priceChange(event, priceId) {
+    event.preventDefault();
+    form.value.priceId = form.value.priceId === priceId ? null : priceId;
+}
+
 // 处理失去焦点的情况，保留用户输入
 const handleBlur = (event) => {
     const inputValue = event.target.value;
@@ -334,7 +349,9 @@ const handleBlur = (event) => {
         // 没有搜索结果且没有选择项时，保留输入
         form.value.userId = inputValue;
     }
+    ordersRef.value.validateField('userId');
 };
+
 /* 卡券购买完成后的回调，重新获取卡券列表 */
 function submitCouponSale() {
     listUserCoupon({ userId: form.value.userId }).then(response => {
@@ -469,45 +486,6 @@ function checkCoupon() {
     }
 }
 
-/** 查询洗护服务订单列表 */
-function getList() {
-    loading.value = true;
-    listOrders(queryParams.value).then(response => {
-        ordersList.value = response.rows;
-        total.value = response.total;
-        loading.value = false;
-    });
-}
-
-// // 取消按钮
-// function cancel() {
-//     if (!form.value.userId) {
-//         reset();
-//         open.value = false;
-//         // props.toggle();
-//         return true;
-//     }
-//     ElMessageBox.confirm('确认取消操作订单？此操作不可逆！')
-//         .then(() => {
-//             // 请求服务器删除添加的衣物列表
-//             if (!form.value.orderId && form.value.cloths.length > 0) {
-//                 delCloths(form.value.cloths.map(item => item.clothId)).then(res => {
-//                     reset();
-//                     open.value = false;
-//                     props.toggle();
-//                 }).catch(res => {
-//                     console.error(res)
-//                 })
-//             } else {
-//                 open.value = false;
-//                 reset();
-//                 props.toggle();
-//             }
-//         })
-//         .catch(() => {
-//             // catch error
-//         })
-// }
 // 取消按钮
 function cancel() {
     return new Promise((resolve, reject) => {
@@ -557,6 +535,7 @@ function reset() {
         adjust: {},
         cloths: [],
         orderId: null,
+        priceId: null,
         orderNumber: null,
         businessType: null,
         userId: null,
@@ -588,6 +567,10 @@ function handleAdd() {
         userList.value = res.rows;
         open.value = true;
     });
+    // 获取价格列表
+    listPrice({ orderType: form.value.source,status: 0 }).then(res => {
+        priceList.value = res.rows;
+    });
 }
 
 /** 修改按钮操作 */
@@ -602,7 +585,10 @@ function handleUpdate() {
         }
         title.value = "修改服务订单";
         console.log(form.value, 'jhopsajfdsoa')
-
+        // 获取价格列表
+        listPrice({ orderType: form.value.source }).then(res => {
+            priceList.value = res.rows;
+        });
     });
 
     listUser().then(res => {
@@ -613,6 +599,8 @@ function handleUpdate() {
     listUserCoupon({ userId: currentUserId.value }).then(response => {
         userCouponList.value = response.rows;
     });
+
+
 }
 
 /** 提交按钮 */
@@ -685,7 +673,8 @@ function createAndPay() {
                     form.value.orderNumber = response.data.orderNumber;
                     // 初始化支付所需数据
                     initPaymentForm();
-                    getList();
+                    // getList();
+                    props.refresh();
                     open.value = true;
                     showPaymentDialog.value = true;
                 });
@@ -759,10 +748,18 @@ function adjustInput() {
     if (form.value.adjust.totalAmount) {
         totalPrice.value = form.value.adjust.totalAmount;
     } else {
-        const price = form.value.cloths.reduce((acc, cur) => {
-            return acc +
-                cur.priceValue + cur.processMarkup
-        }, 0) +
+        // 如果选择了价格item，那么使用价格item中的价格代替衣物价格
+        let price;
+        if (form.value.priceId) {
+            const item = priceList.value.find(item => item.priceId === form.value.priceId);
+            price = item ? item.priceValue : 0;
+        } else {
+            price = form.value.cloths.reduce((acc, cur) => {
+                return acc +
+                    cur.priceValue + cur.processMarkup
+            }, 0);
+        }
+        price +=
             Number(form.value.adjust.adjustValueAdd ? form.value.adjust.adjustValueAdd : 0) -
             Number(form.value.adjust.adjustValueSub ? form.value.adjust.adjustValueSub : 0);
         totalPrice.value = price > 0 ? price : 0;
@@ -776,7 +773,7 @@ if (props.orderId !== 0) {
 }
 
 defineExpose({
-  cancel,
+    cancel,
 });
 </script>
 

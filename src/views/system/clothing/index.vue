@@ -30,7 +30,7 @@
           v-hasPermi="['system:clothing:remove']">批量删除</el-button>
       </el-col>
       <el-col :span="1.5">
-        <el-button type="success" plain icon="Edit" :disabled="single" @click="handleUpdate"
+        <el-button type="success" plain icon="Edit" :disabled="ids.length == 0" @click="showUpdateRefNum = true"
           v-hasPermi="['system:clothing:edit']">设置使用计数</el-button>
       </el-col>
       <!-- <el-col :span="1.5">
@@ -52,7 +52,10 @@
       </el-table-column>
       <el-table-column label="所属分类" align="center" prop="clothingStyle">
         <template #default="scope">
-          <dict-tag :options="sys_cloth_style" :value="scope.row.clothingStyle" />
+          <!-- <dict-tag :options="sys_cloth_style" :value="scope.row.clothingStyle" /> -->
+          <el-tag :type="getStyleCss(scope.row)">
+            {{ getStyle(scope.row) }}
+          </el-tag>
         </template>
       </el-table-column>
       <el-table-column label="基准价格" align="center" prop="clothingBasePrice" />
@@ -82,15 +85,18 @@
         <el-row>
           <el-col :span="12">
             <el-form-item label="衣物品类" prop="clothingCategory">
-              <el-select v-model="form.clothingCategory" placeholder="衣物品类" clearable style="width: 240px">
+              <el-select v-model="form.clothingCategory" placeholder="衣物品类" @change="cateChange" clearable
+                style="width: 240px">
                 <el-option v-for="dict in sys_cloth_cate" :key="dict.value" :label="dict.label" :value="dict.value" />
               </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="所属分类" prop="clothingStyle">
-              <el-select v-model="form.clothingStyle" placeholder="所属分类" clearable style="width: 240px">
-                <el-option v-for="dict in sys_cloth_style" :key="dict.value" :label="dict.label" :value="dict.value" />
+              <el-select v-model="form.clothingStyle" placeholder="所属分类" no-data-text="请先选择所属品类" clearable
+                style="width: 240px">
+                <el-option v-for="dict in clothStyleList" :key="dict.dictValue" :label="dict.dictLabel"
+                  :value="dict.dictValue" />
               </el-select>
             </el-form-item>
           </el-col>
@@ -130,19 +136,39 @@
         </div>
       </template>
     </el-dialog>
+
+    <!-- 修改使用次数对话框 -->
+    <el-dialog title="修改使用次数" v-model="showUpdateRefNum" width="500px" :show-close="false" append-to-body>
+      <el-form ref="tagNumRef" :model="tagNumForm" :rules="tagNumFormRules" label-width="80px">
+        <el-form-item label="使用次数" prop="refNumber">
+          <el-input-number :min="0" v-model="tagNumForm.refNumber" placeholder="请输入使用次数" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button type="primary" @click="updateRefNum">确 定</el-button>
+          <el-button @click="cancelUpdateRefNum">取 消</el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup name="Clothing">
-import { listClothing, getClothing, delClothing, addClothing, updateClothing } from "@/api/system/clothing";
+import { listClothing, getClothing, delClothing, addClothing, updateClothing, updateClothingRefNum } from "@/api/system/clothing";
+import { getDicts } from '@/api/system/dict/data'
 
 const { proxy } = getCurrentInstance();
 
 const { sys_cloth_style, sys_cloth_cate } = proxy.useDict("sys_cloth_style", "sys_cloth_cate");
 
+// 动态查询字典列表
+const clothStyleList = ref([]);
+const dictList = ref([]);
 const clothingList = ref([]);
 const open = ref(false);
 const loading = ref(true);
+const showUpdateRefNum = ref(false);
 const showSearch = ref(true);
 const ids = ref([]);
 const single = ref(true);
@@ -152,6 +178,7 @@ const title = ref("");
 
 const data = reactive({
   form: {},
+  tagNumForm: {},
   queryParams: {
     pageNum: 1,
     pageSize: 10,
@@ -184,10 +211,13 @@ const data = reactive({
       { required: true, message: "最低价格不能为空", trigger: "blur" },
       { validator: validateMinPrice, trigger: 'blur' }
     ],
+  },
+  refNumFormRules: {
+    refNumber: [{ required: true, message: "使用次数不能为空", trigger: "blur" }],
   }
 });
 
-const { queryParams, form, rules } = toRefs(data);
+const { queryParams, form, tagNumForm, rules, tagNumFormRules } = toRefs(data);
 
 // 自定义校验最低价格函数
 function validateMinPrice(rule, value, callback) {
@@ -197,6 +227,56 @@ function validateMinPrice(rule, value, callback) {
     callback();
   }
 };
+
+function getStyleCss(row) {
+  const result = dictList.value.filter(item => item.dictType == 'sys_cloth_style' + row.clothingCategory).find(item => item.dictValue ===
+    row.clothingStyle);
+  return result ? result.listClass : 'default';
+}
+// 查找分类
+function getStyle(row) {
+  const result = dictList.value.filter(item => item.dictType == 'sys_cloth_style' + row.clothingCategory)
+    .find(item => item.dictValue === row.clothingStyle);
+  return result ? result.dictLabel : row.clothingStyle;
+}
+
+// 初始化所需要的字典数据
+function initDictList() {
+  sys_cloth_cate.value.forEach(item => {
+    getDicts("sys_cloth_style" + item.value).then(res => {
+      if (res.data && res.data.length > 0) {
+        dictList.value.push(...res.data);
+      }
+      console.log(dictList.value)
+    })
+  })
+}
+
+// 当品类发生变化时动态查询子分类列表
+function cateChange(value) {
+  getDicts("sys_cloth_style" + value).then(res => {
+    clothStyleList.value = res.data;
+  })
+}
+
+function updateRefNum() {
+  proxy.$refs["tagNumRef"].validate(valid => {
+    if (valid) {
+      updateClothingRefNum({ tagIds: ids.value, refNum: tagNumForm.value.refNumber }).then(res => {
+        proxy.$modal.msgSuccess("修改成功");
+        showUpdateRefNum.value = false;
+        tagNumForm.value.refNumber = 0;
+        getList();
+      })
+    }
+  })
+}
+
+// 取消按钮
+function cancelUpdateRefNum() {
+  showUpdateRefNum.value = false;
+  tagNumForm.value = { refNumber: 0 };
+}
 
 /** 查询衣物管理列表 */
 function getList() {
@@ -300,18 +380,12 @@ function handleDelete(row) {
   }).catch(() => { });
 }
 
-/** 导出按钮操作 */
-function handleExport() {
-  proxy.download('system/clothing/export', {
-    ...queryParams.value
-  }, `clothing_${new Date().getTime()}.xlsx`)
-}
-
 /* 衣物类别变化触发查询 */
 function selectChange() {
   queryParams.value.pageNum = 1;
   getList();
 }
 
+initDictList()
 getList();
 </script>

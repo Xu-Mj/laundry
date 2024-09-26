@@ -1,68 +1,33 @@
 <template>
   <div class="app-container">
-    <!-- <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="68px">
-      <el-form-item label="洗衣订单的编号" prop="orderId">
-        <el-input
-          v-model="queryParams.orderId"
-          placeholder="请输入洗衣订单的编号"
-          clearable
-          @keyup.enter="handleQuery"
-        />
-      </el-form-item>
-      <el-form-item label="订单中需要赔偿的衣物ID列表" prop="clothIds">
-        <el-input
-          v-model="queryParams.clothIds"
-          placeholder="请输入订单中需要赔偿的衣物ID列表"
-          clearable
-          @keyup.enter="handleQuery"
-        />
-      </el-form-item>
+    <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="68px">
+
       <el-form-item label="支出账目" prop="expTitle">
-        <el-input
-          v-model="queryParams.expTitle"
-          placeholder="请输入支出账目"
-          clearable
-          @keyup.enter="handleQuery"
-        />
+        <el-input v-model="queryParams.expTitle" placeholder="请输入支出账目" clearable @keyup.enter="handleQuery" />
       </el-form-item>
-      <el-form-item label="收款账户ID" prop="recvAccount">
-        <el-input
-          v-model="queryParams.recvAccount"
-          placeholder="请输入收款账户ID"
-          clearable
-          @keyup.enter="handleQuery"
-        />
+      <el-form-item label="账户名称" prop="recvAccountTitle">
+        <el-input v-model="queryParams.recvAccountTitle" placeholder="请输入收款账户名称" clearable @keyup.enter="handleQuery" />
       </el-form-item>
-      <el-form-item label="收款账户名称" prop="recvAccountTitle">
-        <el-input
-          v-model="queryParams.recvAccountTitle"
-          placeholder="请输入收款账户名称"
-          clearable
-          @keyup.enter="handleQuery"
-        />
+      <el-form-item label="支出类型" prop="expType">
+        <el-select v-model="queryParams.expType" placeholder="请选择支出类型" clearable style="width: 150px"
+          @change="handleQuery">
+          <el-option v-for="dict in sys_exp_type" :key="dict.value" :label="dict.label" :value="dict.value"></el-option>
+        </el-select>
       </el-form-item>
-      <el-form-item label="支出金额" prop="expAmount">
-        <el-input
-          v-model="queryParams.expAmount"
-          placeholder="请输入支出金额"
-          clearable
-          @keyup.enter="handleQuery"
-        />
+      <el-form-item label="支出时间" style="width: 308px">
+        <el-date-picker v-model="dateRange" value-format="YYYY-MM-DD" type="daterange" range-separator="-"
+          start-placeholder="开始日期" end-placeholder="结束日期" @change="handleQuery"></el-date-picker>
       </el-form-item>
       <el-form-item>
         <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
         <el-button icon="Refresh" @click="resetQuery">重置</el-button>
       </el-form-item>
-    </el-form> -->
+    </el-form>
 
     <el-row :gutter="10" class="mb8">
       <el-col :span="1.5">
         <el-button type="primary" plain icon="Plus" @click="handleAdd"
           v-hasPermi="['system:expenditure:add']">新增</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button type="success" plain icon="Edit" :disabled="single" @click="handleUpdate"
-          v-hasPermi="['system:expenditure:edit']">修改</el-button>
       </el-col>
       <el-col :span="1.5">
         <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleDelete"
@@ -73,18 +38,32 @@
 
     <el-table v-loading="loading" :data="expenditureList" @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="55" align="center" />
-      <!-- <el-table-column label="ID" align="center" prop="expId" /> -->
-      <!-- <el-table-column label="订单编号" align="center" prop="orderId" /> -->
-      <!-- <el-table-column label="订单中需要赔偿的衣物ID列表" align="center" prop="clothIds" /> -->
-      <el-table-column label="支出账目" align="center" prop="expTitle" />
-      <el-table-column label="收款账户ID" align="center" prop="recvAccount" />
-      <el-table-column label="收款账户名称" align="center" prop="recvAccountTitle" />
+      <el-table-column label="支出账目" align="center" prop="expTitle" >
+        <template #default="scope">
+          <el-button v-if="scope.row.expType == '00' || scope.row.expType == '03'" link
+            type="primary" @click="showOrderInfo(scope.row)">{{ scope.row.expTitle }}</el-button>
+          <span v-else>>{{ scope.row.expTitle }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="收款账户名称" align="center" prop="recvAccountTitle">
+        <template #default="scope">
+          <el-button v-if="scope.row.expType == '00' || scope.row.expType == '01' || scope.row.expType == '03'" link
+            type="primary" @click="showUserInfo(scope.row)">{{ scope.row.recvAccountTitle }}</el-button>
+          <span v-else>>{{ scope.row.recvAccountTitle }}</span>
+        </template>
+      </el-table-column>
       <el-table-column label="支出类型" align="center" prop="expType">
         <template #default="scope">
           <dict-tag :options="sys_exp_type" :value="scope.row.expType" />
         </template>
       </el-table-column>
       <el-table-column label="支出金额" align="center" prop="expAmount" />
+      <el-table-column label="支出金额" align="center" prop="expAmount" />
+      <el-table-column label="支出时间" align="center" prop="createTime">
+        <template #default="scope">
+          <span>{{ parseTime(scope.row.createTime, '{y}-{m}-{d} {hh}:{mm}:{ss}') }}</span>
+        </template>
+      </el-table-column>
       <el-table-column label="备注信息" align="center" prop="remark" />
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template #default="scope">
@@ -102,23 +81,24 @@
     <!-- 添加或修改支出对话框 -->
     <el-dialog :title="title" v-model="open" width="500px" append-to-body>
       <el-form ref="expenditureRef" :model="form" :rules="rules" label-width="80px">
-        <el-form-item label="洗衣订单的编号" prop="orderId">
-          <el-input v-model="form.orderId" placeholder="请输入洗衣订单的编号" />
-        </el-form-item>
-        <el-form-item label="订单中需要赔偿的衣物ID列表" prop="clothIds">
-          <el-input v-model="form.clothIds" placeholder="请输入订单中需要赔偿的衣物ID列表" />
-        </el-form-item>
         <el-form-item label="支出账目" prop="expTitle">
           <el-input v-model="form.expTitle" placeholder="请输入支出账目" />
         </el-form-item>
-        <el-form-item label="收款账户ID" prop="recvAccount">
-          <el-input v-model="form.recvAccount" placeholder="请输入收款账户ID" />
+        <el-form-item label="对方账户" prop="recvAccountTitle">
+          <el-select v-model="form.recvAccount" placeholder="请选择对方账户" clearable>
+            <el-option v-for="item in userList" :key="item.userId" :label="item.nickName + ' - ' + item.phonenumber"
+              :value="item.userId">
+            </el-option>
+          </el-select>
         </el-form-item>
-        <el-form-item label="收款账户名称" prop="recvAccountTitle">
-          <el-input v-model="form.recvAccountTitle" placeholder="请输入收款账户名称" />
+        <el-form-item label="支出类型" prop="expType">
+          <el-select v-model="form.expType" placeholder="请选择支出类型" clearable>
+            <el-option v-for="dict in sys_exp_type" :key="dict.value" :label="dict.label"
+              :value="dict.value"></el-option>
+          </el-select>
         </el-form-item>
         <el-form-item label="支出金额" prop="expAmount">
-          <el-input v-model="form.expAmount" placeholder="请输入支出金额" />
+          <el-input-number :min="0" v-model="form.expAmount" controls-position="right" placeholder="请输入支出金额" />
         </el-form-item>
         <el-form-item label="备注信息" prop="remark">
           <el-input v-model="form.remark" placeholder="请输入备注信息" />
@@ -131,24 +111,61 @@
         </div>
       </template>
     </el-dialog>
+
+    <!-- 展示会员详细信息 -->
+    <el-dialog title="会员详细信息" v-model="showUserInfoDialog" width="400px" append-to-body>
+      <UserInfo :user="userInfo" />
+    </el-dialog>
+    <!-- 展示支出详细信息 -->
+    <el-dialog title="支出详细信息" v-model="showDetailDialog" width="400px" append-to-body>
+      <el-form ref="expenditureRef" :model="detail" label-width="80px">
+        <el-form-item label="支出账目" prop="expTitle">
+           {{ detail.expTitle }} 
+        </el-form-item>
+        <el-form-item label="对方账户" prop="recvAccountTitle">
+          {{ detail.recvAccountTitle }}
+        </el-form-item>
+        <el-form-item label="支出类型" prop="expType">
+          <dict-tag :options="sys_exp_type" :value="detail.expType" />
+        </el-form-item>
+        <el-form-item label="支出金额" prop="expAmount">
+          {{ detail.expAmount }}
+        </el-form-item>
+        <el-form-item label="订单编码" prop="expAmount">
+          {{ detail.order.orderNumber }}
+        </el-form-item>
+        <el-form-item label="备注信息" prop="remark">
+          {{ detail.remark }}
+        </el-form-item>
+      </el-form>
+    </el-dialog>
   </div>
 </template>
 
 <script setup name="Expenditure">
 import { listExpenditure, getExpenditure, delExpenditure, addExpenditure, updateExpenditure } from "@/api/system/expenditure";
+import { getUser, listUser } from "@/api/system/user";
+import { getOrders } from "@/api/system/orders";
+import UserInfo from '@/views/system/user/info';
 
 const { proxy } = getCurrentInstance();
 const { sys_exp_type } = proxy.useDict("sys_exp_type");
 
 const expenditureList = ref([]);
+const userList = ref([]);
 const open = ref(false);
 const loading = ref(true);
 const showSearch = ref(true);
+const showUserInfoDialog = ref(false);
+const showDetailDialog = ref(false);
 const ids = ref([]);
 const single = ref(true);
 const multiple = ref(true);
 const total = ref(0);
 const title = ref("");
+const userInfo = ref(null);
+const detail = ref(null);
+const dateRange = ref([]);
 
 const data = reactive({
   form: {},
@@ -178,10 +195,30 @@ const data = reactive({
 
 const { queryParams, form, rules } = toRefs(data);
 
+function showOrderInfo(row) {
+  if (row.orderId) {
+    detail.value = row;
+    getOrders(row.orderId).then(res => {
+      detail.value.order = res.data;
+      showDetailDialog.value = true;
+      console.log(detail.value)
+    })
+  }
+}
+
+function showUserInfo(row) {
+  if (row.recvAccount) {
+    getUser(row.recvAccount).then(res => {
+      userInfo.value = res.data;
+      showUserInfoDialog.value = true;
+    })
+  }
+}
+
 /** 查询支出列表 */
 function getList() {
   loading.value = true;
-  listExpenditure(queryParams.value).then(response => {
+  listExpenditure(proxy.addDateRange(queryParams.value, dateRange.value)).then(response => {
     expenditureList.value = response.rows;
     total.value = response.total;
     loading.value = false;
@@ -220,6 +257,8 @@ function handleQuery() {
 /** 重置按钮操作 */
 function resetQuery() {
   proxy.resetForm("queryRef");
+  queryParams.value.expType = null;
+  dateRange.value = [];
   handleQuery();
 }
 
@@ -233,7 +272,10 @@ function handleSelectionChange(selection) {
 /** 新增按钮操作 */
 function handleAdd() {
   reset();
-  open.value = true;
+  listUser().then(res => {
+    userList.value = res.rows;
+    open.value = true;
+  })
   title.value = "添加支出";
 }
 
@@ -252,6 +294,9 @@ function handleUpdate(row) {
 function submitForm() {
   proxy.$refs["expenditureRef"].validate(valid => {
     if (valid) {
+      if (form.value.recvAccount) {
+        form.value.recvAccountTitle = userList.value.find(item => item.userId === form.value.recvAccount).nickName;
+      }
       if (form.value.expId != null) {
         updateExpenditure(form.value).then(response => {
           proxy.$modal.msgSuccess("修改成功");

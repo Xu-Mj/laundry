@@ -1,11 +1,11 @@
 <template>
   <div class="app-container">
-    <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="68px">
-      <el-form-item label="会员账号" prop="userName">
-        <el-input v-model="queryParams.userId" placeholder="请输入会员账号" clearable @keyup.enter="handleQuery" />
+    <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="110px">
+      <el-form-item label="会员手机号" prop="phonenumber">
+        <el-input v-model="queryParams.phonenumber" placeholder="请输入会员账号" clearable @keyup.enter="handleQuery" />
       </el-form-item>
       <el-form-item label="订单编码" prop="orderNumber">
-        <el-input v-model="queryParams.orderId" placeholder="请输入订单编码" clearable @keyup.enter="handleQuery" />
+        <el-input v-model="queryParams.orderNumber" placeholder="请输入订单编码" clearable @keyup.enter="handleQuery" />
       </el-form-item>
 
       <el-form-item>

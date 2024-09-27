@@ -30,7 +30,7 @@
       </el-col>
       <el-col :span="1.5">
         <el-button type="primary" icon="Management">
-          <router-link to="/tool/template" class="link-type">
+          <router-link to="/system/template" class="link-type">
             管理通知模板
           </router-link>
         </el-button>

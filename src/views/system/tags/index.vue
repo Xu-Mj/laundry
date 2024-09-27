@@ -33,7 +33,7 @@
           v-hasPermi="['system:tags:remove']">删除</el-button>
       </el-col>
       <el-col :span="1.5">
-        <el-button type="success" plain icon="Edit" :disabled="ids.length==0" @click="()=>{showUpdateRefNum = true}"
+        <el-button type="success" plain icon="Edit" :disabled="ids.length == 0" @click="() => { showUpdateRefNum = true }"
           v-hasPermi="['system:tags:edit']">修改使用计数</el-button>
       </el-col>
       <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
@@ -57,7 +57,7 @@
             @change="handleStatusChange(scope.row)"></el-switch>
         </template>
       </el-table-column>
-      <el-table-column label="备注" align="center" prop="remark" />
+      <el-table-column label="备注" align="center" prop="remark" show-overflow-tooltip />
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template #default="scope">
           <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row, false)"
@@ -195,7 +195,7 @@ function cancel() {
 // 取消按钮
 function cancelUpdateRefNum() {
   showUpdateRefNum.value = false;
-  tagNumForm.value = { };
+  tagNumForm.value = {};
 }
 
 // 表单重置
@@ -305,7 +305,6 @@ function handleDelete(row) {
 /** 标签状态修改 */
 function handleStatusChange(row) {
   let text = row.status === "0" ? "启用" : "停用";
-  console.log('what?')
   proxy.$modal.confirm('确认要' + text + '"' + row.tagName + '"标签吗?').then(function () {
     return changeTagStatus(row.tagId, row.status);
   }).then(() => {

@@ -59,7 +59,7 @@
             @change="handleStatusChange(scope.row)"></el-switch>
         </template>
       </el-table-column>
-      <el-table-column label="备注" align="center" prop="remark" />
+      <el-table-column label="备注" align="center" prop="remark" show-overflow-tooltip />
       <el-table-column label="创建时间" align="center" prop="createdAt" width="180">
         <template #default="scope">
           <span>{{ parseTime(scope.row.createdAt, '{y}-{m}-{d}') }}</span>
@@ -275,7 +275,7 @@ function updateRefNum() {
 // 取消按钮
 function cancelUpdateRefNum() {
   showUpdateRefNum.value = false;
-  tagNumForm.value = { };
+  tagNumForm.value = {};
 }
 
 // 取消按钮

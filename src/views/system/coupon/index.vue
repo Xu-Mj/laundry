@@ -118,7 +118,7 @@
           <dict-tag :options="sys_coupon_status" :value="scope.row.status" />
         </template>
       </el-table-column>
-      <el-table-column label="卡券描述" align="center" prop="remark" v-if="columns[14].visible" />
+      <el-table-column label="卡券描述" align="center" prop="remark" v-if="columns[14].visible" show-overflow-tooltip />
       <el-table-column label="操作" align="center" class-name="small-padding" width="140">
         <template #default="scope">
           <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)"
@@ -311,7 +311,7 @@
     </el-dialog>
 
     <!-- show sell coupon -->
-    <el-dialog v-model="showSell" title="销售卡券" width="800px">
+    <el-dialog v-model="showSell" title="销售卡券" width="800px" :closed="resetSellForm">
       <el-form ref="sellFormRef" :model="sellForm" label-width="90px" :rules="sellRules">
         <el-row>
           <el-col :span="12">
@@ -438,8 +438,8 @@ const columns = ref([
   { key: 3, label: `卡券面值`, visible: true },
   { key: 4, label: `最低消费金额`, visible: true },
   { key: 5, label: `客户可见`, visible: true },
-  { key: 6, label: `总量限制`, visible: true },
-  { key: 7, label: `单用户数量限制`, visible: true },
+  { key: 6, label: `总量限制`, visible: false },
+  { key: 7, label: `单用户数量限制`, visible: false },
   { key: 8, label: `有效期-起`, visible: true },
   { key: 9, label: `有效期-止`, visible: true },
   { key: 10, label: `自动延期`, visible: true },
@@ -669,6 +669,7 @@ function resetSellForm() {
     remark: null,
     paymentMethod: "05"
   };
+  needCreateUser.value = false;
   proxy.resetForm("sellFormRef");
 }
 
@@ -736,6 +737,7 @@ async function buy() {
       }
       buyCoupon(sellForm.value).then(res => {
         proxy.$modal.msgSuccess("购买成功");
+        resetSellForm();
         showSell.value = false;
       }).catch();
     }

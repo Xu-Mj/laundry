@@ -98,7 +98,7 @@
           <dict-tag :options="sys_payment_status" :value="scope.row.paymentStatus" />
         </template>
       </el-table-column>
-      <el-table-column label="备注" align="center" prop="remark" />
+      <el-table-column label="备注" align="center" prop="remark" show-overflow-tooltip />
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template #default="scope">
           <el-button link type="primary" icon="Edit" @click="showClothList(scope.row)"
@@ -228,10 +228,10 @@
     <el-dialog title="衣物" v-model="showClothListDialog" width="1440px" append-to-body>
       <ShowCloths :orderId="currentOrderId" :flashList="getList" :userId="currentUserId" :key="currentOrderId" />
     </el-dialog>
-    <el-dialog :title="title" v-model="open" width="1440px" append-to-body lock-scroll modal  :before-close="cancel"
+    <el-dialog :title="title" v-model="open" width="1440px" append-to-body lock-scroll modal :before-close="cancel"
       :close-on-click-modal="false">
-      <CreateOrder ref="createOrderRef" :orderId="currentOrderId" :userId="currentUserId" :toggle="() => { open = !open }" :refresh="getList"
-        :key="open" />
+      <CreateOrder ref="createOrderRef" :orderId="currentOrderId" :userId="currentUserId"
+        :toggle="() => { open = !open }" :refresh="getList" :key="open" />
     </el-dialog>
   </div>
 </template>

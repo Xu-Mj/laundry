@@ -62,7 +62,7 @@
       <el-table-column label="最低价格" align="center" prop="clothingMinPrice" />
       <el-table-column label="显示顺序" align="center" prop="orderNum" />
       <el-table-column label="使用计数" align="center" prop="clothingDegree" />
-      <el-table-column label="备注" align="center" prop="remark" />
+      <el-table-column label="备注" align="center" prop="remark" show-overflow-tooltip />
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template #default="scope">
           <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)"
@@ -282,7 +282,7 @@ function updateRefNum() {
 // 取消按钮
 function cancelUpdateRefNum() {
   showUpdateRefNum.value = false;
-  tagNumForm.value = { };
+  tagNumForm.value = {};
 }
 
 /** 查询衣物管理列表 */

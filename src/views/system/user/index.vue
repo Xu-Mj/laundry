@@ -72,7 +72,7 @@
                <el-tooltip content="查看历史记录" placement="top">
                   <el-button type="primary" link @click="queryIntegralList(scope.row.userId)"
                      v-hasPermi="['system:record:list']">{{
-                        scope.row.integral }}</el-button>
+                     scope.row.integral }}</el-button>
                </el-tooltip>
             </template>
          </el-table-column>
@@ -111,13 +111,12 @@
                   @change="handleStatusChange(scope.row)"></el-switch>
             </template>
          </el-table-column>
-         <el-table-column label="创建时间" align="center" prop="createTime" v-if="columns[5].visible" width="160">
+         <el-table-column label="创建时间" align="center" prop="createTime" v-if="columns[5].visible">
             <template #default="scope">
                <span>{{ parseTime(scope.row.createTime) }}</span>
             </template>
          </el-table-column>
-         <el-table-column label="备注信息" align="center" prop="remark" :show-overflow-tooltip="true"
-            v-if="columns[9].visible" />
+         <el-table-column label="备注信息" align="center" prop="remark" show-overflow-tooltip v-if="columns[8].visible" />
          <el-table-column label="操作" align="center" width="150" class-name="small-padding fixed-width">
             <template #default="scope">
                <el-tooltip content="编辑" placement="top">
@@ -256,7 +255,7 @@
 
       <!-- 展示会员信息详情 -->
       <el-dialog v-model="userInfoOpen" :show-close="false" width="500px" append-to-body>
-         <UserDetailsCard :user="userInfo" :key="userInfo.userId"/>
+         <UserDetailsCard :user="userInfo" :key="userInfo.userId" />
       </el-dialog>
    </div>
 </template>

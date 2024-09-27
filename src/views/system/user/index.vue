@@ -38,7 +38,7 @@
          <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" :columns="columns"></right-toolbar>
       </el-row>
 
-      <el-table v-loading="loading" :data="userList" @selection-change="handleSelectionChange">
+      <el-table v-loading="loading" :show-close="false" :data="userList" @selection-change="handleSelectionChange">
          <el-table-column type="selection" width="50" align="center" />
          <!-- <el-table-column label="会员编号" align="center" key="userId" prop="userId" v-if="columns[0].visible" /> -->
          <el-table-column label="会员姓名" align="center" v-if="columns[1].visible">

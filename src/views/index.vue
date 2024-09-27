@@ -14,7 +14,7 @@
     </el-dialog>
 
     <!-- 卡券售卖弹窗 -->
-    <el-dialog title="卡券购买" v-model="showCouponSale" width="1080px" append-to-body lock-scroll modal
+    <el-dialog title="" v-model="showCouponSale" width="1080px" append-to-body lock-scroll modal
       :close-on-click-modal="false">
       <CouponSale :key="showCouponSale" />
     </el-dialog>

@@ -84,7 +84,7 @@
       v-model:limit="queryParams.pageSize" @pagination="getList" />
 
     <!-- 添加或修改价格管理对话框 -->
-    <el-dialog :title="title" v-model="open" :show-close="false" width="500px" @opened="refNumberGetFocus"
+    <el-dialog v-model="open" :show-close="false" width="500px" @opened="refNumberGetFocus"
       @closed="refNumberFocus = false" append-to-body>
       <el-form ref="priceRef" :model="form" :rules="rules" label-width="80px">
         <el-row>
@@ -95,7 +95,7 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="价格" prop="priceValue">
-              <el-input-number v-model="form.priceValue" placeholder="请输入价格" :disabled="isPriceValueDisabled" />
+              <el-input-number v-model="form.priceValue" controls-position="right" placeholder="请输入价格" :disabled="isPriceValueDisabled" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -110,7 +110,7 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="折扣系数" prop="priceDiscount">
-              <el-input-number v-model="form.priceDiscount" placeholder="请输入折扣系数" :disabled="isPriceDiscountDisabled" />
+              <el-input-number v-model="form.priceDiscount" controls-position="right" placeholder="请输入折扣系数" :disabled="isPriceDiscountDisabled" />
             </el-form-item>
           </el-col>
         </el-row>

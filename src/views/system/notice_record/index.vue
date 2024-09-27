@@ -72,7 +72,7 @@
 </template>
 
 <script setup name="Record">
-import { listRecord, getRecord, delRecord, addRecord, updateRecord } from "@/api/system/notice_record";
+import { listRecord, getRecord, addRecord, updateRecord } from "@/api/system/notice_record";
 import { delAllRecord, delRecordsByDay } from "../../../api/system/notice_record";
 
 const { proxy } = getCurrentInstance();

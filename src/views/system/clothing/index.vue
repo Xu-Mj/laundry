@@ -77,7 +77,7 @@
       v-model:limit="queryParams.pageSize" @pagination="getList" />
 
     <!-- 添加或修改衣物管理对话框 -->
-    <el-dialog :title="title" v-model="open" width="500px" append-to-body>
+    <el-dialog :show-close="false" v-model="open" width="500px" append-to-body>
       <el-form ref="clothingRef" :model="form" :rules="rules" label-width="80px">
         <el-form-item label="衣物名称" prop="clothingName">
           <el-input v-model="form.clothingName" placeholder="请输入衣物名称，如：羽绒服、运动鞋、貂等" />

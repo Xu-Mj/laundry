@@ -24,7 +24,7 @@
     </el-table>
 
     <!-- 添加或修改晾衣架对话框 -->
-    <el-dialog :title="title" v-model="open" width="500px" append-to-body>
+    <el-dialog :title="title" :show-close="false" v-model="open" width="500px" append-to-body>
       <el-form ref="rackRef" :model="form" :rules="rules" label-width="80px">
         <el-form-item label="架子名称" prop="name">
           <el-input v-model="form.name" placeholder="请输入架子名称" />
@@ -108,7 +108,7 @@ function handleSelectionChange(selection) {
 function handleAdd() {
   reset();
   open.value = true;
-  title.value = "添加晾衣架";
+  // title.value = "添加晾衣架";
 }
 
 /** 修改按钮操作 */
@@ -119,7 +119,7 @@ function handleUpdate(row) {
     form.value = response.data;
     minCapacity = response.data.capacity - response.data.remainingCapacity;
     open.value = true;
-    title.value = "修改晾衣架";
+    // title.value = "修改晾衣架";
   });
 }
 

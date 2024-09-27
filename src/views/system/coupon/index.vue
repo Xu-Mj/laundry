@@ -133,9 +133,9 @@
       v-model:limit="queryParams.pageSize" @pagination="getList" />
 
     <!-- 添加或修改卡券对话框 -->
-    <el-dialog :title="title" v-model="open" width="650px" :show-close="false" lock-scroll modal
+    <el-dialog v-model="open" width="650px" :show-close="false" lock-scroll modal
       :close-on-click-modal="false" append-to-body>
-      <el-form ref="couponRef" :model="form" :rules="rules" label-width="110px">
+      <el-form ref="couponRef" :model="form" :rules="rules" label-width="90px">
         <el-row>
           <el-col :span="12">
             <el-form-item label="卡券名称" prop="couponTitle">
@@ -263,7 +263,7 @@
           </el-col>
           <el-col :span="12">
             <el-tooltip content="单用户可购买数量限制，'-1'为不限制">
-              <el-form-item label="单用户数量限制" prop="customerSaleCount">
+              <el-form-item label="单用户数量限制" prop="customerSaleCount" label-width="110px">
                 <el-input-number :min="-1" v-model="form.customerSaleCount" controls-position="right"
                   placeholder="-1为不限制" />
               </el-form-item>

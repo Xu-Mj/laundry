@@ -33,8 +33,8 @@
           v-hasPermi="['system:tags:remove']">删除</el-button>
       </el-col>
       <el-col :span="1.5">
-        <el-button type="success" plain icon="Edit" :disabled="ids.length == 0" @click="() => { showUpdateRefNum = true }"
-          v-hasPermi="['system:tags:edit']">修改使用计数</el-button>
+        <el-button type="success" plain icon="Edit" :disabled="ids.length == 0"
+          @click="() => { showUpdateRefNum = true }" v-hasPermi="['system:tags:edit']">修改使用计数</el-button>
       </el-col>
       <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
     </el-row>
@@ -72,8 +72,8 @@
       v-model:limit="queryParams.pageSize" @pagination="getList" />
 
     <!-- 添加或修改对话框 -->
-    <el-dialog :title="title" v-model="open" width="500px" @opened="refNumberGetFocus" @closed="refNumberFocus = false"
-      append-to-body>
+    <el-dialog :show-close="false" v-model="open" width="500px" @opened="refNumberGetFocus"
+      @closed="refNumberFocus = false" append-to-body>
       <el-form ref="tagsRef" :model="form" :rules="rules" label-width="80px">
         <el-form-item label="标签类别" prop="tagOrder">
           <el-select v-model="form.tagOrder" placeholder="类别" clearable style="width: 240px">
@@ -114,18 +114,16 @@
     </el-dialog>
 
     <!-- 修改使用次数对话框 -->
-    <el-dialog title="修改使用次数" v-model="showUpdateRefNum" width="500px" :show-close="false" append-to-body>
-      <el-form ref="tagNumRef" :model="tagNumForm" :rules="refNumFormRules" label-width="80px">
+    <el-dialog v-model="showUpdateRefNum" width="450px" align-center :show-close="false" append-to-body>
+      <el-form ref="tagNumRef" :model="tagNumForm" :inline="true" :rules="refNumFormRules" style="display: flex; justify-content: space-between;">
         <el-form-item label="使用次数" prop="refNumber">
           <el-input-number :min="0" v-model="tagNumForm.refNumber" placeholder="请输入使用次数" />
         </el-form-item>
-      </el-form>
-      <template #footer>
-        <div class="dialog-footer">
+        <el-form-item>
           <el-button type="primary" @click="updateRefNum">确 定</el-button>
           <el-button @click="cancelUpdateRefNum">取 消</el-button>
-        </div>
-      </template>
+        </el-form-item>
+      </el-form>
     </el-dialog>
   </div>
 </template>

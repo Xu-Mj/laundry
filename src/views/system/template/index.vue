@@ -59,7 +59,7 @@
       v-model:limit="queryParams.pageSize" @pagination="getList" />
 
     <!-- 添加或修改通知模板管理对话框 -->
-    <el-dialog :title="title" v-model="open" width="500px" append-to-body>
+    <el-dialog :show-close="false" v-model="open" width="500px" append-to-body>
       <el-form ref="templateRef" :model="form" :rules="rules" label-width="80px">
         <el-form-item label="模板名称" prop="tempName">
           <el-input v-model="form.tempName" placeholder="请输入模板名称" />

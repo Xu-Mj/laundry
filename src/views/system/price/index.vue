@@ -265,7 +265,7 @@ function updateRefNum() {
       updatePriceRefNum({ tagIds: ids.value, refNum: tagNumForm.value.refNumber }).then(res => {
         proxy.$modal.msgSuccess("修改成功");
         showUpdateRefNum.value = false;
-        tagNumForm.value.refNumber = 0;
+        tagNumForm.value.refNumber = null;
         getList();
       })
     }
@@ -275,7 +275,7 @@ function updateRefNum() {
 // 取消按钮
 function cancelUpdateRefNum() {
   showUpdateRefNum.value = false;
-  tagNumForm.value = { refNumber: 0 };
+  tagNumForm.value = { };
 }
 
 // 取消按钮

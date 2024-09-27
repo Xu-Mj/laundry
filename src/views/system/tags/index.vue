@@ -115,7 +115,7 @@
 
     <!-- 修改使用次数对话框 -->
     <el-dialog title="修改使用次数" v-model="showUpdateRefNum" width="500px" :show-close="false" append-to-body>
-      <el-form ref="tagNumRef" :model="tagNumForm" :rules="tagNumFormRules" label-width="80px">
+      <el-form ref="tagNumRef" :model="tagNumForm" :rules="refNumFormRules" label-width="80px">
         <el-form-item label="使用次数" prop="refNumber">
           <el-input-number :min="0" v-model="tagNumForm.refNumber" placeholder="请输入使用次数" />
         </el-form-item>
@@ -174,7 +174,7 @@ const data = reactive({
   }
 });
 
-const { queryParams, form, tagNumForm, rules, tagNumFormRules } = toRefs(data);
+const { queryParams, form, tagNumForm, rules, refNumFormRules } = toRefs(data);
 
 /** 查询标签列表 */
 function getList() {
@@ -195,7 +195,7 @@ function cancel() {
 // 取消按钮
 function cancelUpdateRefNum() {
   showUpdateRefNum.value = false;
-  tagNumForm.value = { refNumber: 0 };
+  tagNumForm.value = { };
 }
 
 // 表单重置
@@ -263,7 +263,7 @@ function updateRefNum() {
       updateTagsRefNum({ tagIds: ids.value, refNum: tagNumForm.value.refNumber }).then(res => {
         proxy.$modal.msgSuccess("修改成功");
         showUpdateRefNum.value = false;
-        tagNumForm.value.refNumber = 0;
+        tagNumForm.value.refNumber = null;
         getList();
       })
     }
@@ -305,6 +305,7 @@ function handleDelete(row) {
 /** 标签状态修改 */
 function handleStatusChange(row) {
   let text = row.status === "0" ? "启用" : "停用";
+  console.log('what?')
   proxy.$modal.confirm('确认要' + text + '"' + row.tagName + '"标签吗?').then(function () {
     return changeTagStatus(row.tagId, row.status);
   }).then(() => {

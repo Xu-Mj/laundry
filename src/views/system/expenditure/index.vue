@@ -1,7 +1,6 @@
 <template>
   <div class="app-container">
     <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="68px">
-
       <el-form-item label="支出账目" prop="expTitle">
         <el-input v-model="queryParams.expTitle" placeholder="请输入支出账目" clearable @keyup.enter="handleQuery" />
       </el-form-item>
@@ -38,10 +37,10 @@
 
     <el-table v-loading="loading" :data="expenditureList" @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="支出账目" align="center" prop="expTitle" >
+      <el-table-column label="支出账目" align="center" prop="expTitle">
         <template #default="scope">
-          <el-button v-if="scope.row.expType == '00' || scope.row.expType == '03'" link
-            type="primary" @click="showOrderInfo(scope.row)">{{ scope.row.expTitle }}</el-button>
+          <el-button v-if="scope.row.expType == '00' || scope.row.expType == '03'" link type="primary"
+            @click="showOrderInfo(scope.row)">{{ scope.row.expTitle }}</el-button>
           <span v-else>>{{ scope.row.expTitle }}</span>
         </template>
       </el-table-column>
@@ -79,29 +78,37 @@
       v-model:limit="queryParams.pageSize" @pagination="getList" />
 
     <!-- 添加或修改支出对话框 -->
-    <el-dialog :title="title" v-model="open" width="500px" append-to-body>
+    <el-dialog :show-close="false" v-model="open" width="500px" append-to-body>
       <el-form ref="expenditureRef" :model="form" :rules="rules" label-width="80px">
         <el-form-item label="支出账目" prop="expTitle">
           <el-input v-model="form.expTitle" placeholder="请输入支出账目" />
         </el-form-item>
         <el-form-item label="对方账户" prop="recvAccountTitle">
-          <el-select v-model="form.recvAccount" placeholder="请选择对方账户" clearable>
-            <el-option v-for="item in userList" :key="item.userId" :label="item.nickName + ' - ' + item.phonenumber"
-              :value="item.userId">
-            </el-option>
+          <el-select v-model="form.recvAccount" filterable :clearable="true" remote reserve-keyword
+            placeholder="请选择对方账户" allow-create @blur="handleBlur" remote-show-suffix :remote-method="searchUserByTel"
+            value-key="recvAccount" style="width: 240px">
+            <el-option v-for="item in userListRes" :key="item.userId" :label="item.nickName + '\t' + item.phonenumber"
+              :value="item.userId" />
           </el-select>
         </el-form-item>
-        <el-form-item label="支出类型" prop="expType">
-          <el-select v-model="form.expType" placeholder="请选择支出类型" clearable>
-            <el-option v-for="dict in sys_exp_type" :key="dict.value" :label="dict.label"
-              :value="dict.value"></el-option>
-          </el-select>
-        </el-form-item>
-        <el-form-item label="支出金额" prop="expAmount">
-          <el-input-number :min="0" v-model="form.expAmount" controls-position="right" placeholder="请输入支出金额" />
-        </el-form-item>
+        <el-row>
+          <el-col :span="12">
+
+            <el-form-item label="支出类型" prop="expType">
+              <el-select v-model="form.expType" placeholder="请选择支出类型" clearable>
+                <el-option v-for="dict in sys_exp_type" :key="dict.value" :label="dict.label"
+                  :value="dict.value"></el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="支出金额" prop="expAmount">
+              <el-input-number :min="0" v-model="form.expAmount" controls-position="right" placeholder="请输入支出金额" />
+            </el-form-item>
+          </el-col>
+        </el-row>
         <el-form-item label="备注信息" prop="remark">
-          <el-input v-model="form.remark" placeholder="请输入备注信息" />
+          <el-input type="textarea" v-model="form.remark" placeholder="请输入备注信息" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -120,7 +127,7 @@
     <el-dialog title="支出详细信息" v-model="showDetailDialog" width="400px" append-to-body>
       <el-form ref="expenditureRef" :model="detail" label-width="80px">
         <el-form-item label="支出账目" prop="expTitle">
-           {{ detail.expTitle }} 
+          {{ detail.expTitle }}
         </el-form-item>
         <el-form-item label="对方账户" prop="recvAccountTitle">
           {{ detail.recvAccountTitle }}
@@ -153,6 +160,8 @@ const { sys_exp_type } = proxy.useDict("sys_exp_type");
 
 const expenditureList = ref([]);
 const userList = ref([]);
+const userListRes = ref([]);
+const notACount = ref(false);
 const open = ref(false);
 const loading = ref(true);
 const showSearch = ref(true);
@@ -195,13 +204,39 @@ const data = reactive({
 
 const { queryParams, form, rules } = toRefs(data);
 
+
+// 处理失去焦点的情况，保留用户输入
+const handleBlur = (event) => {
+  const inputValue = event.target.value;
+  // 如果用户没有输入的话，不进行搜索
+  if (!inputValue) return;
+  if (!userListRes.value.some(item => item.userId === form.value.recvAccount)) {
+    // 没有搜索结果且没有选择项时，保留输入
+    form.value.recvAccount = inputValue;
+    notACount.value = true;
+  } else {
+    notACount.value = false;
+  }
+};
+
+
+/* 根据手机号搜索用户列表 */
+function searchUserByTel(tel) {
+  userListRes.value = userList.value.filter(item => item.phonenumber.includes(tel));
+  if (userListRes.value.length == 0) {
+    // 没找到，需要创建用户
+    notACount.value = true;
+  } else {
+    notACount.value = false;
+  }
+}
+
 function showOrderInfo(row) {
   if (row.orderId) {
     detail.value = row;
     getOrders(row.orderId).then(res => {
       detail.value.order = res.data;
       showDetailDialog.value = true;
-      console.log(detail.value)
     })
   }
 }
@@ -276,17 +311,24 @@ function handleAdd() {
     userList.value = res.rows;
     open.value = true;
   })
-  title.value = "添加支出";
+  // title.value = "添加支出";
 }
 
 /** 修改按钮操作 */
-function handleUpdate(row) {
+async function handleUpdate(row) {
   reset();
   const _expId = row.expId || ids.value
+  await listUser().then(res => {
+    userList.value = res.rows;
+  })
+  console.log(userList.value)
   getExpenditure(_expId).then(response => {
     form.value = response.data;
+    if(!form.value.recvAccount){
+      form.value.recvAccount = form.value.recvAccountTitle;
+    }
     open.value = true;
-    title.value = "修改支出";
+    // title.value = "修改支出";
   });
 }
 
@@ -294,7 +336,10 @@ function handleUpdate(row) {
 function submitForm() {
   proxy.$refs["expenditureRef"].validate(valid => {
     if (valid) {
-      if (form.value.recvAccount) {
+      if (notACount.value) {
+        form.value.recvAccountTitle = form.value.recvAccount;
+        form.value.recvAccount = null;
+      } else if (form.value.recvAccount) {
         form.value.recvAccountTitle = userList.value.find(item => item.userId === form.value.recvAccount).nickName;
       }
       if (form.value.expId != null) {

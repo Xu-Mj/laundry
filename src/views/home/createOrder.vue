@@ -119,7 +119,7 @@
                         <el-button type="info" plain :disabled="!form.userId"
                             @click="handleShowCouponSale">卡券购买</el-button>
                         <el-button type="primary" plain @click="submitForm">取衣收款</el-button>
-                        <el-button type="warning" plain @click="cancel">取 消</el-button>
+                        <el-button type="warning" plain @click="cancelSelf">取 消</el-button>
                     </div>
                 </el-col>
             </el-row>
@@ -264,12 +264,9 @@ const userListRes = ref([]);
 const userCouponList = ref([]);
 // 通知模板列表
 const priceList = ref([]);
-const open = ref(false);
 const showCreateUser = ref(false);
 const showPaymentDialog = ref(false);
 const showCouponSale = ref(false);
-const loading = ref(true);
-const total = ref(0);
 const title = ref("");
 const totalPrice = ref(0);
 // 差价
@@ -279,6 +276,7 @@ const couponStorageCardId = ref([]);
 const currentOrderId = ref(props.orderId);
 const currentUserId = ref(props.userId);
 
+let isInitialWatchFired = false;
 const ordersRef = ref();
 /* 单据打印数量 */
 const printCount = ref(1);
@@ -323,10 +321,13 @@ const data = reactive({
     },
 });
 
-const { form, paymentForm, notifyForm, rules } = toRefs(data);
+const { form, paymentForm, rules } = toRefs(data);
 
 /* 监听form.cloths变动 */
 watch(() => form.value.cloths, (newVal) => {
+    if(!form.value.userId){
+        return;
+    }
     console.log('form.cloths changed:', newVal);
     checkCoupon();
     if (form.value.adjust.totalAmount) {
@@ -430,7 +431,6 @@ function submitPaymentForm() {
     pay(paymentForm.value).then(res => {
         proxy.$modal.msgSuccess('支付成功');
         showPaymentDialog.value = false;
-        open.value = false;
     })
 
 }
@@ -487,13 +487,44 @@ function checkCoupon() {
 }
 
 // 取消按钮
+function cancelSelf() {
+    // 检查是否有未保存的数据
+    if (!form.value.userId) {
+        reset();
+        props.toggle();
+        return;
+    }
+
+    // 弹出确认对话框
+    ElMessageBox.confirm('确认取消操作订单？此操作不可逆！')
+        .then(() => {
+            // 用户确认取消，处理逻辑
+            if (!form.value.orderId && form.value.cloths.length > 0) {
+                // 删除添加的衣物列表
+                delCloths(form.value.cloths.map(item => item.clothId))
+                    .then(() => {
+                        reset();
+                        props.toggle();
+                    })
+                    .catch(res => {
+                        console.error(res);
+                    });
+            } else {
+                reset();
+                props.toggle();
+            }
+        })
+        .catch(() => {
+            // 用户取消操作，不关闭对话框
+        });
+}
+
+// 取消按钮
 function cancel() {
     return new Promise((resolve, reject) => {
         // 检查是否有未保存的数据
         if (!form.value.userId) {
             reset();
-            open.value = false;
-            // props.toggle();
             resolve(true); // 确认取消
             return;
         }
@@ -507,8 +538,6 @@ function cancel() {
                     delCloths(form.value.cloths.map(item => item.clothId))
                         .then(() => {
                             reset();
-                            open.value = false;
-                            props.toggle();
                             resolve(true); // 允许关闭
                         })
                         .catch(res => {
@@ -517,7 +546,6 @@ function cancel() {
                         });
                 } else {
                     reset();
-                    open.value = false;
                     props.toggle();
                     resolve(true); // 允许关闭
                 }
@@ -565,10 +593,9 @@ function handleAdd() {
     });
     listUserWithNoLimit().then(res => {
         userList.value = res.rows;
-        open.value = true;
     });
     // 获取价格列表
-    listPrice({ orderType: form.value.source,status: 0 }).then(res => {
+    listPrice({ orderType: form.value.source, status: 0 }).then(res => {
         priceList.value = res.rows;
     });
 }
@@ -584,7 +611,6 @@ function handleUpdate() {
             form.value.adjust = {};
         }
         title.value = "修改服务订单";
-        console.log(form.value, 'jhopsajfdsoa')
         // 获取价格列表
         listPrice({ orderType: form.value.source }).then(res => {
             priceList.value = res.rows;
@@ -633,16 +659,12 @@ async function submitForm() {
             if (form.value.orderId != null) {
                 updateOrders(form.value).then(response => {
                     proxy.$modal.msgSuccess("修改成功");
-                    open.value = false;
-                    // getList();
                     props.refresh();
                     props.toggle();
                 });
             } else {
                 addOrders(form.value).then(response => {
                     proxy.$modal.msgSuccess("新增成功");
-                    open.value = false;
-                    // getList();
                     props.refresh();
                     props.toggle();
                 });
@@ -675,12 +697,10 @@ function createAndPay() {
                     initPaymentForm();
                     // getList();
                     props.refresh();
-                    open.value = true;
                     showPaymentDialog.value = true;
                 });
             } else {
                 initPaymentForm();
-                open.value = true;
                 showPaymentDialog.value = true;
             }
 

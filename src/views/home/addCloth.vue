@@ -891,6 +891,7 @@ function handleCloseUploadPic() {
 }
 
 onMounted(async () => {
+    console.log('onMounted')
     await initList();  // 确保 initList 完成
     getList();         // 在 initList 完成后调用
 });

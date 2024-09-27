@@ -30,9 +30,8 @@
           <el-input v-model="form.name" placeholder="请输入架子名称" />
         </el-form-item>
         <el-form-item label="容量" prop="capacity">
-          <el-input-number controls-position="right" v-model="form.capacity" :min="form.remainingCapacity" placeholder="请输入容量" />
+          <el-input-number controls-position="right" v-model="form.capacity" :min="minCapacity" placeholder="请输入容量" />
         </el-form-item>
-
       </el-form>
       <template #footer>
         <div class="dialog-footer">
@@ -58,6 +57,7 @@ const single = ref(true);
 const multiple = ref(true);
 const total = ref(0);
 const title = ref("");
+let minCapacity = 0;
 
 const data = reactive({
   form: {},
@@ -117,6 +117,7 @@ function handleUpdate(row) {
   const _id = row.id || ids.value
   getRack(_id).then(response => {
     form.value = response.data;
+    minCapacity = response.data.capacity - response.data.remainingCapacity;
     open.value = true;
     title.value = "修改晾衣架";
   });

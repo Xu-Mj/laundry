@@ -2,7 +2,7 @@
   <div class="app-container">
     <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="110px">
       <el-form-item label="会员手机号" prop="phonenumber">
-        <el-input v-model="queryParams.phonenumber" placeholder="请输入会员账号" clearable @keyup.enter="handleQuery" />
+        <el-input v-model="queryParams.phonenumber" placeholder="请输入会员机号" clearable @keyup.enter="handleQuery" />
       </el-form-item>
       <el-form-item label="订单编码" prop="orderNumber">
         <el-input v-model="queryParams.orderNumber" placeholder="请输入订单编码" clearable @keyup.enter="handleQuery" />

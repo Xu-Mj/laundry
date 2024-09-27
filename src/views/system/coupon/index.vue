@@ -69,12 +69,12 @@
           {{ scope.row.customerSaleCount == -1 ? '无限制' : scope.row.customerSaleCount }}
         </template>
       </el-table-column>
-      <el-table-column label="有效时间-起" align="center" prop="validFrom"  v-if="columns[9].visible">
+      <el-table-column label="有效时间-起" align="center" prop="validFrom" v-if="columns[9].visible">
         <template #default="scope">
           <span>{{ parseTime(scope.row.validFrom, '{y}-{m}-{d}') }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="有效时间-止" align="center" prop="validTo"  v-if="columns[10].visible">
+      <el-table-column label="有效时间-止" align="center" prop="validTo" v-if="columns[10].visible">
         <template #default="scope">
           <span>{{ parseTime(scope.row.validTo, '{y}-{m}-{d}') }}</span>
         </template>
@@ -252,7 +252,7 @@
             </el-form-item>
           </el-col>
         </el-row>
-        <!-- <el-row>
+        <el-row>
           <el-col :span="12">
             <el-tooltip content="卡券可出售总量限制，'-1'为不限制">
               <el-form-item label="总量限制" prop="customerSaleTotal">
@@ -269,7 +269,7 @@
               </el-form-item>
             </el-tooltip>
           </el-col>
-        </el-row> -->
+        </el-row>
         <el-row>
           <el-col :span="12">
             <el-form-item label="有效期-起" prop="validFrom">
@@ -674,6 +674,7 @@ function resetSellForm() {
 }
 
 function handleShowSell() {
+  selectedList.value = selectedList.value.filter(item => item.customerSaleCount > 0 && item.customerSaleTotal > 0 && item.status == '0');
   showSell.value = true;
   resetSellForm();
   searchUserloading.value = true;

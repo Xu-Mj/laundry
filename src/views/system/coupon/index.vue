@@ -392,8 +392,7 @@
 
 <script setup name="Coupon">
 import { listCoupon, getCoupon, delCoupon, addCoupon, updateCoupon, buyCoupon } from "@/api/system/coupon";
-import { listUser, addUser } from "@/api/system/user";
-import { listClothing } from "@/api/system/clothing";
+import { listUserWithNoLimit, addUser } from "@/api/system/user";
 import { ref, computed } from "vue";
 
 const { proxy } = getCurrentInstance();
@@ -678,7 +677,7 @@ function handleShowSell() {
   showSell.value = true;
   resetSellForm();
   searchUserloading.value = true;
-  listUser().then(res => {
+  listUserWithNoLimit().then(res => {
     searchUserloading.value = false;
     userList.value = res.rows;
   });
@@ -717,7 +716,6 @@ function searchUserByTel(tel) {
 
 /* 购买卡券 */
 async function buy() {
-  console.log(sellForm.value)
   proxy.$refs["sellFormRef"].validate(async valid => {
     if (valid) {
       const coupons = selectedList.value.filter(item => item.count > 0).map(({ couponId, count }) => ({ couponId, count }));

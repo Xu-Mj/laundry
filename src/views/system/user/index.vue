@@ -243,7 +243,7 @@
       <!-- 会员积分历史记录 -->
       <el-dialog v-model="integralListOpen" width="600px" append-to-body>
          <el-table v-loading="integralLoading" :data="integralList">
-            <el-table-column label="ID" align="center" prop="id" />
+            <!-- <el-table-column label="ID" align="center" prop="id" /> -->
             <el-table-column label="本次使用积分数量" align="center" prop="identify" />
             <el-table-column label="使用时间" align="center" prop="createTime" width="160">
                <template #default="scope">

@@ -42,7 +42,7 @@
       <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" :columns="columns"></right-toolbar>
     </el-row>
 
-    <el-table v-loading="loading" :data="couponList" @selection-change="handleSelectionChange">
+    <el-table v-loading="loading" :data="couponList" ref="table" @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="55" align="center" />
       <!-- <el-table-column label="卡券唯一标识ID" align="center" prop="couponId" /> -->
       <el-table-column label="卡券名称" align="center" prop="couponTitle" v-if="columns[0].visible" />
@@ -133,8 +133,8 @@
       v-model:limit="queryParams.pageSize" @pagination="getList" />
 
     <!-- 添加或修改卡券对话框 -->
-    <el-dialog v-model="open" width="650px" :show-close="false" lock-scroll modal
-      :close-on-click-modal="false" append-to-body>
+    <el-dialog v-model="open" width="650px" :show-close="false" lock-scroll modal :close-on-click-modal="false"
+      append-to-body>
       <el-form ref="couponRef" :model="form" :rules="rules" label-width="90px">
         <el-row>
           <el-col :span="12">
@@ -311,7 +311,7 @@
     </el-dialog>
 
     <!-- show sell coupon -->
-    <el-dialog v-model="showSell" title="销售卡券" width="800px" :closed="resetSellForm">
+    <el-dialog v-model="showSell" width="800px" @closed="closeSell">
       <el-form ref="sellFormRef" :model="sellForm" label-width="90px" :rules="sellRules">
         <el-row>
           <el-col :span="12">
@@ -417,17 +417,16 @@ const {
 const couponList = ref([]);
 const userListRes = ref([]);
 const userList = ref([]);
-const clothList = ref([]);
 const open = ref(false);
 const showSell = ref(false);
 const searchUserloading = ref(false);
-const clothListloading = ref(false);
 const loading = ref(true);
 const showSearch = ref(true);
 const needCreateUser = ref(false);
 const ids = ref([]);
 const total = ref(0);
 const title = ref("");
+const table = ref();
 
 // 列显隐信息
 const columns = ref([
@@ -518,6 +517,13 @@ function validateValidTo(rules, value, callback) {
     callback();
   }
 };
+
+function closeSell() {
+  resetSellForm();
+  table.value.clearSelection();
+  selectedList.value = [];
+  showSell.value = false;
+}
 
 /* 动态计算销售卡券时的总金额 */
 const totalPrice = computed(() => {

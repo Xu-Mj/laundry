@@ -887,11 +887,9 @@ function handleShowUploadPic(row) {
 /* 关闭上传图片时清理对象 */
 function handleCloseUploadPic() {
     currentCloth.value = {};
-    showUploadPicture.value = false;
 }
 
 onMounted(async () => {
-    console.log('onMounted')
     await initList();  // 确保 initList 完成
     getList();         // 在 initList 完成后调用
 });

@@ -31,7 +31,7 @@
       <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
     </el-row>
 
-    <el-table v-loading="loading" :data="priceList" @selection-change="handleSelectionChange">
+    <el-table v-loading="loading" :data="priceList" v-model="selectedList" @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="55" align="center" />
       <!-- <el-table-column label="唯一标识ID" align="center" prop="priceId" /> -->
       <el-table-column label="价格编码" align="center" prop="priceNumber" />

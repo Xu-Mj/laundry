@@ -70,12 +70,12 @@
           </el-radio-group>
         </el-form-item>
         <el-form-item label="模板类型" prop="tempType">
-          <el-radio-group v-model="form.tempType">
+          <el-radio-group v-model="form.tempType" @change="selectTempType">
             <el-radio v-for="dict in sys_temp_type" :key="dict.value" :label="dict.label" :value="dict.value" />
           </el-radio-group>
         </el-form-item>
         <el-form-item label="模板内容">
-          <el-input v-model="form.content" type="textarea" placeholder="请输入内容" />
+          <el-input v-model="form.content" :rows="4" type="textarea" placeholder="请输入内容" />
         </el-form-item>
         <el-form-item label="备注" prop="remark">
           <el-input v-model="form.remark" type="textarea" placeholder="请输入内容" />
@@ -123,7 +123,8 @@
             <el-input @input="filterUserListByTel" v-model="filterUserByTel" placeholder="请输入手机号" />
           </el-form-item>
           <el-form-item label="积分">
-            <el-input-number @input="queryUserListByScore" :min="0" v-model="filterUserByScore" placeholder="请输入积分进行过滤" />
+            <el-input-number @input="queryUserListByScore" :min="0" v-model="filterUserByScore"
+              placeholder="请输入积分进行过滤" />
           </el-form-item>
           <el-form-item>
             <el-button type="primary" @click="selectAllUsers">全选</el-button>
@@ -201,6 +202,15 @@ const data = reactive({
 
 const { queryParams, form, rules } = toRefs(data);
 
+const pickupTemplate = "《会员姓名》您的宝贝护理完成了，请凭取件码《取件码》来取走吧~\n请勿将取件码告知他人，以免造成不必要的麻烦。";
+
+function selectTempType() {
+  if (form.value.tempType == "0") {
+    form.value.content = pickupTemplate;
+  } else {
+    form.value.content = null;
+  }
+}
 /** 查询通知模板管理列表 */
 function getList() {
   loading.value = true;
@@ -223,9 +233,9 @@ function reset() {
     tempId: null,
     tempName: null,
     noticeMethod: "1",
-    content: null,
+    content: pickupTemplate,
     createTime: null,
-    tempType: "1",
+    tempType: "0",
     remark: null
   };
   proxy.resetForm("templateRef");
@@ -369,7 +379,7 @@ function queryUserListByScore(score) {
     }
   });
   console.log(userList.value);
-  
+
 }
 
 /** 发送按钮操作 */

@@ -5,8 +5,8 @@
             <el-row>
                 <el-col :span="6">
                     <el-form-item label="会员身份" prop="userId">
-                        <el-select v-model="form.userId" filterable :clearable="true" remote reserve-keyword
-                            placeholder="请输入手机号码搜索" allow-create @blur="handleBlur" remote-show-suffix
+                        <el-select v-model="form.userId" :disabled="notEditable" filterable :clearable="true" remote
+                            reserve-keyword placeholder="请输入手机号码搜索" allow-create @blur="handleBlur" remote-show-suffix
                             :remote-method="searchUserByTel" @change="selectUser" value-key="userId"
                             style="width: 240px">
                             <el-option v-for="item in userListRes" :key="item.userId"
@@ -16,12 +16,12 @@
                 </el-col>
                 <el-col :span="6">
                     <el-form-item label="会员姓名" prop="nickName">
-                        <el-input v-model="form.nickName" placeholder="请输入会员姓名" />
+                        <el-input :disabled="notEditable" v-model="form.nickName" placeholder="请输入会员姓名" />
                     </el-form-item>
                 </el-col>
             </el-row>
             <el-form-item label="订单来源" prop="source">
-                <el-radio-group v-model="form.source" @change="sourceChanged">
+                <el-radio-group v-model="form.source" @change="sourceChanged" :disabled="notEditable">
                     <el-radio v-for="dict in sys_price_order_type" :key="dict.value" :label="dict.label"
                         :value="dict.value">
                         {{ dict.label }}
@@ -30,7 +30,7 @@
             </el-form-item>
             <!-- 价格管理 -->
             <el-form-item class="price-group">
-                <el-radio-group v-model="form.priceId">
+                <el-radio-group v-model="form.priceId" :disabled="notEditable">
                     <el-radio v-for="item in priceList" @click="(event) => priceChange(event, item.priceId)"
                         :key="item.priceId" :label="item.priceName" :value="item.priceId">
                         {{ item.priceName }}
@@ -38,19 +38,19 @@
                 </el-radio-group>
             </el-form-item>
             <el-form-item label="衣物信息">
-                <AddCloth v-if="form.userId" :userId="form.userId" :orderId="form.orderId"
-                    v-model:value="form.cloths" />
+                <AddCloth v-if="form.userId" :userId="form.userId" :orderId="form.orderId" v-model:value="form.cloths"
+                    :disabled="notEditable" :key="form.orderId" />
                 <span v-else>请选择会员信息后添加衣物</span>
             </el-form-item>
             <el-form-item label="店主调价">
                 <el-col :span="12" class="adjust-price-group">
                     <el-input type="number" :min="0" :max="1000" @input="adjustInput"
-                        v-model="form.adjust.adjustValueSub" placeholder="请输入调减金额" />
+                        v-model="form.adjust.adjustValueSub" placeholder="请输入调减金额" :disabled="notEditable" />
                     <el-input type="number" :min="0" :max="1000" @input="adjustInput"
-                        v-model="form.adjust.adjustValueAdd" placeholder="请输入调增金额" />
+                        v-model="form.adjust.adjustValueAdd" placeholder="请输入调增金额" :disabled="notEditable" />
                     <el-input type="number" :min="0" :max="Infinity" @input="adjustInput"
-                        v-model="form.adjust.totalAmount" placeholder="请输入总金额" />
-                    <el-input v-model="form.adjust.remark" placeholder="备注信息" />
+                        v-model="form.adjust.totalAmount" placeholder="请输入总金额" :disabled="notEditable" />
+                    <el-input v-model="form.adjust.remark" placeholder="备注信息" :disabled="notEditable" />
                 </el-col>
             </el-form-item>
             <!-- 底部左侧信息区域，以及右侧按钮区域 -->
@@ -59,7 +59,6 @@
                 <el-col class="left" :span="18">
                     <el-row>
                         <el-col :span="4">
-
                             <el-form-item label="总件数：">{{ form.cloths.length }}</el-form-item>
                         </el-col>
                         <el-col :span="5">
@@ -115,10 +114,10 @@
                 </el-col>
                 <el-col class="right" :span="6">
                     <div class="btn-container">
-                        <el-button type="success" plain @click="createAndPay">收衣收款</el-button>
-                        <el-button type="info" plain :disabled="!form.userId"
+                        <el-button type="success" plain @click="createAndPay" :disabled="notEditable">收衣收款</el-button>
+                        <el-button type="danger" plain :disabled="!form.userId || notEditable"
                             @click="handleShowCouponSale">卡券购买</el-button>
-                        <el-button type="primary" plain @click="submitForm">取衣收款</el-button>
+                        <el-button type="primary" plain @click="submitForm" :disabled="notEditable">取衣收款</el-button>
                         <el-button type="warning" plain @click="cancelSelf">取 消</el-button>
                     </div>
                 </el-col>
@@ -279,6 +278,8 @@ const ordersRef = ref();
 const printCount = ref(1);
 const phoneRegex = /^1[3-9]\d{9}$/;
 
+const notEditable = ref(false);
+
 const data = reactive({
     form: {
         cloths: [],
@@ -332,12 +333,13 @@ watch(() => form.value.cloths, (newVal) => {
         form.adjust.totalAmount = null;
     }
     adjustInput();
-});
+}, { deep: true });
 
 // 处理价格radio 选中事件
 function priceChange(event, priceId) {
     event.preventDefault();
     form.value.priceId = form.value.priceId === priceId ? null : priceId;
+    adjustInput();
 }
 
 // 处理失去焦点的情况，保留用户输入
@@ -585,6 +587,8 @@ function sourceChanged() {
     // 获取价格列表
     listPrice({ orderType: form.value.source, status: 0 }).then(res => {
         priceList.value = res.rows;
+        form.value.priceId = null;
+        adjustInput();
     });
 }
 
@@ -612,6 +616,9 @@ function handleUpdate() {
     getOrders(currentOrderId.value).then(response => {
         form.value = response.data;
         form.value.cloths = [];
+        if(form.value.paymentStatus == '00'){
+            notEditable.value = true;
+        }
         if (!form.value.adjust) {
             form.value.adjust = {};
         }
@@ -721,6 +728,7 @@ function initPaymentForm() {
         paymentMethod: '02',
         orderType: '1',
         totalAmount: totalPrice.value,
+        paymentAmount: totalPrice.value,
     }
 
 }
@@ -736,7 +744,7 @@ function searchUserByTel(tel) {
         if (userListRes.value.length == 1) {
             form.value.nickName = userListRes.value[0].nickName;
             // 查询会员卡券信息
-            listUserCoupon({ userId: form.value.userId }).then(response => {
+            listUserCouponWithValidTime({ userId: form.value.userId }).then(response => {
                 userCouponList.value = response.rows;
             });
         }
@@ -753,7 +761,7 @@ function selectUser(userId) {
     const item = userList.value.find(item => { return item.userId === userId });
     form.value.nickName = item.nickName;
     // 查询会员卡券信息
-    listUserCoupon({ userId: userId }).then(response => {
+    listUserCouponWithValidTime({ userId: userId }).then(response => {
         userCouponList.value = response.rows;
     });
 }
@@ -780,8 +788,16 @@ function adjustInput() {
             price = item ? item.priceValue : 0;
         } else {
             price = form.value.cloths.reduce((acc, cur) => {
+                // 计算总价
+                // 如果服务要求为加急
+                let priceValue = cur.priceValue;
+                if (cur.serviceRequirement == '001') {
+                    priceValue *= 2;
+                } else if (cur.serviceRequirement == '002') {
+                    priceValue *= 1.5;
+                }
                 return acc +
-                    cur.priceValue + cur.processMarkup
+                    priceValue + cur.processMarkup
             }, 0);
         }
         price +=

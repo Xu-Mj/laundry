@@ -539,6 +539,7 @@ function reset() {
     showAddClothBtn.value = false;
     showHistory.value = false;
     proxy.resetForm("clothsRef");
+    console.log(form.value);
 }
 
 /* 初始化列表数据 */

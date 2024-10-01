@@ -1,7 +1,7 @@
 <template>
     <!-- show sell coupon -->
     <el-form ref="sellFormRef" :model="sellForm" :rules="rules" label-width="90px">
-        <el-form-item v-if="props.userId && props.userId != 0" label="会员身份" prop="userId">
+        <el-form-item v-if="props.userId && props.userId != 0" label="会员身份">
             {{ user.nickName }} - {{ user.phonenumber }}
         </el-form-item>
         <el-row v-else>

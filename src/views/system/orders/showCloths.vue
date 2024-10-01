@@ -67,9 +67,11 @@
             <el-table-column label="上挂描述信息" align="center" prop="hangRemark" /> -->
             <el-table-column label="操作" align="center" :width="280" class-name="small-padding fixed-width">
                 <template #default="scope">
-                    <el-button link type="primary" icon="Picture" :disabled="!scope.row.beforePics"
+                    <el-button link type="primary" icon="Picture"
+                        :disabled="scope.row.beforePics == null || scope.row.beforePics.length == 0"
                         @click="handleShowPicture(scope.row, true)" v-hasPermi="['system:cloths:edit']">洗前</el-button>
-                    <el-button link type="primary" icon="Picture" :disabled="!scope.row.afterPics"
+                    <el-button link type="primary" icon="Picture"
+                        :disabled="scope.row.afterPics == null || scope.row.afterPics.length == 0"
                         @click="handleShowPicture(scope.row, false)" v-hasPermi="['system:cloths:edit']">洗后</el-button>
                     <el-button link type="primary" icon="Top" @click="handleShowHangUp(scope.row)"
                         v-if="scope.row.clothingStatus == '01'" v-hasPermi="['system:cloths:remove']">

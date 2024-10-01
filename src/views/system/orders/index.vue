@@ -110,7 +110,7 @@
             <template #dropdown>
               <el-dropdown-menu>
                 <el-dropdown-item>
-                  <el-button v-if="scope.row.paymentStatus !== '00'" link type="primary" icon="Edit"
+                  <el-button link type="primary" icon="Edit"
                     @click="handleUpdate(scope.row)" v-hasPermi="['system:orders:edit']">编辑</el-button>
                 </el-dropdown-item>
                 <el-dropdown-item>

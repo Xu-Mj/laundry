@@ -2,7 +2,7 @@
     <div class="app-container">
         <el-row :gutter="10" class="mb8">
             <el-col :span="1.5">
-                <el-button type="primary" plain icon="Plus" @click="handleAdd"
+                <el-button type="primary" plain icon="Plus" @click="handleAdd" :disabled="props.disabled"
                     v-hasPermi="['system:cloths:add']">新增</el-button>
             </el-col>
         </el-row>
@@ -50,9 +50,9 @@
                     <el-button link type="primary" :icon="Camera" @click="handleShowUploadPic(scope.row)"
                         v-hasPermi="['system:cloths:edit']">拍照</el-button>
                     <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)"
-                        v-hasPermi="['system:cloths:edit']">修改</el-button>
+                        :disabled="props.disabled" v-hasPermi="['system:cloths:edit']">修改</el-button>
                     <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)"
-                        v-hasPermi="['system:cloths:remove']">删除</el-button>
+                        :disabled="props.disabled" v-hasPermi="['system:cloths:remove']">删除</el-button>
                 </template>
             </el-table-column>
         </el-table>
@@ -168,7 +168,7 @@
                         <el-radio-group class="color-radio-group" v-model="form.clothingId" @change="step2ClothChange">
                             <el-radio v-for="color in clothingList" :key="color.clothingId" :value="color.clothingId">{{
                                 color.clothingName
-                            }}</el-radio>
+                                }}</el-radio>
                         </el-radio-group>
                     </el-row>
                     <el-row class="footer-btn">
@@ -368,7 +368,7 @@
 </template>
 
 <script setup name="AddCloth">
-import { listHistoryCloths, delCloths, addCloths, updateCloths } from "@/api/system/cloths";
+import { listHistoryCloths, delCloths, addCloths, updateCloths, getCloths } from "@/api/system/cloths";
 import { Camera, CoffeeCup, CollectionTag, CopyDocument, PictureRounded, User, WarningFilled } from "@element-plus/icons-vue";
 import { listClothing, addClothing } from "@/api/system/clothing";
 import { getDicts } from '@/api/system/dict/data'
@@ -388,7 +388,15 @@ const props = defineProps({
         type: Number,
         default: 0
     },
-    value: Array
+    value: Array,
+    submit: {
+        type: Function,
+        required: true,
+    },
+    disabled: {
+        type: Boolean,
+        default: false
+    }
 });
 
 
@@ -398,7 +406,7 @@ const { sys_cloth_cate, sys_cloth_style, sys_service_type, sys_service_requireme
 
 // 添加衣物的列表
 const clothList = ref([]);
-const emit = defineEmits(['update:value']);
+// const emit = defineEmits(['update:value']);
 
 // 选择衣物时展示的衣物列表
 const clothingList = ref([]);
@@ -437,6 +445,8 @@ const uploadAfterImgUrl = ref(baseUrl + `/system/cloths/upload?isPre=false&cloth
 const dialogImageUrl = ref("");
 const clothNameRef = ref();
 const dialogVisible = ref(false);// 预览
+
+let currentEditRow = null;
 
 const data = reactive({
     form: {},
@@ -496,7 +506,8 @@ function getList() {
                 }
             })
             clothList.value = res.rows;
-            emit('update:value', clothList.value);
+            props.submit(clothList.value);
+            // emit('update:value', clothList.value);
         })
     }
 }
@@ -588,24 +599,29 @@ async function initList() {
 
     // 等待所有异步操作完成防止衣物列表数据加载完后这里的数据没有准备好而出错
     await Promise.all(promises);
-    console.log('初始化完成')
 }
 
 /** 新增按钮操作 */
 function handleAdd() {
     reset();
     open.value = true;
-    title.value = "添加衣物";
+    // title.value = "添加衣物";
     cateChange(form.value.clothingCategory);
 }
 
 /** 修改按钮操作 */
 function handleUpdate(row) {
     reset();
-    form.value = row;
-    open.value = true;
-    title.value = "修改衣物";
-    console.log(form.value)
+    if (row.clothId) {
+        getCloths(row.clothId).then(res => {
+            form.value = res.data;
+            open.value = true;
+        });
+        cateChange(form.value.clothingCategory);
+
+    } else {
+        proxy.$modal.msgError("请先选择衣物");
+    }
 }
 
 /** 提交按钮 */
@@ -636,7 +652,8 @@ function submitForm() {
                     open.value = false;
                     form.value.clothId = response.data;
                     clothList.value.push(form.value);
-                    emit('update:value', clothList.value);
+                    props.submit(clothList.value);
+                    // emit('update:value', clothList.value);
                     // console.log(clothList.value)
                     // getList();
                 });
@@ -654,6 +671,8 @@ function handleDelete(row) {
         return delCloths(_orderClothIds);
     }).then(() => {
         getList();
+        const index = clothList.value.findIndex(item => item.clothId === _orderClothIds);
+        clothList.value.splice(index, 1);
         proxy.$modal.msgSuccess("删除成功");
     }).catch(() => { });
 }

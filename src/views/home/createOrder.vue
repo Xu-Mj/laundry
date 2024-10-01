@@ -38,7 +38,7 @@
                 </el-radio-group>
             </el-form-item>
             <el-form-item label="衣物信息">
-                <AddCloth v-if="form.userId" :userId="form.userId" :orderId="form.orderId" v-model:value="form.cloths"
+                <AddCloth v-if="form.userId" :userId="form.userId" :orderId="form.orderId" :submit="submitClothes"
                     :disabled="notEditable" :key="form.orderId" />
                 <span v-else>请选择会员信息后添加衣物</span>
             </el-form-item>
@@ -321,20 +321,16 @@ const data = reactive({
 
 const { form, paymentForm, rules } = toRefs(data);
 
-/* 监听form.cloths变动 */
-watch(() => form.value.cloths, (newVal) => {
-    if (!form.value.userId) {
-        return;
-    }
-    console.log('form.cloths changed:', newVal);
+function submitClothes(list) {
+    console.log('submitClothes', list)
+    form.value.cloths = list;
     checkCoupon();
     if (form.value.adjust.totalAmount) {
         proxy.$modal.msgWarning('衣物列表发生变动，请重新填写订单金额');
         form.adjust.totalAmount = null;
     }
     adjustInput();
-}, { deep: true });
-
+}
 // 处理价格radio 选中事件
 function priceChange(event, priceId) {
     event.preventDefault();

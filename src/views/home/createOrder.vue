@@ -21,7 +21,7 @@
                 </el-col>
             </el-row>
             <el-form-item label="订单来源" prop="source">
-                <el-radio-group v-model="form.source">
+                <el-radio-group v-model="form.source" @change="sourceChanged">
                     <el-radio v-for="dict in sys_price_order_type" :key="dict.value" :label="dict.label"
                         :value="dict.value">
                         {{ dict.label }}
@@ -255,14 +255,12 @@ const {
         "sys_payment_method",
     );
 
-// 订单列表
-const ordersList = ref([]);
 // 用户列表，创建/更新订单时选择框使用
 const userList = ref([]);
 const userListRes = ref([]);
 // 用户卡券列表
 const userCouponList = ref([]);
-// 通知模板列表
+// 价格列表
 const priceList = ref([]);
 const showCreateUser = ref(false);
 const showPaymentDialog = ref(false);
@@ -276,7 +274,6 @@ const couponStorageCardId = ref([]);
 const currentOrderId = ref(props.orderId);
 const currentUserId = ref(props.userId);
 
-let isInitialWatchFired = false;
 const ordersRef = ref();
 /* 单据打印数量 */
 const printCount = ref(1);
@@ -325,7 +322,7 @@ const { form, paymentForm, rules } = toRefs(data);
 
 /* 监听form.cloths变动 */
 watch(() => form.value.cloths, (newVal) => {
-    if(!form.value.userId){
+    if (!form.value.userId) {
         return;
     }
     console.log('form.cloths changed:', newVal);
@@ -355,7 +352,7 @@ const handleBlur = (event) => {
 
 /* 卡券购买完成后的回调，重新获取卡券列表 */
 function submitCouponSale() {
-    listUserCoupon({ userId: form.value.userId }).then(response => {
+    listUserCouponWithValidTime({ userId: form.value.userId }).then(response => {
         userCouponList.value = response.rows;
         checkCoupon();
     });
@@ -581,6 +578,14 @@ function reset() {
         updateTime: null
     };
     proxy.resetForm("ordersRef");
+}
+
+// 监听订单来源变化
+function sourceChanged() {
+    // 获取价格列表
+    listPrice({ orderType: form.value.source, status: 0 }).then(res => {
+        priceList.value = res.rows;
+    });
 }
 
 /** 新增按钮操作 */

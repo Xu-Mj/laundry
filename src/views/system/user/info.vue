@@ -102,7 +102,7 @@
 
 <script setup>
 import { changeUserStatus } from "@/api/system/user";
-import { listUserCoupon } from '@/api/system/user_coupon';
+import { listUserCouponNoPage } from '@/api/system/user_coupon';
 import { ref } from "vue";
 
 const { proxy } = getCurrentInstance();
@@ -131,7 +131,7 @@ const handleStatusChange = (row) => {
 };
 // 获取会员优惠券列表
 if (props.user && props.user.userId) {
-    listUserCoupon({ userId: props.user.userId }).then(response => {
+    listUserCouponNoPage({ userId: props.user.userId }).then(response => {
         coupons.value = response.rows;
     });
 }

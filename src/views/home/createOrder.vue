@@ -219,7 +219,7 @@ import { getOrders, addOrders, updateOrders, pay } from "@/api/system/orders";
 import { listPrice } from "@/api/system/price";
 import { listUserWithNoLimit, addUser } from "@/api/system/user";
 import { delCloths } from "@/api/system/cloths";
-import { listUserCoupon } from '@/api/system/user_coupon';
+import { listUserCouponWithValidTime } from '@/api/system/user_coupon';
 import { isCurrentTimeWithinRange, getFutureDate } from "@/utils";
 import { getConfigKey } from '@/api/system/config';
 import AddCloth from "./addCloth.vue";
@@ -622,7 +622,7 @@ function handleUpdate() {
         userListRes.value = userList.value;
     });
     // 获取用户卡券列表
-    listUserCoupon({ userId: currentUserId.value }).then(response => {
+    listUserCouponWithValidTime({ userId: currentUserId.value }).then(response => {
         userCouponList.value = response.rows;
     });
 

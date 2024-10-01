@@ -9,6 +9,24 @@ export function listUserCoupon(query) {
   })
 }
 
+// 查询用户卡券列表
+export function listUserCouponNoPage(query) {
+  return request({
+    url: '/system/user-coupon/list-no-page',
+    method: 'get',
+    params: query
+  })
+}
+
+// 查询用户卡券列表
+export function listUserCouponWithValidTime(query) {
+  return request({
+    url: '/system/user-coupon/list-with-valid-time',
+    method: 'get',
+    params: query
+  })
+}
+
 // 查询用户卡券详细
 export function getUserCoupon(ucId) {
   return request({

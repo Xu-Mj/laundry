@@ -29,6 +29,7 @@
             <el-table-column type="expand">
                 <template #default="props">
                     <el-table class="cloths-table" :data="props.row.clothList" :loading="props.row.loading"
+                        row-key="clothingId"
                         @selection-change="selectedItems => handleClothSelectionChange(selectedItems, props.row)"
                         ref="clothsTableRef" border="dash">
                         <el-table-column type="selection" width="55" align="center" />
@@ -197,7 +198,8 @@
             </el-form-item>
             <el-form-item label="储值卡">
                 <!-- 列出储值卡列表 -->
-                <el-checkbox-group v-if="selectedOrders.length<2" v-model="couponStorageCardId" @change="changeCoupon(1)">
+                <el-checkbox-group v-if="selectedOrders.length < 2" v-model="couponStorageCardId"
+                    @change="changeCoupon(1)">
                     <el-checkbox v-for="card in userCouponList.filter(item => item.coupon.couponType == '000')"
                         :disabled="!card.isValid" :key="card.ucId" :value="card.ucId">
                         {{ card.coupon.couponTitle }}
@@ -210,7 +212,8 @@
                 <span v-else>多个订单暂时不支持使用卡券</span>
             </el-form-item>
             <el-form-item label="优惠券">
-                <el-radio-group v-if="selectedOrders.length<2" v-model="paymentForm.couponId" @change="changeCoupon(2)">
+                <el-radio-group v-if="selectedOrders.length < 2" v-model="paymentForm.couponId"
+                    @change="changeCoupon(2)">
                     <el-radio v-for="card in userCouponList.filter(item => item.coupon.couponType !== '000')"
                         :disabled="!card.isValid" :key="card.ucId" :value="card.ucId">
                         {{ card.coupon.couponTitle }}
@@ -369,7 +372,7 @@ function handlePay() {
     }
 
     // 计算总价格
-    totalPrice.value = selectedCloths.value.reduce((acc, cur) => acc + cur.priceValue+cur.processMarkup, 0);
+    totalPrice.value = selectedCloths.value.reduce((acc, cur) => acc + cur.priceValue + cur.processMarkup, 0);
     // 获取用户卡券列表
     listUserCoupon({ userId: userIdList[0] }).then(response => {
         userCouponList.value = response.rows;
@@ -562,6 +565,7 @@ async function handleOrderSelectionChange(selection, row) {
     // 获取选中的父行（订单）
     const isSelected = selection.includes(row);
 
+    console.log('feawefaf')
     if (isSelected) {
         // 选中父行时，自动展开并选中其子行
         await selection.forEach(async order => {
@@ -650,6 +654,7 @@ function handleExpandChange(row, expanded) {
 
 function handleRowClick(row) {
     orderTableRef.value.toggleRowExpansion(row);
+    console.log(selectedCloths.value)
 }
 
 // 监听传入的visible属性
@@ -799,7 +804,7 @@ onMounted(async () => {
 }
 
 .payment-footer {
-  text-align: center;
+    text-align: center;
 }
 
 .el-dialog .pagination-container {

@@ -118,7 +118,7 @@
                         <el-button type="danger" plain :disabled="!form.userId || notEditable"
                             @click="handleShowCouponSale">卡券购买</el-button>
                         <el-button type="primary" plain @click="submitForm" :disabled="notEditable">取衣收款</el-button>
-                        <el-button type="warning" plain @click="cancelSelf">取 消</el-button>
+                        <el-button type="warning" plain @click="cancelSelf">{{ form.orderId ? '关 闭' : '取 消' }}</el-button>
                     </div>
                 </el-col>
             </el-row>
@@ -490,8 +490,15 @@ function cancelSelf() {
         return;
     }
 
+    // 修改操作不允许反悔
+    if (form.value.orderId) {
+        reset();
+        props.toggle();
+        return;
+    }
+
     // 弹出确认对话框
-    ElMessageBox.confirm('确认取消操作订单？此操作不可逆！')
+    ElMessageBox.confirm('确认取消创建订单？此操作不可逆！')
         .then(() => {
             // 用户确认取消，处理逻辑
             if (!form.value.orderId && form.value.cloths.length > 0) {
@@ -521,6 +528,13 @@ function cancel() {
         if (!form.value.userId) {
             reset();
             resolve(true); // 确认取消
+            return;
+        }
+
+        // 修改操作不允许反悔
+        if (form.value.orderId) {
+            reset();
+            props.toggle();
             return;
         }
 
@@ -612,7 +626,7 @@ function handleUpdate() {
     getOrders(currentOrderId.value).then(response => {
         form.value = response.data;
         form.value.cloths = [];
-        if(form.value.paymentStatus == '00'){
+        if (form.value.paymentStatus == '00') {
             notEditable.value = true;
         }
         if (!form.value.adjust) {

@@ -59,8 +59,8 @@
 
         <!-- 上传照片对话框 -->
         <el-dialog title="上传照片" v-model="showUploadPicture" width="500px" append-to-body @closed="handleCloseUploadPic">
-            <el-upload v-model:file-list="fileList" class="upload-demo" :action="uploadBeforeImgUrl" :headers="headers"
-                :on-preview="handlePreview" :on-remove="handleRemove" list-type="picture">
+            <el-upload class="upload-demo" :action="uploadBeforeImgUrl" :headers="headers" :on-preview="handlePreview"
+                :on-remove="handleRemovePicture" :on-success="handleUploadPreSucess" list-type="picture">
                 <el-button type="primary">点击上传洗前图片</el-button>
                 <template #tip>
                     <div class="el-upload__tip">
@@ -68,8 +68,16 @@
                     </div>
                 </template>
             </el-upload>
-            <el-upload v-model:file-list="fileList" class="upload-demo" :action="uploadAfterImgUrl" :headers="headers"
-                :on-preview="handlePreview" :on-remove="handleRemove" list-type="picture">
+            <div class="img-container">
+                <div class="img-item" v-for="item in prePictureList" :key="item.id">
+                    <el-image :src="item.url" fit="contain" />
+                    <span @click="removePicByClick(item.id)">x</span>
+                </div>
+            </div>
+            <el-divider border-style="dashed" />
+
+            <el-upload class="upload-demo" :action="uploadAfterImgUrl" :headers="headers" :on-preview="handlePreview"
+                :on-remove="handleRemovePicture" :on-success="handleUploadAfterSucess">
                 <el-button type="primary">点击上传洗后图片</el-button>
                 <template #tip>
                     <div class="el-upload__tip">
@@ -77,45 +85,42 @@
                     </div>
                 </template>
             </el-upload>
-
+            <div class="img-container">
+                <div class="img-item" v-for="item in afterPictureList" :key="item.id">
+                    <el-image :src="item.url" fit="contain" />
+                    <span @click="removePicByClick(item.id)">x</span>
+                </div>
+            </div>
             <el-dialog v-model="dialogVisible" title="预览" width="800px" append-to-body>
                 <img :src="dialogImageUrl" style="display: block; max-width: 100%; margin: 0 auto" />
             </el-dialog>
         </el-dialog>
         <!-- 添加或修改订单包含的衣物清单对话框 -->
         <el-dialog :title="title" v-model="open" width="1080px" modal :close-on-click-modal="false" @closed="reset()"
-            @keydown.enter.native="handleEnterKeyDown" @keydown.right.native="handleEnterKeyDown"
-            @keydown.left.native="handleLeftKeyDown" append-to-body>
+            @keydown.enter.native="nextStep" @keydown.right.native="nextStep" @keydown.left.native="preStep"
+            append-to-body>
             <el-steps :active="step" finish-status="success" simple>
-                <el-step title="选择品类" :icon="CopyDocument" v-if="step !== 6" />
-                <el-step title="选择衣物" :icon="User" v-if="step !== 6" />
-                <el-step title="选择颜色" :icon="PictureRounded" v-if="step !== 6" />
-                <el-step title="洗前瑕疵" :icon="WarningFilled" v-if="step !== 6" />
-                <el-step title="洗后预估" :icon="CoffeeCup" v-if="step !== 6" />
-                <el-step title="选择品牌" :icon="CollectionTag" v-if="step !== 6" />
+                <el-step title="选择品类" :icon="CopyDocument" v-if="step !== maxStepNum" />
+                <el-step title="选择衣物" :icon="User" v-if="step !== maxStepNum" />
+                <el-step title="选择颜色" :icon="PictureRounded" v-if="step !== maxStepNum" />
+                <el-step title="洗前瑕疵" :icon="WarningFilled" v-if="step !== maxStepNum" />
+                <el-step title="洗后预估" :icon="CoffeeCup" v-if="step !== maxStepNum" />
+                <el-step title="选择品牌" :icon="CollectionTag" v-if="step !== maxStepNum" />
 
                 <el-step :title="sys_cloth_cate.find(item => item.value == form.clothingCategory).label"
-                    :icon="CopyDocument" v-if="step == 6" />
+                    :icon="CopyDocument" v-if="step == maxStepNum" />
                 <el-step :title="sys_cloth_style.find(item => item.value == form.clothingStyle).label" :icon="User"
-                    v-if="step == 6" />
+                    v-if="step == maxStepNum" />
                 <!-- <el-step :title="clothList.find(item => { return item.clothingId == form.clothingId }).clothingName"
                     :icon="User" v-if="step == 6" /> -->
+                <el-step :title="findColorName()" :icon="PictureRounded" v-if="step == maxStepNum" />
+                <el-step title="洗前瑕疵" :icon="WarningFilled" v-if="step == maxStepNum" />
+                <el-step title="洗后预估" :icon="CoffeeCup" v-if="step == maxStepNum" />
                 <el-step
-                    :title="form.clothingColor ? colorList.find(item => item.tagId == form.clothingColor).tagName : '未选择颜色'"
-                    :icon="PictureRounded" v-if="step == 6" />
-                <el-step title="洗前瑕疵" :icon="WarningFilled" v-if="step == 6" />
-                <el-step title="洗后预估" :icon="CoffeeCup" v-if="step == 6" />
-                <!-- <el-step
-                    :title="form.clothingFlaw ? flawList.find(item => { return item.tagId == form.clothingFlaw }).tagName : '没有瑕疵'"
-                    :icon="WarningFilled" v-if="step == 6" />
-                <el-step
-                    :title="form.estimate ? estimateList.find(item => { return item.tagId == form.estimate }).tagName : '没有洗后预估'"
-                    :icon="CoffeeCup" v-if="step == 6" /> -->
-                <el-step
-                    :title="form.clothingBrand ? brandList.find(item => { return item.tagId == form.clothingBrand }).tagName : '没有选择品牌'"
-                    :icon="CollectionTag" v-if="step == 6" />
+                    :title="form.clothingBrand ? brandList.find(item => { return item.tagId == form.clothingBrand }).tagName : '未选择品牌'"
+                    :icon="CollectionTag" v-if="step == maxStepNum" />
 
-                <el-button type="primary" v-show="step == 6" class="steps-btn" @click="step = 0">编辑</el-button>
+                <el-button type="primary" v-show="step == maxStepNum" class="steps-btn" @click="step = 0">编辑</el-button>
             </el-steps>
             <el-form ref="clothsRef" :model="form" :rules="rules" class="form-container">
                 <div v-show="step == 0">
@@ -357,7 +362,8 @@
                             </el-form-item>
                         </el-col>
                         <el-col :span="12" class="final-btn">
-                            <el-button type="primary" @click="submitForm">确认添加</el-button>
+                            <el-button type="primary" @click="submitForm">{{ form.clothId ? '确认修改' : '确认添加'
+                                }}</el-button>
                             <el-button type="primary" @click="cancel">取消</el-button>
                         </el-col>
                     </el-row>
@@ -377,6 +383,8 @@ import pinyin from 'pinyin';
 import { ref, reactive, toRefs } from "vue";
 import { listCloths } from "@/api/system/cloths";
 import { getToken } from "@/utils/auth";
+import useDictStore from '@/store/modules/dict'
+import { delClothPicture } from "../../api/system/cloths";
 
 const props = defineProps({
     userId: {
@@ -401,12 +409,21 @@ const props = defineProps({
 
 
 const { proxy } = getCurrentInstance();
-const { sys_cloth_cate, sys_cloth_style, sys_service_type, sys_service_requirement, } =
-    proxy.useDict("sys_cloth_cate", "sys_cloth_style", "sys_service_type", "sys_service_requirement");
-
+const { sys_cloth_cate,
+    sys_cloth_style,
+    sys_service_type,
+    sys_service_requirement,
+} =
+    proxy.useDict(
+        "sys_cloth_cate",
+        "sys_cloth_style",
+        "sys_service_type",
+        "sys_service_requirement"
+    );
+// 步数
+const maxStepNum = 6;
 // 添加衣物的列表
 const clothList = ref([]);
-// const emit = defineEmits(['update:value']);
 
 // 选择衣物时展示的衣物列表
 const clothingList = ref([]);
@@ -436,17 +453,20 @@ const estimateList = ref([]);
 const brandList = ref([]);
 const currentCloth = ref();
 const featureList = [colorList, flawList, estimateList, brandList]
-const isBeforePic = ref(true);
+
+const clothNameRef = ref();
 
 const headers = ref({ Authorization: "Bearer " + getToken() });
 const baseUrl = import.meta.env.VITE_APP_BASE_API;
-const uploadBeforeImgUrl = ref(baseUrl + `/system/cloths/upload?isPre=true&clothId=`); // 上传的图片服务器地址
-const uploadAfterImgUrl = ref(baseUrl + `/system/cloths/upload?isPre=false&clothId=`); // 上传的图片服务器地址
+const baseUploadBeforeUrl = baseUrl + `/system/cloths/upload?isPre=true&clothId=`;
+const baseUploadAfterUrl = baseUrl + `/system/cloths/upload?isPre=false&clothId=`;
+const uploadBeforeImgUrl = ref(''); // 上传的图片服务器地址
+const uploadAfterImgUrl = ref(''); // 上传的图片服务器地址
+const pictureUrl = ref(baseUrl + "/system/cloths/download/");
 const dialogImageUrl = ref("");
-const clothNameRef = ref();
 const dialogVisible = ref(false);// 预览
-
-let currentEditRow = null;
+const prePictureList = ref([]);// 洗前图片
+const afterPictureList = ref([]);// 洗后图片
 
 const data = reactive({
     form: {},
@@ -471,30 +491,82 @@ const data = reactive({
 
 const { form, rules } = toRefs(data);
 
+function handleRemovePicture(event) {
+    console.log(event)
+    delClothPicture(currentCloth.value.clothId, event.response.id).then(res => {
+        proxy.$modal.msgSuccess("删除成功");
+        prePictureList.value = prePictureList.value.filter(item => item.id != event.response.id);
+        afterPictureList.value = afterPictureList.value.filter(item => item.id != event.response.id);
+    })
+}
+
+function removePicByClick(id) {
+    delClothPicture(currentCloth.value.clothId, id).then(res => {
+        proxy.$modal.msgSuccess("删除成功");
+        prePictureList.value = prePictureList.value.filter(item => item.id != id);
+        afterPictureList.value = afterPictureList.value.filter(item => item.id != id);
+    })
+}
+
+function handleUploadPreSucess(event) {
+    console.log(event)
+    prePictureList.value.unshift({ id: event.id, url: pictureUrl.value + event.id });
+}
+
+function handleUploadAfterSucess(event) {
+    console.log(event)
+    afterPictureList.value.unshift({ id: event.id, url: pictureUrl.value + event.id });
+}
+
+/* 获取图片列表id */
+function handleShowPicture(row) {
+    getCloths(row.clothId).then(response => {
+        prePictureList.value = response.data.beforePics ?
+            response.data.beforePics.split(',').map(item => ({ id: item, url: pictureUrl.value + item })) : [];
+        afterPictureList.value = response.data.afterPics ?
+            response.data.afterPics.split(',').map(item => ({ id: item, url: pictureUrl.value + item })) : [];
+
+    });
+}
+
+// 获取颜色名称
+function findColorName() {
+    if (form.value.clothingColor) {
+        const color = colorList.value.find(item => item.tagId == form.clothingColor);
+        return color ? color.tagName : '未选择颜色';
+    } else {
+        return '未选择颜色';
+    }
+}
+
+// 获取分类名称
+// function findStyleLabel() {
+//     // 应该先判断一下sys_cloth_style是否为空
+//     if (sys_cloth_style.value.length === 0) {
+//         getDicts("sys_cloth_style").then(resp => {
+//             sys_cloth_style.value = resp.data.map(p => ({ label: p.dictLabel, value: p.dictValue, elTagType: p.listClass, elTagClass: p.cssClass }))
+//             useDictStore().setDict("sys_cloth_cate", sys_cloth_cate.value);
+//         })
+//     }
+//     const style = sys_cloth_style.value.find(item => item.value == form.clothingStyle);
+//     return style ? style.label : '未选择分类';
+// }
+
 // 当品类发生变化时动态查询子分类列表
 function cateChange(value) {
     getDicts("sys_cloth_style" + value).then(res => {
         clothStyleList.value = res.data;
     })
 }
+
 function handlePreview(file) {
-    dialogImageUrl.value = file.url;
+    dialogImageUrl.value = file.response.url;
     dialogVisible.value = true;
-    console.log(dialogImageUrl.value)
-}
-
-function handleEnterKeyDown() {
-    console.log('enter')
-    nextStep();
-}
-
-function handleLeftKeyDown() {
-    preStep();
+    console.log(file)
 }
 
 // 当订单id不为空时那么为修改操作
 function getList() {
-    console.log(props.orderId)
     if (props.orderId && props.orderId !== 0) {
         listCloths({ orderClothId: props.orderId }).then(res => {
             res.rows.map(item => {
@@ -507,7 +579,6 @@ function getList() {
             })
             clothList.value = res.rows;
             props.submit(clothList.value);
-            // emit('update:value', clothList.value);
         })
     }
 }
@@ -550,7 +621,6 @@ function reset() {
     showAddClothBtn.value = false;
     showHistory.value = false;
     proxy.resetForm("clothsRef");
-    console.log(form.value);
 }
 
 /* 初始化列表数据 */
@@ -653,9 +723,6 @@ function submitForm() {
                     form.value.clothId = response.data;
                     clothList.value.push(form.value);
                     props.submit(clothList.value);
-                    // emit('update:value', clothList.value);
-                    // console.log(clothList.value)
-                    // getList();
                 });
             }
         }
@@ -690,7 +757,7 @@ function nextStep() {
     if (step.value === 1 && !form.value.clothingId) {
         return;
     }
-    if (step.value !== 6) {
+    if (step.value !== maxStepNum) {
         step.value++;
     }
 
@@ -701,7 +768,7 @@ function nextStep() {
 
 /* 跳过后续步骤 */
 function jump2last() {
-    step.value = 6;
+    step.value = maxStepNum;
 }
 
 /* 获取衣物列表 */
@@ -899,14 +966,17 @@ function step2ClothChange() {
 function handleShowUploadPic(row) {
     currentCloth.value = row;
     showUploadPicture.value = true;
-    uploadBeforeImgUrl.value = uploadBeforeImgUrl.value + row.clothId;
-    uploadAfterImgUrl.value = uploadAfterImgUrl.value + row.clothId;
+    uploadBeforeImgUrl.value = baseUploadBeforeUrl + row.clothId;
+    uploadAfterImgUrl.value = baseUploadAfterUrl + row.clothId;
+    handleShowPicture(row);
     console.log(currentCloth.value)
 }
 
 /* 关闭上传图片时清理对象 */
 function handleCloseUploadPic() {
     currentCloth.value = {};
+    prePictureList.value = [];
+    afterPictureList.value = [];
 }
 
 onMounted(async () => {
@@ -998,5 +1068,41 @@ onMounted(async () => {
 .item-list-area {
     width: 100%;
     max-height: 3rem;
+}
+
+
+.img-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 1rem;
+}
+
+.img-item {
+    flex: 1 1 calc(33.333% - 1rem);
+    /* 每行 3 个元素 */
+    box-sizing: border-box;
+    position: relative;
+
+    span {
+        width: 1rem;
+        height: 1rem;
+        text-align: center;
+        position: absolute;
+        right: 0;
+        top: 0;
+        display: none;
+        cursor: pointer;
+        background-color: rgb(8, 253, 171);
+        color: gray;
+        border-radius: .2rem;
+    }
+
+    &:hover {
+        span {
+            display: block;
+        }
+    }
 }
 </style>

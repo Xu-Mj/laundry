@@ -77,6 +77,14 @@ export function hangup(data) {
 }
 
 // 删除订单包含的衣物清单
+export function delClothPicture(clothId,picId) {
+  return request({
+    url: `/system/cloths/picture/${clothId}/${picId}`,
+    method: 'delete'
+  })
+}
+
+// 删除订单包含的衣物清单
 export function delCloths(orderClothId) {
   return request({
     url: '/system/cloths/' + orderClothId,

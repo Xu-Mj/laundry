@@ -110,8 +110,8 @@
             <template #dropdown>
               <el-dropdown-menu>
                 <el-dropdown-item>
-                  <el-button link type="primary" icon="Edit"
-                    @click="handleUpdate(scope.row)" v-hasPermi="['system:orders:edit']">编辑</el-button>
+                  <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)"
+                    v-hasPermi="['system:orders:edit']">编辑</el-button>
                 </el-dropdown-item>
                 <el-dropdown-item>
                   <el-button link type="primary" icon="Edit" :disabled="scope.row.status == '05'"
@@ -175,7 +175,8 @@
           <el-input v-model="refundForm.recvAccountTitle" disabled />
         </el-form-item>
         <el-form-item label="实退金额" prop="expAmount">
-          <el-input type="number" v-model="refundForm.expAmount" placeholder="请输入退款金额" />
+          <span v-if="refundForm.unPay">订单未支付</span>
+          <el-input v-else type="number" v-model="refundForm.expAmount" placeholder="请输入退款金额" />
         </el-form-item>
         <el-form-item label="备注信息" prop="remark">
           <el-input type="textarea" v-model="refundForm.remark" placeholder="请输入备注信息" />
@@ -378,6 +379,7 @@ function resetRefundForm() {
     orderNumber: null,
     expTitle: '订单退款',
     expType: '00',
+    unPay: false,
   };
   proxy.resetForm("refundFormRef");
 }
@@ -488,6 +490,9 @@ function handleRefund(row) {
       } else {
         refundForm.value.expAmount = res.data.payment.paymentAmount;
       }
+    } else {
+      // 没有支付
+      refundForm.value.unPay = true;
     }
     showRefundDialog.value = true;
 

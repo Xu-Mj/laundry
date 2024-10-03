@@ -85,6 +85,8 @@
                         <div class="coupon-list">
                             <!-- 用户卡相关的信息：coupon类型为000、001、002的 -->
                             <span
+                                v-if="userCouponList.filter(item => item.coupon.couponType == '000' || item.coupon.couponType == '001'|| item.coupon.couponType == '002').length == 0">无</span>
+                            <span v-else
                                 v-for="(item, index) in userCouponList.filter(item => item.coupon.couponType == '000' || item.coupon.couponType == '001' || item.coupon.couponType == '002')"
                                 :key="index">
                                 <el-tooltip :content="getValidTime(item.coupon.validFrom, item.coupon.validTo)">
@@ -95,7 +97,6 @@
                                     {{ isCurrentTimeWithinRange(item.coupon.validFrom,
                                         item.coupon.validTo) ? '' : '(不在有效期内)' }}
                                 </el-tooltip>
-
                             </span>
                         </div>
                     </el-form-item>
@@ -103,6 +104,8 @@
                         <div class="coupon-list">
                             <!-- 用户券相关的信息：coupon类型为003、004的 -->
                             <span
+                                v-if="userCouponList.filter(item => item.coupon.couponType == '003' || item.coupon.couponType == '004').length == 0">无</span>
+                            <span v-else
                                 v-for="(item, index) in userCouponList.filter(item => item.coupon.couponType == '003' || item.coupon.couponType == '004')"
                                 :key="index">
                                 {{ item.coupon.couponTitle }}
@@ -118,7 +121,8 @@
                         <el-button type="danger" plain :disabled="!form.userId || notEditable"
                             @click="handleShowCouponSale">卡券购买</el-button>
                         <el-button type="primary" plain @click="submitForm" :disabled="notEditable">取衣收款</el-button>
-                        <el-button type="warning" plain @click="cancelSelf">{{ form.orderId ? '关 闭' : '取 消' }}</el-button>
+                        <el-button type="warning" plain @click="cancelSelf">{{ form.orderId ? '关 闭' : '取 消'
+                            }}</el-button>
                     </div>
                 </el-col>
             </el-row>

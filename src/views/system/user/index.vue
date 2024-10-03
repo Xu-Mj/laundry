@@ -244,7 +244,8 @@
       <el-dialog v-model="integralListOpen" width="600px" append-to-body>
          <el-table v-loading="integralLoading" :data="integralList">
             <!-- <el-table-column label="ID" align="center" prop="id" /> -->
-            <el-table-column label="本次使用积分数量" align="center" prop="identify" />
+            <el-table-column label="兑换数量" align="center" prop="identify" />
+            <el-table-column label="兑换卡券" align="center" prop="couponTitle" />
             <el-table-column label="使用时间" align="center" prop="createTime" width="160">
                <template #default="scope">
                   <span>{{ parseTime(scope.row.createTime) }}</span>
@@ -289,7 +290,6 @@ const multiple = ref(true);
 const total = ref(0);
 const title = ref("");
 const deptName = ref("");
-// const deptOptions = ref(undefined);
 const initPassword = ref(undefined);
 const postOptions = ref([]);
 const roleOptions = ref([]);

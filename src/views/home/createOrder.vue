@@ -49,7 +49,7 @@
                     <el-input type="number" :min="0" :max="1000" @input="adjustInput"
                         v-model="form.adjust.adjustValueAdd" placeholder="请输入调增金额" :disabled="notEditable" />
                     <el-input type="number" :min="0" :max="Infinity" @input="adjustInput"
-                        v-model="form.adjust.totalAmount" placeholder="请输入总金额" :disabled="notEditable" />
+                        v-model="form.adjust.adjustTotal" placeholder="请输入总金额" :disabled="notEditable" />
                     <el-input v-model="form.adjust.remark" placeholder="备注信息" :disabled="notEditable" />
                 </el-col>
             </el-form-item>
@@ -85,7 +85,7 @@
                         <div class="coupon-list">
                             <!-- 用户卡相关的信息：coupon类型为000、001、002的 -->
                             <span
-                                v-if="userCouponList.filter(item => item.coupon.couponType == '000' || item.coupon.couponType == '001'|| item.coupon.couponType == '002').length == 0">无</span>
+                                v-if="userCouponList.filter(item => item.coupon.couponType == '000' || item.coupon.couponType == '001' || item.coupon.couponType == '002').length == 0">无</span>
                             <span v-else
                                 v-for="(item, index) in userCouponList.filter(item => item.coupon.couponType == '000' || item.coupon.couponType == '001' || item.coupon.couponType == '002')"
                                 :key="index">
@@ -325,16 +325,13 @@ const data = reactive({
 
 const { form, paymentForm, rules } = toRefs(data);
 
+// 处理子组件传过来的数据
 function submitClothes(list) {
-    console.log('submitClothes', list)
     form.value.cloths = list;
     checkCoupon();
-    if (form.value.adjust.totalAmount) {
-        proxy.$modal.msgWarning('衣物列表发生变动，请重新填写订单金额');
-        form.adjust.totalAmount = null;
-    }
     adjustInput();
 }
+
 // 处理价格radio 选中事件
 function priceChange(event, priceId) {
     event.preventDefault();
@@ -665,10 +662,9 @@ async function submitForm() {
                 return;
             }
             form.value.clothsIds = form.value.cloths.map(item => item.clothId);
-            if (form.value.adjust.adjustValueAdd || form.value.adjust.adjustValueSub || form.value.adjust.totalAmount) {
+            if (form.value.adjust.adjustValueAdd || form.value.adjust.adjustValueSub || form.value.adjust.adjustTotal) {
                 form.value.adjust.orderId = form.value.orderId;
             }
-            console.log('user info:', showCreateUser.value, form.value.userId, form.value.nickName)
             if (showCreateUser.value) {
                 try {
                     const res = await addUser({
@@ -792,8 +788,8 @@ function printOrder() {
 
 /* 调价输入框输入事件 */
 function adjustInput() {
-    if (form.value.adjust.totalAmount) {
-        totalPrice.value = form.value.adjust.totalAmount;
+    if (form.value.adjust.adjustTotal) {
+        totalPrice.value = form.value.adjust.adjustTotal;
     } else {
         // 如果选择了价格item，那么使用价格item中的价格代替衣物价格
         let price;

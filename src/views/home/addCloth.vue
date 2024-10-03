@@ -173,7 +173,7 @@
                         <el-radio-group class="color-radio-group" v-model="form.clothingId" @change="step2ClothChange">
                             <el-radio v-for="color in clothingList" :key="color.clothingId" :value="color.clothingId">{{
                                 color.clothingName
-                                }}</el-radio>
+                            }}</el-radio>
                         </el-radio-group>
                     </el-row>
                     <el-row class="footer-btn">
@@ -711,7 +711,12 @@ function submitForm() {
                 updateCloths(submitData).then(response => {
                     proxy.$modal.msgSuccess("修改成功");
                     open.value = false;
-                    getList();
+                    // 更新衣物列表
+                    const clothIndex = clothList.value.findIndex(item => item.clothId == form.value.clothId);
+                    if (clothIndex !== -1) {
+                        clothList.value[clothIndex] = form.value; // 替换整个对象
+                    }
+                    props.submit(clothList.value);
                 });
             } else {
                 if (props.orderId) {

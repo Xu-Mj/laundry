@@ -20,8 +20,10 @@
     </el-dialog>
 
     <!-- 新增会员 -->
-     <AddUser :visible="showAddUserDialog" :key="showAddUserDialog" :taggle="() => { showAddUserDialog = !showAddUserDialog }" />
-     <CouponGift :visible="showCouponGift" :key="showCouponGift" :taggle="() => { showCouponGift = !showCouponGift }" />
+    <AddUser :visible="showAddUserDialog" :key="showAddUserDialog"
+      :taggle="() => { showAddUserDialog = !showAddUserDialog }" />
+    <CouponGift :visible="showCouponGift" :key="showCouponGift" :taggle="() => { showCouponGift = !showCouponGift }" />
+    <HangUp :visible="showHangUp" :key="showHangUp" :taggle="() => { showHangUp = !showHangUp }" />
   </div>
 </template>
 
@@ -31,7 +33,8 @@ import OrderContent from '@/views/home/oderContent.vue'
 import CreateOrder from '@/views/home/createOrder.vue'
 import CouponSale from '@/views/home/couponSale.vue'
 import AddUser from '@/views/home/addUser.vue'
-import CouponGift from './home/couponGift.vue';
+import CouponGift from '@/views/home/couponGift.vue';
+import HangUp from '@/views/home/hangUp.vue';
 
 const version = ref('3.8.8')
 
@@ -42,22 +45,24 @@ const showOrderDialog = ref(false);
 const showAddUserDialog = ref(false);
 const open = ref(false);
 
+const showHangUp = ref(false);
+
 /*
  * 菜单
  * color: 自定义颜色
  * dark: 是否为暗黑主题
  */
- const menus = ref([
+const menus = ref([
   { 'name': '收衣收鞋', 'type': 'primary', onClick: () => { open.value = true } },
   { 'name': '取衣取鞋', 'type': 'primary', onClick: () => { showOrderDialog.value = true } },
-  { 'name': '上挂', 'type': 'primary' },
+  { 'name': '上挂', 'type': 'primary', onClick: () => { showHangUp.value = true } },
   { 'name': '交期预警', 'type': 'warning' },
   { 'name': '派送提醒', 'type': 'primary' },
   { 'name': '卡券销售', 'type': 'primary', onClick: () => { showCouponSale.value = true } },
   { 'name': '卡券赠送', 'type': 'primary', onClick: () => { showCouponGift.value = true } },
   { 'name': '收款', 'type': 'primary' },
   { 'name': '撤单处理', 'type': 'danger' },
-  { 'name': '新增会员', 'type': 'primary', onClick: () => { showAddUserDialog.value = true} },
+  { 'name': '新增会员', 'type': 'primary', onClick: () => { showAddUserDialog.value = true } },
   { 'name': '事故处理', 'type': 'danger' },
   { 'name': '线上预约', 'type': 'success' },
   { 'name': '取件预约', 'type': 'success' },

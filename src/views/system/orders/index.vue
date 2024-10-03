@@ -227,7 +227,7 @@
     </el-dialog>
     <!-- 衣物列表弹窗 -->
     <el-dialog title="衣物" v-model="showClothListDialog" width="1440px" append-to-body>
-      <ShowCloths :orderId="currentOrderId" :flashList="getList" :userId="currentUserId" :key="currentOrderId" />
+      <ShowCloths :orderId="currentOrderId" :flashList="getList" :userId="currentUserId" :key="showClothListDialog" />
     </el-dialog>
     <el-dialog :title="title" v-model="open" width="1440px" append-to-body lock-scroll modal :before-close="cancel"
       :close-on-click-modal="false">

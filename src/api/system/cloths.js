@@ -25,6 +25,14 @@ export function getCloths(orderClothId) {
 }
 
 // 查询订单包含的衣物清单详细
+export function getClothByCode(code) {
+  return request({
+    url: '/system/cloths/code/' + code,
+    method: 'get'
+  })
+}
+
+// 查询订单包含的衣物清单详细
 export function getPic(picId) {
   return request({
     url: '/system/cloths/download/' + picId,

@@ -44,11 +44,11 @@
             </el-form-item>
             <el-form-item label="店主调价">
                 <el-col :span="12" class="adjust-price-group">
-                    <el-input type="number" :min="0" :max="1000" @input="adjustInput"
+                    <el-input type="number" :min="0" :max="1000" @input="adjustInput" @change="adjustInputChange"
                         v-model="form.adjust.adjustValueSub" placeholder="请输入调减金额" :disabled="notEditable" />
-                    <el-input type="number" :min="0" :max="1000" @input="adjustInput"
+                    <el-input type="number" :min="0" :max="1000" @input="adjustInput" @change="adjustInputChange"
                         v-model="form.adjust.adjustValueAdd" placeholder="请输入调增金额" :disabled="notEditable" />
-                    <el-input type="number" :min="0" :max="Infinity" @input="adjustInput"
+                    <el-input type="number" :min="0" :max="Infinity" @input="adjustInput" @change="adjustInputChange"
                         v-model="form.adjust.adjustTotal" placeholder="请输入总金额" :disabled="notEditable" />
                     <el-input v-model="form.adjust.remark" placeholder="备注信息" :disabled="notEditable" />
                 </el-col>
@@ -130,7 +130,7 @@
 
         <!-- 付款弹窗 -->
         <el-dialog title="付款" v-model="showPaymentDialog" width="600px" append-to-body lock-scroll modal
-            :close-on-click-modal="false">
+            :close-on-click-modal="false" @closed="initPaymentForm">
             <el-form ref="paymentRef" :model="paymentForm" :rules="paymentRules" label-width="80px">
                 <el-form-item label="订单编号">
                     {{ paymentForm.payNumber }}
@@ -216,9 +216,8 @@
 </template>
 
 <script setup name="CreateOrders">
-import { watch } from "vue";
 import { ElMessageBox } from 'element-plus'
-import { getOrders, addOrders, updateOrders, pay } from "@/api/system/orders";
+import { getOrders, addOrders, updateOrders, pay, updateAdjust } from "@/api/system/orders";
 import { listPrice } from "@/api/system/price";
 import { listUserWithNoLimit, addUser } from "@/api/system/user";
 import { delCloths } from "@/api/system/cloths";
@@ -380,19 +379,23 @@ function changeCoupon(couponType) {
     //计算优惠金额
     if (couponType == 2) {
         couponStorageCardId.value = [];
-        const coupon = userCouponList.value.find(item => item.couponId == paymentForm.value.couponId);
+        const coupon = userCouponList.value.find(item => item.ucId == paymentForm.value.couponId);
         // 满减券
         if (coupon.coupon.couponType == '004') {
             paymentForm.value.bonusAmount = coupon.coupon.usageValue;
         }
-        // 折扣券
-        if (coupon.coupon.couponType == '003') {
-            paymentForm.value.bonusAmount = totalPrice.value * coupon.coupon.usageValue / 100;
-        }
 
+        // 折扣券
+        if (coupon.coupon.couponType == '003' && coupon.coupon.usageLimit >= totalPrice.value) {
+            paymentForm.value.bonusAmount = parseFloat((totalPrice.value * (1 - coupon.coupon.usageValue / 100)).toFixed(2));
+
+            // 进一步处理，不保留小数点后的0
+            if (paymentForm.value.bonusAmount % 1 === 0) {
+                paymentForm.value.bonusAmount = Math.floor(paymentForm.value.bonusAmount); // 变为整数
+            }
+        }
     }
     paymentForm.value.paymentAmount = totalPrice.value - (paymentForm.value.bonusAmount ? paymentForm.value.bonusAmount : 0);
-
 }
 
 /* 收款 */
@@ -427,6 +430,8 @@ function submitPaymentForm() {
     pay(paymentForm.value).then(res => {
         proxy.$modal.msgSuccess('支付成功');
         showPaymentDialog.value = false;
+        reset();
+        props.toggle();
     })
 
 }
@@ -445,10 +450,23 @@ function checkCoupon() {
         }
 
         // 判断最低消费金额
-        if ((item.coupon.couponType == '003' || item.coupon.couponType == '004') && item.coupon.minSpend > totalPrice.value) {
+        if (item.coupon.couponType == '004' && item.coupon.minSpend > totalPrice.value) {
             item.isValid = false;
             item.unValidReason = "最低消费金额不足";
             continue;
+        }
+
+        if (item.coupon.couponType == '003') {
+            if (item.coupon.minSpend > totalPrice.value) {
+                item.isValid = false;
+                item.unValidReason = "最低消费金额不足";
+                continue;
+            }
+            if (item.coupon.usageLimit < totalPrice.value) {
+                item.isValid = false;
+                item.unValidReason = "订单金额超过使用上限";
+                continue;
+            }
         }
         // 适用衣物列表
         const applicableClothsList = item.coupon.applicableCloths ? item.coupon.applicableCloths.split(',') : [];
@@ -478,7 +496,6 @@ function checkCoupon() {
                 break;
             }
         }
-
     }
 }
 
@@ -740,7 +757,9 @@ function initPaymentForm() {
         totalAmount: totalPrice.value,
         paymentAmount: totalPrice.value,
     }
-
+    couponStorageCardId.value = [];
+    priceDiff.value = 0;
+    checkCoupon();
 }
 
 /** 按手机号搜索会员 */
@@ -784,6 +803,15 @@ function getValidTime(validFrom, validTo) {
 /* 打印单据 */
 function printOrder() {
     proxy.$modal.msgSuccess("正在打印单据...");
+}
+
+function adjustInputChange() {
+    // 如果是修改操作，那么触发更新请求
+    if (form.value.orderId && form.value.orderId !== 0) {
+        updateAdjust(form.value).catch(res => {
+            proxy.$modal.msgError(res.msg);
+        })
+    }
 }
 
 /* 调价输入框输入事件 */

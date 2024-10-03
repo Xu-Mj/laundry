@@ -52,6 +52,15 @@ export function updateOrders(data) {
   })
 }
 
+// 修改洗护服务订单
+export function updateAdjust(data) {
+  return request({
+    url: '/system/orders/adjust',
+    method: 'put',
+    data: data
+  })
+}
+
 // 退款
 export function pay(data) {
   return request({

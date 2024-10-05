@@ -7,7 +7,7 @@
       </el-button>
     </div>
 
-    <OrderContent :visible="showOrderDialog" :taggle="handleShowOrderDialog" />
+    <OrderContent :visible="showOrderDialog" :taggle="() => { showOrderDialog = !showOrderDialog }" :key="showOrderDialog"/>
     <el-dialog :title="title" v-model="open" width="1440px" append-to-body lock-scroll modal :before-close="cancel"
       :close-on-click-modal="false">
       <CreateOrder :orderId="0" :userId="0" :toggle="() => { open = !open }" :refresh="() => { }" :key="open" />
@@ -75,9 +75,6 @@ const menus = ref([
   { 'name': '新增支出', 'type': 'success' },
   { 'name': '营销推送', 'type': 'success', color: '#626aef', dark: false },
 ]);
-function handleShowOrderDialog() {
-  showOrderDialog.value = !showOrderDialog.value;
-}
 </script>
 
 <style scoped lang="scss">

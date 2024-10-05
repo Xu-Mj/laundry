@@ -120,7 +120,7 @@
                         <el-button type="success" plain @click="createAndPay" :disabled="notEditable">收衣收款</el-button>
                         <el-button type="danger" plain :disabled="!form.userId || notEditable"
                             @click="handleShowCouponSale">卡券购买</el-button>
-                        <el-button type="primary" plain @click="submitForm" :disabled="notEditable">取衣收款</el-button>
+                        <el-button type="primary" plain @click="submitForm" :disabled="notEditable || form.source == '02' || form.source === '01'">取衣收款</el-button>
                         <el-button type="warning" plain @click="cancelSelf">{{ form.orderId ? '关 闭' : '取 消'
                             }}</el-button>
                     </div>
@@ -756,6 +756,12 @@ function initPaymentForm() {
         orderType: '1',
         totalAmount: totalPrice.value,
         paymentAmount: totalPrice.value,
+    };
+    if(form.value.source == '01'){
+        paymentForm.value.paymentMethod = '03';
+    }
+    if(form.value.source == '02'){
+        paymentForm.value.paymentMethod = '04';
     }
     couponStorageCardId.value = [];
     priceDiff.value = 0;

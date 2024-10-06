@@ -153,8 +153,51 @@
                         </el-radio-group>
                     </template>
                 </el-form-item>
-                <el-form-item label="储值卡">
-                    <!-- 列出储值卡列表 -->
+                <template v-if="showCoupons">
+                    <el-form-item v-if="userCouponList.filter(item => item.coupon.couponType == '000').length !== 0"
+                        label="储值卡">
+                        <el-checkbox-group v-model="couponStorageCardId" @change="changeCoupon(1)">
+                            <el-checkbox v-for="card in userCouponList.filter(item => item.coupon.couponType == '000')"
+                                :disabled="!card.isValid" :key="card.ucId" :value="card.ucId">
+                                {{ card.coupon.couponTitle }}
+                                -余额
+                                {{ card.availableValue }}
+                                {{ card.coupon.couponType == '000' ? '元' : '次' }}
+                                {{ card.isValid ? '' : '(' + card.unValidReason + ')' }}
+                            </el-checkbox>
+                        </el-checkbox-group>
+                    </el-form-item>
+                    <el-form-item v-if="userCouponList.filter(item => item.coupon.couponType == '002').length != 0"
+                        label="次卡">
+                        <!-- <el-checkbox-group> -->
+                        <div v-for="card in userCouponList.filter(item => item.coupon.couponType == '002')"
+                            :key="card.ucId">
+                            <el-checkbox @change="changeCoupon(2, card)" :disabled="!card.isValid"
+                                v-model="card.selected" :value="card.ucId">
+                                {{ card.coupon.couponTitle }}
+                                {{ card.isValid ? '' : '(' + card.unValidReason + ')' }}
+                                {{ '(剩余: ' + card.availableValue + '次)' }}
+                            </el-checkbox>
+                            <!-- 关联的输入框 -->
+                            <el-input-number controls-position="right" v-if="card.selected" v-model="card.count"
+                                @change="changeCouponCount(card)" :min="1" :max="card.availableValue"
+                                placeholder="请输入次卡数量" />
+                        </div>
+                        <!-- </el-checkbox-group> -->
+                    </el-form-item>
+                    <el-form-item label="优惠券">
+                        <el-radio-group v-model="paymentForm.couponId" @change="changeCoupon(3)">
+                            <el-radio
+                                v-for="card in userCouponList.filter(item => item.coupon.couponType !== '000' && item.coupon.couponType !== '002')"
+                                :disabled="!card.isValid" :key="card.ucId" :value="card.ucId">
+                                {{ card.coupon.couponTitle }}
+                                {{ card.isValid ? '' : '(' + card.unValidReason + ')' }}
+                                {{ '(剩余: ' + card.ucCount + '张)' }}
+                            </el-radio>
+                        </el-radio-group>
+                    </el-form-item>
+                </template>
+                <!-- <el-form-item label="储值卡">
                     <el-checkbox-group v-model="couponStorageCardId" @change="changeCoupon(1)">
                         <el-checkbox v-for="card in userCouponList.filter(item => item.coupon.couponType == '000')"
                             :disabled="!card.isValid" :key="card.ucId" :value="card.ucId">
@@ -171,13 +214,10 @@
                         <el-radio v-for="card in userCouponList.filter(item => item.coupon.couponType !== '000')"
                             :disabled="!card.isValid" :key="card.ucId" :value="card.ucId">
                             {{ card.coupon.couponTitle }}
-                            <!-- - -->
-                            <!-- {{ card.ucCount }} -->
-                            <!-- 张 -->
                             {{ card.isValid ? '' : '(' + card.unValidReason + ')' }}
                         </el-radio>
                     </el-radio-group>
-                </el-form-item>
+                </el-form-item> -->
                 <el-row>
                     <el-col :span="8">
                         <el-form-item label="订单金额">
@@ -340,6 +380,41 @@ function priceChange(event, priceId) {
     adjustInput();
 }
 
+
+function changeCouponCount() {
+    // 计算默认数量
+    // 计算选中的次卡数量
+    const count = userCouponList.value.filter(item => item.selected).reduce((acc, item) => {
+        if (item.coupon.couponType == '002') {
+            acc += item.count;
+        }
+        return acc;
+    }, 0);
+    // paymentForm.value.couponCount = count;
+    if (count == 0) {
+        paymentForm.value.paymentMethod = '02';
+        paymentForm.value.bonusAmount = 0;
+    } else {
+        // 计算差价
+        if (clothsList.value.length > count) {
+            // 需要补充差价
+            const diffCount = clothsList.value.length - count;
+            // 获取diffCount数量的衣物
+            const diffCloths = clothsList.value.slice(0, diffCount);
+            // 计算差价
+            paymentForm.value.priceDiff = diffCloths.reduce((acc, cloth) => acc + cloth.priceValue, 0);
+            paymentForm.value.bonusAmount = paymentForm.value.totalAmount - paymentForm.value.priceDiff;
+            paymentForm.value.paymentMethod = '02';
+        } else {
+            paymentForm.value.priceDiff = 0;
+            paymentForm.value.paymentMethod = '07';
+            paymentForm.value.bonusAmount = paymentForm.value.totalAmount;
+        }
+    }
+    paymentForm.value.paymentAmount = paymentForm.value.totalAmount - (paymentForm.value.bonusAmount ? paymentForm.value.bonusAmount : 0);
+    // console.log(paymentForm.value)
+}
+
 // 处理失去焦点的情况，保留用户输入
 const handleBlur = (event) => {
     const inputValue = event.target.value;
@@ -363,10 +438,49 @@ function handleShowCouponSale() {
     showCouponSale.value = true;
 }
 
-function changeCoupon(couponType) {
+// function changeCoupon(couponType) {
+//     if (couponType == 1) {
+//         paymentForm.value.couponId = null;
+//         paymentForm.value.bonusAmount = 0;
+//         // 计算差价
+//         let storageCardPrice = 0;
+//         userCouponList.value.forEach(item => {
+//             if (couponStorageCardId.value.includes(item.ucId)) {
+//                 storageCardPrice += item.availableValue;
+//             }
+//         });
+//         if (storageCardPrice < totalPrice.value) {
+//             priceDiff.value = totalPrice.value - storageCardPrice;
+//         }
+//     }
+//     //计算优惠金额
+//     if (couponType == 2) {
+//         couponStorageCardId.value = [];
+//         const coupon = userCouponList.value.find(item => item.ucId == paymentForm.value.couponId);
+//         // 满减券
+//         if (coupon.coupon.couponType == '004') {
+//             paymentForm.value.bonusAmount = coupon.coupon.usageValue;
+//         }
+
+//         // 折扣券
+//         if (coupon.coupon.couponType == '003' && coupon.coupon.usageLimit >= totalPrice.value) {
+//             paymentForm.value.bonusAmount = parseFloat((totalPrice.value * (1 - coupon.coupon.usageValue / 100)).toFixed(2));
+
+//             // 进一步处理，不保留小数点后的0
+//             if (paymentForm.value.bonusAmount % 1 === 0) {
+//                 paymentForm.value.bonusAmount = Math.floor(paymentForm.value.bonusAmount); // 变为整数
+//             }
+//         }
+//     }
+//     paymentForm.value.paymentAmount = totalPrice.value - (paymentForm.value.bonusAmount ? paymentForm.value.bonusAmount : 0);
+// }
+
+function changeCoupon(couponType, card) {
     if (couponType == 1) {
         paymentForm.value.couponId = null;
         paymentForm.value.bonusAmount = 0;
+        // 清空次卡选择列表
+        userCouponList.value.filter(item => item.coupon.couponType === "002").map(item => item.selected = false)
         // 计算差价
         let storageCardPrice = 0;
         userCouponList.value.forEach(item => {
@@ -374,32 +488,100 @@ function changeCoupon(couponType) {
                 storageCardPrice += item.availableValue;
             }
         });
-        if (storageCardPrice < totalPrice.value) {
-            priceDiff.value = totalPrice.value - storageCardPrice;
+        if (storageCardPrice == 0) {
+            // 什么都没选中
+            paymentForm.value.priceDiff = 0;
+        } else if (storageCardPrice < paymentForm.value.totalAmount) {
+            paymentForm.value.priceDiff = paymentForm.value.totalAmount - storageCardPrice;
+            paymentForm.value.paymentMethod = '02';
+        } else {
+            paymentForm.value.priceDiff = 0;
+            paymentForm.value.paymentMethod = '06';
         }
-    }
-    //计算优惠金额
-    if (couponType == 2) {
+    } else if (couponType == 2) {
+        // 次卡
+        // 清空储值卡选择列表
         couponStorageCardId.value = [];
+        paymentForm.value.couponId = null;
+
+        // 计算默认数量
+        let count = 0;
+        if (card.selected) {
+            // 计算选中的次卡数量
+            count = userCouponList.value.filter(item => item.selected).reduce((acc, item) => {
+                if (item.coupon.couponType == '002' && item.ucId !== card.ucId) {
+                    acc += item.count;
+                }
+                return acc;
+            }, 0);
+            // 计算输入框的数量
+            card.count = clothsList.value.length > count ? clothsList.value.length - count > card.availableValue ? card.availableValue : clothsList.value.length - count : clothsList.value.length;
+            // 需要再加上card.count
+            count += card.count;
+        } else {
+            count = userCouponList.value.filter(item => item.selected).reduce((acc, item) => {
+                if (item.coupon.couponType == '002' && item.ucId !== card.ucId) {
+                    acc += item.count;
+                }
+                return acc;
+            }, 0);
+        }
+
+        if (count == 0) {
+            paymentForm.value.paymentMethod = '02';
+            paymentForm.value.bonusAmount = 0;
+            paymentForm.value.priceDiff = 0;
+        } else {
+
+            // 计算差价
+            if (clothsList.value.length > count) {
+                // 需要补充差价
+                const diffCount = clothsList.value.length - count;
+                // 获取diffCount数量的衣物
+                const diffCloths = clothsList.value.slice(0, diffCount);
+                // 计算差价
+                paymentForm.value.priceDiff = diffCloths.reduce((acc, cloth) => acc + cloth.priceValue, 0);
+                paymentForm.value.bonusAmount = paymentForm.value.totalAmount - paymentForm.value.priceDiff;
+                paymentForm.value.paymentMethod = '02';
+            } else {
+                paymentForm.value.priceDiff = 0;
+                paymentForm.value.paymentMethod = '07';
+                paymentForm.value.bonusAmount = paymentForm.value.totalAmount;
+            }
+        }
+
+
+    } else if (couponType == 3) {
+        //计算优惠金额
+        couponStorageCardId.value = [];
+        userCouponList.value.filter(item => item.coupon.couponType === "002").map(item => item.selected = false)
         const coupon = userCouponList.value.find(item => item.ucId == paymentForm.value.couponId);
+
         // 满减券
         if (coupon.coupon.couponType == '004') {
             paymentForm.value.bonusAmount = coupon.coupon.usageValue;
+            paymentForm.value.paymentMethod = '02';
         }
-
         // 折扣券
-        if (coupon.coupon.couponType == '003' && coupon.coupon.usageLimit >= totalPrice.value) {
-            paymentForm.value.bonusAmount = parseFloat((totalPrice.value * (1 - coupon.coupon.usageValue / 100)).toFixed(2));
+        if (coupon.coupon.couponType == '003') {
+            let bonusAmount = parseFloat((paymentForm.value.totalAmount * (1 - coupon.coupon.usageValue / 100)).toFixed(2));
 
             // 进一步处理，不保留小数点后的0
-            if (paymentForm.value.bonusAmount % 1 === 0) {
-                paymentForm.value.bonusAmount = Math.floor(paymentForm.value.bonusAmount); // 变为整数
+            if (bonusAmount % 1 === 0) {
+                bonusAmount = Math.floor(bonusAmount); // 变为整数
             }
-        }
-    }
-    paymentForm.value.paymentAmount = totalPrice.value - (paymentForm.value.bonusAmount ? paymentForm.value.bonusAmount : 0);
-}
 
+            if (bonusAmount > coupon.coupon.usageLimit) {
+                bonusAmount = coupon.coupon.usageLimit;
+            }
+            paymentForm.value.bonusAmount = bonusAmount;
+            // 动态修改支付方式
+            paymentForm.value.paymentMethod = '02';
+        }
+
+    }
+    paymentForm.value.paymentAmount = paymentForm.value.totalAmount - (paymentForm.value.bonusAmount ? paymentForm.value.bonusAmount : 0);
+}
 /* 收款 */
 function submitPaymentForm() {
     // 判断是否使用了优惠券

@@ -400,7 +400,7 @@ function handleReWash() {
     showRewashDialog.value = true;
 }
 
-function changeCouponCount(card) {
+function changeCouponCount() {
     // 计算默认数量
     // 计算选中的次卡数量
     const count = userCouponList.value.filter(item => item.selected).reduce((acc, item) => {

@@ -396,7 +396,9 @@ const props = defineProps({
         type: Number,
         default: 0
     },
-    value: Array,
+    value: {
+        type: Array,
+    },
     submit: {
         type: Function,
         required: true,
@@ -983,6 +985,22 @@ function handleCloseUploadPic() {
     prePictureList.value = [];
     afterPictureList.value = [];
 }
+
+// // 获取复洗的衣物列表
+// function getRewashedClothes() {
+//     listClothesByIds(props.clothIds).then(res => {
+//         clothList.value = res.rows;
+//         clothList.value.map(item => {
+//             if (item.estimate) {
+//                 item.estimateArr = item.estimate.split(',').map(Number);
+//             }
+//             if (item.clothingFlaw) {
+//                 item.clothingFlawArr = item.clothingFlaw.split(',').map(Number);
+//             }
+//             // 修改衣物状态为
+//         })
+//     })
+// }
 
 onMounted(async () => {
     await initList();  // 确保 initList 完成

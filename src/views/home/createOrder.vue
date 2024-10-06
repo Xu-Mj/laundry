@@ -120,7 +120,8 @@
                         <el-button type="success" plain @click="createAndPay" :disabled="notEditable">收衣收款</el-button>
                         <el-button type="danger" plain :disabled="!form.userId || notEditable"
                             @click="handleShowCouponSale">卡券购买</el-button>
-                        <el-button type="primary" plain @click="submitForm" :disabled="notEditable || form.source == '02' || form.source === '01'">取衣收款</el-button>
+                        <el-button type="primary" plain @click="submitForm"
+                            :disabled="notEditable || form.priceId || form.source == '02' || form.source === '01'">取衣收款</el-button>
                         <el-button type="warning" plain @click="cancelSelf">{{ form.orderId ? '关 闭' : '取 消'
                             }}</el-button>
                     </div>
@@ -245,7 +246,7 @@ const props = defineProps({
     toggle: {
         type: Function,
         required: true,
-    },
+    }
 });
 const { proxy } = getCurrentInstance();
 const {
@@ -282,6 +283,7 @@ const printCount = ref(1);
 const phoneRegex = /^1[3-9]\d{9}$/;
 
 const notEditable = ref(false);
+const showCoupons = ref(true);
 
 const data = reactive({
     form: {
@@ -426,6 +428,7 @@ function submitPaymentForm() {
     }
     paymentForm.value.totalAmount = Number(paymentForm.value.totalAmount);
     // 
+    paymentForm.value.orders = [form.value]
     console.log(paymentForm.value)
     pay(paymentForm.value).then(res => {
         proxy.$modal.msgSuccess('支付成功');
@@ -757,10 +760,10 @@ function initPaymentForm() {
         totalAmount: totalPrice.value,
         paymentAmount: totalPrice.value,
     };
-    if(form.value.source == '01'){
+    if (form.value.source == '01') {
         paymentForm.value.paymentMethod = '03';
     }
-    if(form.value.source == '02'){
+    if (form.value.source == '02') {
         paymentForm.value.paymentMethod = '04';
     }
     couponStorageCardId.value = [];

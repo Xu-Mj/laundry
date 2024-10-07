@@ -173,7 +173,7 @@
                 {{ paymentForm.titles }}
             </el-form-item>
             <el-form-item label="支付方式">
-                <el-radio-group v-model="paymentForm.paymentMethod" @change="changePaymentMethod">
+                <el-radio-group v-model="paymentForm.paymentMethod">
                     <template v-for="dict in sys_payment_method" :key="dict.value">
                         <template v-if="dict.value == '06'">
                             <el-radio v-if="couponTypeList.has('000')" :value="dict.value">
@@ -285,7 +285,6 @@ import { getUser } from '@/api/system/user';
 import { isCurrentTimeWithinRange } from "@/utils";
 import { selectListExceptCompleted } from "@/api/system/orders";
 import { getPrice } from "@/api/system/price";
-import CreateOrder from "./createOrder.vue";
 
 const props = defineProps({
     visible: {
@@ -301,29 +300,17 @@ const props = defineProps({
 
 const { proxy } = getCurrentInstance();
 const {
-    sys_cost_time_alarm,
     sys_payment_status,
-    sys_price_order_type,
-    sys_business_type,
     sys_delivery_mode,
-    sys_order_type,
-    sys_order_status,
     sys_payment_method,
-    sys_notice_method,
     sys_service_requirement,
     sys_service_type,
     sys_clothing_status
 } =
     proxy.useDict(
-        'sys_cost_time_alarm',
         'sys_payment_status',
-        "sys_price_order_type",
-        "sys_business_type",
         "sys_delivery_mode",
-        "sys_order_type",
-        "sys_order_status",
         "sys_payment_method",
-        "sys_notice_method",
         "sys_service_requirement",
         "sys_service_type",
         "sys_clothing_status",
@@ -345,12 +332,8 @@ const selectedCloths = ref([]);
 const selectedOrders = ref([]);
 // 展开的父行
 const expandedRows = ref([]);
-// 差价
-// const priceDiff = ref(0);
 // 选中的储值卡列表
 const couponStorageCardId = ref([]);
-const selectedCoupons = ref([]);
-const couponCounts = ref([]);
 
 const orderTableRef = ref();
 const clothsTableRef = ref();
@@ -365,14 +348,11 @@ const baseUrl = import.meta.env.VITE_APP_BASE_API;
 const pictureUrl = ref(baseUrl + "/system/cloths/download/");
 // 总价格
 const totalPrice = ref(0);
-const currentCouponType = ref(1);
 
 // 选中的次卡数量总数
 const timeCardCount = ref(0);
 // 当前需要处理的衣物列表
 const clothsList = ref([]);
-// 次卡无法选择
-const timeCardDisabled = ref(false);
 
 // 当前用户信息
 const currentUser = ref(null);
@@ -432,17 +412,6 @@ function changeCouponCount() {
     }
     paymentForm.value.paymentAmount = paymentForm.value.totalAmount - (paymentForm.value.bonusAmount ? paymentForm.value.bonusAmount : 0);
     // console.log(paymentForm.value)
-}
-// 支付方式改变
-function changePaymentMethod() {
-    // console.log(paymentForm.value.paymentMethod)
-    if (paymentForm.value.paymentMethod == '06' && couponTypeList.value.has('000')) {
-        currentCouponType.value = 1;
-    } else if (paymentForm.value.paymentMethod == '07' && couponTypeList.value.has('000')) {
-        currentCouponType.value = 2;
-    } else {
-        currentCouponType.value = 0;
-    }
 }
 
 async function handlePay() {
@@ -955,13 +924,6 @@ async function getList() {
         userCouponList.value = res.rows;
         // 计算用户卡券种类
         couponTypeList.value = new Set(userCouponList.value.map(coupon => coupon.coupon.couponType));
-        if (couponTypeList.value.has('000')) {
-            currentCouponType.value = 1;
-        } else if (couponTypeList.value.has('002')) {
-            currentCouponType.value = 2;
-        } else {
-            currentCouponType.value = 0;
-        }
     });
 
     // 遍历计算订单价格

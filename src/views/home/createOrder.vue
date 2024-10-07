@@ -146,7 +146,17 @@
                     <template v-else>
                         <el-radio-group v-model="paymentForm.paymentMethod">
                             <template v-for="dict in sys_payment_method" :key="dict.value">
-                                <el-radio v-if="dict.value !== '03' && dict.value !== '04'" :value="dict.value">
+                                <template v-if="dict.value == '06'">
+                                    <el-radio v-if="couponTypeList.has('000')" :value="dict.value">
+                                        {{ dict.label }}
+                                    </el-radio>
+                                </template>
+                                <template v-else-if="dict.value == '07'">
+                                    <el-radio v-if="couponTypeList.has('002')" :value="dict.value">
+                                        {{ dict.label }}
+                                    </el-radio>
+                                </template>
+                                <el-radio v-else-if="dict.value !== '03' && dict.value !== '04'" :value="dict.value">
                                     {{ dict.label }}
                                 </el-radio>
                             </template>
@@ -282,6 +292,8 @@ const userList = ref([]);
 const userListRes = ref([]);
 // 用户卡券列表
 const userCouponList = ref([]);
+// 用户卡券种类列表
+const couponTypeList = ref();
 // 价格列表
 const priceList = ref([]);
 const showCreateUser = ref(false);
@@ -410,7 +422,8 @@ function submitCouponSale() {
         userCouponList.value.filter(item => item.coupon.couponType == '002').map(item => {
             item.selected = false;
             item.count = 1;
-        })
+        });
+        couponTypeList.value = new Set(userCouponList.value.map(coupon => coupon.coupon.couponType));
         checkCoupon();
     });
     showCouponSale.value = false;
@@ -545,7 +558,7 @@ function submitPaymentForm() {
             paymentForm.value.paymentAmountVip = storageCardPrice;
             paymentForm.value.ucId = couponStorageCardId.value.join(',');
             // 使用了储值卡，那么实际从微信/或其他支付方式中扣除的金额为差价
-            paymentForm.value.paymentAmountMv = priceDiff.value;
+            paymentForm.value.paymentAmountMv = paymentForm.value.priceDiff;
         } else if (userCouponList.value.filter(item => item.coupon.couponType == '002' && item.selected).length > 0) {
             // 使用了次卡
             const list = userCouponList.value.filter(item => item.coupon.couponType == '002' && item.selected).map(item => ({
@@ -807,7 +820,8 @@ function handleUpdate() {
         userCouponList.value.filter(item => item.coupon.couponType == '002').map(item => {
             item.selected = false;
             item.count = 1;
-        })
+        });
+        couponTypeList.value = new Set(userCouponList.value.map(coupon => coupon.coupon.couponType));
     });
 
 
@@ -866,8 +880,8 @@ function createAndPay() {
                 return;
             }
             // 如果选择了美团或者抖音，那么需要选择价格标签
-            if(form.value.source == '01' || form.value.source == '02') {
-                if(!form.value.priceId) {
+            if (form.value.source == '01' || form.value.source == '02') {
+                if (!form.value.priceId) {
                     proxy.$modal.msgError("请选择价格标签");
                     return;
                 }
@@ -934,7 +948,8 @@ function searchUserByTel(tel) {
                 userCouponList.value.filter(item => item.coupon.couponType == '002').map(item => {
                     item.selected = false;
                     item.count = 1;
-                })
+                });
+                couponTypeList.value = new Set(userCouponList.value.map(coupon => coupon.coupon.couponType));
             });
         }
         showCreateUser.value = false;
@@ -956,6 +971,7 @@ function selectUser(userId) {
             item.selected = false;
             item.count = 1;
         })
+        couponTypeList.value = new Set(userCouponList.value.map(coupon => coupon.coupon.couponType));
     });
 }
 

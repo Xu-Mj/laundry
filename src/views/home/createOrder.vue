@@ -937,6 +937,10 @@ function createAndPay() {
                     return;
                 }
             }
+
+            if (form.value.priceId && form.value.priceId !== 0) {
+                showCoupons.value = false;
+            }
             // 如果是创建订单，那么要先创建订单，拿到订单编码
             if (!form.value.orderId) {
 
@@ -982,9 +986,6 @@ function initPaymentForm() {
         showCoupons.value = false;
     }
 
-    if (form.value.priceId && form.value.priceId !== 0) {
-        showCoupons.value = false;
-    }
     couponStorageCardId.value = [];
     checkCoupon();
 }

@@ -197,27 +197,6 @@
                         </el-radio-group>
                     </el-form-item>
                 </template>
-                <!-- <el-form-item label="储值卡">
-                    <el-checkbox-group v-model="couponStorageCardId" @change="changeCoupon(1)">
-                        <el-checkbox v-for="card in userCouponList.filter(item => item.coupon.couponType == '000')"
-                            :disabled="!card.isValid" :key="card.ucId" :value="card.ucId">
-                            {{ card.coupon.couponTitle }}
-                            -余额
-                            {{ card.availableValue }}
-                            {{ card.coupon.couponType == '000' ? '元' : '次' }}
-                            {{ card.isValid ? '' : '(' + card.unValidReason + ')' }}
-                        </el-checkbox>
-                    </el-checkbox-group>
-                </el-form-item>
-                <el-form-item label="优惠券">
-                    <el-radio-group v-model="paymentForm.couponId" @change="changeCoupon(2)">
-                        <el-radio v-for="card in userCouponList.filter(item => item.coupon.couponType !== '000')"
-                            :disabled="!card.isValid" :key="card.ucId" :value="card.ucId">
-                            {{ card.coupon.couponTitle }}
-                            {{ card.isValid ? '' : '(' + card.unValidReason + ')' }}
-                        </el-radio>
-                    </el-radio-group>
-                </el-form-item> -->
                 <el-row>
                     <el-col :span="8">
                         <el-form-item label="订单金额">
@@ -236,8 +215,8 @@
                     </el-col>
                 </el-row>
                 <el-row>
-                    <el-form-item label="补差价" v-if="priceDiff > 0">
-                        {{ priceDiff }}
+                    <el-form-item label="补差价" v-if="paymentForm.priceDiff > 0">
+                        {{ paymentForm.priceDiff }}
                     </el-form-item>
                 </el-row>
             </el-form>
@@ -310,8 +289,7 @@ const showPaymentDialog = ref(false);
 const showCouponSale = ref(false);
 const title = ref("");
 const totalPrice = ref(0);
-// 差价
-const priceDiff = ref(0);
+// 储值卡
 const couponStorageCardId = ref([]);
 
 const currentOrderId = ref(props.orderId);
@@ -396,11 +374,11 @@ function changeCouponCount() {
         paymentForm.value.bonusAmount = 0;
     } else {
         // 计算差价
-        if (clothsList.value.length > count) {
+        if (form.value.cloths.length > count) {
             // 需要补充差价
-            const diffCount = clothsList.value.length - count;
+            const diffCount = form.value.cloths.length - count;
             // 获取diffCount数量的衣物
-            const diffCloths = clothsList.value.slice(0, diffCount);
+            const diffCloths = form.value.cloths.slice(0, diffCount);
             // 计算差价
             paymentForm.value.priceDiff = diffCloths.reduce((acc, cloth) => acc + cloth.priceValue, 0);
             paymentForm.value.bonusAmount = paymentForm.value.totalAmount - paymentForm.value.priceDiff;
@@ -429,6 +407,10 @@ const handleBlur = (event) => {
 function submitCouponSale() {
     listUserCouponWithValidTime({ userId: form.value.userId }).then(response => {
         userCouponList.value = response.rows;
+        userCouponList.value.filter(item => item.coupon.couponType == '002').map(item => {
+            item.selected = false;
+            item.count = 1;
+        })
         checkCoupon();
     });
     showCouponSale.value = false;
@@ -437,43 +419,6 @@ function submitCouponSale() {
 function handleShowCouponSale() {
     showCouponSale.value = true;
 }
-
-// function changeCoupon(couponType) {
-//     if (couponType == 1) {
-//         paymentForm.value.couponId = null;
-//         paymentForm.value.bonusAmount = 0;
-//         // 计算差价
-//         let storageCardPrice = 0;
-//         userCouponList.value.forEach(item => {
-//             if (couponStorageCardId.value.includes(item.ucId)) {
-//                 storageCardPrice += item.availableValue;
-//             }
-//         });
-//         if (storageCardPrice < totalPrice.value) {
-//             priceDiff.value = totalPrice.value - storageCardPrice;
-//         }
-//     }
-//     //计算优惠金额
-//     if (couponType == 2) {
-//         couponStorageCardId.value = [];
-//         const coupon = userCouponList.value.find(item => item.ucId == paymentForm.value.couponId);
-//         // 满减券
-//         if (coupon.coupon.couponType == '004') {
-//             paymentForm.value.bonusAmount = coupon.coupon.usageValue;
-//         }
-
-//         // 折扣券
-//         if (coupon.coupon.couponType == '003' && coupon.coupon.usageLimit >= totalPrice.value) {
-//             paymentForm.value.bonusAmount = parseFloat((totalPrice.value * (1 - coupon.coupon.usageValue / 100)).toFixed(2));
-
-//             // 进一步处理，不保留小数点后的0
-//             if (paymentForm.value.bonusAmount % 1 === 0) {
-//                 paymentForm.value.bonusAmount = Math.floor(paymentForm.value.bonusAmount); // 变为整数
-//             }
-//         }
-//     }
-//     paymentForm.value.paymentAmount = totalPrice.value - (paymentForm.value.bonusAmount ? paymentForm.value.bonusAmount : 0);
-// }
 
 function changeCoupon(couponType, card) {
     if (couponType == 1) {
@@ -515,7 +460,9 @@ function changeCoupon(couponType, card) {
                 return acc;
             }, 0);
             // 计算输入框的数量
-            card.count = clothsList.value.length > count ? clothsList.value.length - count > card.availableValue ? card.availableValue : clothsList.value.length - count : clothsList.value.length;
+            card.count = form.value.cloths.length > count ?
+                form.value.cloths.length - count > card.availableValue ?
+                    card.availableValue : form.value.cloths.length - count : form.value.cloths.length;
             // 需要再加上card.count
             count += card.count;
         } else {
@@ -534,11 +481,11 @@ function changeCoupon(couponType, card) {
         } else {
 
             // 计算差价
-            if (clothsList.value.length > count) {
+            if (form.value.cloths.length > count) {
                 // 需要补充差价
-                const diffCount = clothsList.value.length - count;
+                const diffCount = form.value.cloths.length - count;
                 // 获取diffCount数量的衣物
-                const diffCloths = clothsList.value.slice(0, diffCount);
+                const diffCloths = form.value.cloths.slice(0, diffCount);
                 // 计算差价
                 paymentForm.value.priceDiff = diffCloths.reduce((acc, cloth) => acc + cloth.priceValue, 0);
                 paymentForm.value.bonusAmount = paymentForm.value.totalAmount - paymentForm.value.priceDiff;
@@ -582,6 +529,7 @@ function changeCoupon(couponType, card) {
     }
     paymentForm.value.paymentAmount = paymentForm.value.totalAmount - (paymentForm.value.bonusAmount ? paymentForm.value.bonusAmount : 0);
 }
+
 /* 收款 */
 function submitPaymentForm() {
     // 判断是否使用了优惠券
@@ -598,6 +546,13 @@ function submitPaymentForm() {
             paymentForm.value.ucId = couponStorageCardId.value.join(',');
             // 使用了储值卡，那么实际从微信/或其他支付方式中扣除的金额为差价
             paymentForm.value.paymentAmountMv = priceDiff.value;
+        } else if (userCouponList.value.filter(item => item.coupon.couponType == '002' && item.selected).length > 0) {
+            // 使用了次卡
+            const list = userCouponList.value.filter(item => item.coupon.couponType == '002' && item.selected).map(item => ({
+                ucId: item.ucId,
+                count: item.count,
+            }));
+            paymentForm.value.timeBased = list;
         } else {
             // 什么卡券都没用
             paymentForm.value.ucId = null;
@@ -849,6 +804,10 @@ function handleUpdate() {
     // 获取用户卡券列表
     listUserCouponWithValidTime({ userId: currentUserId.value }).then(response => {
         userCouponList.value = response.rows;
+        userCouponList.value.filter(item => item.coupon.couponType == '002').map(item => {
+            item.selected = false;
+            item.count = 1;
+        })
     });
 
 
@@ -906,8 +865,14 @@ function createAndPay() {
                 proxy.$modal.msgError("衣物信息不能为空");
                 return;
             }
+            // 如果选择了美团或者抖音，那么需要选择价格标签
+            if(form.value.source == '01' || form.value.source == '02') {
+                if(!form.value.priceId) {
+                    proxy.$modal.msgError("请选择价格标签");
+                    return;
+                }
+            }
             // 如果是创建订单，那么要先创建订单，拿到订单编码
-            console.log(!form.value.orderId)
             if (!form.value.orderId) {
 
                 form.value.clothsIds = form.value.cloths.map(item => item.clothId);
@@ -939,6 +904,7 @@ function initPaymentForm() {
         payNumber: form.value.orderNumber,
         paymentMethod: '02',
         orderType: '1',
+        priceDiff: 0,
         totalAmount: totalPrice.value,
         paymentAmount: totalPrice.value,
     };
@@ -949,7 +915,6 @@ function initPaymentForm() {
         paymentForm.value.paymentMethod = '04';
     }
     couponStorageCardId.value = [];
-    priceDiff.value = 0;
     checkCoupon();
 }
 
@@ -966,6 +931,10 @@ function searchUserByTel(tel) {
             // 查询会员卡券信息
             listUserCouponWithValidTime({ userId: form.value.userId }).then(response => {
                 userCouponList.value = response.rows;
+                userCouponList.value.filter(item => item.coupon.couponType == '002').map(item => {
+                    item.selected = false;
+                    item.count = 1;
+                })
             });
         }
         showCreateUser.value = false;
@@ -983,6 +952,10 @@ function selectUser(userId) {
     // 查询会员卡券信息
     listUserCouponWithValidTime({ userId: userId }).then(response => {
         userCouponList.value = response.rows;
+        userCouponList.value.filter(item => item.coupon.couponType == '002').map(item => {
+            item.selected = false;
+            item.count = 1;
+        })
     });
 }
 

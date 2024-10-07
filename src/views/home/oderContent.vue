@@ -266,12 +266,11 @@
         </template>
     </el-dialog>
 
-    <!-- 售后复洗 -->
-    <!-- <el-dialog :title="title" v-model="showRewashDialog" width="1440px" append-to-body lock-scroll modal
-        :close-on-click-modal="false">
-        <CreateOrder :isRewash="true" :orderId="0" :userId="currentUser.userId" :toggle="() => { showRewashDialog = !showRewashDialog }"
-            :refresh="getList" :key="open" />
-    </el-dialog> -->
+    <!-- 复洗 -->
+    <ReWash :visible="showRewashDialog" :order="rewashOrder" :clothes="rewashClothesId"
+        :refresh="() => { selectedCloths = []; getList(); }" :key="showRewashDialog"
+        :toggle="() => { showRewashDialog = !showRewashDialog }" />
+
 </template>
 
 <script setup name="OderContent">
@@ -285,6 +284,7 @@ import { getUser } from '@/api/system/user';
 import { isCurrentTimeWithinRange } from "@/utils";
 import { selectListExceptCompleted } from "@/api/system/orders";
 import { getPrice } from "@/api/system/price";
+import ReWash from "./rewash.vue";
 
 const props = defineProps({
     visible: {
@@ -362,6 +362,10 @@ const needSync = ref(false);
 
 const showCoupons = ref(true);
 
+const rewashOrder = ref(null);
+const rewashClothesId = ref([]);
+
+
 const data = reactive({
     deliveryForm: {},
     paymentForm: {},
@@ -377,6 +381,19 @@ const { deliveryForm, paymentForm, pickupRules, queryParams } = toRefs(data);
 
 // 显示售后复洗
 function handleReWash() {
+    if (selectedCloths.value.length == 0) {
+        proxy.$message.error("请先选择衣物");
+        return;
+    }
+
+    const orders = new Set(selectedCloths.value.map(item => item.orderClothId));
+    if (orders.length > 1) {
+        proxy.$message.error("不支持跨订单复洗");
+        return;
+    }
+    rewashClothesId.value = selectedCloths.value.map(item => item.clothId);
+    rewashOrder.value = ordersList.value.find(item => item.orderId == orders.values().next().value);
+
     showRewashDialog.value = true;
 }
 

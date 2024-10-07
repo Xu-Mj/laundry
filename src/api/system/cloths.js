@@ -8,6 +8,15 @@ export function listCloths(query) {
     params: query
   })
 }
+
+// 查询订单包含的衣物清单列表
+export function rewash(query) {
+  return request({
+    url: '/system/cloths/rewash/' + query,
+    method: 'post',
+  })
+}
+
 // 查询订单包含的衣物清单列表
 export function listHistoryCloths(userId) {
   return request({
@@ -85,7 +94,7 @@ export function hangup(data) {
 }
 
 // 删除订单包含的衣物清单
-export function delClothPicture(clothId,picId) {
+export function delClothPicture(clothId, picId) {
   return request({
     url: `/system/cloths/picture/${clothId}/${picId}`,
     method: 'delete'

@@ -1,6 +1,6 @@
 <template>
     <div class="app-container">
-        <el-row :gutter="10" class="mb8">
+        <el-row :gutter="10" v-if="!props.isRewash" class="mb8">
             <el-col :span="1.5">
                 <el-button type="primary" plain icon="Plus" @click="handleAdd" :disabled="props.disabled"
                     v-hasPermi="['system:cloths:add']">新增</el-button>
@@ -406,6 +406,14 @@ const props = defineProps({
     disabled: {
         type: Boolean,
         default: false
+    },
+    isRewash: {
+        type: Boolean,
+        default: false
+    },
+    clothes: {
+        type: Array,
+        default: []
     }
 });
 
@@ -569,7 +577,9 @@ function handlePreview(file) {
 
 // 当订单id不为空时那么为修改操作
 function getList() {
-    if (props.orderId && props.orderId !== 0) {
+    if (props.isRewash) {
+        clothList.value = props.clothes;
+    } else if (props.orderId && props.orderId !== 0) {
         listCloths({ orderClothId: props.orderId }).then(res => {
             res.rows.map(item => {
                 if (item.estimate) {

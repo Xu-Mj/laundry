@@ -30,7 +30,7 @@ export function selectListExceptCompleted(query) {
 // 查询洗护服务订单详细
 export function getOrders(orderId) {
   return request({
-    url: '/system/orders/' + orderId ,
+    url: '/system/orders/' + orderId,
     method: 'get'
   })
 }
@@ -38,7 +38,7 @@ export function getOrders(orderId) {
 // 查询退单所需的信息，用户手机号、订单实际支付金额
 export function getRefundInfo(orderId, userId) {
   return request({
-    url: '/system/orders/refund/' + orderId+ '/' + userId,
+    url: '/system/orders/refund/' + orderId + '/' + userId,
     method: 'get'
   })
 }
@@ -47,6 +47,15 @@ export function getRefundInfo(orderId, userId) {
 export function addOrders(data) {
   return request({
     url: '/system/orders',
+    method: 'post',
+    data: data
+  })
+}
+
+// 新增洗护服务订单
+export function addRewashOrder(data) {
+  return request({
+    url: '/system/orders/rewash',
     method: 'post',
     data: data
   })

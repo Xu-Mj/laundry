@@ -50,7 +50,8 @@
                         v-model="form.adjust.adjustValueAdd" placeholder="请输入调增金额" :disabled="notEditable" />
                     <el-input type="number" :min="0" :max="Infinity" @input="adjustInput" @change="adjustInputChange"
                         v-model="form.adjust.adjustTotal" placeholder="请输入总金额" :disabled="notEditable" />
-                    <el-input v-model="form.adjust.remark" placeholder="备注信息" :disabled="notEditable" />
+                    <el-input v-model="form.adjust.remark" placeholder="备注信息" @change="adjustInputChange"
+                        :disabled="notEditable" />
                 </el-col>
             </el-form-item>
             <!-- 底部左侧信息区域，以及右侧按钮区域 -->

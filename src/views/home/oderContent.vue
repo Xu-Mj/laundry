@@ -207,21 +207,21 @@
                 </el-form-item>
                 <el-form-item v-if="userCouponList.filter(item => item.coupon.couponType == '002').length != 0"
                     label="次卡">
-                    <!-- <el-checkbox-group> -->
-                    <div v-for="card in userCouponList.filter(item => item.coupon.couponType == '002')"
-                        :key="card.ucId">
-                        <el-checkbox @change="changeCoupon(2, card)" :disabled="!card.isValid" v-model="card.selected"
-                            :value="card.ucId">
-                            {{ card.coupon.couponTitle }}
-                            {{ card.isValid ? '' : '(' + card.unValidReason + ')' }}
-                            {{ '(剩余: ' + card.availableValue + '次)' }}
-                        </el-checkbox>
-                        <!-- 关联的输入框 -->
-                        <el-input-number controls-position="right" v-if="card.selected" v-model="card.count"
-                            @change="changeCouponCount(card)" :min="1" :max="card.availableValue"
-                            placeholder="请输入次卡数量" />
+                    <div class="coupon-times">
+                        <div class="coupon-times-item"
+                            v-for="card in userCouponList.filter(item => item.coupon.couponType == '002')"
+                            :key="card.ucId">
+                            <el-checkbox @change="changeCoupon(2, card)" :disabled="!card.isValid"
+                                v-model="card.selected" :value="card.ucId">
+                                {{ card.coupon.couponTitle }}
+                                {{ card.isValid ? '' : '(' + card.unValidReason + ')' }}
+                                {{ '(剩余: ' + card.availableValue + '次)' }}
+                            </el-checkbox>
+                            <el-input-number controls-position="right" v-if="card.selected" v-model="card.count"
+                                @change="changeCouponCount(card)" :min="1" :max="card.availableValue"
+                                placeholder="请输入次卡数量" />
+                        </div>
                     </div>
-                    <!-- </el-checkbox-group> -->
                 </el-form-item>
                 <el-form-item label="优惠券">
                     <el-radio-group v-model="paymentForm.couponId" @change="changeCoupon(3)">
@@ -1013,15 +1013,6 @@ onMounted(async () => {
 });
 </script>
 <style scoped>
-.el-table {
-    border: none;
-
-    tr {
-        border: 1px dashed;
-        border-radius: .4rem;
-    }
-}
-
 .cloths-table {
     border-radius: .4rem;
     border: 1px dashed;
@@ -1087,6 +1078,17 @@ onMounted(async () => {
 .address {
     display: flex;
     gap: 2rem
+}
+
+.coupon-times {
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+
+    .coupon-times-item {
+        display: flex;
+        gap: .5rem;
+    }
 }
 </style>
 <style>

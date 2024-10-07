@@ -229,7 +229,7 @@
     <el-dialog title="衣物" v-model="showClothListDialog" width="1440px" append-to-body>
       <ShowCloths :orderId="currentOrderId" :flashList="getList" :userId="currentUserId" :key="showClothListDialog" />
     </el-dialog>
-    <el-dialog :title="title" v-model="open" width="1440px" append-to-body lock-scroll modal :before-close="cancel"
+    <el-dialog :show-close="false" v-model="open" width="1440px" append-to-body lock-scroll modal :before-close="cancel"
       :close-on-click-modal="false">
       <CreateOrder ref="createOrderRef" :orderId="currentOrderId" :userId="currentUserId"
         :toggle="() => { open = !open; getList(); }" :refresh="getList" :key="open" />

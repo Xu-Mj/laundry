@@ -8,7 +8,7 @@
     </div>
 
     <OrderContent :visible="showOrderDialog" :taggle="() => { showOrderDialog = !showOrderDialog }" :key="showOrderDialog"/>
-    <el-dialog :title="title" v-model="open" width="1440px" append-to-body lock-scroll modal :before-close="cancel"
+    <el-dialog :show-close="false" v-model="open" width="1440px" append-to-body lock-scroll modal :before-close="cancel"
       :close-on-click-modal="false">
       <CreateOrder :orderId="0" :userId="0" :toggle="() => { open = !open }" :refresh="() => { }" :key="open" />
     </el-dialog>

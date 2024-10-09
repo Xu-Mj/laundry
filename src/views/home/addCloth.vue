@@ -100,12 +100,12 @@
             @keydown.enter.native="nextStep" @keydown.right.native="nextStep" @keydown.left.native="preStep"
             append-to-body>
             <el-steps :active="step" finish-status="success" simple>
-                <el-step title="选择品类" :icon="CopyDocument" v-if="step !== maxStepNum" />
-                <el-step title="选择衣物" :icon="User" v-if="step !== maxStepNum" />
-                <el-step title="选择颜色" :icon="PictureRounded" v-if="step !== maxStepNum" />
-                <el-step title="洗前瑕疵" :icon="WarningFilled" v-if="step !== maxStepNum" />
-                <el-step title="洗后预估" :icon="CoffeeCup" v-if="step !== maxStepNum" />
-                <el-step title="选择品牌" :icon="CollectionTag" v-if="step !== maxStepNum" />
+                <el-step title="选择品类" :icon="CopyDocument" v-if="step !== maxStepNum" @click="jumpToStep(0)" />
+                <el-step title="选择衣物" :icon="User" v-if="step !== maxStepNum" @click="jumpToStep(1)" />
+                <el-step title="选择颜色" :icon="PictureRounded" v-if="step !== maxStepNum" @click="jumpToStep(2)" />
+                <el-step title="洗前瑕疵" :icon="WarningFilled" v-if="step !== maxStepNum" @click="jumpToStep(3)" />
+                <el-step title="洗后预估" :icon="CoffeeCup" v-if="step !== maxStepNum" @click="jumpToStep(4)" />
+                <el-step title="选择品牌" :icon="CollectionTag" v-if="step !== maxStepNum" @click="jumpToStep(5)" />
 
                 <el-step :title="sys_cloth_cate.find(item => item.value == form.clothingCategory).label"
                     :icon="CopyDocument" v-if="step == maxStepNum" />
@@ -500,6 +500,18 @@ const data = reactive({
 });
 
 const { form, rules } = toRefs(data);
+
+function jumpToStep(stepNum) {
+    if (stepNum < 0 || stepNum > maxStepNum) {
+        return;
+    }
+    if (stepNum != 1 && !form.value.clothingId) {
+        proxy.$modal.msgError("请先选择衣物");
+        return;
+    }
+    step.value = stepNum;
+
+}
 
 function handleRemovePicture(event) {
     console.log(event)

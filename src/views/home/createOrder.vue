@@ -925,7 +925,7 @@ async function submitForm() {
 /* 收衣收款 */
 function createAndPay() {
     // 提交订单
-    proxy.$refs["ordersRef"].validate(valid => {
+    proxy.$refs["ordersRef"].validate(async valid => {
         if (valid) {
             if (!form.value.cloths || form.value.cloths.length == 0) {
                 proxy.$modal.msgError("衣物信息不能为空");
@@ -941,6 +941,32 @@ function createAndPay() {
 
             if (form.value.priceId && form.value.priceId !== 0) {
                 showCoupons.value = false;
+            }
+            if (showCreateUser.value) {
+                try {
+                    const res = await addUser({
+                        phonenumber: form.value.userId,
+                        nickName: form.value.nickName
+                    });
+
+                    await listUserCouponWithValidTime({ userId: form.value.userId }).then(response => {
+                        userCouponList.value = response.rows;
+                        userCouponList.value.filter(item => item.coupon.couponType == '002').map(item => {
+                            item.selected = false;
+                            item.count = 1;
+                        });
+                        couponTypeList.value = new Set(userCouponList.value.map(coupon => coupon.coupon.couponType));
+                    });
+                    // 重新拉取用户列表
+                    await listUserWithNoLimit().then(res => {
+                        userList.value = res.rows;
+                    });
+
+                    form.value.userId = res.data; // 设置返回的用户ID
+                } catch (err) {
+                    proxy.$modal.msgError(err);
+                    return; // 当 addUser 出错时，中断执行
+                }
             }
             // 如果是创建订单，那么要先创建订单，拿到订单编码
             if (!form.value.orderId) {

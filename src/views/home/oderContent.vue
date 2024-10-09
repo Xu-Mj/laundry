@@ -28,11 +28,17 @@
                     <!-- 所属会员 -->
                     <span>所属会员: {{ order.nickName }}</span>
                     <!-- 实际支付金额 -->
-                    <span>实际支付金额: {{ order.mount }}</span>
+                    <span style="display: flex; align-items: center; gap: .5rem;">实际支付金额:
+                        <span style="color: red;font-weight: bold; align-items: center;">
+                            {{ order.mount }}
+                        </span>
+                    </span>
                     <!-- 取件码 -->
                     <span>取件码: {{ order.pickupCode }}</span>
                     <!-- 支付状态 -->
-                    <span>支付状态: <dict-tag :options="sys_payment_status" :value="order.paymentStatus" /></span>
+                    <span style="display: flex; align-items: center; gap: .5rem;">支付状态:
+                        <dict-tag :options="sys_payment_status" :value="order.paymentStatus" />
+                    </span>
                 </div>
                 <!-- 订单包含的衣物列表 -->
                 <el-table class="cloths-table" :data="order.clothList" :loading="order.loading" row-key="clothingId"
@@ -238,7 +244,9 @@
             <el-row>
                 <el-col :span="8">
                     <el-form-item label="订单金额">
-                        {{ paymentForm.totalAmount }}
+                        <span class="payment-amount">
+                            {{ paymentForm.totalAmount }}
+                        </span>
                     </el-form-item>
                 </el-col>
                 <el-col :span="8">
@@ -248,7 +256,9 @@
                 </el-col>
                 <el-col :span="8">
                     <el-form-item label-width="auto" label="优惠后金额">
-                        {{ paymentForm.paymentAmount }}
+                        <span class="payment-amount">
+                            {{ paymentForm.paymentAmount }}
+                        </span>
                     </el-form-item>
                 </el-col>
             </el-row>
@@ -372,7 +382,7 @@ const data = reactive({
     pickupRules: {},
     queryParams: {
         orderNumber: null,
-        phonenumber: "5632",
+        phonenumber: null,
         pickupCode: null,
     },
 });
@@ -1080,6 +1090,7 @@ onMounted(async () => {
     width: 100%;
     display: flex;
     justify-content: flex-start;
+    align-items: center;
     gap: 3rem;
     padding: .5rem;
     border: 1px dashed;
@@ -1106,6 +1117,12 @@ onMounted(async () => {
         display: flex;
         gap: .5rem;
     }
+}
+
+.payment-amount {
+    color: red;
+    font-size: large;
+    font-weight: bold;
 }
 </style>
 <style>

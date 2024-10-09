@@ -64,7 +64,9 @@
                         </el-col>
                         <el-col :span="5">
                             <el-form-item label="总金额：">
-                                {{ totalPrice }}
+                                <span class="payment-amount">
+                                    {{ totalPrice }}
+                                </span>
                             </el-form-item>
                         </el-col>
                         <el-col :span="6">
@@ -211,7 +213,9 @@
                 <el-row>
                     <el-col :span="8">
                         <el-form-item label="订单金额">
-                            {{ paymentForm.totalAmount }}
+                            <span class="payment-amount">
+                                {{ paymentForm.totalAmount }}
+                            </span>
                         </el-form-item>
                     </el-col>
                     <el-col :span="8">
@@ -221,7 +225,9 @@
                     </el-col>
                     <el-col :span="8">
                         <el-form-item label-width="auto" label="优惠后金额">
-                            {{ paymentForm.paymentAmount }}
+                            <span class="payment-amount">
+                                {{ paymentForm.paymentAmount }}
+                            </span>
                         </el-form-item>
                     </el-col>
                 </el-row>
@@ -1183,5 +1189,11 @@ defineExpose({
         display: flex;
         gap: .5rem;
     }
+}
+
+.payment-amount {
+    color: red;
+    font-size: large;
+    font-weight: bold;
 }
 </style>

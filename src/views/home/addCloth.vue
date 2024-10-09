@@ -100,27 +100,35 @@
             @keydown.enter.native="nextStep" @keydown.right.native="nextStep" @keydown.left.native="preStep"
             append-to-body>
             <el-steps :active="step" finish-status="success" simple>
-                <el-step title="选择品类" :icon="CopyDocument" v-if="step !== maxStepNum" @click="jumpToStep(0)" />
-                <el-step title="选择衣物" :icon="User" v-if="step !== maxStepNum" @click="jumpToStep(1)" />
-                <el-step title="选择颜色" :icon="PictureRounded" v-if="step !== maxStepNum" @click="jumpToStep(2)" />
-                <el-step title="洗前瑕疵" :icon="WarningFilled" v-if="step !== maxStepNum" @click="jumpToStep(3)" />
-                <el-step title="洗后预估" :icon="CoffeeCup" v-if="step !== maxStepNum" @click="jumpToStep(4)" />
-                <el-step title="选择品牌" :icon="CollectionTag" v-if="step !== maxStepNum" @click="jumpToStep(5)" />
+                <el-step class="step-item" title="选择品类" :icon="CopyDocument" v-if="step !== maxStepNum"
+                    @click="jumpToStep(0)" />
+                <el-step class="step-item" title="选择衣物" :icon="User" v-if="step !== maxStepNum"
+                    @click="jumpToStep(1)" />
+                <el-step class="step-item" title="选择颜色" :icon="PictureRounded" v-if="step !== maxStepNum"
+                    @click="jumpToStep(2)" />
+                <el-step class="step-item" title="洗前瑕疵" :icon="WarningFilled" v-if="step !== maxStepNum"
+                    @click="jumpToStep(3)" />
+                <el-step class="step-item" title="洗后预估" :icon="CoffeeCup" v-if="step !== maxStepNum"
+                    @click="jumpToStep(4)" />
+                <el-step class="step-item" title="选择品牌" :icon="CollectionTag" v-if="step !== maxStepNum"
+                    @click="jumpToStep(5)" />
 
-                <el-step :title="sys_cloth_cate.find(item => item.value == form.clothingCategory).label"
-                    :icon="CopyDocument" v-if="step == maxStepNum" />
-                <el-step :title="sys_cloth_style.find(item => item.value == form.clothingStyle).label" :icon="User"
-                    v-if="step == maxStepNum" />
-                <!-- <el-step :title="clothList.find(item => { return item.clothingId == form.clothingId }).clothingName"
-                    :icon="User" v-if="step == 6" /> -->
-                <el-step :title="findColorName()" :icon="PictureRounded" v-if="step == maxStepNum" />
-                <el-step title="洗前瑕疵" :icon="WarningFilled" v-if="step == maxStepNum" />
-                <el-step title="洗后预估" :icon="CoffeeCup" v-if="step == maxStepNum" />
-                <el-step
+                <el-step class="step-item"
+                    :title="sys_cloth_cate.find(item => item.value == form.clothingCategory).label" :icon="CopyDocument"
+                    v-if="step == maxStepNum" @click="jumpToStep(0)" />
+                <el-step class="step-item" :title="sys_cloth_style.find(item => item.value == form.clothingStyle).label"
+                    :icon="User" v-if="step == maxStepNum" @click="jumpToStep(1)" />
+                <el-step class="step-item" :title="findColorName()" :icon="PictureRounded" v-if="step == maxStepNum"
+                    @click="jumpToStep(2)" />
+                <el-step class="step-item" title="洗前瑕疵" :icon="WarningFilled" v-if="step == maxStepNum"
+                    @click="jumpToStep(3)" />
+                <el-step class="step-item" title="洗后预估" :icon="CoffeeCup" v-if="step == maxStepNum"
+                    @click="jumpToStep(4)" />
+                <el-step class="step-item"
                     :title="form.clothingBrand ? brandList.find(item => { return item.tagId == form.clothingBrand }).tagName : '未选择品牌'"
-                    :icon="CollectionTag" v-if="step == maxStepNum" />
+                    :icon="CollectionTag" v-if="step == maxStepNum" @click="jumpToStep(5)" />
 
-                <el-button type="primary" v-show="step == maxStepNum" class="steps-btn" @click="step = 0">编辑</el-button>
+                <!-- <el-button type="primary" v-show="step == maxStepNum" class="steps-btn" @click="step = 0">编辑</el-button> -->
             </el-steps>
             <el-form ref="clothsRef" :model="form" :rules="rules" class="form-container">
                 <div v-show="step == 0">
@@ -173,7 +181,7 @@
                         <el-radio-group class="color-radio-group" v-model="form.clothingId" @change="step2ClothChange">
                             <el-radio v-for="color in clothingList" :key="color.clothingId" :value="color.clothingId">{{
                                 color.clothingName
-                            }}</el-radio>
+                                }}</el-radio>
                         </el-radio-group>
                     </el-row>
                     <el-row class="footer-btn">
@@ -554,7 +562,7 @@ function handleShowPicture(row) {
 // 获取颜色名称
 function findColorName() {
     if (form.value.clothingColor) {
-        const color = colorList.value.find(item => item.tagId == form.clothingColor);
+        const color = colorList.value.find(item => item.tagId == form.value.clothingColor);
         return color ? color.tagName : '未选择颜色';
     } else {
         return '未选择颜色';
@@ -1036,6 +1044,10 @@ onMounted(async () => {
 
 .el-steps--simple {
     padding: 1rem;
+}
+
+.step-item {
+    cursor: pointer;
 }
 
 .form-container {

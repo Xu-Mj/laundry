@@ -1,18 +1,33 @@
 <template>
   <div class="app-container">
+
     <el-row :gutter="10" class="mb8">
       <el-col :span="1.5">
         <el-button type="primary" plain icon="Plus" @click="handleAdd" v-hasPermi="['system:rack:add']">新增</el-button>
       </el-col>
-      <!-- <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar> -->
+      <el-col :span="1.5">
+        <el-button type="success" plain icon="Edit" :disabled="single" @click="handleUpdate"
+          v-hasPermi="['system:rack:edit']">修改</el-button>
+      </el-col>
+      <el-col :span="1.5">
+        <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleDelete"
+          v-hasPermi="['system:rack:remove']">删除</el-button>
+      </el-col>
+      <right-toolbar @queryTable="getList"></right-toolbar>
     </el-row>
 
     <el-table v-loading="loading" :data="rackList" @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="55" align="center" />
-      <!-- <el-table-column label="ID" align="center" prop="id" /> -->
-      <el-table-column label="架子编号" align="center" prop="name" />
+      <el-table-column label="架子名称" align="center" prop="name" />
+      <el-table-column label="架子类型" align="center" prop="rackType">
+        <template #default="scope">
+          <el-tag v-if="scope.row.rackType == 1">输送线</el-tag>
+          <el-tag v-if="scope.row.rackType == 2">其他</el-tag>
+        </template>
+      </el-table-column>
       <el-table-column label="容量" align="center" prop="capacity" />
       <el-table-column label="剩余容量" align="center" prop="remainingCapacity" />
+      <el-table-column label="当前挂钩位置" align="center" prop="position" />
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template #default="scope">
           <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)"
@@ -24,13 +39,19 @@
     </el-table>
 
     <!-- 添加或修改晾衣架对话框 -->
-    <el-dialog :title="title" :show-close="false" v-model="open" width="500px" append-to-body>
+    <el-dialog :title="title" v-model="open" width="500px" append-to-body>
       <el-form ref="rackRef" :model="form" :rules="rules" label-width="80px">
         <el-form-item label="架子名称" prop="name">
           <el-input v-model="form.name" placeholder="请输入架子名称" />
         </el-form-item>
+        <el-form-item label="类型" prop="rackType">
+          <el-radio-group v-model="form.rackType">
+            <el-radio :value="'1'">输送线</el-radio>
+            <el-radio :value="'2'">其他</el-radio>
+          </el-radio-group>
+        </el-form-item>
         <el-form-item label="容量" prop="capacity">
-          <el-input-number controls-position="right" v-model="form.capacity" :min="minCapacity" placeholder="请输入容量" />
+          <el-input-number controls-position="right" v-model="form.capacity" placeholder="请输入容量" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -57,7 +78,6 @@ const single = ref(true);
 const multiple = ref(true);
 const total = ref(0);
 const title = ref("");
-let minCapacity = 0;
 
 const data = reactive({
   form: {},
@@ -65,6 +85,12 @@ const data = reactive({
     capacity: [
       { required: true, message: "容量不能为空", trigger: "blur" }
     ],
+    remainingCapacity: [
+      { required: true, message: "剩余容量不能为空", trigger: "blur" }
+    ],
+    rackType: [
+      { required: true, message: "上挂类型", trigger: "blur" }
+    ]
   }
 });
 
@@ -73,7 +99,7 @@ const { form, rules } = toRefs(data);
 /** 查询晾衣架列表 */
 function getList() {
   loading.value = true;
-  listRack().then(response => {
+  listRack({ pageSize: 100 }).then(response => {
     rackList.value = response.rows;
     total.value = response.total;
     loading.value = false;
@@ -91,8 +117,10 @@ function reset() {
   form.value = {
     id: null,
     name: null,
+    rackType: '1',
     capacity: null,
-    remainingCapacity: null
+    remainingCapacity: null,
+    position: null
   };
   proxy.resetForm("rackRef");
 }
@@ -108,7 +136,7 @@ function handleSelectionChange(selection) {
 function handleAdd() {
   reset();
   open.value = true;
-  // title.value = "添加晾衣架";
+  title.value = "添加晾衣架";
 }
 
 /** 修改按钮操作 */
@@ -117,9 +145,8 @@ function handleUpdate(row) {
   const _id = row.id || ids.value
   getRack(_id).then(response => {
     form.value = response.data;
-    minCapacity = response.data.capacity - response.data.remainingCapacity;
     open.value = true;
-    // title.value = "修改晾衣架";
+    title.value = "修改晾衣架";
   });
 }
 

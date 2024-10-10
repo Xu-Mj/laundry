@@ -443,6 +443,7 @@ function changeCouponCount() {
 
 async function handlePay() {
     if (ordersList.value.length == 0) {
+        proxy.$modal.msgWarning("没有可支付的订单或可取走的衣物");
         return;
     }
     initPaymentForm();
@@ -935,6 +936,9 @@ async function initList() {
 async function getList() {
     if (!showOrderDialog.value) return;
 
+    if (queryParams.value.pickupCode === '' && queryParams.value.phonenumber === '' && queryParams.value.orderNumber === '') {
+        return;
+    }
     loading.value = true;
     const { rows } = await selectListExceptCompleted(queryParams.value);
     ordersList.value = rows;
@@ -1030,10 +1034,19 @@ function resetQuery() {
     handleQuery();
 }
 
+function isEmpty(value) {
+    return value === null || value === undefined || value === '';
+}
+
 // 如果初始化时visible是true，则直接加载数据
 onMounted(async () => {
     if (props.visible) {
         await initList();
+        if (isEmpty(queryParams.value.pickupCode) &&
+            isEmpty(queryParams.value.phonenumber) &&
+            isEmpty(queryParams.value.orderNumber)) {
+            return;
+        }
         getList();
         showOrderDialog.value = true;
     }

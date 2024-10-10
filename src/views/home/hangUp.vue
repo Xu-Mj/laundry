@@ -40,7 +40,6 @@
 <script setup name="HangUp">
 import { getClothByCode, hangup } from "@/api/system/cloths";
 import { listTags } from "@/api/system/tags";
-import { getAvailableRack } from "@/api/system/rack";
 
 const props = defineProps({
     visible: {
@@ -94,15 +93,13 @@ function getClothInfo() {
             proxy.$modal.msgError("衣物编码关联的衣物不存在");
         } else {
             // 查找最合适的衣挂位置
-            getAvailableRack().then(res => {
-                hangForm.value = {
-                    clothingNumber: currentCloth.value.hangClothCode,
-                    clothId: currentCloth.value.clothId,
-                    hangLocationId: res.data.id,
-                    hangerNumber: res.data.remainingCapacity,
-                    hangRemark: null
-                };
-            })
+            hangForm.value = {
+                clothingNumber: currentCloth.value.hangClothCode,
+                clothId: currentCloth.value.clothId,
+                hangLocationId: currentCloth.value.hangLocationCode,
+                hangerNumber: currentCloth.value.hangerNumber,
+                hangRemark: currentCloth.value.hangRemark,
+            };
         }
     })
 }

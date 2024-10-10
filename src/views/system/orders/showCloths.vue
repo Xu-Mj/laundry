@@ -9,6 +9,11 @@
                         scope.row.clothingColor).tagName : '' }}
                 </template>
             </el-table-column>
+            <el-table-column label="衣物编码" align="center" prop="clothingColor">
+                <template #default="scope">
+                    {{ scope.row.hangClothCode }}
+                </template>
+            </el-table-column>
             <el-table-column label="服务类型" :width="120" align="center">
                 <template #default="scope">
                     <span class="service-type">
@@ -84,7 +89,7 @@
         <!-- <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum"
             v-model:limit="queryParams.pageSize" @pagination="getList" /> -->
         <div class="footer">
-            <el-button type="success" plain :disabled="pickupDisabled" @click="handlePickup">取走</el-button>
+            <!-- <el-button type="success" plain :disabled="pickupDisabled" @click="handlePickup">取走</el-button> -->
             <el-button type="warning" plain :disabled="afterSaleDisabled" @click="afterSale">售后</el-button>
             <el-button type="danger" plain :disabled="compensationDisabled" @click="handleCompensate">赔偿</el-button>
         </div>
@@ -131,26 +136,6 @@
             </template>
         </el-dialog>
 
-        <!-- 取走对话框 -->
-        <el-dialog title="取走" v-model="showPickUpDialog" width="500px" append-to-body>
-            <el-form ref="pickupRef" :model="pickupForm" :rules="pickupRules" label-width="80px">
-                <el-form-item label="取走方式">
-                    <el-radio-group v-model="pickupForm.deliveryMode">
-                        <el-radio v-for="dict in sys_delivery_mode" :key="dict.value" :value="dict.value">
-                            {{ dict.label }}
-                        </el-radio>
-                    </el-radio-group>
-                </el-form-item>
-            </el-form>
-            <!-- 取消确认 -->
-            <template #footer>
-                <div class="pickup-footer">
-                    <el-button type="primary" @click="pickup">确认取走</el-button>
-                    <el-button type="primary" @click="cancelPickup">取消</el-button>
-                </div>
-            </template>
-        </el-dialog>
-
         <!-- 赔偿对话框 -->
         <el-dialog title="赔偿" v-model="showCompensationDialog" width="500px" append-to-body>
             <el-form ref="compensationRef" :model="compensationForm" :rules="compensationRules" label-width="80px">
@@ -182,7 +167,6 @@ import { listCloths } from "@/api/system/cloths";
 import { listTags } from "@/api/system/tags";
 import { ref } from "vue";
 import { getCloths, hangup } from "@/api/system/cloths";
-import { getAvailableRack } from "@/api/system/rack";
 import { getUser } from "@/api/system/user";
 import { addExpenditure } from "@/api/system/expenditure";
 
@@ -363,18 +347,15 @@ function handleSelectionChange(selection) {
 
 /* 显示上挂 */
 function handleShowHangUp(row) {
-    // 查找最合适的衣挂位置
-    getAvailableRack().then(res => {
-        showHangUp.value = true;
-        currentCloth.value = row;
-        hangForm.value = {
-            clothId: row.clothId,
-            clothingNumber: row.hangClothCode,
-            hangLocationId: res.data.id,
-            hangerNumber: res.data.remainingCapacity,
-            hangRemark: null
-        };
-    })
+    showHangUp.value = true;
+    currentCloth.value = row;
+    hangForm.value = {
+        clothId: row.clothId,
+        clothingNumber: row.hangClothCode,
+        hangLocationId: row.hangLocationCode,
+        hangerNumber: row.hangerNumber,
+        hangRemark: null
+    };
 }
 
 /* 赔偿 */

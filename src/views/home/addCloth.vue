@@ -3,11 +3,21 @@
         <el-row :gutter="10" v-if="!props.isRewash" class="mb8">
             <el-col :span="1.5">
                 <el-button type="primary" plain icon="Plus" @click="handleAdd" :disabled="props.disabled"
-                    v-hasPermi="['system:cloths:add']">新增</el-button>
+                    v-hasPermi="['system:cloths:add']">添加衣物</el-button>
             </el-col>
         </el-row>
 
         <el-table :data="clothList">
+            <el-table-column label="衣物名称" align="center" prop="clothingColor">
+                <template #default="scope">
+                    {{ scope.row.clothInfo.clothingName }}
+                </template>
+            </el-table-column>
+            <el-table-column label="衣物编码" align="center" prop="clothingColor">
+                <template #default="scope">
+                    {{ scope.row.hangClothCode }}
+                </template>
+            </el-table-column>
             <el-table-column label="衣物颜色" align="center" prop="clothingColor">
                 <template #default="scope">
                     <el-tag v-if="scope.row.clothingColor" type="success">
@@ -116,8 +126,8 @@
                 <el-step class="step-item"
                     :title="sys_cloth_cate.find(item => item.value == form.clothingCategory).label" :icon="CopyDocument"
                     v-if="step == maxStepNum" @click="jumpToStep(0)" />
-                <el-step class="step-item" :title="sys_cloth_style.find(item => item.value == form.clothingStyle).label"
-                    :icon="User" v-if="step == maxStepNum" @click="jumpToStep(1)" />
+                <el-step class="step-item" :title="findClothingName()" :icon="User" v-if="step == maxStepNum"
+                    @click="jumpToStep(1)" />
                 <el-step class="step-item" :title="findColorName()" :icon="PictureRounded" v-if="step == maxStepNum"
                     @click="jumpToStep(2)" />
                 <el-step class="step-item" title="洗前瑕疵" :icon="WarningFilled" v-if="step == maxStepNum"
@@ -159,29 +169,37 @@
                             <el-button v-if="showAddClothBtn" type="primary" @click="handleAddCloth">新增</el-button>
                         </div>
                     </el-form-item>
-                    <el-form-item label="洗护价格" v-if="showAddClothBtn && showPriceContent">
-                        <div class="price-content">
-                            <div class="price-wrapper">
-                                <el-input-number v-model="form.clothInfo.clothingBasePrice" :min="0" :controls="false"
-                                    placeholder="请输入基准价格" />
-                                <el-input-number v-model="form.clothInfo.clothingMinPrice" :min="0" :controls="false"
-                                    placeholder="请输入最低价格" />
-                                <el-input-number v-model="form.clothInfo.clothingMetuanPrice" :min="0" :controls="false"
-                                    placeholder="请输入美团价格" />
-                                <el-input-number v-model="form.clothInfo.clothingDouyinPrice" :min="0" :controls="false"
-                                    placeholder="请输入抖音价格" />
-                                <el-input-number v-model="form.clothInfo.clothingXiaochenxuPrice" :min="0"
-                                    :controls="false" placeholder="请输入小程序价格" />
+                    <div v-if="showAddClothBtn && showPriceContent">
+                        <el-form-item label="洗护价格" v-if="showAddClothBtn && showPriceContent">
+                            <div class="price-content">
+                                <div class="price-wrapper">
+                                    <el-input-number v-model="form.clothInfo.clothingBasePrice" :min="0"
+                                        :controls="false" placeholder="请输入基准价格" />
+                                    <el-input-number v-model="form.clothInfo.clothingMinPrice" :min="0"
+                                        :controls="false" placeholder="请输入最低价格" />
+                                    <el-input-number v-model="form.clothInfo.clothingMetuanPrice" :min="0"
+                                        :controls="false" placeholder="请输入美团价格" />
+                                    <el-input-number v-model="form.clothInfo.clothingDouyinPrice" :min="0"
+                                        :controls="false" placeholder="请输入抖音价格" />
+                                    <el-input-number v-model="form.clothInfo.clothingXiaochenxuPrice" :min="0"
+                                        :controls="false" placeholder="请输入小程序价格" />
+                                    <el-button type="primary" @click="createCloth">确定添加</el-button>
+                                </div>
                             </div>
-                            <el-button type="primary" @click="createCloth">确定添加</el-button>
-                        </div>
-                    </el-form-item>
+                        </el-form-item>
+                        <el-form-item label="衣挂方式">
+                            <el-radio-group v-model="form.clothInfo.hangType">
+                                <el-radio :value="'1'">输送线</el-radio>
+                                <el-radio :value="'2'">其他</el-radio>
+                            </el-radio-group>
+                        </el-form-item>
+                    </div>
                     <!-- 展示衣物标签 -->
                     <el-row class="item-list-area">
                         <el-radio-group class="color-radio-group" v-model="form.clothingId" @change="step2ClothChange">
                             <el-radio v-for="color in clothingList" :key="color.clothingId" :value="color.clothingId">{{
                                 color.clothingName
-                                }}</el-radio>
+                            }}</el-radio>
                         </el-radio-group>
                     </el-row>
                     <el-row class="footer-btn">
@@ -307,7 +325,9 @@
                     <el-row>
                         <el-col :span="12" class="markup">
                             <el-form-item label="收费价格">
-                                {{ form.priceValue }}
+                                <span style="color: red; font-weight: bold">
+                                    {{ form.priceValue }}
+                                </span>
                                 <!-- <el-input-number v-model="form.priceValue" :min="0" controls-position="right" /> -->
                             </el-form-item>
                         </el-col>
@@ -522,7 +542,6 @@ function jumpToStep(stepNum) {
 }
 
 function handleRemovePicture(event) {
-    console.log(event)
     delClothPicture(currentCloth.value.clothId, event.response.id).then(res => {
         proxy.$modal.msgSuccess("删除成功");
         prePictureList.value = prePictureList.value.filter(item => item.id != event.response.id);
@@ -539,12 +558,10 @@ function removePicByClick(id) {
 }
 
 function handleUploadPreSucess(event) {
-    console.log(event)
     prePictureList.value.unshift({ id: event.id, url: pictureUrl.value + event.id });
 }
 
 function handleUploadAfterSucess(event) {
-    console.log(event)
     afterPictureList.value.unshift({ id: event.id, url: pictureUrl.value + event.id });
 }
 
@@ -566,6 +583,16 @@ function findColorName() {
         return color ? color.tagName : '未选择颜色';
     } else {
         return '未选择颜色';
+    }
+}
+
+// 获取衣物名称
+function findClothingName() {
+    if (form.value.clothingId) {
+        const color = clothingList.value.find(item => item.clothingId == form.value.clothingId);
+        return color ? color.clothingName : '未选择衣物';
+    } else {
+        return '未选择衣物';
     }
 }
 
@@ -592,7 +619,6 @@ function cateChange(value) {
 function handlePreview(file) {
     dialogImageUrl.value = file.response.url;
     dialogVisible.value = true;
-    console.log(file)
 }
 
 // 当订单id不为空时那么为修改操作
@@ -646,6 +672,7 @@ function reset() {
         createTime: null
     };
     step.value = 0;
+    clothNameInput.value = null;
     showAddBrandBtn.value = false;
     showAddColorBtn.value = false;
     showAddFlawBtn.value = false;
@@ -757,7 +784,8 @@ function submitForm() {
                 addCloths(submitData).then(response => {
                     proxy.$modal.msgSuccess("新增成功");
                     open.value = false;
-                    form.value.clothId = response.data;
+                    form.value = response.data;
+                    form.value.clothInfo = clothingList.value.find(item => item.clothingId == submitData.clothingId);
                     clothList.value.push(form.value);
                     props.submit(clothList.value);
                 });
@@ -769,7 +797,6 @@ function submitForm() {
 
 /** 删除按钮操作 */
 function handleDelete(row) {
-    console.log(row)
     const _orderClothIds = row.clothId;
     proxy.$modal.confirm('是否确认删除订单包含的衣物清单编号为"' + _orderClothIds + '"的数据项？').then(function () {
         return delCloths(_orderClothIds);
@@ -809,16 +836,11 @@ function jump2last() {
 }
 
 /* 获取衣物列表 */
-function getClothingList(name) {
+function getClothingList() {
     clothListloading.value = true;
-    listClothing({ clothingName: name }).then(res => {
+    listClothing().then(res => {
         clothingList.value = res.rows;
         clothListloading.value = false;
-        if (name.length > 0 && res.rows.length > 0) {
-            showAddClothBtn.value = true;
-        } else {
-            showAddClothBtn.value = false;
-        }
     });
 }
 
@@ -925,7 +947,9 @@ function handleShowHistory() {
 /* 显示添加衣物按钮 */
 function handleAddCloth() {
     showPriceContent.value = true;
-    form.value.clothInfo = {};
+    form.value.clothInfo = {
+        hangType: '1'
+    };
 }
 
 function createCloth() {
@@ -995,7 +1019,9 @@ function addItemToList(type, item) {
 /* 衣物发生变化时要将最后一步的价格设置为选中衣物中的价格 */
 function step2ClothChange() {
     if (form.value.clothingId) {
-        form.value.priceValue = clothingList.value.find(item => item.clothingId == form.value.clothingId).clothingBasePrice;
+        const cloth = clothingList.value.find(item => item.clothingId == form.value.clothingId);
+        form.value.priceValue = cloth.clothingBasePrice;
+        form.value.hangType = cloth.hangType;
     }
 }
 
@@ -1006,7 +1032,6 @@ function handleShowUploadPic(row) {
     uploadBeforeImgUrl.value = baseUploadBeforeUrl + row.clothId;
     uploadAfterImgUrl.value = baseUploadAfterUrl + row.clothId;
     handleShowPicture(row);
-    console.log(currentCloth.value)
 }
 
 /* 关闭上传图片时清理对象 */
@@ -1015,22 +1040,6 @@ function handleCloseUploadPic() {
     prePictureList.value = [];
     afterPictureList.value = [];
 }
-
-// // 获取复洗的衣物列表
-// function getRewashedClothes() {
-//     listClothesByIds(props.clothIds).then(res => {
-//         clothList.value = res.rows;
-//         clothList.value.map(item => {
-//             if (item.estimate) {
-//                 item.estimateArr = item.estimate.split(',').map(Number);
-//             }
-//             if (item.clothingFlaw) {
-//                 item.clothingFlawArr = item.clothingFlaw.split(',').map(Number);
-//             }
-//             // 修改衣物状态为
-//         })
-//     })
-// }
 
 onMounted(async () => {
     await initList();  // 确保 initList 完成
@@ -1111,13 +1120,13 @@ onMounted(async () => {
 .price-content {
     width: 100%;
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
     gap: 1rem;
 
     .price-wrapper {
         width: 100%;
         display: flex;
-        justify-content: flex-start;
+        justify-content: space-around;
         gap: .25rem;
     }
 }

@@ -135,14 +135,7 @@ function cancel() {
     });
 }
 
-function getClothes() {
-    rewash(props.clothes).then(res => {
-        clothList.value = res.rows;
-        adjustInput();
-    });
-}
-
-onMounted(() => {
+onMounted(async () => {
     if (props.visible) {
         if (props.clothes.length == 0) {
             proxy.$modal.msgError('请选择需要复洗的衣物');
@@ -150,8 +143,11 @@ onMounted(() => {
         }
         reset();
         order.value = props.order;
+        await rewash(props.clothes).then(res => {
+            clothList.value = res.rows;
+            adjustInput();
+        });
         showRewashDialog.value = true;
-        getClothes();
     }
 });
 </script>

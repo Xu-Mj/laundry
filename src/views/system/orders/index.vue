@@ -48,31 +48,21 @@
           <dict-tag :options="sys_business_type" :value="scope.row.businessType" />
         </template>
       </el-table-column>
-      <el-table-column label="订单创建时间" align="center" prop="createTime" width="180">
+      <el-table-column label="收衣时间" align="center" prop="createTime">
         <template #default="scope">
-          <span>{{ parseTime(scope.row.createTime, '{y}-{m}-{d}') }}</span>
+          <span>{{ parseTime(scope.row.createTime) }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="预计完成时间" align="center" prop="desireCompleteTime" width="180">
-        <template #default="scope">
-          <span>{{ parseTime(scope.row.desireCompleteTime, '{y}-{m}-{d}') }}</span>
-        </template>
-      </el-table-column>
+
       <el-table-column label="时效预警" align="center" prop="costTimeAlarm">
         <template #default="scope">
           <dict-tag :options="sys_cost_time_alarm" :value="scope.row.costTimeAlarm" />
         </template>
       </el-table-column>
       <el-table-column label="取件码" align="center" prop="pickupCode" />
-      <el-table-column label="订单完成时间" align="center" prop="completeTime" width="140">
+      <el-table-column label="订单完成时间" align="center" prop="completeTime">
         <template #default="scope">
-          <span>{{ parseTime(scope.row.completeTime, '{y}-{m}-{d}') }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column label="取回方式" align="center" prop="deliveryMode">
-        <template #default="scope">
-          <dict-tag :options="sys_delivery_mode" :value="scope.row.deliveryMode"
-            @click="handleDeliveryMode(scope.row)" />
+          <span>{{ scope.row.completeTime }}</span>
         </template>
       </el-table-column>
       <el-table-column label="订单来源" align="center" prop="source">
@@ -80,12 +70,9 @@
           <dict-tag :options="sys_price_order_type" :value="scope.row.source" />
         </template>
       </el-table-column>
-      <el-table-column label="状态" align="center" prop="status" :width="140">
+      <el-table-column label="洗护状态" align="center" prop="status">
         <template #default="scope">
-          <div class="status-row">
-            <dict-tag :options="sys_order_status" :value="scope.row.status" />
-            <dict-tag :options="sys_payment_status" :value="scope.row.paymentStatus" />
-          </div>
+          <dict-tag :options="sys_order_status" :value="scope.row.status" />
         </template>
       </el-table-column>
       <el-table-column label="订单类型" align="center" prop="orderType">
@@ -95,7 +82,20 @@
       </el-table-column>
       <el-table-column label="支付状态" align="center" prop="paymentStatus">
         <template #default="scope">
-          <dict-tag :options="sys_payment_status" :value="scope.row.paymentStatus" />
+          <dict-tag v-if="scope.row.paymentStatus === '01'" style="cursor: pointer;" @click="go2pay(scope.row)"
+            :options="sys_payment_status" :value="scope.row.paymentStatus" />
+          <dict-tag v-else :options="sys_payment_status" :value="scope.row.paymentStatus" />
+        </template>
+      </el-table-column>
+      <el-table-column label="取回方式" align="center" prop="deliveryMode">
+        <template #default="scope">
+          <dict-tag :options="sys_delivery_mode" :value="scope.row.deliveryMode"
+            @click="handleDeliveryMode(scope.row)" />
+        </template>
+      </el-table-column>
+      <el-table-column label="预计完成时间" align="center" prop="desireCompleteTime">
+        <template #default="scope">
+          <span>{{ parseTime(scope.row.desireCompleteTime, '{y}-{m}-{d}') }}</span>
         </template>
       </el-table-column>
       <el-table-column label="备注" align="center" prop="remark" show-overflow-tooltip />
@@ -234,6 +234,8 @@
       <CreateOrder ref="createOrderRef" :orderId="currentOrderId" :userId="currentUserId"
         :toggle="() => { open = !open; getList(); }" :refresh="getList" :key="open" />
     </el-dialog>
+    <Pay :visible="showPaymentDialog" :key="showPaymentDialog" :order="currentOrder" :refresh="getList"
+      :toggle="() => { showPaymentDialog = !showPaymentDialog }" />
   </div>
 </template>
 
@@ -246,6 +248,8 @@ import { addRecord } from '@/api/system/notice_record';
 import { listTemplate } from '@/api/system/template';
 import ShowCloths from './showCloths.vue';
 import CreateOrder from "@/views/home/createOrder.vue";
+import Pay from "@/views/home/pay.vue";
+import { listCloths } from "../../../api/system/cloths";
 
 const { proxy } = getCurrentInstance();
 const {
@@ -283,10 +287,12 @@ const showNoticeDialog = ref(false);
 const showRefundDialog = ref(false);
 const loading = ref(true);
 const showSearch = ref(true);
+const showPaymentDialog = ref(false);
 const total = ref(0);
 const title = ref("");
 const expressInfo = ref({});
 const deliveryInfo = ref({});
+const currentOrder = ref({});
 
 const currentOrderId = ref(0);
 const currentUserId = ref(0);
@@ -323,6 +329,15 @@ const data = reactive({
 
 const { queryParams, refundForm, notifyForm, refundRules } = toRefs(data);
 
+function go2pay(row) {
+  // 根据订单id查询衣物列表
+  listCloths({ orderClothId: row.orderId }).then(res => {
+    currentOrder.value = row;
+    currentOrder.value.cloths = res.rows;
+    showPaymentDialog.value = true;
+  });
+}
+
 /** 查询洗护服务订单列表 */
 function getList() {
   loading.value = true;
@@ -330,6 +345,7 @@ function getList() {
     ordersList.value = response.rows;
     total.value = response.total;
     loading.value = false;
+    currentOrder.value = null;
   });
 }
 

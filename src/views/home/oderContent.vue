@@ -52,7 +52,12 @@
                                 scope.row.clothingColor).tagName : '' }}
                         </template>
                     </el-table-column>
-                    <el-table-column label="服务类型" :width="120" align="center">
+                    <el-table-column label="衣物编码" align="center" prop="clothingColor">
+                        <template #default="scope">
+                            {{ scope.row.hangClothCode }}
+                        </template>
+                    </el-table-column>
+                    <el-table-column label="服务类型" align="center">
                         <template #default="scope">
                             <span class="service-type">
                                 <dict-tag :options="sys_service_type" :value="scope.row.serviceType" />
@@ -86,7 +91,7 @@
                             </el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column label="图片" align="center" :width="95" class-name="small-padding fixed-width">
+                    <el-table-column label="图片" align="center" class-name="small-padding fixed-width">
                         <template #default="scope">
                             <el-button link type="primary"
                                 :disabled="scope.row.beforePics == null || scope.row.beforePics.length == 0"
@@ -98,7 +103,7 @@
                                 v-hasPermi="['system:cloths:edit']">洗后</el-button>
                         </template>
                     </el-table-column>
-                    <el-table-column label="状态" align="center" prop="clothingStatus">
+                    <el-table-column label="洗护状态" align="center" prop="clothingStatus">
                         <template #default="scope">
                             <dict-tag :options="sys_clothing_status" :value="scope.row.clothingStatus" />
                         </template>
@@ -110,7 +115,7 @@
                     </el-table-column>
                     <el-table-column label="取回时间" align="center" prop="pickupTime" width="180">
                         <template #default="scope">
-                            <span>{{ parseTime(scope.row.pickupTime, '{y}-{m}-{d}') }}</span>
+                            <span>{{ parseTime(scope.row.pickupTime) }}</span>
                         </template>
                     </el-table-column>
                     <el-table-column label="上挂位置" align="center">
@@ -382,7 +387,7 @@ const data = reactive({
     pickupRules: {},
     queryParams: {
         orderNumber: null,
-        phonenumber: null,
+        phonenumber: "5632",
         pickupCode: null,
     },
 });

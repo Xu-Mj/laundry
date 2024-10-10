@@ -199,7 +199,7 @@
                         <el-radio-group class="color-radio-group" v-model="form.clothingId" @change="step2ClothChange">
                             <el-radio v-for="color in clothingList" :key="color.clothingId" :value="color.clothingId">{{
                                 color.clothingName
-                            }}</el-radio>
+                                }}</el-radio>
                         </el-radio-group>
                     </el-row>
                     <el-row class="footer-btn">
@@ -595,19 +595,6 @@ function findClothingName() {
         return '未选择衣物';
     }
 }
-
-// 获取分类名称
-// function findStyleLabel() {
-//     // 应该先判断一下sys_cloth_style是否为空
-//     if (sys_cloth_style.value.length === 0) {
-//         getDicts("sys_cloth_style").then(resp => {
-//             sys_cloth_style.value = resp.data.map(p => ({ label: p.dictLabel, value: p.dictValue, elTagType: p.listClass, elTagClass: p.cssClass }))
-//             useDictStore().setDict("sys_cloth_cate", sys_cloth_cate.value);
-//         })
-//     }
-//     const style = sys_cloth_style.value.find(item => item.value == form.clothingStyle);
-//     return style ? style.label : '未选择分类';
-// }
 
 // 当品类发生变化时动态查询子分类列表
 function cateChange(value) {

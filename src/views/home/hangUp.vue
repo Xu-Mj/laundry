@@ -3,8 +3,8 @@
         :before-close="closeHangUpDialog">
         <el-form ref="hangUpRef" :model="hangForm" :rules="hangRules" label-width="80px">
             <el-form-item label="衣物编码" prop="clothingNumber">
-                <el-input v-model="hangForm.clothingNumber" @input="getClothInfo" @change="getClothInfo"
-                    @keydown.enter="getClothInfoByEnter" placeholder="请输入衣物编码" />
+                <el-input v-model="hangForm.clothingNumber" @change="getClothInfo" @keydown.enter="getClothInfoByEnter"
+                    placeholder="请输入衣物编码" />
             </el-form-item>
             <el-form-item label="衣物信息">
                 <span v-if="currentCloth">

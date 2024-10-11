@@ -924,8 +924,8 @@ function handleShowHistory() {
         listHistoryCloths(props.userId).then(res => {
             clothHistoryList.value = res.rows;
             clothHistoryList.value.map(item => {
-                item.clothingFlawArr = item.clothingFlaw.split(',');
-                item.estimateArr = item.estimate.split(',');
+                item.clothingFlawArr = item.clothingFlaw ? item.clothingFlaw.split(',') : [];
+                item.estimateArr = item.estimate ? item.estimate.split(',') : [];
             });
         })
     }

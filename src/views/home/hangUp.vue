@@ -1,10 +1,10 @@
 <template>
     <el-dialog :title="title" v-model="open" width="400px" :show-close="false" append-to-body
-        :before-close="closeHangUpDialog">
+        :before-close="closeHangUpDialog" @opened="refGetFocus">
         <el-form ref="hangUpRef" :model="hangForm" :rules="hangRules" label-width="80px">
             <el-form-item label="衣物编码" prop="clothingNumber">
-                <el-input v-model="hangForm.clothingNumber" @change="getClothInfo" @keydown.enter="getClothInfoByEnter"
-                    placeholder="请输入衣物编码" />
+                <el-input ref="clothingNumberRef" v-model="hangForm.clothingNumber" @change="getClothInfo"
+                    @keydown.enter="getClothInfoByEnter" placeholder="请输入衣物编码" />
             </el-form-item>
             <el-form-item label="衣物信息">
                 <span v-if="currentCloth">
@@ -20,7 +20,11 @@
             </el-form-item>
 
             <el-form-item label="衣挂位置" prop="hangLocationId">
-                <el-input v-model="hangForm.hangLocationId" placeholder="请输入上挂位置编码" />
+                <!-- <el-input v-model="hangForm.hangLocationId" placeholder="请输入上挂位置编码" /> -->
+                <el-select v-model="hangForm.hangLocationId" placeholder="请选择上挂位置编码">
+                    <el-option v-for="item in hangLocationList" :key="item.id" :label="item.name" :value="item.id">
+                    </el-option>
+                </el-select>
             </el-form-item>
             <el-form-item label="衣挂编号" prop="hangerNumber">
                 <el-input v-model="hangForm.hangerNumber" placeholder="请输入上挂衣物编码" />
@@ -31,7 +35,7 @@
         </el-form>
         <template #footer>
             <div class="hangup-footer">
-                <el-button type="primary" @click="hangUp">确认上挂</el-button>
+                <el-button type="primary" ref="hangUpBtnRef" @click="hangUp">确认上挂</el-button>
             </div>
         </template>
     </el-dialog>
@@ -40,6 +44,7 @@
 <script setup name="HangUp">
 import { getClothByCode, hangup } from "@/api/system/cloths";
 import { listTags } from "@/api/system/tags";
+import { listRack } from "@/api/system/rack";
 
 const props = defineProps({
     visible: {
@@ -80,6 +85,9 @@ const brandList = ref([]);
 const open = ref(false);
 
 const currentCloth = ref(null);
+const clothingNumberRef = ref();
+const hangUpBtnRef = ref();
+const hangLocationList = ref();
 
 function getClothInfoByEnter(event) {
     event.preventDefault();
@@ -87,10 +95,12 @@ function getClothInfoByEnter(event) {
 }
 
 function getClothInfo() {
-    getClothByCode(hangForm.value.clothingNumber).then(res => {
+    getClothByCode(hangForm.value.clothingNumber.trim()).then(res => {
         currentCloth.value = res.data;
         if (!currentCloth.value) {
             proxy.$modal.msgError("衣物编码关联的衣物不存在");
+        } else if (currentCloth.value.clothingStatus === '02') {
+            proxy.$modal.msgWarning("衣物编码关联的衣物已上挂");
         } else {
             // 查找最合适的衣挂位置
             hangForm.value = {
@@ -100,6 +110,8 @@ function getClothInfo() {
                 hangerNumber: currentCloth.value.hangerNumber,
                 hangRemark: currentCloth.value.hangRemark,
             };
+            // 找到了，确认上挂获取焦点
+            hangUpBtnRef.value.$el.focus();
         }
     })
 }
@@ -176,10 +188,20 @@ function closeHangUpDialog(done) {
     props.taggle();
 }
 
+// 弹窗开启的时候获取焦点
+function refGetFocus() {
+    // 取得焦点
+    clothingNumberRef.value.focus();
+}
+
 onMounted(async () => {
     if (props.visible) {
         await initList();
         open.value = true;
+        // 获取衣挂列表
+        listRack().then(res => {
+            hangLocationList.value = res.rows;
+        })
     }
 });
 </script>

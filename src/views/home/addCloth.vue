@@ -197,8 +197,9 @@
                     <!-- 展示衣物标签 -->
                     <el-row class="item-list-area">
                         <el-radio-group class="color-radio-group" v-model="form.clothingId" @change="step2ClothChange">
-                            <el-radio v-for="color in clothingList" :key="color.clothingId" :value="color.clothingId">{{
-                                color.clothingName
+                            <el-radio v-for="color in clothingListFilterResult" :key="color.clothingId"
+                                :value="color.clothingId">{{
+                                    color.clothingName
                                 }}</el-radio>
                         </el-radio-group>
                     </el-row>
@@ -465,6 +466,7 @@ const clothList = ref([]);
 
 // 选择衣物时展示的衣物列表
 const clothingList = ref([]);
+const clothingListFilterResult = ref([]);
 const clothStyleList = ref([]);
 // 该用户洗过的衣物历史记录
 const clothHistoryList = ref([]);
@@ -812,6 +814,9 @@ function nextStep() {
         step.value++;
     }
 
+    if (step.value === 1) {
+        clothingListFilterResult.value = clothingList.value.filter(item => item.clothingCategory === form.value.clothingCategory && item.clothingStyle === form.value.clothingStyle);
+    }
     if (step.value === 1 && clothNameRef.value) {
         clothNameRef.value.focus();
     }

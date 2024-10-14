@@ -82,15 +82,7 @@
                 <span style="color: red;" v-if="coupons && coupons.length > 0">
                     {{ coupons.filter(item => item.coupon.couponType == '000').reduce((acc, cur) => acc +
                         cur.availableValue, 0) }}
-                    <!-- <div class="user-tags-container">
-                        <span v-for="(card, index) in coupons" :key="index">
-                            {{ card.coupon.couponTitle }}
-                            -余额
-                            {{ card.availableValue }}
-                            {{ card.coupon.couponType == '000' ? '元' : '次' }}
-                            {{ index === coupons.length - 1 ? '' : '|' }}
-                        </span>
-                    </div> -->
+                    元
                 </span>
             </div>
             <!-- 卡券列表信息 -->

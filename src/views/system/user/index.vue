@@ -67,12 +67,20 @@
             </template>
          </el-table-column>
          <el-table-column label="会员住址" align="center" key="address" prop="address" v-if="columns[14].visible" />
+         <el-table-column label="余额" align="center" prop="balance" v-if="columns[15].visible">
+            <template #default="scope">
+               <span style="color: red;">
+                  {{ scope.row.balance }}
+               </span>
+               元
+            </template>
+         </el-table-column>
          <el-table-column label="会员积分" align="center" v-if="columns[11].visible">
             <template #default="scope">
                <el-tooltip content="查看历史记录" placement="top">
                   <el-button type="primary" link @click="queryIntegralList(scope.row.userId)"
                      v-hasPermi="['system:record:list']">{{
-                     scope.row.integral }}</el-button>
+                        scope.row.integral }}</el-button>
                </el-tooltip>
             </template>
          </el-table-column>
@@ -310,7 +318,8 @@ const columns = ref([
    { key: 12, label: `会员积分`, visible: true },
    { key: 13, label: `会员画像`, visible: true },
    { key: 14, label: `黑灰名单`, visible: false },
-   { key: 14, label: `会员住址`, visible: false },
+   { key: 15, label: `会员住址`, visible: false },
+   { key: 16, label: `余额`, visible: true },
 ]);
 
 const data = reactive({

@@ -405,7 +405,7 @@
 <script setup name="AddCloth">
 import { listHistoryCloths, delCloths, addCloths, updateCloths, getCloths } from "@/api/system/cloths";
 import { Camera, CoffeeCup, CollectionTag, CopyDocument, PictureRounded, User, WarningFilled } from "@element-plus/icons-vue";
-import { listClothing, addClothing } from "@/api/system/clothing";
+import { listClothingWithNoLimit, addClothing } from "@/api/system/clothing";
 import { getDicts } from '@/api/system/dict/data'
 import { listTags, addTags } from "@/api/system/tags";
 import pinyin from 'pinyin';
@@ -677,7 +677,7 @@ async function initList() {
 
     // 获取衣物列表
     if (clothingList.value.length === 0) {
-        const clothingPromise = listClothing({}).then(response => {
+        const clothingPromise = listClothingWithNoLimit().then(response => {
             clothingList.value = response.rows;
         });
         promises.push(clothingPromise);
@@ -828,9 +828,9 @@ function jump2last() {
 }
 
 /* 获取衣物列表 */
-function getClothingList() {
+async function getClothingList() {
     clothListloading.value = true;
-    listClothing().then(res => {
+    listClothingWithNoLimit().then(res => {
         clothingList.value = res.rows;
         clothListloading.value = false;
     });
@@ -853,10 +853,11 @@ function searchCloth(color) {
     }
 
     // 颜色、瑕疵、洗后预估、品牌是从第3步开始渲染的，因此要-2
-    const item = clothingList.value.find(item => {
+    const item = clothingListFilterResult.value.find(item => {
         return item.clothingName.includes(upperCaseColor) || getPinyinInitials(item.clothingName).includes(upperCaseColor);
     });
 
+    console.log(item, '22222')
     if (!item) {
         showAddClothBtn.value = true;
         form.value.clothingColor = null;
@@ -959,12 +960,22 @@ function createCloth() {
     data.clothingStyle = form.value.clothingStyle;
     data.clothingName = clothNameInput.value;
 
-    addClothing(data).then(response => {
+    addClothing(data).then(async response => {
         proxy.$modal.msgSuccess("新增衣物成功");
-        getClothingList();
+        data.clothingId = response.data;
+        // await getClothingList();
         showPriceContent.value = false;
         showAddClothBtn.value = false;
         form.value.clothInfo = {};
+        clothNameInput.value = null;
+        form.value.clothingId = data.clothingId;
+        form.value.priceValue = data.clothingBasePrice;
+        form.value.hangType = data.hangType;
+        // refresh clothingList
+        clothingListFilterResult.value.push(data);
+        clothingList.value.push(data);
+        // next step
+        nextStep();
     })
 }
 

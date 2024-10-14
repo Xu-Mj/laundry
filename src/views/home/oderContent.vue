@@ -37,7 +37,10 @@
                     <span>取件码: {{ order.pickupCode }}</span>
                     <!-- 支付状态 -->
                     <span style="display: flex; align-items: center; gap: .5rem;">支付状态:
-                        <dict-tag :options="sys_payment_status" :value="order.paymentStatus" />
+                        <!-- <dict-tag :options="sys_payment_status" :value="order.paymentStatus" /> -->
+                        <dict-tag v-if="order.paymentStatus === '01'" style="cursor: pointer;" @click="go2pay(order)"
+                            :options="sys_payment_status" :value="order.paymentStatus" />
+                        <dict-tag v-else :options="sys_payment_status" :value="order.paymentStatus" />
                     </span>
                 </div>
                 <!-- 订单包含的衣物列表 -->
@@ -234,7 +237,9 @@
                         </div>
                     </div>
                 </el-form-item>
-                <el-form-item label="优惠券">
+                <el-form-item
+                    v-if="userCouponList.filter(item => item.coupon.couponType !== '002' && item.coupon.couponType !== '000').length != 0"
+                    label="优惠券">
                     <el-radio-group v-model="paymentForm.couponId" @change="changeCoupon(3)">
                         <el-radio
                             v-for="card in userCouponList.filter(item => item.coupon.couponType !== '000' && item.coupon.couponType !== '002')"
@@ -387,12 +392,40 @@ const data = reactive({
     pickupRules: {},
     queryParams: {
         orderNumber: null,
-        phonenumber: "5632",
+        phonenumber: null,
         pickupCode: null,
     },
 });
 
 const { deliveryForm, paymentForm, pickupRules, queryParams } = toRefs(data);
+
+async function go2pay(row) {
+    initPaymentForm();
+    paymentForm.value.orders = [row];
+    // 获取用户的卡券列表
+    await listUserCouponWithValidTime({ userId: row.userId }).then(response => {
+        userCouponList.value = response.rows;
+        // 初始化次卡信息
+        userCouponList.value.filter(item => item.coupon.couponType == '002').map(item => {
+            item.selected = false;
+            item.count = 1;
+        })
+    });
+    // 计算订单标题栏以及订单总金额
+    paymentForm.value.titles = paymentForm.value.orders.map(item => item.orderNumber + `(` + item.mount + `元)`).join(' | ');
+    paymentForm.value.totalAmount = paymentForm.value.orders.reduce((acc, cur) => acc + cur.mount, 0);
+
+    // 校验卡券
+    checkCoupon();
+    // 判断储值卡金额是否能够覆盖订单金额
+    const storageCardValue = userCouponList.value.filter(item => item.coupon.couponType === "000" && item.isValid).reduce((acc, cur) => acc + cur.availableValue, 0);
+    if (paymentForm.value.totalAmount < storageCardValue) {
+        paymentForm.value.paymentMethod = '06';
+    }
+    paymentForm.value.bonusAmount = 0;
+    paymentForm.value.paymentAmount = paymentForm.value.totalAmount;
+    showPaymentDialog.value = true;
+}
 
 // 显示售后复洗
 function handleReWash() {

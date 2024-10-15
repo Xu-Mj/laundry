@@ -18,10 +18,11 @@ export function rewash(query) {
 }
 
 // 查询订单包含的衣物清单列表
-export function listHistoryCloths(userId) {
+export function listHistoryCloths(query) {
   return request({
-    url: '/system/cloths/list/' + userId,
+    url: '/system/cloths/list/history',
     method: 'get',
+    params: query
   })
 }
 

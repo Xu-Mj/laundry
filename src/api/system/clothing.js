@@ -9,6 +9,14 @@ export function listClothing(query) {
   })
 }
 
+// 查询衣物管理列表
+export function listClothingWithNoLimit() {
+  return request({
+    url: '/system/clothing/list-no-limit',
+    method: 'get',
+  })
+}
+
 // 查询衣物管理详细
 export function getClothing(clothingId) {
   return request({

@@ -117,6 +117,10 @@
                             </span>
                         </div>
                     </el-form-item>
+                    <el-form-item v-if="form.userId" label-width="auto" label="历史消费：">
+                        <el-button type="primary" plain @click="() => { showHistoryDialog = true }">查看</el-button>
+                    </el-form-item>
+
                 </el-col>
                 <el-col class="right" :span="6">
                     <div class="btn-container">
@@ -249,6 +253,9 @@
             :close-on-click-modal="false">
             <CouponSale :userId="form.userId" :key="showCouponSale" :submit="submitCouponSale" />
         </el-dialog>
+
+        <History :visible="showHistoryDialog" :userId="currentUserId" :key="showHistoryDialog"
+            :toggle="() => { showHistoryDialog = !showHistoryDialog }" />
     </div>
 </template>
 
@@ -263,6 +270,7 @@ import { isCurrentTimeWithinRange, getFutureDate } from "@/utils";
 import { getConfigKey } from '@/api/system/config';
 import AddCloth from "./addCloth.vue";
 import CouponSale from './couponSale.vue';
+import History from "@/views/home/history.vue";
 
 const props = defineProps({
     orderId: {
@@ -306,6 +314,7 @@ const priceList = ref([]);
 const showCreateUser = ref(false);
 const showPaymentDialog = ref(false);
 const showCouponSale = ref(false);
+const showHistoryDialog = ref(false);
 const title = ref("");
 const totalPrice = ref(0);
 // 储值卡
@@ -1053,6 +1062,7 @@ function selectUser(userId) {
         form.value.nickName = null;
         return;
     }
+    currentUserId.value = userId;
     const item = userList.value.find(item => { return item.userId === userId });
     form.value.nickName = item.nickName;
     // 查询会员卡券信息

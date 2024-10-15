@@ -43,12 +43,27 @@
           {{ scope.row.nickName + ' - ' + scope.row.phonenumber }}
         </template>
       </el-table-column>
+      
+      <el-table-column label="订单金额" align="center" prop="paymentAmount">
+        <template #default="scope">
+          <span style="color: red">
+            {{ scope.row.paymentAmount }}
+          </span>
+        </template>
+      </el-table-column>
+      <el-table-column label="支付方式" align="center" prop="paymentBonusType">
+        <template #default="scope">
+          <dict-tag :options="sys_payment_method" :value="scope.row.paymentBonusType" />
+        </template>
+      </el-table-column>
+      <el-table-column label="卡券数量" align="center" prop="paymentBonusCount" />
+      <el-table-column label="取件码" align="center" prop="pickupCode" />
       <el-table-column label="业务类型" align="center" prop="businessType">
         <template #default="scope">
           <dict-tag :options="sys_business_type" :value="scope.row.businessType" />
         </template>
       </el-table-column>
-      <el-table-column label="收衣时间" align="center" prop="createTime">
+      <el-table-column label="收衣时间" align="center" prop="createTime" width="160">
         <template #default="scope">
           <span>{{ parseTime(scope.row.createTime) }}</span>
         </template>
@@ -59,8 +74,7 @@
           <dict-tag :options="sys_cost_time_alarm" :value="scope.row.costTimeAlarm" />
         </template>
       </el-table-column>
-      <el-table-column label="取件码" align="center" prop="pickupCode" />
-      <el-table-column label="订单完成时间" align="center" prop="completeTime">
+      <el-table-column label="订单完成时间" align="center" prop="completeTime" width="160">
         <template #default="scope">
           <span>{{ scope.row.completeTime }}</span>
         </template>

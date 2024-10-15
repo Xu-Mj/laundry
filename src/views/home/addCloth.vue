@@ -107,8 +107,7 @@
         </el-dialog>
         <!-- 添加或修改订单包含的衣物清单对话框 -->
         <el-dialog :title="title" v-model="open" width="1080px" modal :close-on-click-modal="false" @closed="reset()"
-            @keydown.enter.native="nextStep" @keydown.right.native="nextStep" @keydown.left.native="preStep"
-            append-to-body>
+            @keydown.right.native="nextStep" @keydown.left.native="preStep" append-to-body>
             <el-steps :active="step" finish-status="success" simple>
                 <el-step class="step-item" title="选择品类" :icon="CopyDocument" v-if="step !== maxStepNum"
                     @click="jumpToStep(0)" />
@@ -336,53 +335,7 @@
                             <el-form-item label="工艺加价">
                                 <el-input-number v-model="form.processMarkup" :min="0" controls-position="right" />
                             </el-form-item>
-                            <el-button type="primary" @click="handleShowHistory">{{ showHistory ? '隐藏历史' : '查看历史'
-                                }}</el-button>
                         </el-col>
-                    </el-row>
-                    <!-- 展示历史记录 -->
-                    <el-row v-show="showHistory">
-                        <el-table :data="clothHistoryList">
-                            <el-table-column label="服务日期" align="center" prop="createTime" />
-                            <el-table-column label="衣物颜色" align="center" prop="clothingColor">
-                                <template #default="scope">
-                                    <el-tag v-if="scope.row.clothingColor" type="success">
-                                        {{ scope.row.clothingColor ? colorList.find(item => {
-                                            return item.tagId ==
-                                                scope.row.clothingColor
-                                        }).tagName : '-' }}
-                                    </el-tag>
-                                </template>
-                            </el-table-column>
-                            <el-table-column label="服务类型" align="center" prop="serviceType">
-                                <template #default="scope">
-                                    <dict-tag :options="sys_service_type" :value="scope.row.serviceType" />
-                                </template>
-                            </el-table-column>
-                            <el-table-column label="洗后预估" align="center" prop="estimate">
-                                <template #default="scope">
-                                    <el-tag v-for="tagId in scope.row.estimateArr" :key="item" type="primary">
-                                        {{ estimateList.find(item => item.tagId == tagId).tagName }}
-                                    </el-tag>
-                                </template>
-                            </el-table-column>
-                            <el-table-column label="衣物瑕疵" align="center" prop="clothingFlaw">
-                                <template #default="scope">
-                                    <el-tag v-for="tagId in scope.row.clothingFlawArr" :key="item" type="danger">
-                                        {{ flawList.find(item => item.tagId == tagId).tagName }}
-                                    </el-tag>
-                                </template>
-                            </el-table-column>
-                            <el-table-column label="工艺加价" align="center" prop="processMarkup" />
-                            <el-table-column label="服务要求" align="center" prop="serviceRequirement">
-                                <template #default="scope">
-                                    <dict-tag :options="sys_service_requirement"
-                                        :value="scope.row.serviceRequirement" />
-                                </template>
-                            </el-table-column>
-                            <el-table-column label="价格" align="center" prop="priceValue" />
-                            <el-table-column label="补充信息" align="center" prop="hangRemark" />
-                        </el-table>
                     </el-row>
                     <el-row>
                         <el-col :span="12">
@@ -407,7 +360,7 @@ import { listHistoryCloths, delCloths, addCloths, updateCloths, getCloths } from
 import { Camera, CoffeeCup, CollectionTag, CopyDocument, PictureRounded, User, WarningFilled } from "@element-plus/icons-vue";
 import { listClothingWithNoLimit, addClothing } from "@/api/system/clothing";
 import { getDicts } from '@/api/system/dict/data'
-import { listTags, addTags } from "@/api/system/tags";
+import { listTagsNoLimit, addTags } from "@/api/system/tags";
 import pinyin from 'pinyin';
 import { ref, reactive, toRefs } from "vue";
 import { listCloths } from "@/api/system/cloths";
@@ -685,7 +638,7 @@ async function initList() {
 
     // 获取颜色列表
     if (colorList.value.length === 0) {
-        const colorPromise = listTags({ tagOrder: '003', status: "0" }).then(response => {
+        const colorPromise = listTagsNoLimit({ tagOrder: '003', status: "0" }).then(response => {
             colorList.value = response.rows;
         });
         promises.push(colorPromise);
@@ -693,7 +646,7 @@ async function initList() {
 
     // 获取瑕疵列表
     if (flawList.value.length === 0) {
-        const flawPromise = listTags({ tagOrder: '001', status: "0" }).then(response => {
+        const flawPromise = listTagsNoLimit({ tagOrder: '001', status: "0" }).then(response => {
             flawList.value = response.rows;
         });
         promises.push(flawPromise);
@@ -701,7 +654,7 @@ async function initList() {
 
     // 获取预估列表
     if (estimateList.value.length === 0) {
-        const estimatePromise = listTags({ tagOrder: '002', status: "0" }).then(response => {
+        const estimatePromise = listTagsNoLimit({ tagOrder: '002', status: "0" }).then(response => {
             estimateList.value = response.rows;
         });
         promises.push(estimatePromise);
@@ -709,7 +662,7 @@ async function initList() {
 
     // 获取品牌列表
     if (brandList.value.length === 0) {
-        const brandPromise = listTags({ tagOrder: '004', status: "0" }).then(response => {
+        const brandPromise = listTagsNoLimit({ tagOrder: '004', status: "0" }).then(response => {
             brandList.value = response.rows;
         });
         promises.push(brandPromise);
@@ -810,6 +763,23 @@ function nextStep() {
     if (step.value === 1 && !form.value.clothingId) {
         return;
     }
+
+    if (step.value === 2 && showAddColorBtn.value) {
+        // 如果颜色不存在那么自动创建
+        addTag("003", clothColorInput.value);
+        return;
+    } else if (step.value === 3 && showAddFlawBtn.value) {
+        // 如果瑕疵不存在那么自动创建
+        addTag("001", flawInput.value);
+        return;
+    } else if (step.value === 4 && showAddEstimateBtn.value) {
+        addTag("002", estimateInput.value);
+        return;
+    } else if (step.value === 5 && showAddBrandBtn.value) {
+        addTag("004", brandInput.value);
+        return;
+    }
+
     if (step.value !== maxStepNum) {
         step.value++;
     }
@@ -820,6 +790,7 @@ function nextStep() {
     if (step.value === 1 && clothNameRef.value) {
         clothNameRef.value.focus();
     }
+
 }
 
 /* 跳过后续步骤 */
@@ -857,7 +828,6 @@ function searchCloth(color) {
         return item.clothingName.includes(upperCaseColor) || getPinyinInitials(item.clothingName).includes(upperCaseColor);
     });
 
-    console.log(item, '22222')
     if (!item) {
         showAddClothBtn.value = true;
         form.value.clothingColor = null;
@@ -875,66 +845,102 @@ function searchColor(color) {
 
     // 颜色、瑕疵、洗后预估、品牌是从第3步开始渲染的，因此要-2
     const index = step.value - 2;
-    const item = featureList[index].value.find(item => {
-        return item.tagName.includes(upperCaseColor) || getPinyinInitials(item.tagName).includes(upperCaseColor);
-    });
-
-    if (!item) {
-        switch (index) {
-            case 0:
+    switch (index) {
+        case 0:
+            const item = featureList[index].value.find(item => {
+                return item.tagName.includes(upperCaseColor) || getPinyinInitials(item.tagName).includes(upperCaseColor);
+            });
+            if (!item) {
                 showAddColorBtn.value = true;
                 form.value.clothingColor = null;
-                break;
-            case 1:
-                showAddFlawBtn.value = true;
-                form.value.clothingFlaw = null;
-                break;
-            case 2:
-                showAddEstimateBtn.value = true;
-                form.value.estimate = null;
-                break;
-            case 3:
-                showAddBrandBtn.value = true;
-                form.value.clothingBrand = null;
-                break;
-            default: ;
-        }
-    } else {
-        switch (index) {
-            case 0:
+            } else {
                 form.value.clothingColor = item.tagId;
                 showAddColorBtn.value = false;
-                break;
-            case 1:
-                form.value.clothingFlaw = item.tagId;
-                showAddFlawBtn.value = false;
-                break;
-            case 2:
-                form.value.estimate = item.tagId;
-                showAddEstimateBtn.value = false;
-                break;
-            case 3:
-                form.value.clothingBrand = item.tagId;
-                showAddBrandBtn.value = false;
-                break;
-            default: ;
-        }
-
-    }
-}
-
-/* 显示历史记录 */
-function handleShowHistory() {
-    showHistory.value = !showHistory.value;
-    if (showHistory.value && clothHistoryList.value.length === 0) {
-        listHistoryCloths(props.userId).then(res => {
-            clothHistoryList.value = res.rows;
-            clothHistoryList.value.map(item => {
-                item.clothingFlawArr = item.clothingFlaw ? item.clothingFlaw.split(',') : [];
-                item.estimateArr = item.estimate ? item.estimate.split(',') : [];
+            }
+            break;
+        case 1:
+            const item1 = featureList[index].value.filter(item => {
+                return item.tagName.includes(upperCaseColor) || getPinyinInitials(item.tagName).includes(upperCaseColor);
             });
-        })
+            if (item1.length === 0) {
+                showAddFlawBtn.value = true;
+                form.value.clothingFlaw = null;
+            } else {
+                form.value.clothingFlawArr = [...item1.map(item => item.tagId)];
+                showAddFlawBtn.value = false;
+            }
+            break;
+        case 2:
+            const item2 = featureList[index].value.filter(item => {
+                return item.tagName.includes(upperCaseColor) || getPinyinInitials(item.tagName).includes(upperCaseColor);
+            });
+            if (item2.length === 0) {
+
+                showAddEstimateBtn.value = true;
+                form.value.estimate = null;
+            } else {
+                form.value.estimateArr = [...item2.map(item => item.tagId)];
+                showAddEstimateBtn.value = false;
+            }
+            break;
+        case 3:
+            const item3 = featureList[index].value.find(item => {
+                return item.tagName.includes(upperCaseColor) || getPinyinInitials(item.tagName).includes(upperCaseColor);
+            });
+            if (!item3) {
+                showAddBrandBtn.value = true;
+                form.value.clothingBrand = null;
+            } else {
+                form.value.clothingBrand = item3.tagId;
+                showAddBrandBtn.value = false;
+            }
+            break;
+        default: ;
     }
+
+
+    // if (!item) {
+    //     switch (index) {
+    //         case 0:
+    //             showAddColorBtn.value = true;
+    //             form.value.clothingColor = null;
+    //             break;
+    //         case 1:
+    //             showAddFlawBtn.value = true;
+    //             form.value.clothingFlaw = null;
+    //             break;
+    //         case 2:
+    //             showAddEstimateBtn.value = true;
+    //             form.value.estimate = null;
+    //             break;
+    //         case 3:
+    //             showAddBrandBtn.value = true;
+    //             form.value.clothingBrand = null;
+    //             break;
+    //         default: ;
+    //     }
+    // } else {
+    //     switch (index) {
+    //         case 0:
+    //             form.value.clothingColor = item.tagId;
+    //             showAddColorBtn.value = false;
+    //             break;
+    //         case 1:
+    //             form.value.clothingFlaw = item.tagId;
+    //             showAddFlawBtn.value = false;
+    //             break;
+    //         case 2:
+    //             form.value.estimate = item.tagId;
+    //             showAddEstimateBtn.value = false;
+    //             break;
+    //         case 3:
+    //             form.value.clothingBrand = item.tagId;
+    //             showAddBrandBtn.value = false;
+    //             break;
+    //         default: ;
+    //     }
+
+    // }
 }
 
 /* 显示添加衣物按钮 */
@@ -983,7 +989,7 @@ function createCloth() {
 function addTag(type, tagName) {
     addTags({ tagName: tagName, tagOrder: type }).then(res => {
         proxy.$modal.msgSuccess("新增成功");
-        addItemToList(type, { tagId: res.data, tagName: tagName, tagOrder: type });
+        addItemToList(type, res.data);
         nextStep();
     });
 }
@@ -998,13 +1004,13 @@ function addItemToList(type, item) {
             break;
         case "001":
             flawList.value.push(item);
-            form.value.clothingFlaw = item.tagId;
+            form.value.clothingFlawArr = [item.tagId];
             showAddFlawBtn.value = false;
             flawInput.value = '';
             break;
         case "002":
             estimateList.value.push(item);
-            form.value.estimate = item.tagId;
+            form.value.estimateArr = [item.tagId];
             showAddEstimateBtn.value = false;
             estimateInput.value = '';
             break;

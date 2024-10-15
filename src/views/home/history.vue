@@ -69,7 +69,7 @@
 
 <script setup name="History">
 import { listHistoryCloths } from "@/api/system/cloths";
-import { listTags } from "@/api/system/tags";
+import { listTagsNoLimit } from "@/api/system/tags";
 import { onMounted, ref } from 'vue';
 
 const props = defineProps({
@@ -115,17 +115,9 @@ const queryParams = ref({
 async function initList() {
     const promises = [];
 
-    // 获取衣物列表
-    // if (clothingList.value.length === 0) {
-    //     const clothingPromise = listClothing({}).then(response => {
-    //         clothingList.value = response.rows;
-    //     });
-    //     promises.push(clothingPromise);
-    // }
-
     // 获取颜色列表
     if (colorList.value.length === 0) {
-        const colorPromise = listTags({ tagOrder: '003', status: "0" }).then(response => {
+        const colorPromise = listTagsNoLimit({ tagOrder: '003', status: "0" }).then(response => {
             colorList.value = response.rows;
         });
         promises.push(colorPromise);
@@ -133,7 +125,7 @@ async function initList() {
 
     // 获取瑕疵列表
     if (flawList.value.length === 0) {
-        const flawPromise = listTags({ tagOrder: '001', status: "0" }).then(response => {
+        const flawPromise = listTagsNoLimit({ tagOrder: '001', status: "0" }).then(response => {
             flawList.value = response.rows;
         });
         promises.push(flawPromise);
@@ -141,7 +133,7 @@ async function initList() {
 
     // 获取预估列表
     if (estimateList.value.length === 0) {
-        const estimatePromise = listTags({ tagOrder: '002', status: "0" }).then(response => {
+        const estimatePromise = listTagsNoLimit({ tagOrder: '002', status: "0" }).then(response => {
             estimateList.value = response.rows;
         });
         promises.push(estimatePromise);
@@ -149,7 +141,7 @@ async function initList() {
 
     // 获取品牌列表
     if (brandList.value.length === 0) {
-        const brandPromise = listTags({ tagOrder: '004', status: "0" }).then(response => {
+        const brandPromise = listTagsNoLimit({ tagOrder: '004', status: "0" }).then(response => {
             brandList.value = response.rows;
         });
         promises.push(brandPromise);
@@ -164,18 +156,24 @@ function close() {
     show.value = false;
     props.toggle();
 }
+
+function getList() {
+    queryParams.value.userId = props.userId;
+    listHistoryCloths(queryParams.value).then(res => {
+        data.value = res.rows;
+        data.value.map(item => {
+            item.clothingFlawArr = item.clothingFlaw ? item.clothingFlaw.split(',') : [];
+            item.estimateArr = item.estimate ? item.estimate.split(',') : [];
+        });
+        total.value = res.total;
+        show.value = true;
+    })
+}
+
 onMounted(async () => {
     if (props.visible) {
         await initList();
-        listHistoryCloths(props.userId).then(res => {
-            data.value = res.rows;
-            data.value.map(item => {
-                item.clothingFlawArr = item.clothingFlaw ? item.clothingFlaw.split(',') : [];
-                item.estimateArr = item.estimate ? item.estimate.split(',') : [];
-            });
-            total.value = res.total;
-            show.value = true;
-        })
+        getList();
     }
 })
 </script>

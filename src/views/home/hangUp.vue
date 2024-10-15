@@ -43,7 +43,7 @@
 
 <script setup name="HangUp">
 import { getClothByCode, hangup } from "@/api/system/cloths";
-import { listTags } from "@/api/system/tags";
+import { listTagsNoLimit } from "@/api/system/tags";
 import { listRack } from "@/api/system/rack";
 
 const props = defineProps({
@@ -122,7 +122,7 @@ async function initList() {
 
     // 获取颜色列表
     if (colorList.value.length === 0) {
-        const colorPromise = listTags({ tagOrder: '003' }).then(response => {
+        const colorPromise = listTagsNoLimit({ tagOrder: '003' }).then(response => {
             colorList.value = response.rows;
         });
         promises.push(colorPromise);
@@ -130,7 +130,7 @@ async function initList() {
 
     // 获取瑕疵列表
     if (flawList.value.length === 0) {
-        const flawPromise = listTags({ tagOrder: '001' }).then(response => {
+        const flawPromise = listTagsNoLimit({ tagOrder: '001' }).then(response => {
             flawList.value = response.rows;
         });
         promises.push(flawPromise);
@@ -138,7 +138,7 @@ async function initList() {
 
     // 获取预估列表
     if (estimateList.value.length === 0) {
-        const estimatePromise = listTags({ tagOrder: '002' }).then(response => {
+        const estimatePromise = listTagsNoLimit({ tagOrder: '002' }).then(response => {
             estimateList.value = response.rows;
         });
         promises.push(estimatePromise);
@@ -146,7 +146,7 @@ async function initList() {
 
     // 获取品牌列表
     if (brandList.value.length === 0) {
-        const brandPromise = listTags({ tagOrder: '004' }).then(response => {
+        const brandPromise = listTagsNoLimit({ tagOrder: '004' }).then(response => {
             brandList.value = response.rows;
         });
         promises.push(brandPromise);

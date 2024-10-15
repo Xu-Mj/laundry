@@ -9,7 +9,7 @@
                         scope.row.clothingColor).tagName : '' }}
                 </template>
             </el-table-column>
-            <el-table-column label="衣物编码" align="center" prop="clothingColor">
+            <el-table-column label="衣物编码" align="center" prop="clothingColor" width="150">
                 <template #default="scope">
                     {{ scope.row.hangClothCode }}
                 </template>
@@ -164,7 +164,7 @@
 
 <script setup name="Cloths">
 import { listCloths } from "@/api/system/cloths";
-import { listTags } from "@/api/system/tags";
+import { listTagsNoLimit } from "@/api/system/tags";
 import { ref } from "vue";
 import { getCloths, hangup } from "@/api/system/cloths";
 import { getUser } from "@/api/system/user";
@@ -273,7 +273,7 @@ async function initList() {
 
     // 获取颜色列表
     if (colorList.value.length === 0) {
-        const colorPromise = listTags({ tagOrder: '003' }).then(response => {
+        const colorPromise = listTagsNoLimit({ tagOrder: '003' }).then(response => {
             colorList.value = response.rows;
         });
         promises.push(colorPromise);
@@ -281,7 +281,7 @@ async function initList() {
 
     // 获取瑕疵列表
     if (flawList.value.length === 0) {
-        const flawPromise = listTags({ tagOrder: '001' }).then(response => {
+        const flawPromise = listTagsNoLimit({ tagOrder: '001' }).then(response => {
             flawList.value = response.rows;
         });
         promises.push(flawPromise);
@@ -289,7 +289,7 @@ async function initList() {
 
     // 获取预估列表
     if (estimateList.value.length === 0) {
-        const estimatePromise = listTags({ tagOrder: '002' }).then(response => {
+        const estimatePromise = listTagsNoLimit({ tagOrder: '002' }).then(response => {
             estimateList.value = response.rows;
         });
         promises.push(estimatePromise);
@@ -297,7 +297,7 @@ async function initList() {
 
     // 获取品牌列表
     if (brandList.value.length === 0) {
-        const brandPromise = listTags({ tagOrder: '004' }).then(response => {
+        const brandPromise = listTagsNoLimit({ tagOrder: '004' }).then(response => {
             brandList.value = response.rows;
         });
         promises.push(brandPromise);

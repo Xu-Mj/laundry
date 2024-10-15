@@ -10,7 +10,7 @@
     <OrderContent :visible="showOrderDialog" :taggle="() => { showOrderDialog = !showOrderDialog }" :key="showOrderDialog"/>
     <el-dialog :show-close="false" v-model="open" width="1440px" append-to-body lock-scroll modal :before-close="cancel"
       :close-on-click-modal="false">
-      <CreateOrder :orderId="0" :userId="0" :toggle="() => { open = !open }" :refresh="() => { }" :key="open" />
+      <CreateOrder ref="createOrderRef"  :orderId="0" :userId="0" :toggle="() => { open = !open }" :refresh="() => { }" :key="open" />
     </el-dialog>
 
     <!-- 卡券售卖弹窗 -->
@@ -75,6 +75,23 @@ const menus = ref([
   { 'name': '新增支出', 'type': 'success' },
   { 'name': '营销推送', 'type': 'success', color: '#626aef', dark: false },
 ]);
+const createOrderRef = ref();
+
+function cancel(done) {
+  if (createOrderRef.value) {
+    createOrderRef.value.cancel()
+      .then((canClose) => {
+        if (canClose) {
+          done(); // 允许关闭对话框
+        }
+      })
+      .catch(() => {
+        // 用户选择取消，不关闭对话框
+      });
+  } else {
+    done(); // 子组件不存在时，直接关闭对话框
+  }
+}
 </script>
 
 <style scoped lang="scss">

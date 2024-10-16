@@ -237,7 +237,8 @@
                 </el-row>
                 <el-row>
                     <el-form-item label="补差价" v-if="paymentForm.priceDiff > 0">
-                        {{ paymentForm.priceDiff }}
+                        <el-input-number v-model="paymentForm.priceDiff" controls-position="right" :min="0"
+                            :max="paymentForm.paymentAmount" placeholder="请输入补差价" />
                     </el-form-item>
                 </el-row>
             </el-form>
@@ -577,6 +578,16 @@ function submitPaymentForm() {
             paymentForm.value.ucId = couponStorageCardId.value.join(',');
             // 使用了储值卡，那么实际从微信/或其他支付方式中扣除的金额为差价
             paymentForm.value.paymentAmountMv = paymentForm.value.priceDiff;
+            if (paymentForm.value.priceDiff > 0) {
+                // 需要补充差价，那么就是组合支付
+                if (paymentForm.value.paymentMethod == '01') {
+                    paymentForm.value.paymentMethod = '16';
+                } else if (paymentForm.value.paymentMethod == '02') {
+                    paymentForm.value.paymentMethod = '26';
+                } else if (paymentForm.value.paymentMethod == '05') {
+                    paymentForm.value.paymentMethod = '56';
+                }
+            }
         } else if (userCouponList.value.filter(item => item.coupon.couponType == '002' && item.selected).length > 0) {
             // 使用了次卡
             const list = userCouponList.value.filter(item => item.coupon.couponType == '002' && item.selected).map(item => ({
@@ -584,12 +595,43 @@ function submitPaymentForm() {
                 count: item.count,
             }));
             paymentForm.value.timeBased = list;
+            if (paymentForm.value.priceDiff > 0) {
+                // 需要补充差价，那么就是组合支付
+                if (paymentForm.value.paymentMethod == '01') {
+                    paymentForm.value.paymentMethod = '17';
+                } else if (paymentForm.value.paymentMethod == '02') {
+                    paymentForm.value.paymentMethod = '27';
+                } else if (paymentForm.value.paymentMethod == '05') {
+                    paymentForm.value.paymentMethod = '57';
+                }
+            }
         } else {
             // 什么卡券都没用
             paymentForm.value.ucId = null;
             paymentForm.value.paymentAmountMv = totalPrice.value;
         }
     } else {
+        const coupon = userCouponList.value.find(item => item.ucId == paymentForm.value.couponId);
+        if (coupon && coupon.coupon.couponType == '003') {
+            // 折扣券
+
+            if (paymentForm.value.paymentMethod == '01') {
+                paymentForm.value.paymentMethod = '18';
+            } else if (paymentForm.value.paymentMethod == '02') {
+                paymentForm.value.paymentMethod = '28';
+            } else if (paymentForm.value.paymentMethod == '05') {
+                paymentForm.value.paymentMethod = '58';
+            }
+        } else if (coupon && coupon.coupon.couponType == '004') {
+            // 满减券
+            if (paymentForm.value.paymentMethod == '01') {
+                paymentForm.value.paymentMethod = '19';
+            } else if (paymentForm.value.paymentMethod == '02') {
+                paymentForm.value.paymentMethod = '29';
+            } else if (paymentForm.value.paymentMethod == '05') {
+                paymentForm.value.paymentMethod = '59';
+            }
+        }
         paymentForm.value.ucId = String(paymentForm.value.couponId);
         // 用了优惠券，那么实际从微信/或其他支付方式中扣除的金额为优惠后的总金额
         paymentForm.value.paymentAmountMv = paymentForm.value.paymentAmount;

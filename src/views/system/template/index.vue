@@ -151,7 +151,7 @@
 
 <script setup name="Template">
 import { listTemplate, getTemplate, delTemplate, addTemplate, updateTemplate, sendNotice, sendNotice2All } from "@/api/system/template";
-import { listUser } from "@/api/system/user";
+import { listUserWithNoLimit } from "@/api/system/user";
 
 const { proxy } = getCurrentInstance();
 const { sys_temp_type, sys_notice_method } = proxy.useDict("sys_temp_type", "sys_notice_method");
@@ -321,7 +321,7 @@ function handleDelete(row) {
 
 /* 查询用户列表,使用async/await处理，避免第一次获取数据为空 */
 async function selectUser() {
-  const response = await listUser({});
+  const response = await listUserWithNoLimit({});
   userList.value = response.rows;
   userList.value.forEach(item => { item.selected = false; item.show = true; });
 };

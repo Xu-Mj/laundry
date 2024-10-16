@@ -43,20 +43,38 @@
           {{ scope.row.nickName + ' - ' + scope.row.phonenumber }}
         </template>
       </el-table-column>
-      
+
       <el-table-column label="订单金额" align="center" prop="paymentAmount">
         <template #default="scope">
           <span style="color: red">
-            {{ scope.row.paymentAmount }}
+            {{ scope.row.paymentAmount }}元
           </span>
         </template>
       </el-table-column>
       <el-table-column label="支付方式" align="center" prop="paymentBonusType">
         <template #default="scope">
-          <dict-tag :options="sys_payment_method" :value="scope.row.paymentBonusType" />
+          <dict-tag :options="sys_payment_method_show" :value="scope.row.paymentBonusType" />
         </template>
       </el-table-column>
-      <el-table-column label="卡券数量" align="center" prop="paymentBonusCount" />
+      <el-table-column label="卡券优惠" align="center" prop="paymentBonusCount">
+        <template #default="scope">
+          <span v-if="scope.row.paymentBonusCount == 0">-</span>
+          <span v-else-if="paymentTimeBasedSet.has(scope.row.paymentBonusType)">
+            {{ scope.row.paymentBonusCount }}张
+          </span>
+          <span v-else>
+            {{ scope.row.paymentBonusCount }}元
+          </span>
+          
+        </template>
+      </el-table-column>
+      <el-table-column label="实际支付" align="center" >
+        <template #default="scope">
+          <span v-if="scope.row.diffPrice > 0" style="color: red;">
+            {{ scope.row.diffPrice }}元
+          </span>
+        </template>
+      </el-table-column>
       <el-table-column label="取件码" align="center" prop="pickupCode" />
       <el-table-column label="业务类型" align="center" prop="businessType">
         <template #default="scope">
@@ -275,6 +293,7 @@ const {
   sys_order_type,
   sys_order_status,
   sys_payment_method,
+  sys_payment_method_show,
   sys_notice_method,
 } =
   proxy.useDict(
@@ -286,6 +305,7 @@ const {
     "sys_order_type",
     "sys_order_status",
     "sys_payment_method",
+    "sys_payment_method_show",
     "sys_notice_method",
   );
 
@@ -311,6 +331,8 @@ const currentOrder = ref({});
 const currentOrderId = ref(0);
 const currentUserId = ref(0);
 const createOrderRef = ref();
+const paymentTimeBasedSet = new Set(['07', '17', '27', '57']);
+const paymentCouponSet = new Set(['18', '17', '27', '57']);
 
 const data = reactive({
   refundForm: {},

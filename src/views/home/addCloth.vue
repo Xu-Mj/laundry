@@ -356,7 +356,7 @@
 </template>
 
 <script setup name="AddCloth">
-import { listHistoryCloths, delCloths, addCloths, updateCloths, getCloths } from "@/api/system/cloths";
+import { delCloths, addCloths, updateCloths, getCloths } from "@/api/system/cloths";
 import { Camera, CoffeeCup, CollectionTag, CopyDocument, PictureRounded, User, WarningFilled } from "@element-plus/icons-vue";
 import { listClothingWithNoLimit, addClothing } from "@/api/system/clothing";
 import { getDicts } from '@/api/system/dict/data'
@@ -747,6 +747,7 @@ function handleDelete(row) {
         const index = clothList.value.findIndex(item => item.clothId === _orderClothIds);
         clothList.value.splice(index, 1);
         proxy.$modal.msgSuccess("删除成功");
+        props.submit(clothList.value);
     }).catch(() => { });
 }
 

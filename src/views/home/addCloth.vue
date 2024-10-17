@@ -686,6 +686,8 @@ function handleUpdate(row) {
     if (row.clothId) {
         getCloths(row.clothId).then(res => {
             form.value = res.data;
+            form.value.clothingFlawArr = res.data.clothingFlaw ? res.data.clothingFlaw.split(',').map(Number) : [];
+            form.value.estimateArr = res.data.estimate ? res.data.estimate.split(',').map(Number) : [];
             open.value = true;
         });
         cateChange(form.value.clothingCategory);

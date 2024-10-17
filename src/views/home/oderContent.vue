@@ -112,7 +112,7 @@
                             <dict-tag :options="sys_clothing_status" :value="scope.row.clothingStatus" />
                         </template>
                     </el-table-column>
-                    <el-table-column label="取回方式" align="center" prop="pickupMethod">
+                    <!-- <el-table-column label="取回方式" align="center" prop="pickupMethod">
                         <template #default="scope">
                             <dict-tag :options="sys_delivery_mode" :value="scope.row.pickupMethod" />
                         </template>
@@ -121,15 +121,16 @@
                         <template #default="scope">
                             <span>{{ parseTime(scope.row.pickupTime) }}</span>
                         </template>
-                    </el-table-column>
+                    </el-table-column> -->
                     <el-table-column label="上挂位置" align="center">
                         <template #default="scope">
                             {{
                                 scope.row.hangLocationCode ?
-                                    scope.row.hangerName + '-' + scope.row.hangerNumber : ''
+                                scope.row.hangerName + '-' + scope.row.hangerNumber : ''
                             }}
                         </template>
                     </el-table-column>
+                    <el-table-column label="上挂备注" align="center" prop="hangRemark"/>
                 </el-table>
 
             </div>

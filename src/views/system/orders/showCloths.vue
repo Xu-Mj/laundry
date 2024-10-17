@@ -68,8 +68,7 @@
                     {{ scope.row.hangLocationCode ? scope.row.hangerName + '-' + scope.row.hangerNumber : '' }}
                 </template>
             </el-table-column>
-            <!-- <el-table-column label="上挂衣物编码" align="center" prop="hangClothCode" />
-            <el-table-column label="上挂描述信息" align="center" prop="hangRemark" /> -->
+            <el-table-column label="上挂备注" align="center" prop="hangRemark" />
             <el-table-column label="操作" align="center" :width="280" class-name="small-padding fixed-width">
                 <template #default="scope">
                     <el-button link type="primary" icon="Picture"
@@ -86,8 +85,6 @@
             </el-table-column>
         </el-table>
 
-        <!-- <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum"
-            v-model:limit="queryParams.pageSize" @pagination="getList" /> -->
         <div class="footer">
             <!-- <el-button type="success" plain :disabled="pickupDisabled" @click="handlePickup">取走</el-button> -->
             <el-button type="warning" plain :disabled="afterSaleDisabled" @click="afterSale">售后</el-button>

@@ -726,7 +726,11 @@ function submitForm() {
                 addCloths(submitData).then(response => {
                     proxy.$modal.msgSuccess("新增成功");
                     open.value = false;
+                    const flaw = form.value.clothingFlawArr;
+                    const estimate = form.value.estimateArr;
                     form.value = response.data;
+                    form.value.clothingFlawArr = flaw;
+                    form.value.estimateArr = estimate;
                     form.value.clothInfo = clothingList.value.find(item => item.clothingId == submitData.clothingId);
                     clothList.value.push(form.value);
                     props.submit(clothList.value);

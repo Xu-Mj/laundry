@@ -1,6 +1,6 @@
 <template>
     <el-dialog :title="title" v-model="open" width="400px" :show-close="false" append-to-body
-        :before-close="closeHangUpDialog" @opened="refGetFocus">
+        @closed="closeHangUpDialog" @opened="refGetFocus">
         <el-form ref="hangUpRef" :model="hangForm" :rules="hangRules" label-width="80px">
             <el-form-item label="衣物编码" prop="clothingNumber">
                 <el-input ref="clothingNumberRef" v-model="hangForm.clothingNumber" @change="getClothInfo"
@@ -32,10 +32,15 @@
             <el-form-item label="备注信息" prop="hangRemark">
                 <el-input type="textarea" v-model="hangForm.hangRemark" placeholder="请输入上挂描述信息" />
             </el-form-item>
+            <el-form-item label="所属会员">
+                {{ currentUser ? currentUser.nickName + '-' + currentUser.phonenumber : '-' }}
+            </el-form-item>
         </el-form>
         <template #footer>
             <div class="hangup-footer">
-                <el-button type="primary" ref="hangUpBtnRef" @click="hangUp">确认上挂</el-button>
+                <el-button type="primary" ref="hangUpBtnRef" :disabled="hangupBtnDisabled" @click="hangUp">
+                    确认上挂
+                </el-button>
             </div>
         </template>
     </el-dialog>
@@ -45,6 +50,7 @@
 import { getClothByCode, hangup } from "@/api/system/cloths";
 import { listTagsNoLimit } from "@/api/system/tags";
 import { listRack } from "@/api/system/rack";
+import { getUserByClothCode } from "@/api/system/user";
 
 const props = defineProps({
     visible: {
@@ -83,8 +89,10 @@ const estimateList = ref([]);
 const brandList = ref([]);
 
 const open = ref(false);
+const hangupBtnDisabled = ref(false);
 
 const currentCloth = ref(null);
+const currentUser = ref(null);
 const clothingNumberRef = ref();
 const hangUpBtnRef = ref();
 const hangLocationList = ref();
@@ -99,8 +107,21 @@ function getClothInfo() {
         currentCloth.value = res.data;
         if (!currentCloth.value) {
             proxy.$modal.msgError("衣物编码关联的衣物不存在");
+            hangForm.value.clothId = null;
+            hangForm.value.hangLocationId = null;
+            hangForm.value.hangerNumber = null;
+            hangForm.value.hangRemark = null;
+            hangupBtnDisabled.value = true;
         } else if (currentCloth.value.clothingStatus === '02') {
             proxy.$modal.msgWarning("衣物编码关联的衣物已上挂");
+            hangupBtnDisabled.value = true;
+            hangForm.value = {
+                clothingNumber: currentCloth.value.hangClothCode,
+                clothId: currentCloth.value.clothId,
+                hangLocationId: currentCloth.value.hangLocationCode,
+                hangerNumber: currentCloth.value.hangerNumber,
+                hangRemark: currentCloth.value.hangRemark,
+            };
         } else {
             // 查找最合适的衣挂位置
             hangForm.value = {
@@ -110,10 +131,14 @@ function getClothInfo() {
                 hangerNumber: currentCloth.value.hangerNumber,
                 hangRemark: currentCloth.value.hangRemark,
             };
+            hangupBtnDisabled.value = false;
             // 找到了，确认上挂获取焦点
             hangUpBtnRef.value.$el.focus();
         }
-    })
+    });
+    getUserByClothCode(hangForm.value.clothingNumber).then(res => {
+        currentUser.value = res.data;
+    });
 }
 
 /* 初始化列表数据 */
@@ -177,14 +202,13 @@ function hangUp() {
 }
 
 /* 关闭上挂弹窗 */
-function closeHangUpDialog(done) {
+function closeHangUpDialog() {
     hangForm.value = {
         clothingNumber: null,
         hangLocationCode: null,
         hangClothCode: null,
         hangRemark: null
     };
-    done();
     props.taggle();
 }
 

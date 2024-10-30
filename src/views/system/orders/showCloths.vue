@@ -1,5 +1,6 @@
 <template>
-    <div class="app-container">
+    <el-dialog title="付款" v-model="showClothesDialog" width="1366px" append-to-body lock-scroll modal
+        :close-on-click-modal="false" @closed="close">
         <el-table v-loading="loading" :data="clothsList" @selection-change="handleSelectionChange">
             <el-table-column type="selection" width="55" align="center" />
             <el-table-column label="衣物" align="center">
@@ -7,6 +8,11 @@
                     {{ scope.row.clothInfo.clothingName }}
                     {{ scope.row.clothingColor ? '-' + colorList.find(item => item.tagId ==
                         scope.row.clothingColor).tagName : '' }}
+                </template>
+            </el-table-column>
+            <el-table-column label="衣物编码" align="center" prop="clothingColor" width="150">
+                <template #default="scope">
+                    {{ scope.row.hangClothCode }}
                 </template>
             </el-table-column>
             <el-table-column label="服务类型" :width="120" align="center">
@@ -63,26 +69,25 @@
                     {{ scope.row.hangLocationCode ? scope.row.hangerName + '-' + scope.row.hangerNumber : '' }}
                 </template>
             </el-table-column>
-            <!-- <el-table-column label="上挂衣物编码" align="center" prop="hangClothCode" />
-            <el-table-column label="上挂描述信息" align="center" prop="hangRemark" /> -->
+            <el-table-column label="上挂备注" align="center" prop="hangRemark" />
             <el-table-column label="操作" align="center" :width="280" class-name="small-padding fixed-width">
                 <template #default="scope">
-                    <el-button link type="primary" icon="Picture" @click="handleShowPicture(scope.row, true)"
-                        v-hasPermi="['system:cloths:edit']">洗前</el-button>
-                    <el-button link type="primary" icon="Picture" @click="handleShowPicture(scope.row, false)"
-                        v-hasPermi="['system:cloths:edit']">洗后</el-button>
+                    <el-button link type="primary" icon="Picture"
+                        :disabled="scope.row.beforePics == null || scope.row.beforePics.length == 0"
+                        @click="handleShowPicture(scope.row, true)">洗前</el-button>
+                    <el-button link type="primary" icon="Picture"
+                        :disabled="scope.row.afterPics == null || scope.row.afterPics.length == 0"
+                        @click="handleShowPicture(scope.row, false)">洗后</el-button>
                     <el-button link type="primary" icon="Top" @click="handleShowHangUp(scope.row)"
-                        v-if="scope.row.clothingStatus == '01'" v-hasPermi="['system:cloths:remove']">
+                        v-if="scope.row.clothingStatus == '01'">
                         上挂
                     </el-button>
                 </template>
             </el-table-column>
         </el-table>
 
-        <!-- <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum"
-            v-model:limit="queryParams.pageSize" @pagination="getList" /> -->
         <div class="footer">
-            <el-button type="success" plain :disabled="pickupDisabled" @click="handlePickup">取走</el-button>
+            <!-- <el-button type="success" plain :disabled="pickupDisabled" @click="handlePickup">取走</el-button> -->
             <el-button type="warning" plain :disabled="afterSaleDisabled" @click="afterSale">售后</el-button>
             <el-button type="danger" plain :disabled="compensationDisabled" @click="handleCompensate">赔偿</el-button>
         </div>
@@ -129,26 +134,6 @@
             </template>
         </el-dialog>
 
-        <!-- 取走对话框 -->
-        <el-dialog title="取走" v-model="showPickUpDialog" width="500px" append-to-body>
-            <el-form ref="pickupRef" :model="pickupForm" :rules="pickupRules" label-width="80px">
-                <el-form-item label="取走方式">
-                    <el-radio-group v-model="pickupForm.deliveryMode">
-                        <el-radio v-for="dict in sys_delivery_mode" :key="dict.value" :value="dict.value">
-                            {{ dict.label }}
-                        </el-radio>
-                    </el-radio-group>
-                </el-form-item>
-            </el-form>
-            <!-- 取消确认 -->
-            <template #footer>
-                <div class="pickup-footer">
-                    <el-button type="primary" @click="pickup">确认取走</el-button>
-                    <el-button type="primary" @click="cancelPickup">取消</el-button>
-                </div>
-            </template>
-        </el-dialog>
-
         <!-- 赔偿对话框 -->
         <el-dialog title="赔偿" v-model="showCompensationDialog" width="500px" append-to-body>
             <el-form ref="compensationRef" :model="compensationForm" :rules="compensationRules" label-width="80px">
@@ -172,19 +157,23 @@
                 </div>
             </template>
         </el-dialog>
-    </div>
+    </el-dialog>
 </template>
 
 <script setup name="Cloths">
 import { listCloths } from "@/api/system/cloths";
-import { listTags } from "@/api/system/tags";
+import { listTagsNoLimit } from "@/api/system/tags";
 import { ref } from "vue";
 import { getCloths, hangup } from "@/api/system/cloths";
-import { getAvailableRack } from "@/api/system/rack";
 import { getUser } from "@/api/system/user";
 import { addExpenditure } from "@/api/system/expenditure";
 
 const props = defineProps({
+    visible: {
+        type: Boolean,
+        required: true,
+        default: false,
+    },
     orderId: {
         type: Number,
         required: true,
@@ -197,7 +186,11 @@ const props = defineProps({
     userId: {
         type: String,
         required: true,
-    }
+    },
+    toggle: {
+        type: Function,
+        required: true,
+    },
 });
 
 const { proxy } = getCurrentInstance();
@@ -212,6 +205,7 @@ const currentCloth = ref({});
 const showPicture = ref(false);
 const showPickUpDialog = ref(false);
 const showCompensationDialog = ref(false);
+const showClothesDialog = ref(false);
 const loading = ref(true);
 const showHangUp = ref(false);
 const total = ref(0);
@@ -266,15 +260,21 @@ const data = reactive({
 });
 
 const { pickupForm, compensationForm, hangForm, hangRules } = toRefs(data);
+
+function close() {
+    showClothesDialog.value = false;
+    props.toggle();
+}
+
 /** 查询订单包含的衣物清单列表 */
-function getList() {
+async function getList() {
     // 判断是否有订单id
     if (props.orderId == 0) {
         return;
     }
     loading.value = true;
 
-    listCloths({ orderClothId: props.orderId }).then(response => {
+    await listCloths({ orderClothId: props.orderId }).then(response => {
         clothsList.value = response.rows;
         total.value = response.total;
         loading.value = false;
@@ -287,7 +287,7 @@ async function initList() {
 
     // 获取颜色列表
     if (colorList.value.length === 0) {
-        const colorPromise = listTags({ tagOrder: '003' }).then(response => {
+        const colorPromise = listTagsNoLimit({ tagOrder: '003' }).then(response => {
             colorList.value = response.rows;
         });
         promises.push(colorPromise);
@@ -295,7 +295,7 @@ async function initList() {
 
     // 获取瑕疵列表
     if (flawList.value.length === 0) {
-        const flawPromise = listTags({ tagOrder: '001' }).then(response => {
+        const flawPromise = listTagsNoLimit({ tagOrder: '001' }).then(response => {
             flawList.value = response.rows;
         });
         promises.push(flawPromise);
@@ -303,7 +303,7 @@ async function initList() {
 
     // 获取预估列表
     if (estimateList.value.length === 0) {
-        const estimatePromise = listTags({ tagOrder: '002' }).then(response => {
+        const estimatePromise = listTagsNoLimit({ tagOrder: '002' }).then(response => {
             estimateList.value = response.rows;
         });
         promises.push(estimatePromise);
@@ -311,7 +311,7 @@ async function initList() {
 
     // 获取品牌列表
     if (brandList.value.length === 0) {
-        const brandPromise = listTags({ tagOrder: '004' }).then(response => {
+        const brandPromise = listTagsNoLimit({ tagOrder: '004' }).then(response => {
             brandList.value = response.rows;
         });
         promises.push(brandPromise);
@@ -361,18 +361,15 @@ function handleSelectionChange(selection) {
 
 /* 显示上挂 */
 function handleShowHangUp(row) {
-    // 查找最合适的衣挂位置
-    getAvailableRack().then(res => {
-        showHangUp.value = true;
-        currentCloth.value = row;
-        hangForm.value = {
-            clothId: row.clothId,
-            clothingNumber: row.hangClothCode,
-            hangLocationId: res.data.id,
-            hangerNumber: res.data.remainingCapacity,
-            hangRemark: null
-        };
-    })
+    showHangUp.value = true;
+    currentCloth.value = row;
+    hangForm.value = {
+        clothId: row.clothId,
+        clothingNumber: row.hangClothCode,
+        hangLocationId: row.hangLocationCode,
+        hangerNumber: row.hangerNumber,
+        hangRemark: null
+    };
 }
 
 /* 赔偿 */
@@ -467,8 +464,12 @@ function cancelPickup() {
 
 
 onMounted(async () => {
-    await initList();  // 确保 initList 完成
-    getList();         // 在 initList 完成后调用
+    if (props.visible) {
+
+        await initList();  // 确保 initList 完成
+        await getList();         // 在 initList 完成后调用
+        showClothesDialog.value = true;
+    }
 });
 </script>
 

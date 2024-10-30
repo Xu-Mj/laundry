@@ -10,10 +10,34 @@ export function listUser(query) {
   })
 }
 
+// 查询用户列表
+export function listUserWithNoLimit() {
+  return request({
+    url: '/system/user/list-with-no-limit',
+    method: 'get',
+  })
+}
+
 // 查询用户详细
 export function getUser(userId) {
   return request({
     url: '/system/user/' + parseStrEmpty(userId),
+    method: 'get'
+  })
+}
+
+// 查询用户详细
+export function getUserByClothCode(clothCode) {
+  return request({
+    url: '/system/user/by-cloth-code/' + clothCode,
+    method: 'get'
+  })
+}
+
+// 查询用户详细
+export function getUserListByIds(userIds) {
+  return request({
+    url: '/system/user/listByIds/' + userIds,
     method: 'get'
   })
 }

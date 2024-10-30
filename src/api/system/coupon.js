@@ -44,6 +44,15 @@ export function buyCoupon(data) {
   })
 }
 
+// 赠送卡券
+export function gift(data) {
+  return request({
+    url: '/system/coupon/gift',
+    method: 'post',
+    data: data
+  })
+}
+
 // 修改卡券
 export function updateCoupon(data) {
   return request({

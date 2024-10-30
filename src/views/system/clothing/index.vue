@@ -62,7 +62,7 @@
       <el-table-column label="最低价格" align="center" prop="clothingMinPrice" />
       <el-table-column label="显示顺序" align="center" prop="orderNum" />
       <el-table-column label="使用计数" align="center" prop="clothingDegree" />
-      <el-table-column label="备注" align="center" prop="remark" />
+      <el-table-column label="备注" align="center" prop="remark" show-overflow-tooltip />
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template #default="scope">
           <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)"
@@ -77,7 +77,7 @@
       v-model:limit="queryParams.pageSize" @pagination="getList" />
 
     <!-- 添加或修改衣物管理对话框 -->
-    <el-dialog :title="title" v-model="open" width="500px" append-to-body>
+    <el-dialog :show-close="false" v-model="open" width="500px" append-to-body>
       <el-form ref="clothingRef" :model="form" :rules="rules" label-width="80px">
         <el-form-item label="衣物名称" prop="clothingName">
           <el-input v-model="form.clothingName" placeholder="请输入衣物名称，如：羽绒服、运动鞋、貂等" />
@@ -139,9 +139,9 @@
 
     <!-- 修改使用次数对话框 -->
     <el-dialog title="修改使用次数" v-model="showUpdateRefNum" width="500px" :show-close="false" append-to-body>
-      <el-form ref="tagNumRef" :model="tagNumForm" :rules="tagNumFormRules" label-width="80px">
+      <el-form ref="tagNumRef" :model="tagNumForm" :rules="refNumFormRules" label-width="80px">
         <el-form-item label="使用次数" prop="refNumber">
-          <el-input-number :min="0" v-model="tagNumForm.refNumber" placeholder="请输入使用次数" />
+          <el-input-number :min="0" required v-model="tagNumForm.refNumber" placeholder="请输入使用次数" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -157,10 +157,12 @@
 <script setup name="Clothing">
 import { listClothing, getClothing, delClothing, addClothing, updateClothing, updateClothingRefNum } from "@/api/system/clothing";
 import { getDicts } from '@/api/system/dict/data'
+import useDictStore from '@/store/modules/dict'
+import { onMounted } from "vue";
 
 const { proxy } = getCurrentInstance();
 
-const { sys_cloth_style, sys_cloth_cate } = proxy.useDict("sys_cloth_style", "sys_cloth_cate");
+const { sys_cloth_cate } = proxy.useDict("sys_cloth_cate");
 
 // 动态查询字典列表
 const clothStyleList = ref([]);
@@ -217,7 +219,7 @@ const data = reactive({
   }
 });
 
-const { queryParams, form, tagNumForm, rules, tagNumFormRules } = toRefs(data);
+const { queryParams, form, tagNumForm, rules, refNumFormRules } = toRefs(data);
 
 // 自定义校验最低价格函数
 function validateMinPrice(rule, value, callback) {
@@ -241,31 +243,36 @@ function getStyle(row) {
 }
 
 // 初始化所需要的字典数据
-function initDictList() {
+async function initDictList() {
+  if (sys_cloth_cate.value.length === 0) {
+    await getDicts("sys_cloth_cate").then(resp => {
+      sys_cloth_cate.value = resp.data.map(p => ({ label: p.dictLabel, value: p.dictValue, elTagType: p.listClass, elTagClass: p.cssClass }))
+      useDictStore().setDict("sys_cloth_cate", sys_cloth_cate.value);
+    })
+  }
   sys_cloth_cate.value.forEach(item => {
     getDicts("sys_cloth_style" + item.value).then(res => {
       if (res.data && res.data.length > 0) {
         dictList.value.push(...res.data);
       }
-      console.log(dictList.value)
     })
   })
 }
 
 // 当品类发生变化时动态查询子分类列表
 function cateChange(value) {
-  getDicts("sys_cloth_style" + value).then(res => {
-    clothStyleList.value = res.data;
-  })
+  form.value.clothingStyle = null;
+  clothStyleList.value = dictList.value.filter(p => p.dictType === 'sys_cloth_style' + value);
 }
 
 function updateRefNum() {
   proxy.$refs["tagNumRef"].validate(valid => {
+    console.log(valid)
     if (valid) {
       updateClothingRefNum({ tagIds: ids.value, refNum: tagNumForm.value.refNumber }).then(res => {
         proxy.$modal.msgSuccess("修改成功");
         showUpdateRefNum.value = false;
-        tagNumForm.value.refNumber = 0;
+        tagNumForm.value.refNumber = null;
         getList();
       })
     }
@@ -275,7 +282,7 @@ function updateRefNum() {
 // 取消按钮
 function cancelUpdateRefNum() {
   showUpdateRefNum.value = false;
-  tagNumForm.value = { refNumber: 0 };
+  tagNumForm.value = {};
 }
 
 /** 查询衣物管理列表 */
@@ -343,6 +350,7 @@ function handleUpdate(row) {
   const _clothingId = row.clothingId || ids.value
   getClothing(_clothingId).then(response => {
     form.value = response.data;
+    clothStyleList.value = dictList.value.filter(p => p.dictType === 'sys_cloth_style' + form.value.clothingCategory);
     open.value = true;
     title.value = "修改衣物管理";
   });
@@ -386,6 +394,8 @@ function selectChange() {
   getList();
 }
 
-initDictList()
-getList();
+onMounted(async () => {
+  await initDictList()
+  getList();
+});
 </script>

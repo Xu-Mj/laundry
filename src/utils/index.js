@@ -20,27 +20,37 @@ export function getFutureDate(days) {
 
   // 获取当前日期
   const currentDate = new Date();
-  
+
   // 创建一个新的日期对象，避免修改当前日期对象
   const futureDate = new Date(currentDate);
-  
+
   // 添加指定的天数
   futureDate.setDate(currentDate.getDate() + validDays);
-  
-  return formatDate(futureDate);
+
+  // 使用 formatDate 函数格式化日期，只保留年月日
+  return formatDateToDay(futureDate);
 }
 
+// 假设这是你需要的日期格式化函数，只返回到 "YYYY-MM-DD"
+function formatDateToDay(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0'); // 月份从 0 开始，需要 +1
+  const day = String(date.getDate()).padStart(2, '0');
+
+  // 返回格式化后的字符串，格式为 YYYY-MM-DD
+  return `${year}-${month}-${day}`;
+}
 /**
  * 表格时间格式化
  */
 export function formatDate(cellValue) {
   if (cellValue == null || cellValue == "") return "";
-  var date = new Date(cellValue) 
+  var date = new Date(cellValue)
   var year = date.getFullYear()
   var month = date.getMonth() + 1 < 10 ? '0' + (date.getMonth() + 1) : date.getMonth() + 1
-  var day = date.getDate() < 10 ? '0' + date.getDate() : date.getDate() 
-  var hours = date.getHours() < 10 ? '0' + date.getHours() : date.getHours() 
-  var minutes = date.getMinutes() < 10 ? '0' + date.getMinutes() : date.getMinutes() 
+  var day = date.getDate() < 10 ? '0' + date.getDate() : date.getDate()
+  var hours = date.getHours() < 10 ? '0' + date.getHours() : date.getHours()
+  var minutes = date.getMinutes() < 10 ? '0' + date.getMinutes() : date.getMinutes()
   var seconds = date.getSeconds() < 10 ? '0' + date.getSeconds() : date.getSeconds()
   return year + '-' + month + '-' + day + ' ' + hours + ':' + minutes + ':' + seconds
 }
@@ -248,7 +258,7 @@ export function getTime(type) {
 export function debounce(func, wait, immediate) {
   let timeout, args, context, timestamp, result
 
-  const later = function() {
+  const later = function () {
     // 据上一次触发时间间隔
     const last = +new Date() - timestamp
 
@@ -265,7 +275,7 @@ export function debounce(func, wait, immediate) {
     }
   }
 
-  return function(...args) {
+  return function (...args) {
     context = this
     timestamp = +new Date()
     const callNow = immediate && !timeout
@@ -360,7 +370,7 @@ export function makeMap(str, expectsLowerCase) {
     ? val => map[val.toLowerCase()]
     : val => map[val]
 }
- 
+
 export const exportDefault = 'export default '
 
 export const beautifierConf = {
@@ -417,4 +427,4 @@ export function camelCase(str) {
 export function isNumberStr(str) {
   return /^[+-]?(0|([1-9]\d*))(\.\d+)?$/g.test(str)
 }
- 
+

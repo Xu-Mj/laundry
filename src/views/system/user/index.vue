@@ -38,7 +38,7 @@
          <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" :columns="columns"></right-toolbar>
       </el-row>
 
-      <el-table v-loading="loading" :data="userList" @selection-change="handleSelectionChange">
+      <el-table v-loading="loading" :show-close="false" :data="userList" @selection-change="handleSelectionChange">
          <el-table-column type="selection" width="50" align="center" />
          <!-- <el-table-column label="会员编号" align="center" key="userId" prop="userId" v-if="columns[0].visible" /> -->
          <el-table-column label="会员姓名" align="center" v-if="columns[1].visible">
@@ -67,6 +67,14 @@
             </template>
          </el-table-column>
          <el-table-column label="会员住址" align="center" key="address" prop="address" v-if="columns[14].visible" />
+         <el-table-column label="余额" align="center" prop="balance" v-if="columns[15].visible">
+            <template #default="scope">
+               <span style="color: red;">
+                  {{ scope.row.balance }}
+               </span>
+               元
+            </template>
+         </el-table-column>
          <el-table-column label="会员积分" align="center" v-if="columns[11].visible">
             <template #default="scope">
                <el-tooltip content="查看历史记录" placement="top">
@@ -111,13 +119,12 @@
                   @change="handleStatusChange(scope.row)"></el-switch>
             </template>
          </el-table-column>
-         <el-table-column label="创建时间" align="center" prop="createTime" v-if="columns[5].visible" width="160">
+         <el-table-column label="创建时间" align="center" prop="createTime" v-if="columns[5].visible">
             <template #default="scope">
                <span>{{ parseTime(scope.row.createTime) }}</span>
             </template>
          </el-table-column>
-         <el-table-column label="备注信息" align="center" prop="remark" :show-overflow-tooltip="true"
-            v-if="columns[9].visible" />
+         <el-table-column label="备注信息" align="center" prop="remark" show-overflow-tooltip v-if="columns[8].visible" />
          <el-table-column label="操作" align="center" width="150" class-name="small-padding fixed-width">
             <template #default="scope">
                <el-tooltip content="编辑" placement="top">
@@ -244,8 +251,9 @@
       <!-- 会员积分历史记录 -->
       <el-dialog v-model="integralListOpen" width="600px" append-to-body>
          <el-table v-loading="integralLoading" :data="integralList">
-            <el-table-column label="ID" align="center" prop="id" />
-            <el-table-column label="本次使用积分数量" align="center" prop="identify" />
+            <!-- <el-table-column label="ID" align="center" prop="id" /> -->
+            <el-table-column label="兑换数量" align="center" prop="identify" />
+            <el-table-column label="兑换卡券" align="center" prop="couponTitle" />
             <el-table-column label="使用时间" align="center" prop="createTime" width="160">
                <template #default="scope">
                   <span>{{ parseTime(scope.row.createTime) }}</span>
@@ -256,7 +264,7 @@
 
       <!-- 展示会员信息详情 -->
       <el-dialog v-model="userInfoOpen" :show-close="false" width="500px" append-to-body>
-         <UserDetailsCard :user="userInfo" :key="userInfo.userId"/>
+         <UserDetailsCard :user="userInfo" :key="userInfo.userId" />
       </el-dialog>
    </div>
 </template>
@@ -290,7 +298,6 @@ const multiple = ref(true);
 const total = ref(0);
 const title = ref("");
 const deptName = ref("");
-// const deptOptions = ref(undefined);
 const initPassword = ref(undefined);
 const postOptions = ref([]);
 const roleOptions = ref([]);
@@ -311,7 +318,8 @@ const columns = ref([
    { key: 12, label: `会员积分`, visible: true },
    { key: 13, label: `会员画像`, visible: true },
    { key: 14, label: `黑灰名单`, visible: false },
-   { key: 14, label: `会员住址`, visible: false },
+   { key: 15, label: `会员住址`, visible: false },
+   { key: 16, label: `余额`, visible: true },
 ]);
 
 const data = reactive({

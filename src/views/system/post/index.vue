@@ -72,7 +72,7 @@
          v-model:limit="queryParams.pageSize" @pagination="getList" />
 
       <!-- 添加或修改等级对话框 -->
-      <el-dialog :title="title" v-model="open" width="500px" :show-close="false" append-to-body>
+      <el-dialog v-model="open" width="500px" :show-close="false" append-to-body>
          <el-form ref="postRef" :model="form" :rules="rules" label-width="80px">
             <el-form-item label="等级名称" prop="postName">
                <el-input v-model="form.postName" placeholder="请输入等级名称" />

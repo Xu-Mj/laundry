@@ -2,7 +2,7 @@
   <div class="app-container">
     <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="110px">
       <el-form-item label="会员手机号" prop="phonenumber">
-        <el-input v-model="queryParams.phonenumber" placeholder="请输入会员账号" clearable @keyup.enter="handleQuery" />
+        <el-input v-model="queryParams.phonenumber" placeholder="请输入会员机号" clearable @keyup.enter="handleQuery" />
       </el-form-item>
       <el-form-item label="订单编码" prop="orderNumber">
         <el-input v-model="queryParams.orderNumber" placeholder="请输入订单编码" clearable @keyup.enter="handleQuery" />
@@ -19,18 +19,16 @@
         <el-button type="primary" plain icon="Plus" @click="handleAdd" v-hasPermi="['system:record:add']">新增</el-button>
       </el-col> -->
       <el-col :span="1.5">
-        <el-button type="danger" icon="Delete" @click="handleDelete"
-          v-hasPermi="['system:record:remove']">删除3个月前的通知</el-button>
+        <el-button type="danger" icon="Delete" @click="handleDelete">删除3个月前的通知</el-button>
 
       </el-col>
       <el-col :span="1.5">
-        <el-button type="danger" icon="Delete" @click="handleDeleteAll"
-          v-hasPermi="['system:record:remove']">清空所有通知记录</el-button>
+        <el-button type="danger" icon="Delete" @click="handleDeleteAll">清空所有通知记录</el-button>
 
       </el-col>
       <el-col :span="1.5">
         <el-button type="primary" icon="Management">
-          <router-link to="/tool/template" class="link-type">
+          <router-link to="/system/template" class="link-type">
             管理通知模板
           </router-link>
         </el-button>
@@ -72,7 +70,7 @@
 </template>
 
 <script setup name="Record">
-import { listRecord, getRecord, delRecord, addRecord, updateRecord } from "@/api/system/notice_record";
+import { listRecord, getRecord, addRecord, updateRecord } from "@/api/system/notice_record";
 import { delAllRecord, delRecordsByDay } from "../../../api/system/notice_record";
 
 const { proxy } = getCurrentInstance();

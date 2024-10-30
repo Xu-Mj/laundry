@@ -42,7 +42,7 @@
       <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" :columns="columns"></right-toolbar>
     </el-row>
 
-    <el-table v-loading="loading" :data="couponList" @selection-change="handleSelectionChange">
+    <el-table v-loading="loading" :data="couponList" ref="table" @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="55" align="center" />
       <!-- <el-table-column label="卡券唯一标识ID" align="center" prop="couponId" /> -->
       <el-table-column label="卡券名称" align="center" prop="couponTitle" v-if="columns[0].visible" />
@@ -69,12 +69,12 @@
           {{ scope.row.customerSaleCount == -1 ? '无限制' : scope.row.customerSaleCount }}
         </template>
       </el-table-column>
-      <el-table-column label="有效时间-起" align="center" prop="validFrom"  v-if="columns[9].visible">
+      <el-table-column label="有效时间-起" align="center" prop="validFrom" v-if="columns[9].visible">
         <template #default="scope">
           <span>{{ parseTime(scope.row.validFrom, '{y}-{m}-{d}') }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="有效时间-止" align="center" prop="validTo"  v-if="columns[10].visible">
+      <el-table-column label="有效时间-止" align="center" prop="validTo" v-if="columns[10].visible">
         <template #default="scope">
           <span>{{ parseTime(scope.row.validTo, '{y}-{m}-{d}') }}</span>
         </template>
@@ -95,30 +95,12 @@
             scope.row.usageLimit == 0 ? '无限制' : scope.row.usageLimit }}
         </template>
       </el-table-column>
-      <!-- <el-table-column label="适用品类" align="center" prop="applicableCategory" v-if="columns[14].visible">
-        <template #default="scope">
-          <dict-tag :options="sys_cloth_cate" :value="scope.row.applicableCategory" />
-        </template>
-      </el-table-column>
-      <el-table-column label="适用分类" align="center" prop="applicableStyle" v-if="columns[15].visible">
-        <template #default="scope">
-          <dict-tag :options="sys_cloth_style" :value="scope.row.applicableStyle" />
-        </template>
-      </el-table-column>
-      <el-table-column label="适用衣物" align="center" prop="applicableCloths" v-if="columns[16].visible">
-        <template #default="scope">
-          <el-tag type="primary"
-            v-for="item, index in scope.row.applicableCloths ? scope.row.applicableCloths.split(',') : []"
-            :key="index">{{
-              item }}</el-tag>
-        </template>
-      </el-table-column> -->
       <el-table-column label="卡券状态" align="center" prop="status" v-if="columns[13].visible">
         <template #default="scope">
           <dict-tag :options="sys_coupon_status" :value="scope.row.status" />
         </template>
       </el-table-column>
-      <el-table-column label="卡券描述" align="center" prop="remark" v-if="columns[14].visible" />
+      <el-table-column label="卡券描述" align="center" prop="remark" v-if="columns[14].visible" show-overflow-tooltip />
       <el-table-column label="操作" align="center" class-name="small-padding" width="140">
         <template #default="scope">
           <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)"
@@ -133,9 +115,9 @@
       v-model:limit="queryParams.pageSize" @pagination="getList" />
 
     <!-- 添加或修改卡券对话框 -->
-    <el-dialog :title="title" v-model="open" width="650px" :show-close="false" lock-scroll modal
-      :close-on-click-modal="false" append-to-body>
-      <el-form ref="couponRef" :model="form" :rules="rules" label-width="110px">
+    <el-dialog v-model="open" width="650px" :show-close="false" lock-scroll modal :close-on-click-modal="false"
+      append-to-body>
+      <el-form ref="couponRef" :model="form" :rules="rules" label-width="90px">
         <el-row>
           <el-col :span="12">
             <el-form-item label="卡券名称" prop="couponTitle">
@@ -252,7 +234,7 @@
             </el-form-item>
           </el-col>
         </el-row>
-        <!-- <el-row>
+        <el-row>
           <el-col :span="12">
             <el-tooltip content="卡券可出售总量限制，'-1'为不限制">
               <el-form-item label="总量限制" prop="customerSaleTotal">
@@ -263,13 +245,13 @@
           </el-col>
           <el-col :span="12">
             <el-tooltip content="单用户可购买数量限制，'-1'为不限制">
-              <el-form-item label="单用户数量限制" prop="customerSaleCount">
+              <el-form-item label="单用户数量限制" prop="customerSaleCount" label-width="110px">
                 <el-input-number :min="-1" v-model="form.customerSaleCount" controls-position="right"
                   placeholder="-1为不限制" />
               </el-form-item>
             </el-tooltip>
           </el-col>
-        </el-row> -->
+        </el-row>
         <el-row>
           <el-col :span="12">
             <el-form-item label="有效期-起" prop="validFrom">
@@ -311,7 +293,7 @@
     </el-dialog>
 
     <!-- show sell coupon -->
-    <el-dialog v-model="showSell" title="销售卡券" width="800px">
+    <el-dialog v-model="showSell" width="800px" @closed="closeSell">
       <el-form ref="sellFormRef" :model="sellForm" label-width="90px" :rules="sellRules">
         <el-row>
           <el-col :span="12">
@@ -392,8 +374,7 @@
 
 <script setup name="Coupon">
 import { listCoupon, getCoupon, delCoupon, addCoupon, updateCoupon, buyCoupon } from "@/api/system/coupon";
-import { listUser, addUser } from "@/api/system/user";
-import { listClothing } from "@/api/system/clothing";
+import { listUserWithNoLimit, addUser } from "@/api/system/user";
 import { ref, computed } from "vue";
 
 const { proxy } = getCurrentInstance();
@@ -418,17 +399,16 @@ const {
 const couponList = ref([]);
 const userListRes = ref([]);
 const userList = ref([]);
-const clothList = ref([]);
 const open = ref(false);
 const showSell = ref(false);
 const searchUserloading = ref(false);
-const clothListloading = ref(false);
 const loading = ref(true);
 const showSearch = ref(true);
 const needCreateUser = ref(false);
 const ids = ref([]);
 const total = ref(0);
 const title = ref("");
+const table = ref();
 
 // 列显隐信息
 const columns = ref([
@@ -438,8 +418,8 @@ const columns = ref([
   { key: 3, label: `卡券面值`, visible: true },
   { key: 4, label: `最低消费金额`, visible: true },
   { key: 5, label: `客户可见`, visible: true },
-  { key: 6, label: `总量限制`, visible: true },
-  { key: 7, label: `单用户数量限制`, visible: true },
+  { key: 6, label: `总量限制`, visible: false },
+  { key: 7, label: `单用户数量限制`, visible: false },
   { key: 8, label: `有效期-起`, visible: true },
   { key: 9, label: `有效期-止`, visible: true },
   { key: 10, label: `自动延期`, visible: true },
@@ -520,6 +500,13 @@ function validateValidTo(rules, value, callback) {
   }
 };
 
+function closeSell() {
+  resetSellForm();
+  table.value.clearSelection();
+  selectedList.value = [];
+  showSell.value = false;
+}
+
 /* 动态计算销售卡券时的总金额 */
 const totalPrice = computed(() => {
   return selectedList.value.reduce((accumulator, curItem) => {
@@ -584,7 +571,6 @@ function resetQuery() {
 
 // 多选框选中数据
 function handleSelectionChange(selection) {
-  selection.forEach(item => item.count = 1);
   selectedList.value = selection;
 }
 
@@ -669,16 +655,20 @@ function resetSellForm() {
     remark: null,
     paymentMethod: "05"
   };
+  needCreateUser.value = false;
   proxy.resetForm("sellFormRef");
 }
 
 function handleShowSell() {
-  showSell.value = true;
+  selectedList.value = selectedList.value.filter(item => item.customerSaleCount != 0 && item.customerSaleTotal != 0 && item.status == '0');
+  selectedList.value.forEach(item => item.count = 1);
+
   resetSellForm();
   searchUserloading.value = true;
-  listUser().then(res => {
+  listUserWithNoLimit().then(res => {
     searchUserloading.value = false;
     userList.value = res.rows;
+    showSell.value = true;
   });
 }
 
@@ -715,7 +705,6 @@ function searchUserByTel(tel) {
 
 /* 购买卡券 */
 async function buy() {
-  console.log(sellForm.value)
   proxy.$refs["sellFormRef"].validate(async valid => {
     if (valid) {
       const coupons = selectedList.value.filter(item => item.count > 0).map(({ couponId, count }) => ({ couponId, count }));
@@ -736,6 +725,7 @@ async function buy() {
       }
       buyCoupon(sellForm.value).then(res => {
         proxy.$modal.msgSuccess("购买成功");
+        resetSellForm();
         showSell.value = false;
       }).catch();
     }

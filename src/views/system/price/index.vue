@@ -31,7 +31,7 @@
       <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
     </el-row>
 
-    <el-table v-loading="loading" :data="priceList" @selection-change="handleSelectionChange">
+    <el-table v-loading="loading" :data="priceList" v-model="selectedList" @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="55" align="center" />
       <!-- <el-table-column label="唯一标识ID" align="center" prop="priceId" /> -->
       <el-table-column label="价格编码" align="center" prop="priceNumber" />
@@ -59,7 +59,7 @@
             @change="handleStatusChange(scope.row)"></el-switch>
         </template>
       </el-table-column>
-      <el-table-column label="备注" align="center" prop="remark" />
+      <el-table-column label="备注" align="center" prop="remark" show-overflow-tooltip />
       <el-table-column label="创建时间" align="center" prop="createdAt" width="180">
         <template #default="scope">
           <span>{{ parseTime(scope.row.createdAt, '{y}-{m}-{d}') }}</span>
@@ -84,7 +84,7 @@
       v-model:limit="queryParams.pageSize" @pagination="getList" />
 
     <!-- 添加或修改价格管理对话框 -->
-    <el-dialog :title="title" v-model="open" :show-close="false" width="500px" @opened="refNumberGetFocus"
+    <el-dialog v-model="open" :show-close="false" width="500px" @opened="refNumberGetFocus"
       @closed="refNumberFocus = false" append-to-body>
       <el-form ref="priceRef" :model="form" :rules="rules" label-width="80px">
         <el-row>
@@ -95,7 +95,7 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="价格" prop="priceValue">
-              <el-input-number v-model="form.priceValue" placeholder="请输入价格" :disabled="isPriceValueDisabled" />
+              <el-input-number v-model="form.priceValue" controls-position="right" placeholder="请输入价格" :disabled="isPriceValueDisabled" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -110,7 +110,7 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="折扣系数" prop="priceDiscount">
-              <el-input-number v-model="form.priceDiscount" placeholder="请输入折扣系数" :disabled="isPriceDiscountDisabled" />
+              <el-input-number v-model="form.priceDiscount" controls-position="right" placeholder="请输入折扣系数" :disabled="isPriceDiscountDisabled" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -265,7 +265,7 @@ function updateRefNum() {
       updatePriceRefNum({ tagIds: ids.value, refNum: tagNumForm.value.refNumber }).then(res => {
         proxy.$modal.msgSuccess("修改成功");
         showUpdateRefNum.value = false;
-        tagNumForm.value.refNumber = 0;
+        tagNumForm.value.refNumber = null;
         getList();
       })
     }
@@ -275,7 +275,7 @@ function updateRefNum() {
 // 取消按钮
 function cancelUpdateRefNum() {
   showUpdateRefNum.value = false;
-  tagNumForm.value = { refNumber: 0 };
+  tagNumForm.value = {};
 }
 
 // 取消按钮

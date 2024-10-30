@@ -78,14 +78,42 @@
             </div>
             <!-- 卡券列表信息 -->
             <div class="detail-item">
-                <span class="detail-label">拥有卡券:</span>
+                <span class="detail-label">储值卡余额:</span>
+                <span style="color: red;" v-if="coupons && coupons.length > 0">
+                    {{ coupons.filter(item => item.coupon.couponType == '000').reduce((acc, cur) => acc +
+                        cur.availableValue, 0) }}
+                    元
+                </span>
+            </div>
+            <!-- 卡券列表信息 -->
+            <div class="detail-item">
+                <span class="detail-label">次卡:</span>
                 <template v-if="coupons && coupons.length > 0">
                     <div class="user-tags-container">
-                        <span v-for="(card, index) in coupons" :key="index">
+                        <span
+                            v-for="(card, index) in coupons.filter(item => item.coupon.couponType == '002' && item.availableValue > 0)"
+                            :key="index">
                             {{ card.coupon.couponTitle }}
-                            -余额
+                            -
                             {{ card.availableValue }}
-                            {{ card.coupon.couponType == '000' ? '元' : '次' }}
+                            次
+                            {{ index === coupons.length - 1 ? '' : '|' }}
+                        </span>
+                    </div>
+                </template>
+            </div>
+            <!-- 卡券列表信息 -->
+            <div class="detail-item">
+                <span class="detail-label">优惠券:</span>
+                <template v-if="coupons && coupons.length > 0">
+                    <div class="user-tags-container">
+                        <span
+                            v-for="(card, index) in coupons.filter(item => item.coupon.couponType !== '000' && item.availableValue > 0)"
+                            :key="index">
+                            {{ card.coupon.couponTitle }}
+                            -
+                            {{ card.availableValue }}
+                            张
                             {{ index === coupons.length - 1 ? '' : '|' }}
                         </span>
                     </div>
@@ -96,14 +124,21 @@
                 <span class="detail-label">备注信息:</span>
                 <span>{{ user.remark }}</span>
             </div>
+            <div class="detail-item">
+                <span class="detail-label">消费记录</span>
+                <el-button link style="cursor: pointer;" @click="showHistory">查看消费记录</el-button>
+            </div>
         </div>
     </el-card>
+    <History :visible="showHistoryDialog" :userId="user.userId" :key="showHistoryDialog"
+        :toggle="() => { showHistoryDialog = !showHistoryDialog }" />
 </template>
 
 <script setup>
 import { changeUserStatus } from "@/api/system/user";
-import { listUserCoupon } from '@/api/system/user_coupon';
+import { listUserCouponNoPage } from '@/api/system/user_coupon';
 import { ref } from "vue";
+import History from "../../home/history.vue";
 
 const { proxy } = getCurrentInstance();
 const { sys_user_tags, sys_user_sex, sys_user_type, sys_user_identify } = proxy.useDict("sys_user_tags", "sys_user_sex", "sys_user_type", "sys_user_identify");
@@ -116,6 +151,7 @@ const props = defineProps({
     }
 });
 
+const showHistoryDialog = ref(false);
 const coupons = ref();
 
 /* 会员状态修改 */
@@ -131,9 +167,13 @@ const handleStatusChange = (row) => {
 };
 // 获取会员优惠券列表
 if (props.user && props.user.userId) {
-    listUserCoupon({ userId: props.user.userId }).then(response => {
+    listUserCouponNoPage({ userId: props.user.userId }).then(response => {
         coupons.value = response.rows;
     });
+}
+
+function showHistory() {
+    showHistoryDialog.value = true;
 }
 </script>
 

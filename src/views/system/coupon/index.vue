@@ -95,24 +95,6 @@
             scope.row.usageLimit == 0 ? '无限制' : scope.row.usageLimit }}
         </template>
       </el-table-column>
-      <!-- <el-table-column label="适用品类" align="center" prop="applicableCategory" v-if="columns[14].visible">
-        <template #default="scope">
-          <dict-tag :options="sys_cloth_cate" :value="scope.row.applicableCategory" />
-        </template>
-      </el-table-column>
-      <el-table-column label="适用分类" align="center" prop="applicableStyle" v-if="columns[15].visible">
-        <template #default="scope">
-          <dict-tag :options="sys_cloth_style" :value="scope.row.applicableStyle" />
-        </template>
-      </el-table-column>
-      <el-table-column label="适用衣物" align="center" prop="applicableCloths" v-if="columns[16].visible">
-        <template #default="scope">
-          <el-tag type="primary"
-            v-for="item, index in scope.row.applicableCloths ? scope.row.applicableCloths.split(',') : []"
-            :key="index">{{
-              item }}</el-tag>
-        </template>
-      </el-table-column> -->
       <el-table-column label="卡券状态" align="center" prop="status" v-if="columns[13].visible">
         <template #default="scope">
           <dict-tag :options="sys_coupon_status" :value="scope.row.status" />
@@ -589,7 +571,6 @@ function resetQuery() {
 
 // 多选框选中数据
 function handleSelectionChange(selection) {
-  selection.forEach(item => item.count = 1);
   selectedList.value = selection;
 }
 
@@ -679,13 +660,15 @@ function resetSellForm() {
 }
 
 function handleShowSell() {
-  selectedList.value = selectedList.value.filter(item => item.customerSaleCount > 0 && item.customerSaleTotal > 0 && item.status == '0');
-  showSell.value = true;
+  selectedList.value = selectedList.value.filter(item => item.customerSaleCount != 0 && item.customerSaleTotal != 0 && item.status == '0');
+  selectedList.value.forEach(item => item.count = 1);
+
   resetSellForm();
   searchUserloading.value = true;
   listUserWithNoLimit().then(res => {
     searchUserloading.value = false;
     userList.value = res.rows;
+    showSell.value = true;
   });
 }
 

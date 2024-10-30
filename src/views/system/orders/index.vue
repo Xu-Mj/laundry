@@ -22,6 +22,12 @@
           <el-option v-for="dict in sys_payment_status" :key="dict.value" :label="dict.label" :value="dict.value" />
         </el-select>
       </el-form-item>
+      <el-form-item label="洗护状态" prop="paymentStatus">
+        <el-select v-model="queryParams.status" @change="handleQuery" clearable style="width: 150px;"
+          placeholder="请选择洗护状态">
+          <el-option v-for="dict in sys_order_status" :key="dict.value" :label="dict.label" :value="dict.value" />
+        </el-select>
+      </el-form-item>
       <el-form-item>
         <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
         <el-button icon="Refresh" @click="resetQuery">重置</el-button>
@@ -65,10 +71,10 @@
           <span v-else>
             {{ scope.row.paymentBonusCount }}元
           </span>
-          
+
         </template>
       </el-table-column>
-      <el-table-column label="实际支付" align="center" >
+      <el-table-column label="实际支付" align="center">
         <template #default="scope">
           <span v-if="scope.row.diffPrice > 0" style="color: red;">
             {{ scope.row.diffPrice }}元
@@ -133,8 +139,8 @@
       <el-table-column label="备注" align="center" prop="remark" show-overflow-tooltip />
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template #default="scope">
-          <el-button link type="primary" icon="Edit" @click="showClothList(scope.row)"
-            v-hasPermi="['system:orders:edit']">衣物</el-button>
+          <el-button link type="primary" @click="showClothList(scope.row)"
+            v-hasPermi="['system:orders:list']">衣物</el-button>
           <el-dropdown>
             <el-icon class="el-icon--right">
               <arrow-down />
@@ -258,10 +264,9 @@
       </el-form>
     </el-dialog>
     <!-- 衣物列表弹窗 -->
-    <el-dialog title="衣物" v-model="showClothListDialog" width="1440px" append-to-body>
-      <ShowCloths :orderId="currentOrderId" :flashList="getList" :userId="currentUserId" :key="showClothListDialog" />
-    </el-dialog>
-    <el-dialog :show-close="false" v-model="open" width="1440px" append-to-body lock-scroll modal :before-close="cancel"
+    <ShowCloths :orderId="currentOrderId" :visible="showClothListDialog" :flashList="getList" :userId="currentUserId"
+      :key="showClothListDialog" :toggle="() => { showClothListDialog = !showClothListDialog }" />
+    <el-dialog :show-close="false" v-model="open" width="1366px" append-to-body lock-scroll modal :before-close="cancel"
       :close-on-click-modal="false">
       <CreateOrder ref="createOrderRef" :orderId="currentOrderId" :userId="currentUserId"
         :toggle="() => { open = !open; getList(); }" :refresh="getList" :key="open" />
@@ -292,7 +297,6 @@ const {
   sys_delivery_mode,
   sys_order_type,
   sys_order_status,
-  sys_payment_method,
   sys_payment_method_show,
   sys_notice_method,
 } =
@@ -304,7 +308,6 @@ const {
     "sys_delivery_mode",
     "sys_order_type",
     "sys_order_status",
-    "sys_payment_method",
     "sys_payment_method_show",
     "sys_notice_method",
   );

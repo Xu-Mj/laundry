@@ -80,7 +80,7 @@
                             </el-form-item>
                         </el-col>
                         <el-col :span="3">
-                            <el-button type="primary" plain @click="printOrder">打印</el-button>
+                            <el-button type="primary" plain>打印</el-button>
                         </el-col>
 
                     </el-row>
@@ -375,6 +375,62 @@ const data = reactive({
 
 const { form, paymentForm, rules } = toRefs(data);
 
+
+
+function printAllItems() {
+    form.value.cloths.forEach((item, index) => {
+        // 创建一个隐藏的iframe
+        const iframe = document.createElement('iframe');
+        iframe.style.visibility = 'hidden';
+        iframe.style.position = 'fixed';
+        iframe.style.right = '0';
+        iframe.style.bottom = '0';
+        document.body.appendChild(iframe);
+
+        // 等待iframe加载完成
+        iframe.onload = () => {
+            const iframeDocument = iframe.contentDocument || iframe.contentWindow.document;
+            // 设置iframe的文档内容
+            iframeDocument.open();
+            iframeDocument.write(generatePrintContent(item));
+            iframeDocument.close();
+
+            // 尝试静默打印
+            try {
+                iframe.contentWindow.print();
+            } catch (e) {
+                console.error('打印失败:', e);
+            }
+
+            // 打印完成后移除iframe
+            iframe.onload = null;
+            iframe.remove();
+        };
+    });
+}
+
+function generatePrintContent(item) {
+    return `
+    <div class="printer-container">
+        <div class="printer-left">
+            <div class="printer-shop-name">印洗匠心</div>
+            <div class="printer-code">
+                <img id="barcode" />
+            </div>
+        </div>
+        <div class="printer-right">
+            <div class="printer-first-line">${item.clothInfo.clothName}</div>
+            <div class="printer-second-line"></div>
+            <div class="printer-third-line"></div>
+        </div>
+    </div>`
+}
+
+function print() {
+    console.log(form.value.cloths)
+    const items = form.value.cloths;
+    printAllItems(items);
+}
 // 处理子组件传过来的数据
 function submitClothes(list) {
     form.value.cloths = list;
@@ -546,11 +602,11 @@ function changeCoupon(couponType, card) {
             let bonusAmount = parseFloat((paymentForm.value.totalAmount * (1 - coupon.coupon.usageValue / 100)).toFixed(2));
 
             // 进一步处理，不保留小数点后的0
-            if (bonusAmount % 1 === 0) {
-                bonusAmount = Math.floor(bonusAmount); // 变为整数
-            }
+            // if (bonusAmount % 1 === 0) {
+            //     bonusAmount = Math.floor(bonusAmount); // 变为整数
+            // }
 
-            if (bonusAmount > coupon.coupon.usageLimit) {
+            if (coupon.coupon.usageLimit != 0 && bonusAmount > coupon.coupon.usageLimit) {
                 bonusAmount = coupon.coupon.usageLimit;
             }
             paymentForm.value.bonusAmount = bonusAmount;

@@ -2,8 +2,8 @@
     <div class="app-container">
         <el-row :gutter="10" v-if="!props.isRewash" class="mb8">
             <el-col :span="1.5">
-                <el-button type="primary" plain icon="Plus" @click="handleAdd" :disabled="props.disabled"
-                    v-hasPermi="['system:cloths:add']">添加衣物</el-button>
+                <el-button type="primary" plain icon="Plus" @click="handleAdd"
+                    :disabled="props.disabled">添加衣物</el-button>
             </el-col>
         </el-row>
 
@@ -57,12 +57,11 @@
             <el-table-column label="补充信息" align="center" prop="hangRemark" />
             <el-table-column label="操作" align="center" :width="200" class-name="small-padding fixed-width">
                 <template #default="scope">
-                    <el-button link type="primary" :icon="Camera" @click="handleShowUploadPic(scope.row)"
-                        v-hasPermi="['system:cloths:edit']">拍照</el-button>
+                    <el-button link type="primary" :icon="Camera" @click="handleShowUploadPic(scope.row)">拍照</el-button>
                     <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)"
-                        :disabled="props.disabled" v-hasPermi="['system:cloths:edit']">修改</el-button>
+                        :disabled="props.disabled">修改</el-button>
                     <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)"
-                        :disabled="props.disabled" v-hasPermi="['system:cloths:remove']">删除</el-button>
+                        :disabled="props.disabled">删除</el-button>
                 </template>
             </el-table-column>
         </el-table>
@@ -344,8 +343,12 @@
                             </el-form-item>
                         </el-col>
                         <el-col :span="12" class="final-btn">
-                            <el-button type="primary" @click="submitForm">{{ form.clothId ? '确认修改' : '确认添加'
-                                }}</el-button>
+                            <el-button type="primary" @click="submitForm">
+                                {{
+                                    form.clothId ?
+                                        '确认修改' : '确认添加'
+                                }}
+                            </el-button>
                             <el-button type="primary" @click="cancel">取消</el-button>
                         </el-col>
                     </el-row>
@@ -365,7 +368,6 @@ import pinyin from 'pinyin';
 import { ref, reactive, toRefs } from "vue";
 import { listCloths } from "@/api/system/cloths";
 import { getToken } from "@/utils/auth";
-import useDictStore from '@/store/modules/dict'
 import { delClothPicture } from "../../api/system/cloths";
 
 const props = defineProps({

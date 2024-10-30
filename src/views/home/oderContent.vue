@@ -112,25 +112,15 @@
                             <dict-tag :options="sys_clothing_status" :value="scope.row.clothingStatus" />
                         </template>
                     </el-table-column>
-                    <!-- <el-table-column label="取回方式" align="center" prop="pickupMethod">
-                        <template #default="scope">
-                            <dict-tag :options="sys_delivery_mode" :value="scope.row.pickupMethod" />
-                        </template>
-                    </el-table-column>
-                    <el-table-column label="取回时间" align="center" prop="pickupTime" width="180">
-                        <template #default="scope">
-                            <span>{{ parseTime(scope.row.pickupTime) }}</span>
-                        </template>
-                    </el-table-column> -->
                     <el-table-column label="上挂位置" align="center">
                         <template #default="scope">
                             {{
                                 scope.row.hangLocationCode ?
-                                scope.row.hangerName + '-' + scope.row.hangerNumber : ''
+                                    scope.row.hangerName + '-' + scope.row.hangerNumber : ''
                             }}
                         </template>
                     </el-table-column>
-                    <el-table-column label="上挂备注" align="center" prop="hangRemark"/>
+                    <el-table-column label="上挂备注" align="center" prop="hangRemark" />
                 </el-table>
 
             </div>
@@ -283,7 +273,8 @@
         </el-form>
         <template #footer>
             <div class="payment-footer">
-                <el-button type="primary" @click="submitPaymentForm">确认收款</el-button>
+                <el-button type="primary" @click="submitPaymentForm(false)">确认收款</el-button>
+                <el-button type="primary" @click="submitPaymentForm(true)">收款并取衣</el-button>
             </div>
         </template>
     </el-dialog>
@@ -307,6 +298,7 @@ import { isCurrentTimeWithinRange } from "@/utils";
 import { selectListExceptCompleted } from "@/api/system/orders";
 import { getPrice } from "@/api/system/price";
 import ReWash from "./rewash.vue";
+import { ElMessageBox } from 'element-plus'
 
 const props = defineProps({
     visible: {
@@ -487,7 +479,6 @@ async function handlePay() {
         return;
     }
     initPaymentForm();
-    // console.log(couponTypeList.value)
     // 获取用户的卡券列表
     await listUserCouponWithValidTime({ userId: ordersList.value[0].userId }).then(response => {
         userCouponList.value = response.rows;
@@ -609,7 +600,7 @@ function initPaymentForm() {
 }
 
 /* 收款 */
-function submitPaymentForm() {
+async function submitPaymentForm(isPickup) {
     // 判断是否使用了优惠券
     if (!paymentForm.value.couponId) {
         if (couponStorageCardId.value.length > 0) {
@@ -685,15 +676,39 @@ function submitPaymentForm() {
         paymentForm.value.paymentAmountMv = paymentForm.value.paymentAmount;
     }
     paymentForm.value.totalAmount = Number(paymentForm.value.totalAmount);
-    pay(paymentForm.value).then(async res => {
+    // pay(paymentForm.value).then(async res => {
+    //     proxy.$modal.msgSuccess('支付成功');
+    //     // 如果选中了衣物，那么同时需要取走
+    //     if (selectedCloths.value.length !== 0 && isPickup) {
+    //         await pickup();
+    //     }
+    //     showPaymentDialog.value = false;
+    //     getList();
+    // })
+    try {
+        // 等待支付完成
+        await pay(paymentForm.value);
+
+        // 支付成功后提示
         proxy.$modal.msgSuccess('支付成功');
-        // 如果选中了衣物，那么同时需要取走
-        if (selectedCloths.value.length !== 0) {
+
+        // 修改订单支付状态
+        paymentForm.value.orders.forEach(item => item.paymentStatus = '00')
+        // 如果选中了衣物，并且需要取走
+        if (selectedCloths.value.length !== 0 && isPickup) {
+            // 等待 pickup 完成
             await pickup();
         }
+
+        // 关闭支付对话框
         showPaymentDialog.value = false;
+
+        // 获取最新列表
         getList();
-    })
+    } catch (err) {
+        // 错误处理
+        console.error('支付失败:', err);
+    }
 }
 
 function changeCoupon(couponType, card) {
@@ -789,11 +804,11 @@ function changeCoupon(couponType, card) {
             let bonusAmount = parseFloat((paymentForm.value.totalAmount * (1 - coupon.coupon.usageValue / 100)).toFixed(2));
 
             // 进一步处理，不保留小数点后的0
-            if (bonusAmount % 1 === 0) {
-                bonusAmount = Math.floor(bonusAmount); // 变为整数
-            }
+            // if (bonusAmount % 1 === 0) {
+            //     bonusAmount = Math.floor(bonusAmount); // 变为整数
+            // }
 
-            if (bonusAmount > coupon.coupon.usageLimit) {
+            if (coupon.coupon.usageLimit != 0 && bonusAmount > coupon.coupon.usageLimit) {
                 bonusAmount = coupon.coupon.usageLimit;
             }
             paymentForm.value.bonusAmount = bonusAmount;
@@ -807,25 +822,31 @@ function changeCoupon(couponType, card) {
 
 // 显示取走
 async function pickup() {
-    const cloths = selectedCloths.value.filter(item => item.clothingStatus === '02');
+    const cloths = selectedCloths.value.filter(item => item.clothingStatus !== '00');
     if (cloths.length == 0) {
         proxy.$modal.msgWarning("没有选中符合条件的衣物");
         return;
     }
 
+    // 筛选正在洗护中的衣物进行提示
+    const washCloths = cloths.filter(item => item.clothingStatus === '01');
+    if (washCloths.length > 0) {
+        try {
+            // 显示确认弹窗，用户点击确认后才会执行后续逻辑
+            await ElMessageBox.confirm('选择衣物中包含' + washCloths.length + '件正在洗护中的衣物，确认取衣？', 'Warning', {
+                confirmButtonText: '取衣',
+                cancelButtonText: '取消',
+                type: 'warning'
+            });
+        } catch (error) {
+            // 用户点击取消时捕获错误，直接返回，流程不会继续
+            return;
+        }
+    }
+
     const ids = cloths.map(item => item.clothId);
 
     const orderIds = cloths.map(item => item.orderClothId);
-    // 判断是否是同一个会员的衣物
-    const userIdList = [...new Set(ordersList.value.filter(item => orderIds.includes(item.orderId)).map(item => item.userId))];
-    if (userIdList.length === 0) {
-        proxy.$modal.msgError("错误");
-        return;
-    }
-    if (userIdList.length > 1) {
-        proxy.$modal.msgWarning("请选择同一会员的衣物");
-        return;
-    }
 
     // 判断是否包含未支付的订单
     const unpaidOrders = ordersList.value.filter(item => orderIds.includes(item.orderId) && item.paymentStatus !== '00');
@@ -1081,7 +1102,9 @@ async function getList() {
         }
 
         // 过滤已取走的衣物
-        item.clothList = item.clothList.filter(cloth => cloth.clothingStatus !== '00');
+        if (item.paymentStatus == '00') {
+            item.clothList = item.clothList.filter(cloth => cloth.clothingStatus !== '00');
+        }
     }
     // console.log('ordersList', ordersList.value);
 }

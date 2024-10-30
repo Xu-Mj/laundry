@@ -19,13 +19,11 @@
         <el-button type="primary" plain icon="Plus" @click="handleAdd" v-hasPermi="['system:record:add']">新增</el-button>
       </el-col> -->
       <el-col :span="1.5">
-        <el-button type="danger" icon="Delete" @click="handleDelete"
-          v-hasPermi="['system:record:remove']">删除3个月前的通知</el-button>
+        <el-button type="danger" icon="Delete" @click="handleDelete">删除3个月前的通知</el-button>
 
       </el-col>
       <el-col :span="1.5">
-        <el-button type="danger" icon="Delete" @click="handleDeleteAll"
-          v-hasPermi="['system:record:remove']">清空所有通知记录</el-button>
+        <el-button type="danger" icon="Delete" @click="handleDeleteAll">清空所有通知记录</el-button>
 
       </el-col>
       <el-col :span="1.5">

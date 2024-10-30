@@ -26,6 +26,22 @@ export function getUser(userId) {
   })
 }
 
+// 查询用户详细
+export function getUserByClothCode(clothCode) {
+  return request({
+    url: '/system/user/by-cloth-code/' + clothCode,
+    method: 'get'
+  })
+}
+
+// 查询用户详细
+export function getUserListByIds(userIds) {
+  return request({
+    url: '/system/user/listByIds/' + userIds,
+    method: 'get'
+  })
+}
+
 // 新增用户
 export function addUser(data) {
   return request({

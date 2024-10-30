@@ -387,14 +387,15 @@ function changeCoupon(couponType, card) {
         }
         // 折扣券
         if (coupon.coupon.couponType == '003') {
+            debugger
             let bonusAmount = parseFloat((paymentForm.value.totalAmount * (1 - coupon.coupon.usageValue / 100)).toFixed(2));
 
             // 进一步处理，不保留小数点后的0
-            if (bonusAmount % 1 === 0) {
-                bonusAmount = Math.floor(bonusAmount); // 变为整数
-            }
+            // if (bonusAmount % 1 === 0) {
+            //     bonusAmount = Math.floor(bonusAmount); // 变为整数
+            // }
 
-            if (bonusAmount > coupon.coupon.usageLimit) {
+            if (coupon.coupon.usageLimit != 0 && bonusAmount > coupon.coupon.usageLimit) {
                 bonusAmount = coupon.coupon.usageLimit;
             }
             paymentForm.value.bonusAmount = bonusAmount;

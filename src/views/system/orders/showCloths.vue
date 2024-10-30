@@ -1,5 +1,6 @@
 <template>
-    <div class="app-container">
+    <el-dialog title="付款" v-model="showClothesDialog" width="1366px" append-to-body lock-scroll modal
+        :close-on-click-modal="false" @closed="close">
         <el-table v-loading="loading" :data="clothsList" @selection-change="handleSelectionChange">
             <el-table-column type="selection" width="55" align="center" />
             <el-table-column label="衣物" align="center">
@@ -73,12 +74,12 @@
                 <template #default="scope">
                     <el-button link type="primary" icon="Picture"
                         :disabled="scope.row.beforePics == null || scope.row.beforePics.length == 0"
-                        @click="handleShowPicture(scope.row, true)" v-hasPermi="['system:cloths:edit']">洗前</el-button>
+                        @click="handleShowPicture(scope.row, true)">洗前</el-button>
                     <el-button link type="primary" icon="Picture"
                         :disabled="scope.row.afterPics == null || scope.row.afterPics.length == 0"
-                        @click="handleShowPicture(scope.row, false)" v-hasPermi="['system:cloths:edit']">洗后</el-button>
+                        @click="handleShowPicture(scope.row, false)">洗后</el-button>
                     <el-button link type="primary" icon="Top" @click="handleShowHangUp(scope.row)"
-                        v-if="scope.row.clothingStatus == '01'" v-hasPermi="['system:cloths:remove']">
+                        v-if="scope.row.clothingStatus == '01'">
                         上挂
                     </el-button>
                 </template>
@@ -156,7 +157,7 @@
                 </div>
             </template>
         </el-dialog>
-    </div>
+    </el-dialog>
 </template>
 
 <script setup name="Cloths">
@@ -168,6 +169,11 @@ import { getUser } from "@/api/system/user";
 import { addExpenditure } from "@/api/system/expenditure";
 
 const props = defineProps({
+    visible: {
+        type: Boolean,
+        required: true,
+        default: false,
+    },
     orderId: {
         type: Number,
         required: true,
@@ -180,7 +186,11 @@ const props = defineProps({
     userId: {
         type: String,
         required: true,
-    }
+    },
+    toggle: {
+        type: Function,
+        required: true,
+    },
 });
 
 const { proxy } = getCurrentInstance();
@@ -195,6 +205,7 @@ const currentCloth = ref({});
 const showPicture = ref(false);
 const showPickUpDialog = ref(false);
 const showCompensationDialog = ref(false);
+const showClothesDialog = ref(false);
 const loading = ref(true);
 const showHangUp = ref(false);
 const total = ref(0);
@@ -249,15 +260,21 @@ const data = reactive({
 });
 
 const { pickupForm, compensationForm, hangForm, hangRules } = toRefs(data);
+
+function close() {
+    showClothesDialog.value = false;
+    props.toggle();
+}
+
 /** 查询订单包含的衣物清单列表 */
-function getList() {
+async function getList() {
     // 判断是否有订单id
     if (props.orderId == 0) {
         return;
     }
     loading.value = true;
 
-    listCloths({ orderClothId: props.orderId }).then(response => {
+    await listCloths({ orderClothId: props.orderId }).then(response => {
         clothsList.value = response.rows;
         total.value = response.total;
         loading.value = false;
@@ -447,8 +464,12 @@ function cancelPickup() {
 
 
 onMounted(async () => {
-    await initList();  // 确保 initList 完成
-    getList();         // 在 initList 完成后调用
+    if (props.visible) {
+
+        await initList();  // 确保 initList 完成
+        await getList();         // 在 initList 完成后调用
+        showClothesDialog.value = true;
+    }
 });
 </script>
 

@@ -81,7 +81,15 @@
           </span>
         </template>
       </el-table-column>
+      <el-table-column label="衣物编码" align="center" >
+        <template #default="scope">
+          <div class="cloth-code-container">
+            <el-tag v-for="item in scope.row.clothCodes" :key="item">{{ item }}</el-tag>
+          </div>
+        </template>
+      </el-table-column>
       <el-table-column label="取件码" align="center" prop="pickupCode" />
+
       <el-table-column label="业务类型" align="center" prop="businessType">
         <template #default="scope">
           <dict-tag :options="sys_business_type" :value="scope.row.businessType" />
@@ -159,6 +167,9 @@
                   <el-button link type="primary" icon="Edit"
                     :disabled="scope.row.status !== '02' && scope.row.status !== '03'" @click="handleNotify(scope.row)"
                     v-hasPermi="['system:orders:edit']">通知</el-button>
+                </el-dropdown-item>
+                <el-dropdown-item>
+                  <el-button link type="danger" icon="Delete" @click="handleDelete(scope.row)">删除</el-button>
                 </el-dropdown-item>
                 <el-dropdown-item disabled>
                   <el-button link type="primary" icon="Edit"
@@ -277,7 +288,7 @@
 </template>
 
 <script setup name="Orders">
-import { listOrders, getRefundInfo } from "@/api/system/orders";
+import { listOrders, getRefundInfo, delOrders } from "@/api/system/orders";
 import { getUser } from "@/api/system/user";
 import { listDispatch } from '@/api/system/dispatch';
 import { refund } from '@/api/system/orders';
@@ -464,6 +475,16 @@ function handleUpdate(row) {
   currentOrderId.value = row.orderId;
   currentUserId.value = row.userId;
   open.value = true;
+}
+/** 删除按钮操作 */
+function handleDelete(row) {
+  const _orderIds = row.orderId || ids.value;
+  proxy.$modal.confirm('是否确认删除洗护服务订单编号为"' + _orderIds + '"的数据项？').then(function () {
+    return delOrders(_orderIds);
+  }).then(() => {
+    getList();
+    proxy.$modal.msgSuccess("删除成功");
+  }).catch(() => { });
 }
 
 /* 提交退款 */

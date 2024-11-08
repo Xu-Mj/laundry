@@ -30,7 +30,6 @@
 </template>
 
 <script setup name="Index">
-import { ref } from 'vue';
 import OrderContent from '@/views/home/oderContent.vue'
 import CreateOrder from '@/views/home/createOrder.vue'
 import CouponSale from '@/views/home/couponSale.vue'

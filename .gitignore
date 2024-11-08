@@ -23,3 +23,6 @@ package-lock.json
 yarn.lock
 .yarnrc
 .yarn
+
+/src_tauri/target/
+/src_tauri/gen/schemas

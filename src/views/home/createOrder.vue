@@ -80,11 +80,11 @@
                             </el-form-item>
                         </el-col>
                         <el-col :span="3">
-                            <el-button type="primary" plain>打印</el-button>
+                            <el-button type="primary" @click="printCloth" plain>打印</el-button>
                         </el-col>
 
                     </el-row>
-                    <el-form-item label="卡信息：">
+                    <el-form-item class="coupon-list-container" label="卡信息：">
                         <div class="coupon-list">
                             <!-- 用户卡相关的信息：coupon类型为000、001、002的 -->
                             <span
@@ -272,6 +272,7 @@ import { getConfigKey } from '@/api/system/config';
 import AddCloth from "./addCloth.vue";
 import CouponSale from './couponSale.vue';
 import History from "@/views/home/history.vue";
+import { invoke } from "@tauri-apps/api/core";
 
 const props = defineProps({
     orderId: {
@@ -1025,8 +1026,9 @@ async function submitForm() {
                     props.toggle();
                 });
             } else {
-                addOrders(form.value).then(response => {
+                addOrders(form.value).then(async response => {
                     proxy.$modal.msgSuccess("新增成功");
+                    await printCloth();
                     props.refresh();
                     props.toggle();
                 });
@@ -1087,16 +1089,18 @@ function createAndPay() {
                 form.value.clothsIds = form.value.cloths.map(item => item.clothId);
 
                 proxy.$modal.loading("正在创建订单，请稍候");
-                addOrders(form.value).then(response => {
+                await addOrders(form.value).then(response => {
                     proxy.$modal.closeLoading();
                     form.value.orderId = response.data.orderId;
                     form.value.orderNumber = response.data.orderNumber;
-                    // 初始化支付所需数据
-                    initPaymentForm();
                     // getList();
-                    props.refresh();
-                    showPaymentDialog.value = true;
                 });
+                // 打印衣物信息
+                await printCloth();
+                // 初始化支付所需数据
+                initPaymentForm();
+                props.refresh();
+                showPaymentDialog.value = true;
             } else {
                 initPaymentForm();
                 showPaymentDialog.value = true;
@@ -1136,10 +1140,12 @@ function searchUserByTel(tel) {
     if (userListRes.value.length == 0) {
         showCreateUser.value = true;
         form.value.nickName = null;
+        form.value.userId = null;
         userCouponList.value = [];
     } else {
         if (userListRes.value.length == 1) {
             form.value.nickName = userListRes.value[0].nickName;
+            form.value.userId = userListRes.value[0].userId;
             // 查询会员卡券信息
             listUserCouponWithValidTime({ userId: form.value.userId }).then(response => {
                 userCouponList.value = response.rows;
@@ -1177,11 +1183,6 @@ function selectUser(userId) {
 /* 获取有效期tooltip 的content */
 function getValidTime(validFrom, validTo) {
     return `有效期：${validFrom} ~ ${validTo}`;
-}
-
-/* 打印单据 */
-function printOrder() {
-    proxy.$modal.msgSuccess("正在打印单据...");
 }
 
 function adjustInputChange() {
@@ -1222,6 +1223,35 @@ function adjustInput() {
             Number(form.value.adjust.adjustValueSub ? form.value.adjust.adjustValueSub : 0);
         totalPrice.value = price > 0 ? price : 0;
     }
+}
+
+async function printCloth() {
+    console.log(form.value);
+    const length = form.value.cloths.length;
+    const user = userList.value.find(user => user.userId == form.value.userId);
+    const result = form.value.cloths.map((item, index) => ({
+        cloth_name: item.clothInfo.clothingName,
+        cloth_color: item.clothingColor ? item.clothingColor : 0,
+        cloth_flaw: item.clothingFlawArr,
+        sum: length,
+        num: index + 1,
+        code: item.hangClothCode,
+        time: item.createTime,
+        client: {
+            name: user.nickName,
+            phone: user.phonenumber,
+        },
+        shelf: {
+            name: String(item.hangLocationCode),
+            position: item.hangerNumber,
+        }
+    }));
+    console.log({ items: result })
+    proxy.$modal.loading('正在打印衣物信息...')
+    await invoke('print', { items: result }).catch(err => {
+        proxy.$modal.msgError(err.kind)
+    })
+    proxy.$modal.closeLoading();
 }
 
 if (props.orderId !== 0) {
@@ -1303,5 +1333,9 @@ defineExpose({
     color: red;
     font-size: large;
     font-weight: bold;
+}
+
+.coupon-list-container {
+    overflow: hidden;
 }
 </style>

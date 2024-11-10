@@ -9,9 +9,13 @@ pub mod utils;
 use tauri::generate_handler;
 
 use db::user;
+use db::tags;
 use tray::create_tray;
 
-pub fn create_app<R: tauri::Runtime, T: Send + Sync + 'static>(builder: tauri::Builder<R>, state: T) -> tauri::App<R> {
+pub fn create_app<R: tauri::Runtime, T: Send + Sync + 'static>(
+    builder: tauri::Builder<R>,
+    state: T,
+) -> tauri::App<R> {
     builder
         // .plugin(tauri_plugin_log::Builder::default().build())
         .manage(state)
@@ -27,6 +31,13 @@ pub fn create_app<R: tauri::Runtime, T: Send + Sync + 'static>(builder: tauri::B
             db::printer::get_printers,
             db::printer::set_printer,
             db::printer::get_settled_printer,
+            tags::add_tag,
+            tags::get_tag_by_id,
+            tags::update_tag,
+            tags::soft_delete_tag,
+            tags::increase_ref_num,
+            tags::tag_name_exists,
+            tags::delete_tags_batch
         ])
         .build(tauri::generate_context!())
         .expect("error while building Tauri application")

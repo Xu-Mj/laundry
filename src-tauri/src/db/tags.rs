@@ -1,16 +1,3 @@
-// Example code that deserializes and serializes the model.
-// extern crate serde;
-// #[macro_use]
-// extern crate serde_derive;
-// extern crate serde_json;
-//
-// use generated_module::tags;
-//
-// fn main() {
-//     let json = r#"{"answer": 42}"#;
-//     let model: tags = serde_json::from_str(&json).unwrap();
-// }
-
 use serde::{Deserialize, Serialize};
 use sqlx::{Executor, Pool, QueryBuilder, Sqlite, SqlitePool};
 use tauri::State;
@@ -105,20 +92,26 @@ impl Tags {
         Ok(result)
     }
 
-    /// 查询标签列表
-    pub async fn query_tags(
-        pool: &Pool<Sqlite>,
-        query_params: PageParams,
-        tag: TagParam,
-    ) -> Result<PageResult<Tags>> {
-        let mut query_builder = QueryBuilder::<Sqlite>::new("SELECT * FROM tags WHERE del_flag = '0' ");
-
+    /// 根据标签参数应用过滤条件到查询构建器中
+    ///
+    /// # Parameters
+    ///
+    /// * `query_builder`: &mut QueryBuilder<Sqlite> - 查询构建器的可变引用，用于构建SQL查询
+    /// * `tag`: &TagParam - 标签参数的引用，包含多个可选字段，用于指定查询条件
+    ///
+    /// # Description
+    ///
+    /// 该函数根据`TagParam`结构体中的字段，动态地向`QueryBuilder`中添加查询条件
+    /// 每个字段对应数据库中的一个列，如果字段有值，则相应的查询条件会被添加到查询构建器中
+    fn apply_tag_filters<'a>(query_builder: &mut QueryBuilder<'a, Sqlite>, tag: &'a TagParam) {
         if let Some(tag_id) = &tag.tag_id {
             query_builder.push(" AND tag_id = ").push_bind(tag_id);
         }
 
         if let Some(tag_name) = &tag.tag_name {
-            query_builder.push(" AND tag_name LIKE ").push_bind(format!("%{}%", tag_name));
+            query_builder
+                .push(" AND tag_name LIKE ")
+                .push_bind(format!("%{}%", tag_name));
         }
 
         if let Some(tag_order) = &tag.tag_order {
@@ -126,7 +119,9 @@ impl Tags {
         }
 
         if let Some(tag_number) = &tag.tag_number {
-            query_builder.push(" AND tag_number = ").push_bind(tag_number);
+            query_builder
+                .push(" AND tag_number = ")
+                .push_bind(tag_number);
         }
 
         if let Some(ref_num) = &tag.ref_num {
@@ -140,18 +135,107 @@ impl Tags {
         if let Some(remark) = &tag.remark {
             query_builder.push(" AND remark = ").push_bind(remark);
         }
+    }
 
-        // Add pagination
-        query_builder.push(" LIMIT ").push_bind(query_params.page_size);
-        query_builder.push(" OFFSET ").push_bind(query_params.page * query_params.page_size);
+    /// 异步计算与指定标签参数匹配的标签数量
+    ///
+    /// 该函数接收一个数据库连接池和一个标签参数对象，用于构建查询以统计符合条件的标签数量
+    /// 它首先构建一个查询字符串，然后根据传入的标签参数应用必要的过滤条件，最后执行查询并返回结果
+    ///
+    /// # Parameters
+    /// - `pool`: &Pool<Sqlite> - 数据库连接池
+    /// - `tag`: &TagParam - 标签参数引用，用于构建查询过滤条件
+    ///
+    /// # Returns
+    /// - `Result<u64>` - 返回一个结果类型，包含符合条件的标签数量
+    async fn count_tags(pool: &Pool<Sqlite>, tag: &TagParam) -> Result<u64> {
+        let mut query_builder =
+            QueryBuilder::<Sqlite>::new("SELECT COUNT(*) FROM tags WHERE del_flag = '0'");
+        Self::apply_tag_filters(&mut query_builder, tag);
+        let query = query_builder.build_query_scalar::<u64>();
+        Ok(query.fetch_one(pool).await?)
+    }
+
+    /// 异步构建标签查询
+    ///
+    /// 该函数根据提供的标签参数和分页选项，查询未删除的标签
+    /// 它首先构建一个SQL查询，然后根据需要应用过滤和分页
+    ///
+    /// # 参数
+    /// - `pool`: 数据库连接池引用
+    /// - `tag`: 标签参数，用于过滤查询结果
+    /// - `with_pagination`: 布尔值，指示是否应用分页
+    /// - `page_params`: 可选的分页参数，当`with_pagination`为`true`时必须提供
+    ///
+    /// # 返回
+    /// 返回一个结果，包含一个标签列表
+    /// 如果查询成功，返回Ok(Vec<Tags>)；如果查询失败，返回错误
+    async fn build_tag_query(
+        pool: &Pool<Sqlite>,
+        tag: &TagParam,
+        with_pagination: bool,
+        page_params: Option<PageParams>,
+    ) -> Result<Vec<Tags>> {
+        let mut query_builder =
+            QueryBuilder::<Sqlite>::new("SELECT * FROM tags WHERE del_flag = '0'");
+        Self::apply_tag_filters(&mut query_builder, tag);
+
+        if with_pagination {
+            if let Some(params) = page_params {
+                query_builder.push(" LIMIT ").push_bind(params.page_size);
+                query_builder
+                    .push(" OFFSET ")
+                    .push_bind(params.page * params.page_size);
+            }
+        }
 
         let query = query_builder.build_query_as::<Tags>();
-        let results = query.fetch_all(pool).await?;
+        Ok(query.fetch_all(pool).await?)
+    }
 
-        Ok(PageResult {
-            total: results.len(),
-            rows: results,
-        })
+    /// 异步查询标签
+    ///
+    /// 本函数通过构建针对Sqlite数据库的查询语句，根据提供的分页参数和标签参数，来获取标签数据
+    /// 它首先调用`build_tag_query`方法来构建查询，然后执行查询并返回查询结果
+    ///
+    /// # 参数
+    /// - `pool`: 数据库连接池的引用，用于执行数据库操作
+    /// - `query_params`: 分页参数，用于指定查询的页码和每页的记录数
+    /// - `tag`: 标签参数，用于指定查询的标签条件
+    ///
+    /// # 返回
+    /// 返回一个结果类型，其中包含一个分页结果类型`PageResult<Tags>`，里面有标签的总数和标签列表
+    ///
+    /// # 错误处理
+    /// 如果在构建查询或执行查询过程中发生错误，将返回一个`Result`类型的错误
+    pub async fn query_tags(
+        pool: &Pool<Sqlite>,
+        query_params: PageParams,
+        tag: TagParam,
+    ) -> Result<PageResult<Tags>> {
+        // 构建并执行标签查询
+        let rows = Self::build_tag_query(pool, &tag, true, Some(query_params)).await?;
+        let total = Self::count_tags(pool, &tag).await?;
+        // 返回分页结果，其中包含标签的总数和标签列表
+        Ok(PageResult { total, rows })
+    }
+
+    /// 查询所有标签
+    ///
+    /// 此函数用于根据提供的标签参数查询数据库中的所有相关标签它利用异步SQLITE数据库连接池来执行查询
+    /// 主要用途是在需要根据特定条件获取一组标签时使用
+    ///
+    /// # 参数
+    ///
+    /// * `pool` - 一个引用，指向SQLITE数据库的连接池，用于执行数据库操作
+    /// * `tag` - 一个TagParam类型的实例，包含查询所需的参数信息
+    ///
+    /// # 返回值
+    ///
+    /// 返回一个Result类型，包含一个Tags类型的向量，代表查询到的标签列表如果查询失败，将返回一个sqlx::Error
+    pub async fn query_all_tags(pool: &Pool<Sqlite>, tag: TagParam) -> Result<Vec<Tags>> {
+        // 调用build_tag_query方法来构建和执行查询，这里不需要传递额外的参数，因为查询条件已经包含在tag参数中
+        Self::build_tag_query(pool, &tag, false, None).await
     }
 
     /// 查询是否标签编码是否已经存在
@@ -169,21 +253,22 @@ impl Tags {
             FROM tags
             WHERE tag_number LIKE (?1 || '%')
         ) AS subquery;
-        "#
+        "#,
         )
-            .bind(prefix)
-            .fetch_one(pool)
-            .await?;
+        .bind(prefix)
+        .fetch_one(pool)
+        .await?;
 
         Ok(next_tag_number.0)
     }
 
     // 根据ID查询标签
     pub async fn get_by_id(pool: &Pool<Sqlite>, tag_id: i64) -> Result<Self> {
-        let result = sqlx::query_as::<_, Tags>("SELECT * FROM tags WHERE tag_id = ? AND del_flag = '0'")
-            .bind(tag_id)
-            .fetch_one(pool)
-            .await?;
+        let result =
+            sqlx::query_as::<_, Tags>("SELECT * FROM tags WHERE tag_id = ? AND del_flag = '0'")
+                .bind(tag_id)
+                .fetch_one(pool)
+                .await?;
         Ok(result)
     }
 
@@ -222,21 +307,23 @@ impl Tags {
     // 增加ref_num
     pub async fn increment_ref_num(pool: &Pool<Sqlite>, tag_id: i64) -> Result<Self> {
         let result = sqlx::query_as::<_, Tags>(
-            "UPDATE tags SET ref_num = ref_num + 1 WHERE tag_id = ? RETURNING *"
+            "UPDATE tags SET ref_num = ref_num + 1 WHERE tag_id = ? RETURNING *",
         )
-            .bind(tag_id)
-            .fetch_one(pool)
-            .await?;
+        .bind(tag_id)
+        .fetch_one(pool)
+        .await?;
 
         Ok(result)
     }
 
     // 检查tag_name是否已经存在
     pub async fn exists_by_tag_name(pool: &Pool<Sqlite>, tag_name: &str) -> Result<bool> {
-        let result = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM tags WHERE tag_name = $1 AND del_flag = '0')")
-            .bind(tag_name)
-            .fetch_one(pool)
-            .await?;
+        let result = sqlx::query_scalar(
+            "SELECT EXISTS(SELECT 1 FROM tags WHERE tag_name = $1 AND del_flag = '0')",
+        )
+        .bind(tag_name)
+        .fetch_one(pool)
+        .await?;
 
         Ok(result)
     }
@@ -248,7 +335,8 @@ impl Tags {
             return Ok(0);
         }
 
-        let mut query_builder = QueryBuilder::<Sqlite>::new("UPDATE tags SET del_flag = '2' WHERE tag_id IN (");
+        let mut query_builder =
+            QueryBuilder::<Sqlite>::new("UPDATE tags SET del_flag = '2' WHERE tag_id IN (");
 
         for (i, tag_id) in tag_ids.iter().enumerate() {
             if i > 0 {
@@ -266,6 +354,51 @@ impl Tags {
     }
 }
 
+/// register tauri commands
+
+/// tauri commands
+///
+/// 分页查询标签列表
+#[tauri::command]
+pub async fn list_pagination(
+    state: State<'_, DbPool>,
+    page_params: PageParams,
+    tag: TagParam,
+) -> Result<PageResult<Tags>> {
+    Tags::query_tags(&state.0, page_params, tag).await
+}
+
+/// 异步获取所有标签信息
+///
+/// 本函数通过接收一个数据库连接池状态和一个标签参数，来查询并返回所有相关的标签信息
+/// 它主要用于处理和响应来自前端的获取标签列表的请求，在后端进行数据处理和查询
+///
+/// # 参数
+/// - `state`: 包含数据库连接池的状态，用于执行数据库查询
+/// - `tag`: 标签参数，用于指定查询的条件
+///
+/// # 返回
+/// 返回一个结果，其中包含一个标签信息的向量，如果查询成功，否则包含一个错误
+#[tauri::command]
+pub async fn list_all(state: State<'_, DbPool>, tag: TagParam) -> Result<Vec<Tags>> {
+    Tags::query_all_tags(&state.0, tag).await
+}
+
+///
+/// 异步添加标签
+///
+/// 此函数通过接收一个标签对象和一个数据库连接池的状态来实现标签的添加操作
+/// 它首先检查标签名称是否为空，如果为空则返回一个错误
+/// 然后，它生成标签的唯一编码，并将其与数据库中同类型标签的数量结合，形成标签编号
+/// 最后，将带有新编号的标签对象添加到数据库中
+///
+/// # 参数
+/// - `state`: 包含数据库连接池的程序状态
+/// - `tag`: 待添加的标签对象
+///
+/// # 返回
+/// - `Ok(Tags)`: 添加成功后，返回带有数据库分配编号的标签对象
+/// - `Err(Error)`: 如果标签名为空或数据库操作失败，返回相应的错误
 #[tauri::command]
 pub async fn add_tag(state: State<'_, DbPool>, mut tag: Tags) -> Result<Tags> {
     if tag.tag_name.trim().is_empty() {
@@ -282,40 +415,129 @@ pub async fn add_tag(state: State<'_, DbPool>, mut tag: Tags) -> Result<Tags> {
     Ok(tag)
 }
 
+/// 根据ID获取标签信息
+///
+/// 该函数通过ID异步查询数据库中的标签信息，并返回查询结果
+/// 主要用于在前端请求时，根据特定的标签ID获取详细的标签信息
+///
+/// # 参数
+///
+/// * `state` - 包含数据库连接池的程序状态，用于执行数据库操作
+/// * `id` - 需要查询的标签ID
+///
+/// # 返回值
+///
+/// 返回一个结果类型，包含可能的标签信息（`Tags`）或错误信息
 #[tauri::command]
 pub async fn get_tag_by_id(state: State<'_, DbPool>, id: i64) -> Result<Tags> {
     Tags::get_by_id(&state.0, id).await
 }
 
+/// 异步更新标签信息
+///
+/// 该函数通过接收一个标签对象和一个数据库连接池状态对象，异步地更新标签的信息
+/// 它主要用于在用户界面对标签进行修改后，将这些修改保存到数据库中
+///
+/// # 参数
+///
+/// - `state`: 包含数据库连接池的态对象，用于执行数据库操作
+/// - `tag`: 需要更新的标签对象，包含新的标签信息
+///
+/// # 返回
+///
+/// - `Ok(Tags)`: 更新后的标签对象
+/// - `Err(_)`: 如果更新过程中发生错误，返回一个错误对象
 #[tauri::command]
 pub async fn update_tag(state: State<'_, DbPool>, tag: Tags) -> Result<Tags> {
     tag.update(&state.0).await
 }
 
+/// 使用软删除方式删除指定的标签。
+///
+/// 本函数通过异步操作从数据库中软删除一个标签，即更新标签的状态而不是物理删除。
+/// 它接受一个数据库连接池状态和一个标签ID作为参数，并返回一个结果，表明受影响的行数。
+///
+/// # 参数
+/// - `state`: 数据库连接池状态，用于异步访问数据库。
+/// - `id`: 需要软删除的标签的唯一标识符。
+///
+/// # 返回
+/// - `Result<u64>`: 一个异步结果，包含受影响的行数，表示成功删除的标签数量。
+///
+/// # 错误处理
+/// 如果数据库操作失败，将返回一个错误。
 #[tauri::command]
 pub async fn soft_delete_tag(state: State<'_, DbPool>, id: i64) -> Result<u64> {
     Tags::soft_delete(&state.0, id).await
 }
 
+/// 异步增加指定标签的引用数目
+///
+/// 该函数通过接收一个数据库连接池状态和一个标签ID，来增加该标签的引用数目
+/// 它使用了数据库操作，因此需要异步执行以避免阻塞主线程
+///
+/// # 参数
+///
+/// * `state` - 一个包含数据库连接池的状态，用于执行数据库操作
+/// * `id` - 需要增加引用数目的标签的ID
+///
+/// # 返回
+///
+/// 返回一个结果，如果数据库操作成功，则包含更新后的`Tags`对象；如果操作失败，则包含一个错误
 #[tauri::command]
 pub async fn increase_ref_num(state: State<'_, DbPool>, id: i64) -> Result<Tags> {
     Tags::increment_ref_num(&state.0, id).await
 }
 
+/// 检查给定标签名称是否已存在于数据库中
+///
+/// 此函数通过异步查询数据库来判断特定标签名称是否已经存在它接受一个数据库连接池状态和一个标签名称字符串作为输入参数，并返回一个布尔值，指示标签名称是否存在
+///
+/// # 参数
+///
+/// - `state`: 数据库连接池状态，用于执行数据库操作
+/// - `tag_name`: 需要检查的标签名称
+///
+/// # 返回值
+///
+/// - `Result<bool>`: 返回一个布尔值，指示标签名称是否存在如果查询过程中发生错误，将返回一个错误类型
 #[tauri::command]
 pub async fn tag_name_exists(state: State<'_, DbPool>, tag_name: &str) -> Result<bool> {
     Tags::exists_by_tag_name(&state.0, tag_name).await
 }
 
+/// 批量软删除标签
+///
+/// 本函数接收一个数据库连接池状态和一个长整型向量作为参数，
+/// 异步地对给定的标签ID进行批量软删除操作。
+/// 软删除意味着这些标签在数据库中会被标记为已删除，但实际数据不会被移除。
+///
+/// # 参数
+/// - `state`: 数据库连接池状态，用于执行数据库操作
+/// - `ids`: 待删除的标签ID列表
+///
+/// # 返回值
+/// - 成功时，返回实际被软删除的标签数量
+/// - 失败时，返回一个错误
 #[tauri::command]
 pub async fn delete_tags_batch(state: State<'_, DbPool>, ids: Vec<i64>) -> Result<u64> {
     Tags::batch_soft_delete(&state.0, &ids).await
 }
 
-
+/// 在内存中设置和初始化一个SQLite数据库，用于测试目的。
+///
+/// 此函数会创建一个SQLite数据库连接池，并在该池中执行SQL语句以创建一个名为`tags`的表。
+/// 表结构包括多个字段，用于存储标签信息，如标签名称、标签编号、显示顺序等。
+/// 此外，函数确保通过在内存中创建数据库来隔离测试环境，避免影响实际数据库。
+///
+/// 返回值:
+/// - `Pool<Sqlite>`: 一个SQLite数据库连接池，用于管理和执行与数据库的异步操作。
+#[allow(dead_code)]
 async fn setup_test_db() -> Pool<Sqlite> {
+    // 创建一个SQLite数据库连接池，连接到内存数据库
     let pool = SqlitePool::connect(":memory:").await.unwrap();
 
+    // 在数据库中执行SQL语句以创建`tags`表，包含多个字段用于存储标签信息
     pool.execute(
         r#"
             CREATE TABLE tags (
@@ -331,18 +553,19 @@ async fn setup_test_db() -> Pool<Sqlite> {
             );
             "#,
     )
-        .await
-        .unwrap();
+    .await
+    .unwrap();
 
+    // 返回SQLite数据库连接池
     pool
 }
+
 #[cfg(test)]
 mod command_tests {
     use crate::create_app;
     use crate::db::tags::{setup_test_db, Tags};
     use crate::db::DbPool;
     use tauri::test::mock_builder;
-
 
     /// there is an issue in windows platform: STATUS_ENTRYPOINT_NOT_FOUND,
     /// so we skip it
@@ -356,7 +579,9 @@ mod command_tests {
 
         // 验证结果
         let app = create_app(mock_builder(), DbPool::new(setup_test_db().await));
-        let webview = tauri::WebviewWindowBuilder::new(&app, "main", Default::default()).build().unwrap();
+        let webview = tauri::WebviewWindowBuilder::new(&app, "main", Default::default())
+            .build()
+            .unwrap();
 
         // run the `ping` command and assert it returns `pong`
         let res = tauri::test::get_ipc_response(
@@ -370,7 +595,9 @@ mod command_tests {
                 headers: Default::default(),
                 invoke_key: tauri::test::INVOKE_KEY.to_string(),
             },
-        ).map(|b| b.deserialize::<Tags>().unwrap()).unwrap();
+        )
+        .map(|b| b.deserialize::<Tags>().unwrap())
+        .unwrap();
         assert_eq!(res.tag_name, tag.tag_name);
     }
 }
@@ -435,26 +662,18 @@ mod tests {
         };
         tag3.add(&pool).await.unwrap();
 
-
-        // sqlx::query("INSERT INTO tags (tag_name, tag_number, tag_order, ref_num, status, remark, del_flag) VALUES (?, ?, ?, ?, ?, ?, ?)")
-        //     .bind("Tag3")
-        //     .bind("T003")
-        //     .bind(Some("003"))
-        //     .bind(2)
-        //     .bind("1")
-        //     .bind(Some("Remark3"))
-        //     .bind("1")
-        //     .execute(&pool)
-        //     .await
-        //     .unwrap();
-
         // Test 1: Basic filtering by tag_name
-        let query_params = PageParams { page: 0, page_size: 10 };
+        let query_params = PageParams {
+            page: 0,
+            page_size: 10,
+        };
         let tag_param = TagParam {
             tag_name: Some("Tag1".to_string()),
             ..Default::default()
         };
-        let result = Tags::query_tags(&pool, query_params.clone(), tag_param).await.unwrap();
+        let result = Tags::query_tags(&pool, query_params.clone(), tag_param)
+            .await
+            .unwrap();
         assert_eq!(result.rows.len(), 1);
         assert_eq!(result.rows[0].tag_name, "Tag1");
 
@@ -464,7 +683,9 @@ mod tests {
             status: Some("0".to_string()),
             ..Default::default()
         };
-        let result = Tags::query_tags(&pool, query_params.clone(), tag_param).await.unwrap();
+        let result = Tags::query_tags(&pool, query_params.clone(), tag_param)
+            .await
+            .unwrap();
         assert_eq!(result.rows.len(), 1);
         assert_eq!(result.rows[0].tag_number, "T-002");
 
@@ -474,28 +695,45 @@ mod tests {
             ref_num: Some(2),
             ..Default::default()
         };
-        let result = Tags::query_tags(&pool, query_params.clone(), tag_param).await.unwrap();
+        let result = Tags::query_tags(&pool, query_params.clone(), tag_param)
+            .await
+            .unwrap();
         assert_eq!(result.rows.len(), 1);
         assert_eq!(result.rows[0].tag_number, "T-003");
 
         // Test 4: Pagination - request only first page with 2 items per page
-        let query_params = PageParams { page: 0, page_size: 2 };
+        let query_params = PageParams {
+            page: 0,
+            page_size: 2,
+        };
         let tag_param = TagParam::default();
-        let result = Tags::query_tags(&pool, query_params.clone(), tag_param).await.unwrap();
+        let result = Tags::query_tags(&pool, query_params.clone(), tag_param)
+            .await
+            .unwrap();
         assert_eq!(result.rows.len(), 2); // Should return first 2 items
 
         // Test 5: Pagination - request second page with 2 items per page
-        let query_params = PageParams { page: 1, page_size: 2 };
-        let result = Tags::query_tags(&pool, query_params, TagParam::default()).await.unwrap();
+        let query_params = PageParams {
+            page: 1,
+            page_size: 2,
+        };
+        let result = Tags::query_tags(&pool, query_params, TagParam::default())
+            .await
+            .unwrap();
         assert_eq!(result.rows.len(), 1); // Should return only the last item (Tag3)
 
         // Test 6: Fuzzy search for tag_name containing "Tag"
-        let query_params = PageParams { page: 0, page_size: 10 };
+        let query_params = PageParams {
+            page: 0,
+            page_size: 10,
+        };
         let tag_param = TagParam {
             tag_name: Some("Tag".to_string()),
             ..Default::default()
         };
-        let result = Tags::query_tags(&pool, query_params, tag_param).await.unwrap();
+        let result = Tags::query_tags(&pool, query_params, tag_param)
+            .await
+            .unwrap();
         assert_eq!(result.rows.len(), 3); // Should match all three tags
     }
 
@@ -573,7 +811,9 @@ mod tests {
             ..Default::default()
         };
         let added_tag = new_tag.add(&pool).await.unwrap();
-        let incremented_tag = Tags::increment_ref_num(&pool, added_tag.tag_id).await.unwrap();
+        let incremented_tag = Tags::increment_ref_num(&pool, added_tag.tag_id)
+            .await
+            .unwrap();
         assert_eq!(incremented_tag.ref_num, 2);
     }
 

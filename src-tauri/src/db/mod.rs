@@ -60,6 +60,6 @@ pub struct PageParams {
 /// Common return Object
 #[derive(Debug, Deserialize, Serialize)]
 pub struct PageResult<T> {
-    pub total: usize,
+    pub total: u64,
     pub rows: Vec<T>,
 }

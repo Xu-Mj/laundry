@@ -2,7 +2,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use sqlx::{migrate::MigrateDatabase, sqlite::SqlitePoolOptions, Sqlite};
-use tauri::Manager;
 use tracing_subscriber::fmt::format::Writer;
 use tracing_subscriber::fmt::time::FormatTime;
 

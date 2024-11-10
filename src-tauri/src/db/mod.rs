@@ -1,7 +1,9 @@
+use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Sqlite};
 
 pub mod printer;
 pub mod user;
+pub mod tags;
 
 // SQLite 连接池
 pub struct DbPool(Pool<Sqlite>);
@@ -20,8 +22,8 @@ pub async fn initialize_database(pool: &Pool<Sqlite>) -> Result<(), sqlx::Error>
             name TEXT NOT NULL
         )",
     )
-    .execute(pool)
-    .await?;
+        .execute(pool)
+        .await?;
 
     sqlx::query(
         "CREATE TABLE IF NOT EXISTS printers (
@@ -31,7 +33,33 @@ pub async fn initialize_database(pool: &Pool<Sqlite>) -> Result<(), sqlx::Error>
             driver_name TEXT NOT NULL
         )",
     )
-    .execute(pool)
-    .await?;
+        .execute(pool)
+        .await?;
     Ok(())
+}
+
+
+fn default_page_size() -> i64 {
+    10
+}
+
+fn default_page() -> i64 {
+    1
+}
+
+/// Page parameters
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct PageParams {
+    #[serde(default = "default_page_size")]
+    pub page_size: i64,
+
+    #[serde(default = "default_page")]
+    pub page: i64,
+}
+
+/// Common return Object
+#[derive(Debug, Deserialize, Serialize)]
+pub struct PageResult<T> {
+    pub total: usize,
+    pub rows: Vec<T>,
 }

@@ -10,6 +10,7 @@ pub enum ErrorKind {
     UnknownError,
     DbError,
     ConfigReadError,
+    ConfigParseError,
     NotFound,
     ParseError,
     InternalServer,
@@ -112,5 +113,11 @@ impl From<printpdf::errors::Error> for Error {
 impl From<image_crate::error::ImageError> for Error {
     fn from(value: image_crate::error::ImageError) -> Self {
         Self::new(ErrorKind::PrintError, value.to_string(), value)
+    }
+}
+
+impl From<serde_yaml::Error> for Error {
+    fn from(value: serde_yaml::Error) -> Self {
+        Self::new(ErrorKind::ConfigParseError, value.to_string(), value)
     }
 }

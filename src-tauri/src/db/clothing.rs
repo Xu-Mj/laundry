@@ -57,7 +57,7 @@ pub struct ClothingParam {
     /// 衣物编码
     #[serde(default)]
     clothing_number: Option<String>,
-    /// 衣物品类，001 洗前瑕疵，002 洗后预估，003 衣物颜色等
+    /// 衣物品类
     #[serde(default)]
     clothing_category: Option<String>,
     /// 所属分类，000上衣，001鞋，002裤子等
@@ -133,11 +133,11 @@ impl Clothing {
     }
 
     // 根据ID查询衣物
-    pub async fn get_by_id(pool: &Pool<Sqlite>, clothing_id: i64) -> Result<Self> {
+    pub async fn get_by_id(pool: &Pool<Sqlite>, clothing_id: i64) -> Result<Option<Self>> {
         let result =
             sqlx::query_as::<_, Clothing>("SELECT * FROM clothing WHERE clothing_id = ? AND del_flag = '0'")
                 .bind(clothing_id)
-                .fetch_one(pool)
+                .fetch_optional(pool)
                 .await?;
         Ok(result)
     }
@@ -519,7 +519,7 @@ pub async fn add_clothing(state: State<'_, DbPool>, mut clothing: ClothingParam)
 }
 
 #[tauri::command]
-pub async fn get_clothing_by_id(state: State<'_, DbPool>, id: i64) -> Result<Clothing> {
+pub async fn get_clothing_by_id(state: State<'_, DbPool>, id: i64) -> Result<Option<Clothing>> {
     Clothing::get_by_id(&state.0, id).await
 }
 

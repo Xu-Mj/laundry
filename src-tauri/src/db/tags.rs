@@ -114,11 +114,11 @@ impl Tags {
     }
 
     // 根据ID查询标签
-    pub async fn get_by_id(pool: &Pool<Sqlite>, tag_id: i64) -> Result<Self> {
+    pub async fn get_by_id(pool: &Pool<Sqlite>, tag_id: i64) -> Result<Option<Self>> {
         let result =
             sqlx::query_as::<_, Tags>("SELECT * FROM tags WHERE tag_id = ? AND del_flag = '0'")
                 .bind(tag_id)
-                .fetch_one(pool)
+                .fetch_optional(pool)
                 .await?;
         Ok(result)
     }
@@ -515,7 +515,7 @@ pub async fn add_tag(state: State<'_, DbPool>, mut tag: TagParam) -> Result<Tags
 ///
 /// 返回一个结果类型，包含可能的标签信息（`Tags`）或错误信息
 #[tauri::command]
-pub async fn get_tag_by_id(state: State<'_, DbPool>, id: i64) -> Result<Tags> {
+pub async fn get_tag_by_id(state: State<'_, DbPool>, id: i64) -> Result<Option<Tags>> {
     Tags::get_by_id(&state.0, id).await
 }
 
@@ -858,7 +858,8 @@ mod tests {
         };
         let added_tag = new_tag.add(&pool).await.unwrap();
         let retrieved_tag = Tags::get_by_id(&pool, added_tag.tag_id).await.unwrap();
-        assert_eq!(retrieved_tag.tag_id, added_tag.tag_id);
+        assert!(retrieved_tag.is_some());
+        assert_eq!(retrieved_tag.unwrap().tag_id, added_tag.tag_id);
     }
 
     #[tokio::test]

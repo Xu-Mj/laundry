@@ -574,6 +574,7 @@ pub async fn soft_delete_tag(state: State<'_, DbPool>, id: i64) -> Result<u64> {
 pub async fn update_ref_num(state: State<'_, DbPool>, ref_num: i64, tag_ids: Vec<i64>) -> Result<()> {
     Tags::update_ref_num(&state.0, ref_num, tag_ids).await
 }
+
 #[tauri::command]
 pub async fn change_tag_status(state: State<'_, DbPool>, tag_param: TagParam) -> Result<()> {
     tag_param.update(&state.0).await?;

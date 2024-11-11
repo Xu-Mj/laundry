@@ -186,12 +186,7 @@ const data = reactive({
     pageSize: 10,
     clothingCategory: null,
     clothingNumber: null,
-    clothingStyle: null,
     clothingName: null,
-    clothingBasePrice: null,
-    clothingMinPrice: null,
-    orderNum: null,
-    clothingDegree: null,
   },
   rules: {
     clothingCategory: [
@@ -261,15 +256,15 @@ async function initDictList() {
 
 // 当品类发生变化时动态查询子分类列表
 function cateChange(value) {
+  console.log(value);
   form.value.clothingStyle = null;
   clothStyleList.value = dictList.value.filter(p => p.dictType === 'sys_cloth_style' + value);
 }
 
 function updateRefNum() {
   proxy.$refs["tagNumRef"].validate(valid => {
-    console.log(valid)
     if (valid) {
-      updateClothingRefNum({ tagIds: ids.value, refNum: tagNumForm.value.refNumber }).then(res => {
+      updateClothingRefNum({ clothingIds: ids.value, refNum: tagNumForm.value.refNumber }).then(res => {
         proxy.$modal.msgSuccess("修改成功");
         showUpdateRefNum.value = false;
         tagNumForm.value.refNumber = null;
@@ -349,7 +344,7 @@ function handleUpdate(row) {
   reset();
   const _clothingId = row.clothingId || ids.value
   getClothing(_clothingId).then(response => {
-    form.value = response.data;
+    form.value = response;
     clothStyleList.value = dictList.value.filter(p => p.dictType === 'sys_cloth_style' + form.value.clothingCategory);
     open.value = true;
     title.value = "修改衣物管理";

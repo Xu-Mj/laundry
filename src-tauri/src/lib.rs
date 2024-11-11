@@ -31,6 +31,8 @@ pub fn create_app<R: tauri::Runtime, T: Send + Sync + 'static>(
             db::printer::get_printers,
             db::printer::set_printer,
             db::printer::get_settled_printer,
+            tags::list_pagination,
+            tags::list_all,
             tags::add_tag,
             tags::get_tag_by_id,
             tags::update_tag,

@@ -73,19 +73,19 @@ fn status_default() -> String {
 }
 
 impl Tags {
-    pub async fn add(&self, pool: &Pool<Sqlite>) -> Result<Self> {
+    pub async fn add(pool: &Pool<Sqlite>, tag: TagParam) -> Result<Self> {
         let result = sqlx::query_as::<_, Tags>(
             "INSERT INTO tags (tag_name, tag_number, tag_order, order_num, ref_num, status, remark, del_flag)
              VALUES (?, ?, ?, ?, ?, ?, ?, '0')
              RETURNING *"
         )
-            .bind(&self.tag_name)
-            .bind(&self.tag_number)
-            .bind(&self.tag_order)
-            .bind(&self.order_num)
-            .bind(&self.ref_num)
-            .bind(&self.status)
-            .bind(&self.remark)
+            .bind(&tag.tag_name)
+            .bind(&tag.tag_number)
+            .bind(&tag.tag_order)
+            .bind(&tag.order_num)
+            .bind(&tag.ref_num)
+            .bind(&tag.status)
+            .bind(&tag.remark)
             .fetch_one(pool)
             .await?;
 
@@ -185,7 +185,7 @@ impl Tags {
                 query_builder.push(" LIMIT ").push_bind(params.page_size);
                 query_builder
                     .push(" OFFSET ")
-                    .push_bind(params.page * params.page_size);
+                    .push_bind((params.page-1) * params.page_size);
             }
         }
 
@@ -212,7 +212,7 @@ impl Tags {
         pool: &Pool<Sqlite>,
         query_params: PageParams,
         tag: TagParam,
-    ) -> Result<PageResult<Tags>> {
+    ) -> Result<PageResult<Self>> {
         // 构建并执行标签查询
         let rows = Self::build_tag_query(pool, &tag, true, Some(query_params)).await?;
         let total = Self::count_tags(pool, &tag).await?;
@@ -233,7 +233,7 @@ impl Tags {
     /// # 返回值
     ///
     /// 返回一个Result类型，包含一个Tags类型的向量，代表查询到的标签列表如果查询失败，将返回一个sqlx::Error
-    pub async fn query_all_tags(pool: &Pool<Sqlite>, tag: TagParam) -> Result<Vec<Tags>> {
+    pub async fn query_all_tags(pool: &Pool<Sqlite>, tag: TagParam) -> Result<Vec<Self>> {
         // 调用build_tag_query方法来构建和执行查询，这里不需要传递额外的参数，因为查询条件已经包含在tag参数中
         Self::build_tag_query(pool, &tag, false, None).await
     }
@@ -255,9 +255,9 @@ impl Tags {
         ) AS subquery;
         "#,
         )
-        .bind(prefix)
-        .fetch_one(pool)
-        .await?;
+            .bind(prefix)
+            .fetch_one(pool)
+            .await?;
 
         Ok(next_tag_number.0)
     }
@@ -309,9 +309,9 @@ impl Tags {
         let result = sqlx::query_as::<_, Tags>(
             "UPDATE tags SET ref_num = ref_num + 1 WHERE tag_id = ? RETURNING *",
         )
-        .bind(tag_id)
-        .fetch_one(pool)
-        .await?;
+            .bind(tag_id)
+            .fetch_one(pool)
+            .await?;
 
         Ok(result)
     }
@@ -321,9 +321,9 @@ impl Tags {
         let result = sqlx::query_scalar(
             "SELECT EXISTS(SELECT 1 FROM tags WHERE tag_name = $1 AND del_flag = '0')",
         )
-        .bind(tag_name)
-        .fetch_one(pool)
-        .await?;
+            .bind(tag_name)
+            .fetch_one(pool)
+            .await?;
 
         Ok(result)
     }
@@ -353,8 +353,6 @@ impl Tags {
         Ok(result.rows_affected())
     }
 }
-
-/// register tauri commands
 
 /// tauri commands
 ///
@@ -400,17 +398,17 @@ pub async fn list_all(state: State<'_, DbPool>, tag: TagParam) -> Result<Vec<Tag
 /// - `Ok(Tags)`: 添加成功后，返回带有数据库分配编号的标签对象
 /// - `Err(Error)`: 如果标签名为空或数据库操作失败，返回相应的错误
 #[tauri::command]
-pub async fn add_tag(state: State<'_, DbPool>, mut tag: Tags) -> Result<Tags> {
-    if tag.tag_name.trim().is_empty() {
+pub async fn add_tag(state: State<'_, DbPool>, mut tag: TagParam) -> Result<Tags> {
+    if tag.tag_name.is_none() || tag.tag_name.as_ref().unwrap().trim().is_empty() {
         return Err(Error::with_details(ErrorKind::BadRequest, "标签名不能为空"));
     }
 
     // 生成标签编码
-    let code = utils::gen_code(&tag.tag_name);
+    let code = utils::gen_code(tag.tag_name.as_ref().unwrap());
 
-    tag.tag_number = format!("{code}-{}", Tags::select_next_num(&state.0, &code).await?);
+    tag.tag_number = Some(Tags::select_next_num(&state.0, &format!("{code}-")).await?);
 
-    tag.add(&state.0).await?;
+    let tag = Tags::add(&state.0, tag).await?;
 
     Ok(tag)
 }
@@ -553,8 +551,8 @@ async fn setup_test_db() -> Pool<Sqlite> {
             );
             "#,
     )
-    .await
-    .unwrap();
+        .await
+        .unwrap();
 
     // 返回SQLite数据库连接池
     pool
@@ -596,8 +594,8 @@ mod command_tests {
                 invoke_key: tauri::test::INVOKE_KEY.to_string(),
             },
         )
-        .map(|b| b.deserialize::<Tags>().unwrap())
-        .unwrap();
+            .map(|b| b.deserialize::<Tags>().unwrap())
+            .unwrap();
         assert_eq!(res.tag_name, tag.tag_name);
     }
 }
@@ -610,19 +608,18 @@ mod tests {
     async fn test_add_tag() {
         let pool = setup_test_db().await;
 
-        let tag = Tags {
-            tag_id: 0,
-            tag_name: "Test Tag".to_string(),
-            tag_number: "T001".to_string(),
+        let tag = TagParam {
+            tag_name: Some("Test Tag".to_string()),
+            tag_number: Some("T001".to_string()),
             tag_order: Some("001".to_string()),
-            order_num: 1,
-            status: "0".to_string(),
-            ref_num: 0,
+            order_num: Some(1),
+            status: Some("0".to_string()),
             remark: Some("A test tag".to_string()),
-            del_flag: "0".to_string(),
+            del_flag: Some("0".to_string()),
+            ..Default::default()
         };
 
-        let inserted_tag = tag.add(&pool).await.unwrap();
+        let inserted_tag = Tags::add(&pool, tag).await.unwrap();
 
         assert_eq!(inserted_tag.tag_name, "Test Tag");
         assert_eq!(inserted_tag.tag_number, "T001");
@@ -633,34 +630,34 @@ mod tests {
         let pool = setup_test_db().await;
 
         // Insert sample tags
-        let tag1 = Tags {
-            tag_name: "Tag1".to_string(),
-            tag_number: "T-001".to_string(),
+        let tag1 = TagParam {
+            tag_name: Some("Tag1".to_string()),
+            tag_number: Some("T-001".to_string()),
             tag_order: Some("001".to_string()),
-            status: "0".to_string(),
+            status: Some("0".to_string()),
             remark: Some("Remark1".to_string()),
             ..Default::default()
         };
-        tag1.add(&pool).await.unwrap();
-        let tag2 = Tags {
-            tag_name: "Tag2".to_string(),
-            tag_number: "T-002".to_string(),
+        Tags::add(&pool, tag1).await.unwrap();
+        let tag2 = TagParam {
+            tag_name: Some("Tag2".to_string()),
+            tag_number: Some("T-002".to_string()),
             tag_order: Some("002".to_string()),
-            status: "0".to_string(),
+            status: Some("0".to_string()),
             remark: Some("Remark2".to_string()),
             ..Default::default()
         };
-        tag2.add(&pool).await.unwrap();
-        let tag3 = Tags {
-            tag_name: "Tag3".to_string(),
-            tag_number: "T-003".to_string(),
+        Tags::add(&pool, tag2).await.unwrap();
+        let tag3 = TagParam {
+            tag_name: Some("Tag3".to_string()),
+            tag_number: Some("T-003".to_string()),
             tag_order: Some("003".to_string()),
-            status: "1".to_string(),
-            ref_num: 2,
+            status: Some("1".to_string()),
+            ref_num: Some(2),
             remark: Some("Remark3".to_string()),
             ..Default::default()
         };
-        tag3.add(&pool).await.unwrap();
+        Tags::add(&pool, tag3).await.unwrap();
 
         // Test 1: Basic filtering by tag_name
         let query_params = PageParams {
@@ -760,12 +757,12 @@ mod tests {
     #[tokio::test]
     async fn test_get_by_id() {
         let pool = setup_test_db().await;
-        let new_tag = Tags {
-            tag_name: "Test Tag".to_string(),
-            tag_number: "001".to_string(),
+        let new_tag = TagParam {
+            tag_name: Some("Test Tag".to_string()),
+            tag_number: Some("001".to_string()),
             ..Default::default()
         };
-        let added_tag = new_tag.add(&pool).await.unwrap();
+        let added_tag = Tags::add(&pool, new_tag).await.unwrap();
         let retrieved_tag = Tags::get_by_id(&pool, added_tag.tag_id).await.unwrap();
         assert_eq!(retrieved_tag.tag_id, added_tag.tag_id);
     }
@@ -773,12 +770,12 @@ mod tests {
     #[tokio::test]
     async fn test_update_tag() {
         let pool = setup_test_db().await;
-        let new_tag = Tags {
-            tag_name: "Test Tag".to_string(),
-            tag_number: "001".to_string(),
+        let new_tag = TagParam {
+            tag_name: Some("Test Tag".to_string()),
+            tag_number: Some("001".to_string()),
             ..Default::default()
         };
-        let added_tag = new_tag.add(&pool).await.unwrap();
+        let added_tag = Tags::add(&pool, new_tag).await.unwrap();
         let updated_tag = Tags {
             tag_id: added_tag.tag_id,
             tag_name: "Updated Tag".to_string(),
@@ -791,12 +788,12 @@ mod tests {
     #[tokio::test]
     async fn test_soft_delete() {
         let pool = setup_test_db().await;
-        let new_tag = Tags {
-            tag_name: "Test Tag".to_string(),
-            tag_number: "001".to_string(),
+        let new_tag = TagParam {
+            tag_name: Some("Test Tag".to_string()),
+            tag_number: Some("001".to_string()),
             ..Default::default()
         };
-        let added_tag = new_tag.add(&pool).await.unwrap();
+        let added_tag = Tags::add(&pool, new_tag).await.unwrap();
         let affected_rows = Tags::soft_delete(&pool, added_tag.tag_id).await.unwrap();
         assert_eq!(affected_rows, 1);
     }
@@ -804,13 +801,13 @@ mod tests {
     #[tokio::test]
     async fn test_increment_ref_num() {
         let pool = setup_test_db().await;
-        let new_tag = Tags {
-            tag_name: "Test Tag".to_string(),
-            tag_number: "001".to_string(),
-            ref_num: 1,
+        let new_tag = TagParam {
+            tag_name: Some("Test Tag".to_string()),
+            tag_number: Some("001".to_string()),
+            ref_num: Some(1),
             ..Default::default()
         };
-        let added_tag = new_tag.add(&pool).await.unwrap();
+        let added_tag = Tags::add(&pool, new_tag).await.unwrap();
         let incremented_tag = Tags::increment_ref_num(&pool, added_tag.tag_id)
             .await
             .unwrap();
@@ -820,12 +817,12 @@ mod tests {
     #[tokio::test]
     async fn test_exists_by_tag_name() {
         let pool = setup_test_db().await;
-        let new_tag = Tags {
-            tag_name: "Test Tag".to_string(),
-            tag_number: "001".to_string(),
+        let new_tag = TagParam {
+            tag_name: Some("Test Tag".to_string()),
+            tag_number: Some("001".to_string()),
             ..Default::default()
         };
-        new_tag.add(&pool).await.unwrap();
+        let _added_tag = Tags::add(&pool, new_tag).await.unwrap();
         let exists = Tags::exists_by_tag_name(&pool, "Test Tag").await.unwrap();
         assert!(exists);
     }
@@ -833,18 +830,18 @@ mod tests {
     #[tokio::test]
     async fn test_batch_soft_delete() {
         let pool = setup_test_db().await;
-        let tag1 = Tags {
-            tag_name: "Test Tag 1".to_string(),
-            tag_number: "001".to_string(),
+        let tag1 = TagParam {
+            tag_name: Some("Test Tag 1".to_string()),
+            tag_number: Some("001".to_string()),
             ..Default::default()
         };
-        let tag2 = Tags {
-            tag_name: "Test Tag 2".to_string(),
-            tag_number: "002".to_string(),
+        let tag2 = TagParam {
+            tag_name: Some("Test Tag 2".to_string()),
+            tag_number: Some("002".to_string()),
             ..Default::default()
         };
-        let added_tag1 = tag1.add(&pool).await.unwrap();
-        let added_tag2 = tag2.add(&pool).await.unwrap();
+        let added_tag1 = Tags::add(&pool, tag1).await.unwrap();
+        let added_tag2 = Tags::add(&pool, tag2).await.unwrap();
 
         let tag_ids = vec![added_tag1.tag_id, added_tag2.tag_id];
         let affected_rows = Tags::batch_soft_delete(&pool, &tag_ids).await.unwrap();

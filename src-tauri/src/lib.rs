@@ -37,9 +37,10 @@ pub fn create_app<R: tauri::Runtime, T: Send + Sync + 'static>(
             tags::get_tag_by_id,
             tags::update_tag,
             tags::soft_delete_tag,
-            tags::increase_ref_num,
+            tags::update_ref_num,
             tags::tag_name_exists,
-            tags::delete_tags_batch
+            tags::delete_tags_batch,
+            tags::change_tag_status
         ])
         .build(tauri::generate_context!())
         .expect("error while building Tauri application")

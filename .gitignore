@@ -27,3 +27,5 @@ yarn.lock
 src-tauri/target/
 src-tauri/gen/schemas
 src-tauri/Cargo.lock
+src-tauri/my_databse.db-shm
+src-tauri/my_databse.db-wal

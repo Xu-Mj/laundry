@@ -249,7 +249,7 @@ function handleUpdate(row, focus) {
   reset();
   const _tagId = row.tagId || ids.value
   getTags(_tagId).then(response => {
-    form.value = response.data;
+    form.value = response;
     open.value = true;
     title.value = "修改标签";
   });

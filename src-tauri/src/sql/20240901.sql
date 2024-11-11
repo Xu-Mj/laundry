@@ -369,7 +369,7 @@ CREATE TABLE sys_orders_pays
 -- 订单涉及的图片索引表，记录订单中相关的图片信息
 CREATE TABLE sys_orders_pictures
 (
-    picture_id   INTEGER      NOT NULL AUTOINCREMENT PRIMARY KEY,
+    picture_id   INTEGER  PRIMARY KEY AUTOINCREMENT,
     picture_path VARCHAR(256) NOT NULL,
     create_by    VARCHAR(64),
     create_time  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -378,7 +378,7 @@ CREATE TABLE sys_orders_pictures
 -- 订单派送信息
 CREATE TABLE sys_orders_dispatch
 (
-    dispatch_id   INTEGER      NOT NULL AUTOINCREMENT PRIMARY KEY,
+    dispatch_id   INTEGER PRIMARY KEY AUTOINCREMENT,
     order_id      VARCHAR(128) NOT NULL,
     cloth_id      VARCHAR(512) NOT NULL,
     delivery_comp VARCHAR(64),
@@ -404,11 +404,11 @@ CREATE TABLE sys_expenditure
 );
 
 -- 晾衣架表
-CREATE TABLE sys_drying_rack
+CREATE TABLE drying_rack
 (
     id                 INTEGER PRIMARY KEY AUTOINCREMENT,
-    name               VARCHAR(50),
-    rack_type          char(1),
+    name               VARCHAR(50) NOT NULL,
+    rack_type          char(1) DEFAULT '1',
     capacity           INTEGER NOT NULL,
     remaining_capacity INTEGER NOT NULL,
     position           INTEGER NOT NULL DEFAULT 0

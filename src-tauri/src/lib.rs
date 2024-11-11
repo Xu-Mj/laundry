@@ -11,6 +11,7 @@ use tauri::generate_handler;
 use db::user;
 use db::tags;
 use db::clothing;
+use db::drying_rack;
 use tray::create_tray;
 
 pub fn create_app<R: tauri::Runtime, T: Send + Sync + 'static>(
@@ -53,6 +54,12 @@ pub fn create_app<R: tauri::Runtime, T: Send + Sync + 'static>(
             clothing::delete_clothing_batch,
             clothing::update_clothing_ref_num,
             clothing::clothing_name_exists,
+            // rack
+            drying_rack::list_rack_all,
+            drying_rack::add_rack,
+            drying_rack::get_rack_by_id,
+            drying_rack::update_rack,
+            drying_rack::delete_racks,
         ])
         .build(tauri::generate_context!())
         .expect("error while building Tauri application")

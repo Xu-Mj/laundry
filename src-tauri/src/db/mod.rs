@@ -1,10 +1,11 @@
 use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Sqlite};
 
-pub mod printer;
-pub mod user;
-pub mod tags;
+pub(crate)  mod printer;
+pub(crate)  mod user;
+pub(crate)  mod tags;
 pub(crate) mod clothing;
+pub(crate) mod drying_rack;
 
 // SQLite 连接池
 pub struct DbPool(Pool<Sqlite>);
@@ -68,6 +69,20 @@ pub async fn initialize_database(pool: &Pool<Sqlite>) -> Result<(), sqlx::Error>
                 hang_type           CHAR(1)     NOT NULL DEFAULT '1',
                 del_flag            CHAR(1)              DEFAULT '0',
                 remark              VARCHAR(500)
+            )",
+    )
+        .execute(pool)
+        .await?;
+
+    sqlx::query(
+        "CREATE TABLE IF NOT EXISTS drying_rack
+            (
+                id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+                name               VARCHAR(50) NOT NULL,
+                rack_type          char(1) DEFAULT '1',
+                capacity           INTEGER NOT NULL,
+                remaining_capacity INTEGER NOT NULL,
+                position           INTEGER NOT NULL DEFAULT 0
             )",
     )
         .execute(pool)

@@ -92,9 +92,9 @@ CREATE TABLE sys_tags
 );
 
 -- 衣物管理表
-CREATE TABLE clothes
+CREATE TABLE clothing
 (
-    clothing_id         INTEGER AUTOINCREMENT PRIMARY KEY,
+    clothing_id         INTEGER PRIMARY KEY AUTOINCREMENT,
     clothing_category   VARCHAR(3)  NOT NULL,
     clothing_number     VARCHAR(30) NOT NULL,
     clothing_style      VARCHAR(3)  NOT NULL,
@@ -109,9 +109,9 @@ CREATE TABLE clothes
 );
 
 -- 创建索引，提高根据衣物类别和衣物名称查询效率
-CREATE INDEX idx_clothing_category ON clothes (clothing_category);
+CREATE INDEX idx_clothing_category ON clothing (clothing_category);
 
-CREATE INDEX idx_clothing_name ON clothes (clothing_name);
+CREATE INDEX idx_clothing_name ON clothing (clothing_name);
 
 -- 卡券管理表
 CREATE TABLE sys_coupon

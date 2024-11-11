@@ -10,6 +10,7 @@ use tauri::generate_handler;
 
 use db::user;
 use db::tags;
+use db::clothing;
 use tray::create_tray;
 
 pub fn create_app<R: tauri::Runtime, T: Send + Sync + 'static>(
@@ -31,6 +32,7 @@ pub fn create_app<R: tauri::Runtime, T: Send + Sync + 'static>(
             db::printer::get_printers,
             db::printer::set_printer,
             db::printer::get_settled_printer,
+            // tags
             tags::list_pagination,
             tags::list_all,
             tags::add_tag,
@@ -40,7 +42,17 @@ pub fn create_app<R: tauri::Runtime, T: Send + Sync + 'static>(
             tags::update_ref_num,
             tags::tag_name_exists,
             tags::delete_tags_batch,
-            tags::change_tag_status
+            tags::change_tag_status,
+            // clothing
+            clothing::list_clothing_pagination,
+            clothing::list_clothing_all,
+            clothing::add_clothing,
+            clothing::get_clothing_by_id,
+            clothing::update_clothing,
+            clothing::soft_delete_clothing,
+            clothing::delete_clothing_batch,
+            clothing::update_clothing_ref_num,
+            clothing::clothing_name_exists,
         ])
         .build(tauri::generate_context!())
         .expect("error while building Tauri application")

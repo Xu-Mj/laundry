@@ -4,6 +4,7 @@ use sqlx::{Pool, Sqlite};
 pub mod printer;
 pub mod user;
 pub mod tags;
+pub(crate) mod clothing;
 
 // SQLite 连接池
 pub struct DbPool(Pool<Sqlite>);
@@ -47,6 +48,26 @@ pub async fn initialize_database(pool: &Pool<Sqlite>) -> Result<(), sqlx::Error>
                 status     CHAR(1) DEFAULT '0',
                 del_flag   CHAR(1) DEFAULT '0',
                 remark     VARCHAR(500)
+            )",
+    )
+        .execute(pool)
+        .await?;
+
+    sqlx::query(
+        "CREATE TABLE IF NOT EXISTS clothing
+            (
+                clothing_id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                clothing_category   VARCHAR(3)  NOT NULL,
+                clothing_number     VARCHAR(30) NOT NULL,
+                clothing_style      VARCHAR(3)  NOT NULL,
+                clothing_name       VARCHAR(50) NOT NULL,
+                clothing_base_price DOUBLE      NOT NULL,
+                clothing_min_price  DOUBLE      NOT NULL,
+                order_num           INTEGER              DEFAULT 0,
+                clothing_degree     INTEGER              DEFAULT 0,
+                hang_type           CHAR(1)     NOT NULL DEFAULT '1',
+                del_flag            CHAR(1)              DEFAULT '0',
+                remark              VARCHAR(500)
             )",
     )
         .execute(pool)

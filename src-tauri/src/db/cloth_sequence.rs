@@ -1,12 +1,14 @@
-use sqlx::types::chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
-use sqlx::{Pool, Sqlite};
+use sqlx::{Pool, Sqlite, types::chrono::NaiveDate};
 
 use crate::error::Result;
+use crate::utils::chrono_serde::naive_date_serde;
 
 #[derive(Debug, Clone, Deserialize, Serialize, sqlx::FromRow)]
+#[serde(rename_all = "camelCase")]
 pub struct ClothSequence {
     id: i64,
+    #[serde(with = "naive_date_serde")]
     date: NaiveDate,
     sequence_number: i64,
 }
@@ -60,7 +62,7 @@ impl ClothSequence {
     }
 
     /// 获取最新的 sequence_number（用于当天或特定日期的最大序列号）
-    pub async fn get_latest_sequence(pool: &Pool<Sqlite>, date: &str) -> Result<Option<Self>> {
+    pub async fn get_latest_sequence(pool: &Pool<Sqlite>) -> Result<Option<Self>> {
         let result = sqlx::query_as::<_, ClothSequence>(
             "SELECT id, date, sequence_number
              FROM cloth_sequence
@@ -72,5 +74,140 @@ impl ClothSequence {
             .await?;
 
         Ok(result)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sqlx::{Pool, Sqlite, SqlitePool};
+    use sqlx::types::chrono::NaiveDate;
+    
+    async fn setup_pool() -> Pool<Sqlite> {
+        // Setup an in-memory SQLite database for testing
+    let pool = SqlitePool::connect(":memory:").await.unwrap();
+
+        // Create the cloth_sequence table for testing
+        sqlx::query(
+            r#"
+            CREATE TABLE cloth_sequence (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                date TEXT NOT NULL,
+                sequence_number INTEGER NOT NULL
+            );
+            "#,
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        pool
+    }
+
+    #[tokio::test]
+    async fn test_add_cloth_sequence() {
+        let pool = setup_pool().await;
+
+        // Create a new ClothSequence instance
+        let mut cloth_sequence = ClothSequence {
+            id: 0,  // id will be set after insertion
+            date: NaiveDate::from_ymd_opt(2024, 11, 12).unwrap(), // Test date
+            sequence_number: 1, // Test sequence number
+        };
+
+        // Add the new record
+        cloth_sequence.add(&pool).await.unwrap();
+
+        // Check if the record has been inserted by getting it by ID
+        let result = ClothSequence::get_by_id(&pool, cloth_sequence.id).await.unwrap();
+        assert!(result.is_some());
+        assert_eq!(result.unwrap().sequence_number, 1);
+    }
+
+    #[tokio::test]
+    async fn test_get_by_id() {
+        let pool = setup_pool().await;
+
+        // Insert a record to be retrieved
+        let mut cloth_sequence = ClothSequence {
+            id: 0,
+            date: NaiveDate::from_ymd_opt(2024, 11, 12).unwrap(),
+            sequence_number: 2,
+        };
+        cloth_sequence.add(&pool).await.unwrap();
+
+        // Retrieve the record by ID
+        let result = ClothSequence::get_by_id(&pool, cloth_sequence.id).await.unwrap();
+        assert!(result.is_some());
+        assert_eq!(result.unwrap().sequence_number, 2);
+    }
+
+    #[tokio::test]
+    async fn test_update_cloth_sequence() {
+        let pool = setup_pool().await;
+
+        // Insert a record to be updated
+        let mut cloth_sequence = ClothSequence {
+            id: 0,
+            date: NaiveDate::from_ymd_opt(2024, 11, 12).unwrap(),
+            sequence_number: 3,
+        };
+        cloth_sequence.add(&pool).await.unwrap();
+
+        // Update the record
+        cloth_sequence.sequence_number = 5;
+        let rows_affected = cloth_sequence.update(&pool).await.unwrap();
+        assert_eq!(rows_affected, 1);
+
+        // Retrieve the updated record
+        let updated_result = ClothSequence::get_by_id(&pool, cloth_sequence.id).await.unwrap();
+        assert!(updated_result.is_some());
+        assert_eq!(updated_result.unwrap().sequence_number, 5);
+    }
+
+    #[tokio::test]
+    async fn test_delete_cloth_sequence() {
+        let pool = setup_pool().await;
+
+        // Insert a record to be deleted
+        let mut cloth_sequence = ClothSequence {
+            id: 0,
+            date: NaiveDate::from_ymd_opt(2024, 11, 12).unwrap(),
+            sequence_number: 4,
+        };
+        cloth_sequence.add(&pool).await.unwrap();
+
+        // Delete the record
+        let rows_affected = ClothSequence::delete(&pool, cloth_sequence.id).await.unwrap();
+        assert_eq!(rows_affected, 1);
+
+        // Try retrieving the deleted record
+        let result = ClothSequence::get_by_id(&pool, cloth_sequence.id).await.unwrap();
+        assert!(result.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_get_latest_sequence() {
+        let pool = setup_pool().await;
+
+        // Insert a few records
+        let mut cloth_sequence_1 = ClothSequence {
+            id: 0,
+            date: NaiveDate::from_ymd_opt(2024, 11, 12).unwrap(),
+            sequence_number: 10,
+        };
+        cloth_sequence_1.add(&pool).await.unwrap();
+
+        let mut cloth_sequence_2 = ClothSequence {
+            id: 0,
+            date: NaiveDate::from_ymd_opt(2024, 11, 12).unwrap(),
+            sequence_number: 20,
+        };
+        cloth_sequence_2.add(&pool).await.unwrap();
+
+        // Get the latest sequence for the current date
+        let result = ClothSequence::get_latest_sequence(&pool).await.unwrap();
+        assert!(result.is_some());
+        assert_eq!(result.unwrap().sequence_number, 20);
     }
 }

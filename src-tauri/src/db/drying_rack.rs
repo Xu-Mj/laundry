@@ -148,6 +148,7 @@ impl DryingRackParam {
     }
 
     /// Delete a drying rack by ID.
+    #[allow(dead_code)]
     pub async fn delete_by_id(pool: &Pool<Sqlite>, id: i64) -> Result<u64> {
         let result = sqlx::query("DELETE FROM drying_rack WHERE id = ?")
             .bind(id)
@@ -179,6 +180,7 @@ impl DryingRackParam {
         Ok(result.rows_affected())
     }
 
+    #[allow(dead_code)]
     pub async fn select_one(pool: &Pool<Sqlite>, rack_typ: String) -> Result<Option<DryingRack>> {
         let result = sqlx::query_as::<_, DryingRack>("
         SELECT *

@@ -1,19 +1,19 @@
 CREATE TABLE IF NOT EXISTS sys_dict_type
 (
-    dict_id     INTEGER NOT NULL AUTOINCREMENT PRIMARY KEY,
+    dict_id     INTEGER PRIMARY KEY AUTOINCREMENT,
     dict_name   varchar(100) DEFAULT '',
     dict_type   varchar(100) DEFAULT '',
     status      char(1)      DEFAULT '0',
     create_by   varchar(64)  DEFAULT '',
-    create_time datetime     DEFAULT NULL,
+    create_time TIMESTAMP,
     update_by   varchar(64)  DEFAULT '',
-    update_time datetime     DEFAULT NULL,
+    update_time TIMESTAMP,
     remark      varchar(500) DEFAULT NULL
 );
 ;
 CREATE TABLE IF NOT EXISTS sys_dict_data
 (
-    dict_code   INTEGER NOT NULL AUTOINCREMENT PRIMARY KEY,
+    dict_code   INTEGER PRIMARY KEY AUTOINCREMENT,
     dict_sort   INTEGER      DEFAULT 0,
     dict_label  varchar(100) DEFAULT '',
     dict_value  varchar(100) DEFAULT '',
@@ -23,15 +23,15 @@ CREATE TABLE IF NOT EXISTS sys_dict_data
     is_default  char(1)      DEFAULT 'N',
     status      char(1)      DEFAULT '0',
     create_by   varchar(64)  DEFAULT '',
-    create_time datetime     DEFAULT NULL,
+    create_time TIMESTAMP,
     update_by   varchar(64)  DEFAULT '',
-    update_time datetime     DEFAULT NULL,
+    update_time TIMESTAMP,
     remark      varchar(500) DEFAULT NULL
 );
 
 CREATE TABLE IF NOT EXISTS sys_user
 (
-    user_id     INTEGER      NOT NULL AUTOINCREMENT PRIMARY KEY,
+    user_id     INTEGER PRIMARY KEY AUTOINCREMENT,
     open_id     varchar(50)  NOT NULL DEFAULT '',
     dept_id     INTEGER               DEFAULT NULL,
     user_name   varchar(30)  NOT NULL,
@@ -48,11 +48,11 @@ CREATE TABLE IF NOT EXISTS sys_user
     integral    INTEGER               DEFAULT 0,
     identify    varchar(2)            DEFAULT '00',
     login_ip    varchar(128)          DEFAULT '',
-    login_date  datetime              DEFAULT NULL,
+    login_date  TIMESTAMP             DEFAULT NULL,
     create_by   varchar(64)           DEFAULT '',
-    create_time datetime              DEFAULT NULL,
+    create_time TIMESTAMP,
     update_by   varchar(64)           DEFAULT '',
-    update_time datetime              DEFAULT NULL,
+    update_time TIMESTAMP,
     remark      varchar(500)          DEFAULT NULL
 );
 
@@ -68,10 +68,10 @@ CREATE TABLE sys_user_tags
 CREATE TABLE sys_user_integral_record
 (
     id          INTEGER AUTOINCREMENT PRIMARY KEY,
-    user_id     INTEGER  NOT NULL,
-    coupon_id   INTEGER  NOT NULL,
-    identify    INTEGER  NOT NULL,
-    create_time DATETIME NOT NULL
+    user_id     INTEGER NOT NULL,
+    coupon_id   INTEGER NOT NULL,
+    identify    INTEGER NOT NULL,
+    create_time TIMESTAMP
 );
 
 -- 创建索引，提高根据用户id查询效率
@@ -125,8 +125,8 @@ CREATE TABLE sys_coupon
     customer_invalid    CHAR(1)                     DEFAULT '0',
     customer_sale_total INTEGER                     DEFAULT 0,
     customer_sale_count INTEGER                     DEFAULT 0,
-    valid_from          DATETIME           NOT NULL,
-    valid_to            DATETIME           NOT NULL,
+    valid_from          TIMESTAMP          NOT NULL,
+    valid_to            TIMESTAMP          NOT NULL,
     auto_delay          CHAR(1)                     DEFAULT '0',
     usage_value         DOUBLE                      DEFAULT 0,
     usage_limit         DOUBLE                      DEFAULT 0,
@@ -151,16 +151,16 @@ CREATE INDEX idx_coupon_del_flag ON sys_coupon (del_flag);
 CREATE TABLE sys_user_coupon
 (
     uc_id           INTEGER AUTOINCREMENT PRIMARY KEY,
-    user_id         INTEGER  NOT NULL,
-    coupon_id       INTEGER  NOT NULL,
-    create_time     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    obtain_at       DATETIME          DEFAULT NULL,
-    available_value DOUBLE            DEFAULT 0,
-    uc_count        INTEGER           DEFAULT 1,
-    pay_id          INTEGER           DEFAULT NULL,
-    uc_type         VARCHAR(2)        DEFAULT '01',
-    status          VARCHAR(2)        DEFAULT '00',
-    remark          VARCHAR(256)      DEFAULT NULL
+    user_id         INTEGER NOT NULL,
+    coupon_id       INTEGER NOT NULL,
+    create_time     TIMESTAMP,
+    obtain_at       TIMESTAMP    DEFAULT NULL,
+    available_value DOUBLE       DEFAULT 0,
+    uc_count        INTEGER      DEFAULT 1,
+    pay_id          INTEGER      DEFAULT NULL,
+    uc_type         VARCHAR(2)   DEFAULT '01',
+    status          VARCHAR(2)   DEFAULT '00',
+    remark          VARCHAR(256) DEFAULT NULL
 );
 
 -- 用户卡券索引
@@ -177,7 +177,7 @@ CREATE TABLE sys_coupon_order
 (
     order_id    INTEGER AUTOINCREMENT PRIMARY KEY,
     uc_id       VARCHAR(64) NOT NULL,
-    create_time DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP
+    create_time TIMESTAMP
 );
 
 -- 卡券订单索引
@@ -198,15 +198,15 @@ CREATE TABLE sys_payment
     order_type         CHAR(1)     NOT NULL,
     total_amount       DOUBLE      NOT NULL,
     payment_amount     DOUBLE      NOT NULL,
-    payment_amount_vip DOUBLE               DEFAULT 0,
-    payment_amount_mv  DOUBLE               DEFAULT 0,
+    payment_amount_vip DOUBLE DEFAULT 0,
+    payment_amount_mv  DOUBLE DEFAULT 0,
     payment_status     VARCHAR(2)  NOT NULL,
     payment_method     VARCHAR(2)  NOT NULL,
     transaction_id     INTEGER,
     uc_order_id        INTEGER,
     uc_id              VARCHAR(256),
-    create_time        DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    update_time        DATETIME             DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    create_time        TIMESTAMP,
+    update_time        TIMESTAMP,
     order_status       VARCHAR(2)  NOT NULL
 );
 
@@ -227,7 +227,7 @@ CREATE TABLE sys_notice_template
     temp_name     VARCHAR(50)  NOT NULL,
     notice_method char(1)      NOT NULL,
     content       VARCHAR(500) NOT NULL,
-    create_time   DATETIME DEFAULT CURRENT_TIMESTAMP,
+    create_time   TIMESTAMP,
     temp_type     char(1)      NOT NULL,
     remark        VARCHAR(500)
 );
@@ -241,7 +241,7 @@ CREATE TABLE sys_notice_record
     order_number  varchar(64)  NULL,
     notice_method char(1)      NOT NULL,
     notice_type   char(1)      NOT NULL,
-    notice_time   DATETIME DEFAULT NOW(),
+    notice_time   TIMESTAMP,
     title         VARCHAR(50)  NOT NULL,
     content       VARCHAR(500) NOT NULL,
     result        char(1),
@@ -261,12 +261,12 @@ CREATE TABLE sys_cloth_price
     price_value    DOUBLE,
     price_discount DOUBLE,
     order_num      INTEGER     NOT NULL,
-    ref_num        INTEGER   DEFAULT 0,
-    status         CHAR(1)   DEFAULT '0',
-    del_flag       CHAR(1)   DEFAULT '0',
+    ref_num        INTEGER DEFAULT 0,
+    status         CHAR(1) DEFAULT '0',
+    del_flag       CHAR(1) DEFAULT '0',
     remark         VARCHAR(500),
-    created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at     TIMESTAMP,
+    updated_at     TIMESTAMP
 );
 
 CREATE INDEX idx_order_type ON sys_cloth_price (order_type);
@@ -279,18 +279,18 @@ CREATE TABLE sys_orders
     business_type        VARCHAR(2)  NOT NULL,
     user_id              INTEGER     NOT NULL,
     price_id             INTEGER,
-    desire_complete_time DATETIME    NOT NULL,
+    desire_complete_time TIMESTAMP   NOT NULL,
     cost_time_alarm      VARCHAR(2),
     pickup_code          VARCHAR(10),
-    complete_time        DATETIME,
+    complete_time        TIMESTAMP,
     delivery_mode        VARCHAR(2),
     source               VARCHAR(2)  NOT NULL,
     status               VARCHAR(2)  NOT NULL,
     payment_status       VARCHAR(2)  NOT NULL,
     remark               VARCHAR(500),
     order_type           VARCHAR(2)  NOT NULL,
-    create_time          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    update_time          TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    create_time          TIMESTAMP,
+    update_time          TIMESTAMP
 );
 
 -- 创建索引
@@ -328,8 +328,8 @@ CREATE TABLE sys_orders_cloths
     hanger_number       INTEGER,
     hang_cloth_code     VARCHAR(32) UNIQUE,
     hang_remark         VARCHAR(256),
-    create_time         DATETIME   NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    pickup_time         DATETIME,
+    create_time         TIMESTAMP,
+    pickup_time         TIMESTAMP,
     pickup_method       varchar(2),
     clothing_status     varchar(2),
     remark              VARCHAR(256)
@@ -355,9 +355,9 @@ CREATE TABLE sys_orders_pays
     pay_id      INTEGER PRIMARY KEY AUTOINCREMENT,
     order_id    INTEGER    NOT NULL,
     create_by   VARCHAR(64),
-    create_time DATETIME   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    create_time TIMESTAMP,
     update_by   VARCHAR(64),
-    update_time DATETIME            DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP,
     remark      VARCHAR(500),
     pay_amount  FLOAT      NOT NULL,
     pay_method  VARCHAR(2) NOT NULL
@@ -369,7 +369,7 @@ CREATE TABLE sys_orders_pictures
     picture_id   INTEGER PRIMARY KEY AUTOINCREMENT,
     picture_path VARCHAR(256) NOT NULL,
     create_by    VARCHAR(64),
-    create_time  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
+    create_time  TIMESTAMP
 );
 
 -- 订单派送信息
@@ -380,9 +380,9 @@ CREATE TABLE sys_orders_dispatch
     cloth_id      VARCHAR(512) NOT NULL,
     delivery_comp VARCHAR(64),
     delivery_num  VARCHAR(64),
-    dispatch_time DATETIME,
+    dispatch_time TIMESTAMP,
     remark        VARCHAR(256),
-    create_time   DATETIME DEFAULT CURRENT_TIMESTAMP
+    create_time   TIMESTAMP
 );
 
 -- 支出记录表
@@ -396,7 +396,7 @@ CREATE TABLE sys_expenditure
     recv_account_title VARCHAR(64),
     exp_type           VARCHAR(10)  NOT NULL,
     exp_amount         INTEGER      NOT NULL,
-    create_time        DATETIME DEFAULT CURRENT_TIMESTAMP,
+    create_time        TIMESTAMP,
     remark             VARCHAR(100)
 );
 
@@ -425,7 +425,7 @@ CREATE TABLE sys_orders_repair
     repair_id    INTEGER PRIMARY KEY AUTOINCREMENT,
     order_id     INTEGER,
     old_order_id INTEGER,
-    create_time  DATETIME DEFAULT CURRENT_TIMESTAMP,
+    create_time  TIMESTAMP,
     remark       VARCHAR(256)
 );
 
@@ -438,9 +438,9 @@ CREATE TABLE sys_promote_template
     promote_method  VARCHAR(2)  NOT NULL,
     promote_count   INTEGER,
     promote_objects VARCHAR(1024),
-    create_time     DATETIME DEFAULT CURRENT_TIMESTAMP,
+    create_time     TIMESTAMP,
     promote_picture VARCHAR(256),
-    is_pin          char(1)  DEFAULT '0',
+    is_pin          char(1) DEFAULT '0',
     remark          VARCHAR(256)
 );
 
@@ -451,6 +451,6 @@ CREATE TABLE sys_promote_record
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     temp_id         INTEGER,
     promote_objects VARCHAR(1024) NOT NULL,
-    promote_time    DATETIME DEFAULT CURRENT_TIMESTAMP,
-    status          CHAR(1)  DEFAULT '0'
+    promote_time    TIMESTAMP,
+    status          CHAR(1) DEFAULT '0'
 );

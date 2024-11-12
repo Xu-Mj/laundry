@@ -1,12 +1,15 @@
+pub(crate) mod printer;
+
+pub(crate) mod user;
+pub(crate) mod tags;
+pub(crate) mod clothing;
+pub(crate) mod drying_rack;
+mod cloth_sequence;
+
 use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Sqlite};
 
-pub(crate)  mod printer;
-pub(crate)  mod user;
-pub(crate)  mod tags;
-pub(crate) mod clothing;
-pub(crate) mod drying_rack;
-
+use crate::sql::DDL;
 // SQLite 连接池
 pub struct DbPool(Pool<Sqlite>);
 
@@ -18,75 +21,11 @@ impl DbPool {
 
 // 初始化数据库并创建表
 pub async fn initialize_database(pool: &Pool<Sqlite>) -> Result<(), sqlx::Error> {
-    sqlx::query(
-        "CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL
-        )",
-    )
-        .execute(pool)
-        .await?;
-
-    sqlx::query(
-        "CREATE TABLE IF NOT EXISTS printers (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            system_name TEXT NOT NULL,
-            driver_name TEXT NOT NULL
-        )",
-    )
-        .execute(pool)
-        .await?;
-
-    sqlx::query(
-        "CREATE TABLE IF NOT EXISTS tags (
-                tag_id     INTEGER PRIMARY KEY AUTOINCREMENT,
-                tag_number VARCHAR(50) UNIQUE NOT NULL,
-                tag_order  VARCHAR(3),
-                tag_name   VARCHAR(50) UNIQUE NOT NULL,
-                ref_num    INTEGER DEFAULT 0,
-                order_num  INTEGER DEFAULT 0,
-                status     CHAR(1) DEFAULT '0',
-                del_flag   CHAR(1) DEFAULT '0',
-                remark     VARCHAR(500)
-            )",
-    )
-        .execute(pool)
-        .await?;
-
-    sqlx::query(
-        "CREATE TABLE IF NOT EXISTS clothing
-            (
-                clothing_id         INTEGER PRIMARY KEY AUTOINCREMENT,
-                clothing_category   VARCHAR(3)  NOT NULL,
-                clothing_number     VARCHAR(30) NOT NULL,
-                clothing_style      VARCHAR(3)  NOT NULL,
-                clothing_name       VARCHAR(50) NOT NULL,
-                clothing_base_price DOUBLE      NOT NULL,
-                clothing_min_price  DOUBLE      NOT NULL,
-                order_num           INTEGER              DEFAULT 0,
-                clothing_degree     INTEGER              DEFAULT 0,
-                hang_type           CHAR(1)     NOT NULL DEFAULT '1',
-                del_flag            CHAR(1)              DEFAULT '0',
-                remark              VARCHAR(500)
-            )",
-    )
-        .execute(pool)
-        .await?;
-
-    sqlx::query(
-        "CREATE TABLE IF NOT EXISTS drying_rack
-            (
-                id                 INTEGER PRIMARY KEY AUTOINCREMENT,
-                name               VARCHAR(50) NOT NULL,
-                rack_type          char(1) DEFAULT '1',
-                capacity           INTEGER NOT NULL,
-                remaining_capacity INTEGER NOT NULL,
-                position           INTEGER NOT NULL DEFAULT 0
-            )",
-    )
-        .execute(pool)
-        .await?;
+    for sql in DDL {
+        sqlx::query(sql)
+            .execute(pool)
+            .await?;
+    }
     Ok(())
 }
 

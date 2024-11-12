@@ -355,7 +355,7 @@ CREATE TABLE sys_order_cloths_adjust
 -- 支付记录表
 CREATE TABLE sys_orders_pays
 (
-    pay_id      INTEGER    NOT NULL AUTOINCREMENT,
+    pay_id      INTEGER PRIMARY KEY AUTOINCREMENT,
     order_id    INTEGER    NOT NULL,
     create_by   VARCHAR(64),
     create_time DATETIME   NOT NULL DEFAULT CURRENT_TIMESTAMP,

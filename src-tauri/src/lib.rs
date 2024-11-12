@@ -5,6 +5,7 @@ pub mod error;
 pub mod printer;
 pub mod tray;
 pub mod utils;
+pub mod sql;
 
 use tauri::generate_handler;
 

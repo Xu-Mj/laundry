@@ -1,52 +1,35 @@
-import request from '@/utils/request'
+import request from '@/utils/request';
+import { invoke } from '@tauri-apps/api/core';
 
 // 查询晾衣架列表
-export function listRack(query) {
-  return request({
-    url: '/system/rack/list',
-    method: 'get',
-    params: query
-  })
+export function listRack() {
+  return invoke('list_rack_all')
 }
 
 // 查询晾衣架详细
 export function getRack(id) {
-  return request({
-    url: '/system/rack/' + id,
-    method: 'get'
-  })
+  return invoke('get_rack_by_id', { id: id })
 }
 
 // 查询晾衣架详细
 export function getAvailableRack() {
   return request({
-    url: '/system/rack/position' ,
+    url: '/system/rack/position',
     method: 'get'
   })
 }
 
 // 新增晾衣架
 export function addRack(data) {
-  return request({
-    url: '/system/rack',
-    method: 'post',
-    data: data
-  })
+  return invoke('add_rack', { rack: data })
 }
 
 // 修改晾衣架
 export function updateRack(data) {
-  return request({
-    url: '/system/rack',
-    method: 'put',
-    data: data
-  })
+  return invoke('update_rack', { rack: data })
 }
 
 // 删除晾衣架
 export function delRack(id) {
-  return request({
-    url: '/system/rack/' + id,
-    method: 'delete'
-  })
+  return invoke('delete_racks', { ids: [].concat(id) })
 }

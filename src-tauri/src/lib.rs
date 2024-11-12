@@ -13,6 +13,7 @@ use db::user;
 use db::tags;
 use db::clothing;
 use db::drying_rack;
+use db::cloth_price;
 use tray::create_tray;
 
 pub fn create_app<R: tauri::Runtime, T: Send + Sync + 'static>(
@@ -61,6 +62,15 @@ pub fn create_app<R: tauri::Runtime, T: Send + Sync + 'static>(
             drying_rack::get_rack_by_id,
             drying_rack::update_rack,
             drying_rack::delete_racks,
+            // cloth price
+            cloth_price::add_cloth_price,
+            cloth_price::get_cloth_price,
+            cloth_price::update_cloth_price,
+            cloth_price::delete_cloth_prices,
+            cloth_price::list_cloth_prices_pagination,
+            cloth_price::list_cloth_prices_by_order_type,
+            cloth_price::update_cloth_price_status,
+            cloth_price::update_cloth_price_ref_num
         ])
         .build(tauri::generate_context!())
         .expect("error while building Tauri application")

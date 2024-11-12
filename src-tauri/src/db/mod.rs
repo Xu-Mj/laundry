@@ -5,6 +5,7 @@ pub(crate) mod tags;
 pub(crate) mod clothing;
 pub(crate) mod drying_rack;
 mod cloth_sequence;
+pub(crate) mod cloth_price;
 
 use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Sqlite};

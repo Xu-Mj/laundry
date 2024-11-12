@@ -254,25 +254,22 @@ CREATE INDEX idx_user_id ON sys_notice_record (user_id);
 -- 衣物价格表
 CREATE TABLE sys_cloth_price
 (
-    price_id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    price_number      VARCHAR(30) NOT NULL,
-    order_type        VARCHAR(2)  NOT NULL,
-    price_name        VARCHAR(50) NOT NULL,
-    price_value       DOUBLE,
-    price_discount    DOUBLE,
-    applicable_cloths VARCHAR(500),
-    order_num         INTEGER     NOT NULL,
-    clothing_degree   INTEGER   DEFAULT 0,
-    status            CHAR(1)   DEFAULT '0',
-    del_flag          CHAR(1)   DEFAULT '0',
-    remark            VARCHAR(500),
-    created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    price_id       INTEGER PRIMARY KEY AUTOINCREMENT,
+    price_number   VARCHAR(30) NOT NULL,
+    order_type     VARCHAR(2)  NOT NULL,
+    price_name     VARCHAR(50) NOT NULL,
+    price_value    DOUBLE,
+    price_discount DOUBLE,
+    order_num      INTEGER     NOT NULL,
+    ref_num        INTEGER   DEFAULT 0,
+    status         CHAR(1)   DEFAULT '0',
+    del_flag       CHAR(1)   DEFAULT '0',
+    remark         VARCHAR(500),
+    created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX idx_order_type ON sys_cloth_price (order_type);
-
-CREATE INDEX idx_applicable_cloths ON sys_cloth_price (applicable_cloths);
 
 -- 订单表
 CREATE TABLE sys_orders
@@ -344,7 +341,7 @@ CREATE INDEX idx_order_clothing_id ON sys_orders_cloths (order_cloth_id);
 -- 订单衣物调价记录表 ，记录订单中每个衣物或订单总价的价格调整
 CREATE TABLE sys_order_cloths_adjust
 (
-    adjust_id        INTEGER NOT NULL AUTOINCREMENT,
+    adjust_id        INTEGER PRIMARY KEY AUTOINCREMENT,
     order_id         INTEGER UNIQUE,
     adjust_value_add FLOAT,
     adjust_value_sub FLOAT,
@@ -360,7 +357,7 @@ CREATE TABLE sys_orders_pays
     create_by   VARCHAR(64),
     create_time DATETIME   NOT NULL DEFAULT CURRENT_TIMESTAMP,
     update_by   VARCHAR(64),
-    update_time DATETIME            DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    update_time DATETIME            DEFAULT CURRENT_TIMESTAMP,
     remark      VARCHAR(500),
     pay_amount  FLOAT      NOT NULL,
     pay_method  VARCHAR(2) NOT NULL
@@ -369,7 +366,7 @@ CREATE TABLE sys_orders_pays
 -- 订单涉及的图片索引表，记录订单中相关的图片信息
 CREATE TABLE sys_orders_pictures
 (
-    picture_id   INTEGER  PRIMARY KEY AUTOINCREMENT,
+    picture_id   INTEGER PRIMARY KEY AUTOINCREMENT,
     picture_path VARCHAR(256) NOT NULL,
     create_by    VARCHAR(64),
     create_time  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -408,10 +405,10 @@ CREATE TABLE drying_rack
 (
     id                 INTEGER PRIMARY KEY AUTOINCREMENT,
     name               VARCHAR(50) NOT NULL,
-    rack_type          char(1) DEFAULT '1',
-    capacity           INTEGER NOT NULL,
-    remaining_capacity INTEGER NOT NULL,
-    position           INTEGER NOT NULL DEFAULT 0
+    rack_type          char(1)              DEFAULT '1',
+    capacity           INTEGER     NOT NULL,
+    remaining_capacity INTEGER     NOT NULL,
+    position           INTEGER     NOT NULL DEFAULT 0
 );
 
 -- 用来存储衣物的编码最大值

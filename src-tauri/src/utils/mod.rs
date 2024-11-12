@@ -1,3 +1,5 @@
+pub(crate) mod chrono_serde;
+
 use pinyin::ToPinyin;
 
 pub fn gen_code(input: impl ToString) -> String {

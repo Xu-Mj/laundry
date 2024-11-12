@@ -52,7 +52,7 @@
         </template>
       </el-table-column> -->
       <el-table-column label="显示顺序" align="center" prop="orderNum" />
-      <el-table-column label="使用计数" align="center" prop="clothingDegree" />
+      <el-table-column label="使用计数" align="center" prop="refNum" />
       <el-table-column label="状态" align="center" width="100">
         <template #default="scope">
           <el-switch v-model="scope.row.status" active-value="0" inactive-value="1"
@@ -135,8 +135,8 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="使用计数" prop="clothingDegree">
-              <el-input-number v-model="form.clothingDegree" ref="refNum" :min="0" controls-position="right"
+            <el-form-item label="使用计数" prop="refNum">
+              <el-input-number v-model="form.refNum" ref="refNum" :min="0" controls-position="right"
                 placeholder="请输入使用计数" />
             </el-form-item>
           </el-col>
@@ -171,7 +171,7 @@
 </template>
 
 <script setup name="Price">
-import { listPrice, getPrice, delPrice, addPrice, updatePrice, updatePriceRefNum } from "@/api/system/price";
+import { listPrice, getPrice, delPrice, addPrice, updatePrice, updatePriceStatus, updatePriceRefNum } from "@/api/system/price";
 import { listClothing } from "@/api/system/clothing";
 
 const { proxy } = getCurrentInstance();
@@ -199,7 +199,7 @@ const data = reactive({
     pageNum: 1,
     pageSize: 10,
     orderType: null,
-    clothingDegree: null,
+    refNum: null,
   },
   rules: {
     orderType: [
@@ -295,7 +295,7 @@ function reset() {
     applicableCloths: null,
     status: "0",
     orderNum: 0,
-    clothingDegree: 0,
+    refNum: 0,
     remark: null,
   };
   proxy.resetForm("priceRef");
@@ -305,7 +305,7 @@ function reset() {
 function handleStatusChange(row) {
   let text = row.status === "0" ? "启用" : "停用";
   proxy.$modal.confirm('确认要' + text + '"' + row.priceName + '"标签吗?').then(function () {
-    return updatePrice({ priceId: row.priceId, status: row.status });
+    return updatePriceStatus({ priceId: row.priceId, status: row.status });
   }).then(() => {
     proxy.$modal.msgSuccess(text + "成功");
   }).catch(function () {

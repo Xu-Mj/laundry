@@ -56,4 +56,29 @@ const CLOTH_SEQUENCE_TABLE_DDL: &str = "CREATE TABLE IF NOT EXISTS cloth_sequenc
                                             sequence_number INTEGER NOT NULL
                                         )";
 
-pub(crate) const DDL: &[&str] = &[USER_TABLE_DDL, TAG_TABLE_DDL, PRINTERS_TABLE_DDL, CLOTHING_TABLE_DDL, DRYING_RACK_TABLE_DDL];
+const CLOTH_PRICE_TABLE_DDL: &str = "CREATE TABLE IF NOT EXISTS cloth_price
+                                    (
+                                        price_id       INTEGER PRIMARY KEY AUTOINCREMENT,
+                                        price_number   VARCHAR(30) NOT NULL,
+                                        order_type     VARCHAR(2)  NOT NULL,
+                                        price_name     VARCHAR(50) NOT NULL,
+                                        price_value    DOUBLE,
+                                        price_discount DOUBLE,
+                                        order_num      INTEGER   NOT NULL,
+                                        ref_num        INTEGER   DEFAULT 0,
+                                        status         CHAR(1)   DEFAULT '0',
+                                        del_flag       CHAR(1)   DEFAULT '0',
+                                        remark         VARCHAR(500),
+                                        created_at     TIMESTAMP,
+                                        updated_at     TIMESTAMP
+                                    )";
+
+pub(crate) const DDL: &[&str] = &[
+    USER_TABLE_DDL,
+    TAG_TABLE_DDL,
+    PRINTERS_TABLE_DDL,
+    CLOTHING_TABLE_DDL,
+    DRYING_RACK_TABLE_DDL,
+    CLOTH_SEQUENCE_TABLE_DDL,
+    CLOTH_PRICE_TABLE_DDL,
+];

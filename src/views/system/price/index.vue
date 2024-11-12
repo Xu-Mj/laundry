@@ -262,7 +262,7 @@ function getList() {
 function updateRefNum() {
   proxy.$refs["tagNumRef"].validate(valid => {
     if (valid) {
-      updatePriceRefNum({ tagIds: ids.value, refNum: tagNumForm.value.refNumber }).then(res => {
+      updatePriceRefNum({ clothPriceIds: ids.value, refNum: tagNumForm.value.refNumber }).then(res => {
         proxy.$modal.msgSuccess("修改成功");
         showUpdateRefNum.value = false;
         tagNumForm.value.refNumber = null;
@@ -351,7 +351,7 @@ function handleUpdate(row) {
   reset();
   const _priceId = row.priceId || ids.value
   getPrice(_priceId).then(response => {
-    form.value = response.data;
+    form.value = response;
     if (form.value.applicableCloths) {
       form.value.applicableClothsArr = form.value.applicableCloths.split(",");
     }

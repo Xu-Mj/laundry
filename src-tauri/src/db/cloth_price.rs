@@ -364,9 +364,9 @@ pub async fn update_cloth_price_status(
 pub async fn update_cloth_price_ref_num(
     state: State<'_, DbPool>,
     ref_num: i64,
-    cloth_ids: Vec<i64>,
+    cloth_price_ids: Vec<i64>,
 ) -> Result<()> {
-    ClothPrice::update_ref_num(&state.0, ref_num, cloth_ids).await
+    ClothPrice::update_ref_num(&state.0, ref_num, cloth_price_ids).await
 }
 
 #[tauri::command]

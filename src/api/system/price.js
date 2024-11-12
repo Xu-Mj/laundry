@@ -34,7 +34,7 @@ export function updatePriceStatus(data) {
 }
 
 export function updatePriceRefNum(data) {
-  return invoke('update_price_ref_num', data)
+  return invoke('update_cloth_price_ref_num', data)
 
 }
 // 删除价格管理

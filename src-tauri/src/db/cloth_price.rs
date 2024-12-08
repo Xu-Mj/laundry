@@ -9,43 +9,6 @@ use super::{AppState, Curd, PageParams, PageResult, Validator};
 use crate::error::{Error, Result};
 use crate::utils;
 
-// #[derive(Debug, Clone, Default, Deserialize, Serialize, FromRow)]
-// #[serde(rename_all = "camelCase")]
-// #[serde(default)]
-// pub struct ClothPrice {
-//     /// 主键id
-//     pub price_id: Option<i64>,
-//     /// 价格编号
-//     pub price_number: Option<String>,
-//     /// 类型
-//     pub order_type: Option<String>,
-//     /// 价格名称
-//     pub price_name: Option<String>,
-//     /// 价格
-//     pub price_value: Option<f64>,
-//     /// 折扣
-//     pub price_discount: Option<f64>,
-//     /// 显示顺序
-//     pub order_num: Option<i64>,
-//     /// 引用计数
-//     pub ref_num: Option<i64>,
-//     /// 状态
-//     pub status: Option<String>,
-//     /// 删除标记
-//     pub del_flag: Option<String>,
-//     /// 备注
-//     pub remark: Option<String>,
-//
-//     /// 创建时间
-//     pub created_at: Option<DateTime<FixedOffset>>,
-//     /// 更新时间
-//     pub updated_at: Option<DateTime<FixedOffset>>,
-// }
-//
-// fn status_default() -> String {
-//     "0".to_string()
-// }
-
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ClothPrice {

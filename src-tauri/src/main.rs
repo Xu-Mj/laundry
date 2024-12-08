@@ -48,7 +48,7 @@ async fn main() {
             .init();
     }
     // 获取应用数据目录
-    let db_url = "sqlite://my_database.db";
+    let db_url = "sqlite://database.db";
     if !Sqlite::database_exists(&db_url).await.unwrap_or(false) {
         // 数据库不存在，创建数据库文件
         println!("Creating database file...");

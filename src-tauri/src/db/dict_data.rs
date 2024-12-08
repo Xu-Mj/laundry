@@ -131,6 +131,7 @@ impl DictData {
 
     /// select dict_label from sys_dict_data
     /// 		where dict_type = #{dictType} and dict_value = #{dictValue}
+    #[allow(dead_code)]
     pub async fn select_dict_label(
         pool: &Pool<Sqlite>,
         dict_type: &str,
@@ -147,6 +148,7 @@ impl DictData {
     }
 
     // select count(1) from sys_dict_data where dict_type=#{dictType}
+    #[allow(dead_code)]
     pub async fn select_count_by_dict_type(pool: &Pool<Sqlite>, dict_type: &str) -> Result<i64> {
         let result = sqlx::query_scalar("SELECT COUNT(1) FROM dict_data WHERE dict_type = ?")
             .bind(dict_type)
@@ -156,6 +158,7 @@ impl DictData {
     }
 
     // update sys_dict_data set dict_type = #{newDictType} where dict_type = #{oldDictType}
+    #[allow(dead_code)]
     pub async fn update_dict_type(
         pool: &Pool<Sqlite>,
         old_dict_type: &str,

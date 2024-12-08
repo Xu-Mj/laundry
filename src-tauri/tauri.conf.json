@@ -31,6 +31,10 @@
         ]
       }
     },
+    "resources": [
+      "config.yml",
+      "database.db"
+    ],
     "active": true,
     "targets": "all",
     "icon": [

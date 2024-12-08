@@ -245,17 +245,17 @@ pub async fn update_rack(state: State<'_, AppState>, mut rack: DryingRack) -> Re
     Ok(())
 }
 
-#[tauri::command]
-pub async fn get_position(state: State<'_, AppState>, rack_type: String) -> Result<DryingRack> {
-    let pool = &state.0;
-    let rack = DryingRack::get_position(pool, rack_type).await?;
-    let mut tr = pool.begin().await?;
-    if !rack.update(&mut tr).await? {
-        return Err(Error::internal("更新衣架位置失败"));
-    }
-    tr.commit().await?;
-    Ok(rack)
-}
+// #[tauri::command]
+// pub async fn get_position(state: State<'_, AppState>, rack_type: String) -> Result<DryingRack> {
+//     let pool = &state.0;
+//     let rack = DryingRack::get_position(pool, rack_type).await?;
+//     let mut tr = pool.begin().await?;
+//     if !rack.update(&mut tr).await? {
+//         return Err(Error::internal("更新衣架位置失败"));
+//     }
+//     tr.commit().await?;
+//     Ok(rack)
+// }
 
 #[tauri::command]
 pub async fn delete_racks(state: State<'_, AppState>, ids: Vec<i64>) -> Result<u64> {

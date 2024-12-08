@@ -15,6 +15,7 @@ pub struct OrderPicture {
 }
 
 impl OrderPicture {
+    #[allow(dead_code)]
     pub async fn insert(&self, tr: &mut Transaction<'_, Sqlite>) -> Result<Self> {
         let query = "
             INSERT INTO order_pictures (picture_path, create_by, create_time)
@@ -69,6 +70,7 @@ impl OrderPicture {
         Ok(picture)
     }
 
+    #[allow(dead_code)]
     pub async fn get_all(pool: &Pool<Sqlite>) -> Result<Vec<OrderPicture>> {
         let query = "SELECT picture_id, picture_path, create_by, create_time FROM order_pictures";
 
@@ -79,6 +81,7 @@ impl OrderPicture {
         Ok(pictures)
     }
 
+    #[allow(dead_code)]
     pub async fn update(&self, pool: &Pool<Sqlite>) -> Result<()> {
         let query = "
             UPDATE order_pictures

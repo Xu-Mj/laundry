@@ -82,6 +82,7 @@ pub struct CouponBuyReq {
     pub coupons: Vec<CouponIdCount>,
     pub user_id: i64,
     pub payment_method: String,
+    #[allow(dead_code)]
     pub remark: Option<String>,
 }
 

@@ -150,10 +150,13 @@ pub fn create_app<R: tauri::Runtime, T: Send + Sync + 'static>(
             menu::add_menu,
             menu::update_menu,
             menu::delete_menu,
+            // routers
             routers::get_routers,
+            // local_users
             local_users::get_info,
             local_users::login,
             local_users::logout,
+            local_users::register,
             // expenditure
             expenditure::get_exp_pagination,
             expenditure::get_exp_by_id,

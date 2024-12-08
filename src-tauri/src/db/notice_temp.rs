@@ -255,6 +255,7 @@ impl NoticeRecord {
     }
 
     // update
+    #[allow(dead_code)]
     pub async fn update(self, pool: &Pool<Sqlite>) -> Result<bool> {
         let result = sqlx::query("UPDATE notice_record SET user_id = ?, order_number = ?, notice_method = ?, notice_type = ?, notice_time = ?, title = ?, content = ?, result = ?, remark = ? WHERE notice_id = ?")
             .bind(self.user_id)
@@ -310,9 +311,9 @@ impl NoticeRecord {
     }
 }
 
-const TEMP_TYPE_PICKUP: &str = "0";
-const TEMP_TYPE_AD: &str = "1";
-const TEMP_TYPE_OTHER: &str = "2";
+// const TEMP_TYPE_PICKUP: &str = "0";
+// const TEMP_TYPE_AD: &str = "1";
+// const TEMP_TYPE_OTHER: &str = "2";
 
 impl NoticeTemp {
     pub async fn send_notice(pool: &Pool<Sqlite>, temp_id: i64, user_ids: &[i64]) -> Result<u64> {

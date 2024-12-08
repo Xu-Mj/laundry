@@ -1,4 +1,4 @@
-use base64::encode;
+use base64::prelude::*;
 use chrono::{Duration, Utc};
 use image::{ImageBuffer, Luma};
 use once_cell::sync::Lazy;
@@ -99,7 +99,7 @@ pub async fn get_captcha(state: tauri::State<'_, AppState>) -> Result<CaptchaRes
     image
         .write_to(&mut buffer, image::ImageFormat::Jpeg)
         .map_err(|e| Error::internal(e.to_string()))?;
-    let img_base64 = encode(buffer.into_inner());
+    let img_base64 = BASE64_STANDARD.encode(buffer.into_inner());
 
     // 返回响应
 
@@ -148,7 +148,7 @@ fn generate_captcha_image(text: &str) -> ImageBuffer<Luma<u8>, Vec<u8>> {
     let mut rng = rand::thread_rng();
 
     // 添加随机噪点
-    for (x, y, pixel) in img.enumerate_pixels_mut() {
+    for pixel in img.pixels_mut() {
         if rng.gen_range(0..100) > 90 {
             *pixel = Luma([rng.gen_range(0..255) as u8]);
         }

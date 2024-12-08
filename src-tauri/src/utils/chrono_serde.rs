@@ -1,12 +1,12 @@
-use chrono::{DateTime, FixedOffset, NaiveDate, TimeZone};
+use chrono::{DateTime, FixedOffset, NaiveDate, NaiveDateTime, NaiveTime, TimeZone};
 use serde::{de, Deserialize, Deserializer, Serializer};
 const FORMAT: &str = "%Y-%m-%d";
 
 // Custom serialization and deserialization for `NaiveDateTime`
 pub mod naive_date_serde {
+    use super::FORMAT;
     use chrono::NaiveDate;
     use serde::{self, Deserialize, Deserializer, Serializer};
-    use super::FORMAT;
 
     // Serialize as string
     pub fn serialize<S>(datetime: &NaiveDate, serializer: S) -> Result<S::Ok, S::Error>
@@ -35,21 +35,32 @@ where
 
     match date_str {
         Some(date_str) => {
-            // Try parsing the string as a NaiveDate (without time component)
+            // 解析为 NaiveDate
             match NaiveDate::parse_from_str(&date_str.trim(), FORMAT) {
                 Ok(naive_date) => {
-                    // Convert NaiveDate to DateTime<FixedOffset> with a default time (e.g., 00:00:00) and UTC offset
-                    let fixed_offset = FixedOffset::east(0); // UTC offset, or you can set your desired offset
+                    // 使用 UTC 偏移（或者根据需求设置其他偏移量）
+                    let fixed_offset = FixedOffset::east_opt(0)
+                        .ok_or_else(|| de::Error::custom("Invalid UTC offset"))?; // 处理 Option
+
+                    // 构建 NaiveDateTime（默认时间为 00:00:00）
+                    let naive_datetime = NaiveDateTime::new(
+                        naive_date,
+                        NaiveTime::from_hms_opt(0, 0, 0)
+                            .ok_or_else(|| de::Error::custom("Invalid native time"))?,
+                    );
+
+                    // 转换为 DateTime<FixedOffset>
                     let datetime = fixed_offset
-                        .from_local_date(&naive_date)
-                        .unwrap()
-                        .and_hms(0, 0, 0);
+                        .from_local_datetime(&naive_datetime)
+                        .single() // 获取唯一的 Option<DateTime<FixedOffset>>
+                        .ok_or_else(|| de::Error::custom("Failed to convert to DateTime"))?;
+
                     Ok(Some(datetime))
                 }
-                Err(_) => Err(de::Error::custom("Invalid date format")),
+                Err(_) => Err(de::Error::custom("Invalid date format")), // 处理解析错误
             }
         }
-        None => Ok(None), // Handle the case where the date field is missing
+        None => Ok(None), // 处理字段为空的情况
     }
 }
 

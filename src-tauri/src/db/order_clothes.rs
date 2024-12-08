@@ -21,8 +21,8 @@ const CLOTH_STATUS_HANGED: &str = "02";
 const CLOTH_STATUS_PICKED: &str = "00";
 const ORDER_STATUS_COMPLETED: &str = "04";
 const ORDER_STATUS_PAID: &str = "00";
-const CLOTH_STATUS_DELIVERY: &str = "01";
-const CLOTH_STATUS_EXPRESS: &str = "02";
+// const CLOTH_STATUS_DELIVERY: &str = "01";
+// const CLOTH_STATUS_EXPRESS: &str = "02";
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

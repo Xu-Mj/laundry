@@ -66,6 +66,7 @@ impl OrderClothAdjust {
         Ok(result.rows_affected() > 0)
     }
 
+    #[allow(dead_code)]
     pub async fn delete(pool: &sqlx::SqlitePool, order_id: i64) -> Result<u64> {
         let result = sqlx::query("DELETE FROM order_clothes_adjust WHERE order_id = ?")
             .bind(order_id)
@@ -75,6 +76,7 @@ impl OrderClothAdjust {
         Ok(result.rows_affected())
     }
 
+    #[allow(dead_code)]
     pub async fn get_by_order_id(
         pool: &sqlx::SqlitePool,
         order_id: i64,

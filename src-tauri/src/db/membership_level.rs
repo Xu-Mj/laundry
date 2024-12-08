@@ -1,5 +1,5 @@
-use crate::db::{AppState, Curd, PageParams, PageResult};
-use crate::error::Result;
+use crate::db::{AppState, Curd, PageParams, PageResult, Validator};
+use crate::error::{Error, Result};
 use crate::utils;
 use serde::{Deserialize, Serialize};
 use sqlx::sqlite::SqliteRow;
@@ -33,6 +33,19 @@ impl FromRow<'_, SqliteRow> for MembershipLevel {
             update_time: row.try_get("update_time").unwrap_or_default(),
             remark: row.try_get("remark").unwrap_or_default(),
         })
+    }
+}
+
+impl Validator for MembershipLevel {
+    fn validate(&self) -> Result<()> {
+        if self.level_name.is_none() {
+            return Err(Error::bad_request("会员等级名称不能为空"));
+        }
+
+        if self.level_code.is_none() {
+            return Err(Error::bad_request("会员等级编码不能为空"));
+        }
+        Ok(())
     }
 }
 
@@ -147,7 +160,16 @@ pub async fn create_membership_level(
     state: State<'_, AppState>,
     mut ml: MembershipLevel,
 ) -> Result<MembershipLevel> {
+    ml.validate()?;
     let mut tx = state.0.begin().await?;
+    if !MembershipLevel::check_level_name_unique(&state.0, ml.level_name.as_ref().unwrap()).await? {
+        return Err(Error::bad_request("会员等级名称已存在"));
+    }
+
+    if !MembershipLevel::check_level_code_unique(&state.0, ml.level_code.as_ref().unwrap()).await? {
+        return Err(Error::bad_request("会员等级编码已存在"));
+    }
+
     ml.insert(&mut tx).await?;
     tx.commit().await?;
     Ok(ml)
@@ -158,6 +180,8 @@ pub async fn update_membership_level(
     state: State<'_, AppState>,
     ml: MembershipLevel,
 ) -> Result<bool> {
+    ml.validate()?;
+
     let mut tx = state.0.begin().await?;
     let result = ml.update(&mut tx).await?;
     tx.commit().await?;

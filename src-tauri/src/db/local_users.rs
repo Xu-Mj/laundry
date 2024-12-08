@@ -10,6 +10,7 @@ use sqlx::sqlite::SqliteRow;
 use sqlx::{FromRow, Pool, Row, Sqlite, Transaction};
 use std::collections::HashSet;
 use std::sync::Mutex;
+use tauri::State;
 
 #[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -274,6 +275,11 @@ pub async fn get_info() -> Result<UserInfo> {
     })
 }
 
+#[tauri::command]
+pub async fn register(state: State<'_, AppState>, req: LoginReq) -> Result<()> {
+    req.register(&state.0).await
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -282,13 +288,13 @@ mod tests {
     async fn test_register() {
         let password = BASE64_STANDARD_NO_PAD.encode("xmj20241025");
 
-        let mut req = LoginReq {
+        let req = LoginReq {
             username: Some("admin".to_string()),
             password: Some(password),
             code: Some("1234".to_string()),
             uuid: Some("1234".to_string()),
         };
-        let pool = sqlx::SqlitePool::connect("sqlite://my_database.db")
+        let pool = sqlx::SqlitePool::connect("sqlite://database.db")
             .await
             .unwrap();
         req.register(&pool).await.unwrap();

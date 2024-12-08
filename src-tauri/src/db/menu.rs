@@ -444,12 +444,6 @@ impl Menu {
         router_path
     }
 
-    fn get_hidden(&self) -> bool {
-        match self.visible.as_deref() {
-            Some("0") => false,
-            _ => true,
-        }
-    }
     // Check if the menu is a frame-based menu
     fn is_menu_frame(&self) -> bool {
         self.parent_id == Some(0)

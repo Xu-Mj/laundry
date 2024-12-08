@@ -25,7 +25,7 @@ impl RouterVo {
             hidden,
             redirect: String::new(),
             component,
-            query: String::new(),
+            query,
             always_show: None,
             meta: None,
             children: Vec::new(),

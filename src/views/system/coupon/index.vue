@@ -255,7 +255,7 @@
         <el-row>
           <el-col :span="12">
             <el-form-item label="有效期-起" prop="validFrom">
-              <el-date-picker clearable v-model="form.validFrom" type="date" value-format="YYYY-MM-DD"
+              <el-date-picker clearable v-model="form.validFrom" type="date" value-format="YYYY-MM-DD "
                 placeholder="请选择有效期-起">
               </el-date-picker>
             </el-form-item>
@@ -597,7 +597,7 @@ function handleUpdate(row) {
   reset();
   const _couponId = row.couponId || ids.value
   getCoupon(_couponId).then(response => {
-    form.value = response.data;
+    form.value = response;
     if (form.value.applicableCloths) {
       form.value.applicableClothsArr = form.value.applicableCloths.split(",");
     }
@@ -614,6 +614,10 @@ function submitForm() {
         console.log("usageValue", form.value)
         form.value.usageValue = form.value.couponValue + form.value.usageValue;
       }
+      // 将时间转为时分秒格式
+      // form.value.validFrom = new Date(`${form.value.validFrom}T00:00:00Z`);;
+      // form.value.validTo = new Date(`${form.value.validTo}T00:00:00Z`);
+
       if (form.value.couponId != null) {
         updateCoupon(form.value).then(response => {
           proxy.$modal.msgSuccess("修改成功");
@@ -667,7 +671,7 @@ function handleShowSell() {
   searchUserloading.value = true;
   listUserWithNoLimit().then(res => {
     searchUserloading.value = false;
-    userList.value = res.rows;
+    userList.value = res;
     showSell.value = true;
   });
 }

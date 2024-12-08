@@ -398,7 +398,7 @@ async function go2pay(row) {
     paymentForm.value.orders = [row];
     // 获取用户的卡券列表
     await listUserCouponWithValidTime({ userId: row.userId }).then(response => {
-        userCouponList.value = response.rows;
+        userCouponList.value = response;
         // 初始化次卡信息
         userCouponList.value.filter(item => item.coupon.couponType == '002').map(item => {
             item.selected = false;
@@ -481,7 +481,7 @@ async function handlePay() {
     initPaymentForm();
     // 获取用户的卡券列表
     await listUserCouponWithValidTime({ userId: ordersList.value[0].userId }).then(response => {
-        userCouponList.value = response.rows;
+        userCouponList.value = response;
         // 初始化次卡信息
         userCouponList.value.filter(item => item.coupon.couponType == '002').map(item => {
             item.selected = false;
@@ -1016,7 +1016,7 @@ async function initList() {
     // 获取颜色列表
     if (colorList.value.length === 0) {
         const colorPromise = listTagsNoLimit({ tagOrder: '003' }).then(response => {
-            colorList.value = response.rows;
+            colorList.value = response;
         });
         promises.push(colorPromise);
     }
@@ -1024,7 +1024,7 @@ async function initList() {
     // 获取瑕疵列表
     if (flawList.value.length === 0) {
         const flawPromise = listTagsNoLimit({ tagOrder: '001' }).then(response => {
-            flawList.value = response.rows;
+            flawList.value = response;
         });
         promises.push(flawPromise);
     }
@@ -1032,7 +1032,7 @@ async function initList() {
     // 获取预估列表
     if (estimateList.value.length === 0) {
         const estimatePromise = listTagsNoLimit({ tagOrder: '002' }).then(response => {
-            estimateList.value = response.rows;
+            estimateList.value = response;
         });
         promises.push(estimatePromise);
     }
@@ -1040,7 +1040,7 @@ async function initList() {
     // 获取品牌列表
     if (brandList.value.length === 0) {
         const brandPromise = listTagsNoLimit({ tagOrder: '004' }).then(response => {
-            brandList.value = response.rows;
+            brandList.value = response;
         });
         promises.push(brandPromise);
     }
@@ -1057,19 +1057,18 @@ async function getList() {
         return;
     }
     loading.value = true;
-    const { rows } = await selectListExceptCompleted(queryParams.value);
-    ordersList.value = rows;
+    ordersList.value = await selectListExceptCompleted(queryParams.value);
 
     if (ordersList.value.length === 0) return;
 
     // 查询用户信息
     getUser(ordersList.value[0].userId).then(res => {
-        currentUser.value = res.data;
+        currentUser.value = res;
     });
 
     // 获取用户卡券列表
     await listUserCouponWithValidTime({ userId: ordersList.value[0].userId }).then(res => {
-        userCouponList.value = res.rows;
+        userCouponList.value = res;
         // 计算用户卡券种类
         couponTypeList.value = new Set(userCouponList.value.map(coupon => coupon.coupon.couponType));
     });
@@ -1078,8 +1077,7 @@ async function getList() {
     for (const item of ordersList.value) {
         item.loading = true;
 
-        const { rows: cloths } = await listCloths({ orderClothId: item.orderId });
-        item.clothList = cloths;
+        item.clothList = await listCloths({ orderClothId: item.orderId });
         item.loading = false;
 
         let price = 0;

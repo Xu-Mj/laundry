@@ -1,12 +1,12 @@
 <template>
    <div class="app-container">
       <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch">
-         <el-form-item label="等级编码" prop="postCode">
-            <el-input v-model="queryParams.postCode" placeholder="请输入等级编码" clearable style="width: 200px"
+         <el-form-item label="等级编码" prop="levelCode">
+            <el-input v-model="queryParams.levelCode" placeholder="请输入等级编码" clearable style="width: 200px"
                @keyup.enter="handleQuery" />
          </el-form-item>
-         <el-form-item label="等级名称" prop="postName">
-            <el-input v-model="queryParams.postName" placeholder="请输入等级名称" clearable style="width: 200px"
+         <el-form-item label="等级名称" prop="levelName">
+            <el-input v-model="queryParams.levelName" placeholder="请输入等级名称" clearable style="width: 200px"
                @keyup.enter="handleQuery" />
          </el-form-item>
          <el-form-item label="状态" prop="status">
@@ -43,10 +43,10 @@
 
       <el-table v-loading="loading" :data="postList" @selection-change="handleSelectionChange">
          <el-table-column type="selection" width="55" align="center" />
-         <!-- <el-table-column label="等级编号" align="center" prop="postId" /> -->
-         <el-table-column label="等级编码" align="center" prop="postCode" />
-         <el-table-column label="等级名称" align="center" prop="postName" />
-         <el-table-column label="等级排序" align="center" prop="postSort" />
+         <!-- <el-table-column label="等级编号" align="center" prop="levelId" /> -->
+         <el-table-column label="等级编码" align="center" prop="levelCode" />
+         <el-table-column label="等级名称" align="center" prop="levelName" />
+         <el-table-column label="等级排序" align="center" prop="levelSort" />
          <el-table-column label="状态" align="center" prop="status">
             <template #default="scope">
                <dict-tag :options="sys_normal_disable" :value="scope.row.status" />
@@ -74,14 +74,14 @@
       <!-- 添加或修改等级对话框 -->
       <el-dialog v-model="open" width="500px" :show-close="false" append-to-body>
          <el-form ref="postRef" :model="form" :rules="rules" label-width="80px">
-            <el-form-item label="等级名称" prop="postName">
-               <el-input v-model="form.postName" placeholder="请输入等级名称" />
+            <el-form-item label="等级名称" prop="levelName">
+               <el-input v-model="form.levelName" placeholder="请输入等级名称" />
             </el-form-item>
-            <el-form-item label="等级编码" prop="postCode">
-               <el-input v-model="form.postCode" placeholder="请输入编码名称" />
+            <el-form-item label="等级编码" prop="levelCode">
+               <el-input v-model="form.levelCode" placeholder="请输入编码名称" />
             </el-form-item>
-            <el-form-item label="等级顺序" prop="postSort">
-               <el-input-number v-model="form.postSort" controls-position="right" :min="0" />
+            <el-form-item label="等级顺序" prop="levelSort">
+               <el-input-number v-model="form.levelSort" controls-position="right" :min="0" />
             </el-form-item>
             <el-form-item label="等级状态" prop="status">
                <el-radio-group v-model="form.status">
@@ -124,14 +124,14 @@ const data = reactive({
    queryParams: {
       pageNum: 1,
       pageSize: 10,
-      postCode: undefined,
-      postName: undefined,
+      levelCode: undefined,
+      levelName: undefined,
       status: undefined
    },
    rules: {
-      postName: [{ required: true, message: "等级名称不能为空", trigger: "blur" }],
-      postCode: [{ required: true, message: "等级编码不能为空", trigger: "blur" }],
-      postSort: [{ required: true, message: "等级顺序不能为空", trigger: "blur" }],
+      levelName: [{ required: true, message: "等级名称不能为空", trigger: "blur" }],
+      levelCode: [{ required: true, message: "等级编码不能为空", trigger: "blur" }],
+      levelSort: [{ required: true, message: "等级顺序不能为空", trigger: "blur" }],
    }
 });
 
@@ -156,10 +156,10 @@ function cancel() {
 /** 表单重置 */
 function reset() {
    form.value = {
-      postId: undefined,
-      postCode: undefined,
-      postName: undefined,
-      postSort: 0,
+      levelId: undefined,
+      levelCode: undefined,
+      levelName: undefined,
+      levelSort: 0,
       status: "0",
       remark: undefined
    };
@@ -180,7 +180,7 @@ function resetQuery() {
 
 /** 多选框选中数据 */
 function handleSelectionChange(selection) {
-   ids.value = selection.map(item => item.postId);
+   ids.value = selection.map(item => item.levelId);
    single.value = selection.length != 1;
    multiple.value = !selection.length;
 }
@@ -194,9 +194,9 @@ function handleAdd() {
 /** 修改按钮操作 */
 function handleUpdate(row) {
    reset();
-   const postId = row.postId || ids.value;
-   getPost(postId).then(response => {
-      form.value = response.data;
+   const levelId = row.levelId || ids.value;
+   getPost(Number(levelId)).then(response => {
+      form.value = response;
       open.value = true;
       title.value = "修改等级";
    });
@@ -206,7 +206,7 @@ function handleUpdate(row) {
 function submitForm() {
    proxy.$refs["postRef"].validate(valid => {
       if (valid) {
-         if (form.value.postId != undefined) {
+         if (form.value.levelId != undefined) {
             updatePost(form.value).then(response => {
                proxy.$modal.msgSuccess("修改成功");
                open.value = false;
@@ -225,9 +225,9 @@ function submitForm() {
 
 /** 删除按钮操作 */
 function handleDelete(row) {
-   const postIds = row.postId || ids.value;
-   proxy.$modal.confirm('是否确认删除等级编号为"' + postIds + '"的数据项？').then(function () {
-      return delPost(postIds);
+   const levelIds = row.levelId || ids.value;
+   proxy.$modal.confirm('是否确认删除等级编号为"' + levelIds + '"的数据项？').then(function () {
+      return delPost(levelIds);
    }).then(() => {
       getList();
       proxy.$modal.msgSuccess("删除成功");

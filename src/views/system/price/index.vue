@@ -60,9 +60,9 @@
         </template>
       </el-table-column>
       <el-table-column label="备注" align="center" prop="remark" show-overflow-tooltip />
-      <el-table-column label="创建时间" align="center" prop="createdAt" width="180">
+      <el-table-column label="创建时间" align="center" prop="createTime" width="180">
         <template #default="scope">
-          <span>{{ parseTime(scope.row.createdAt, '{y}-{m}-{d}') }}</span>
+          <span>{{ formatTime(scope.row.createTime) }}</span>
         </template>
       </el-table-column>
       <!-- <el-table-column label="更新时间" align="center" prop="updatedAt" width="180">
@@ -171,7 +171,7 @@
 </template>
 
 <script setup name="Price">
-import { listPrice, getPrice, delPrice, addPrice, updatePrice, updatePriceStatus, updatePriceRefNum } from "@/api/system/price";
+import { listPricePagination, getPrice, delPrice, addPrice, updatePrice, updatePriceStatus, updatePriceRefNum } from "@/api/system/price";
 import { listClothing } from "@/api/system/clothing";
 
 const { proxy } = getCurrentInstance();
@@ -252,7 +252,7 @@ watch(
 /** 查询价格管理列表 */
 function getList() {
   loading.value = true;
-  listPrice(queryParams.value).then(response => {
+  listPricePagination(queryParams.value).then(response => {
     priceList.value = response.rows;
     total.value = response.total;
     loading.value = false;

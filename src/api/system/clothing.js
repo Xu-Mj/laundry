@@ -1,5 +1,5 @@
 import request from '@/utils/request'
-import { invoke } from '@tauri-apps/api/core';
+import invoke from '@/utils/invoke'
 
 // 查询衣物管理列表
 export function listClothing(query) {

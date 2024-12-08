@@ -1,6 +1,8 @@
 <template>
     <!-- show sell coupon -->
-    <el-form ref="sellFormRef" :model="sellForm" :rules="rules" label-width="90px">
+    <el-dialog :title="title" v-model="open" width="1080px" :show-close="false" append-to-body @closed="closeHangUpDialog" >
+    <el-form ref="sellFormRef"
+        :model="sellForm" :rules="rules" label-width="90px">
         <el-form-item v-if="props.userId && props.userId != 0" label="会员身份">
             {{ user.nickName }} - {{ user.phonenumber }}
         </el-form-item>
@@ -70,7 +72,8 @@
                 <el-button type="primary" @click="buy">立即购买</el-button>
             </el-col>
         </el-row>
-    </el-form>
+        </el-form>
+    </el-dialog>
 </template>
 
 <script setup name="CouponSale">
@@ -85,7 +88,16 @@ const props = defineProps({
     },
     submit: {
         type: Function,
-        default: (data) =>{}
+        default: (data) => { }
+    }, 
+    visible: {
+        type: Boolean,
+        required: true,
+        default: false,
+    },
+    taggle: {
+        type: Function,
+        required: true,
     }
 });
 
@@ -101,9 +113,8 @@ const {
     );
 
 const couponList = ref([]);
-const clothList = ref([]);
-const clothListloading = ref(false);
 const loading = ref(true);
+const open = ref(false);
 const user = ref({});
 const needCreateUser = ref(false);
 const searchUserloading = ref(false);
@@ -166,6 +177,9 @@ const data = reactive({
 
 const { sellForm, selectedList, rules } = toRefs(data);
 
+function closeHangUpDialog() {
+    props.taggle();
+}
 
 /* 选择会员信息 */
 function selectUser(userId) {
@@ -214,15 +228,15 @@ function getList() {
         searchUserloading.value = true;
         listUserWithNoLimit().then(res => {
             searchUserloading.value = false;
-            userList.value = res.rows;
+            userList.value = res;
         });
     } else {
         getUser(props.userId).then(response => {
-            user.value = response.data;
+            user.value = response;
         });
     }
     listCoupon4sale().then(response => {
-        couponList.value = response.rows;
+        couponList.value = response;
         couponList.value.forEach(item => item.count = 1);
         loading.value = false;
     });
@@ -279,18 +293,13 @@ function buy() {
         }
     });
 }
-
-/* 获取衣物列表 */
-function getClothingList(name) {
-    clothListloading.value = true;
-    listClothing({ clothingName: name }).then(res => {
-        clothList.value = res.rows;
-        clothListloading.value = false;
-    });
-}
-
-resetSellForm();
-getList();
+onMounted(async () => {
+    if (props.visible) {
+        resetSellForm();
+        getList();
+        open.value = true;
+    }
+});
 </script>
 
 <style scoped>

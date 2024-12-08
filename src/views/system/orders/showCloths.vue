@@ -61,7 +61,7 @@
             </el-table-column>
             <el-table-column label="取回时间" align="center" prop="pickupTime" width="180">
                 <template #default="scope">
-                    <span>{{ parseTime(scope.row.pickupTime, '{y}-{m}-{d}') }}</span>
+                    <span>{{ formatTime(scope.row.pickupTime, '{y}-{m}-{d}') }}</span>
                 </template>
             </el-table-column>
             <el-table-column label="上挂位置" align="center">
@@ -274,8 +274,8 @@ async function getList() {
     }
     loading.value = true;
 
-    await listCloths({ orderClothId: props.orderId }).then(response => {
-        clothsList.value = response.rows;
+    await listCloths({ orderId: props.orderId }).then(response => {
+        clothsList.value = response;
         total.value = response.total;
         loading.value = false;
     });

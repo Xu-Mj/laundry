@@ -1,46 +1,35 @@
-import request from '@/utils/request'
+import request from '@/utils/request';
+import {invoke} from '@tauri-apps/api/core'
 
 // 查询字典类型列表
 export function listType(query) {
-  return request({
-    url: '/system/dict/type/list',
-    method: 'get',
-    params: query
-  })
+  const pageParams = { pageSize: query.pageSize, page: query.pageNum, params: query.params };
+  const dictType = {
+    dictName: query.dictName,
+    dictType: query.dictType,
+    status: query.status
+  };
+  return invoke('get_dict_type_list', { pageParams, dictType })
 }
 
 // 查询字典类型详细
-export function getType(dictId) {
-  return request({
-    url: '/system/dict/type/' + dictId,
-    method: 'get'
-  })
+export function getType(id) {
+  return invoke('get_dict_type_by_id', { id })
 }
 
 // 新增字典类型
 export function addType(data) {
-  return request({
-    url: '/system/dict/type',
-    method: 'post',
-    data: data
-  })
+  return invoke('add_dict_type', { dictType: data })
 }
 
 // 修改字典类型
 export function updateType(data) {
-  return request({
-    url: '/system/dict/type',
-    method: 'put',
-    data: data
-  })
+  return invoke('update_dict_type', { dictType: data })
 }
 
 // 删除字典类型
 export function delType(dictId) {
-  return request({
-    url: '/system/dict/type/' + dictId,
-    method: 'delete'
-  })
+  return invoke('delete_dict_types', { ids: [].concat(dictId) })
 }
 
 // 刷新字典缓存

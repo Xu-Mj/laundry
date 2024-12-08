@@ -178,9 +178,9 @@ const { queryParams, form, rules } = toRefs(data);
 
 /** 查询字典类型详细 */
 function getTypes(dictId) {
-   getType(dictId).then(response => {
-      queryParams.value.dictType = response.data.dictType;
-      defaultDictType.value = response.data.dictType;
+   getType(new Number(dictId)).then(response => {
+      queryParams.value.dictType = response.dictType;
+      defaultDictType.value = response.dictType;
       getList();
    });
 }
@@ -188,7 +188,7 @@ function getTypes(dictId) {
 /** 查询字典类型列表 */
 function getTypeList() {
    getDictOptionselect().then(response => {
-      typeOptions.value = response.data;
+      typeOptions.value = response;
    });
 }
 
@@ -261,7 +261,7 @@ function handleUpdate(row) {
    reset();
    const dictCode = row.dictCode || ids.value;
    getData(dictCode).then(response => {
-      form.value = response.data;
+      form.value = response;
       open.value = true;
       title.value = "修改字典数据";
    });

@@ -46,10 +46,11 @@
       <el-table-column label="备注" align="center" prop="remark" />
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template #default="scope">
-          <el-button link type="primary" icon="Promotion" @click="handleSendPanel(scope.row)">发送</el-button>
-          <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)"
+          <el-button link type="primary" icon="Promotion" v-if="scope.row.tempId !== 1"
+            @click="handleSendPanel(scope.row)">发送</el-button>
+          <el-button link type="primary" icon="Edit" v-if="scope.row.tempId !== 1" @click="handleUpdate(scope.row)"
             v-hasPermi="['system:template:edit']">修改</el-button>
-          <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)"
+          <el-button link type="primary" icon="Delete" v-if="scope.row.tempId !== 1" @click="handleDelete(scope.row)"
             v-hasPermi="['system:template:remove']">删除</el-button>
         </template>
       </el-table-column>
@@ -214,6 +215,7 @@ function selectTempType() {
 /** 查询通知模板管理列表 */
 function getList() {
   loading.value = true;
+  console.log(queryParams.value)
   listTemplate(queryParams.value).then(response => {
     templateList.value = response.rows;
     total.value = response.total;

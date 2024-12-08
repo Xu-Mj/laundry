@@ -41,14 +41,14 @@
         <template #default="scope">
           <el-button v-if="scope.row.expType == '00' || scope.row.expType == '03'" link type="primary"
             @click="showOrderInfo(scope.row)">{{ scope.row.expTitle }}</el-button>
-          <span v-else>>{{ scope.row.expTitle }}</span>
+          <span v-else>{{ scope.row.expTitle }}</span>
         </template>
       </el-table-column>
       <el-table-column label="收款账户名称" align="center" prop="recvAccountTitle">
         <template #default="scope">
           <el-button v-if="scope.row.expType == '00' || scope.row.expType == '01' || scope.row.expType == '03'" link
             type="primary" @click="showUserInfo(scope.row)">{{ scope.row.recvAccountTitle }}</el-button>
-          <span v-else>>{{ scope.row.recvAccountTitle }}</span>
+          <span v-else>{{ scope.row.recvAccountTitle }}</span>
         </template>
       </el-table-column>
       <el-table-column label="支出类型" align="center" prop="expType">
@@ -57,10 +57,9 @@
         </template>
       </el-table-column>
       <el-table-column label="支出金额" align="center" prop="expAmount" />
-      <el-table-column label="支出金额" align="center" prop="expAmount" />
       <el-table-column label="支出时间" align="center" prop="createTime">
         <template #default="scope">
-          <span>{{ parseTime(scope.row.createTime, '{y}-{m}-{d} {hh}:{mm}:{ss}') }}</span>
+          <span>{{ formatTime(scope.row.createTime, '{y}-{m}-{d} {hh}:{mm}:{ss}') }}</span>
         </template>
       </el-table-column>
       <el-table-column label="备注信息" align="center" prop="remark" />
@@ -151,7 +150,7 @@
 
 <script setup name="Expenditure">
 import { listExpenditure, getExpenditure, delExpenditure, addExpenditure, updateExpenditure } from "@/api/system/expenditure";
-import { getUser, listUser } from "@/api/system/user";
+import { getUser, listUserWithNoLimit } from "@/api/system/user";
 import { getOrders } from "@/api/system/orders";
 import UserInfo from '@/views/system/user/info';
 
@@ -235,7 +234,7 @@ function showOrderInfo(row) {
   if (row.orderId) {
     detail.value = row;
     getOrders(row.orderId).then(res => {
-      detail.value.order = res.data;
+      detail.value.order = res;
       showDetailDialog.value = true;
     })
   }
@@ -244,7 +243,7 @@ function showOrderInfo(row) {
 function showUserInfo(row) {
   if (row.recvAccount) {
     getUser(row.recvAccount).then(res => {
-      userInfo.value = res.data;
+      userInfo.value = res;
       showUserInfoDialog.value = true;
     })
   }
@@ -307,8 +306,8 @@ function handleSelectionChange(selection) {
 /** 新增按钮操作 */
 function handleAdd() {
   reset();
-  listUser().then(res => {
-    userList.value = res.rows;
+  listUserWithNoLimit().then(res => {
+    userList.value = res;
     open.value = true;
   })
   // title.value = "添加支出";
@@ -318,12 +317,12 @@ function handleAdd() {
 async function handleUpdate(row) {
   reset();
   const _expId = row.expId || ids.value
-  await listUser().then(res => {
-    userList.value = res.rows;
+  await listUserWithNoLimit().then(res => {
+    userList.value = res;
   })
-  console.log(userList.value)
+  // console.log(userList.value)
   getExpenditure(_expId).then(response => {
-    form.value = response.data;
+    form.value = response;
     if(!form.value.recvAccount){
       form.value.recvAccount = form.value.recvAccountTitle;
     }

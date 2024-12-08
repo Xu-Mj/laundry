@@ -1,5 +1,5 @@
 <template>
-    <el-dialog :title="title" v-model="open" width="400px" :show-close="false" append-to-body
+    <el-dialog :title="title" v-model="open" width="1080px" :show-close="false" append-to-body
         @closed="closeHangUpDialog" @opened="refGetFocus">
         <el-form ref="hangUpRef" :model="hangForm" :rules="hangRules" label-width="80px">
             <el-form-item label="衣物编码" prop="clothingNumber">
@@ -104,7 +104,7 @@ function getClothInfoByEnter(event) {
 
 function getClothInfo() {
     getClothByCode(hangForm.value.clothingNumber.trim()).then(res => {
-        currentCloth.value = res.data;
+        currentCloth.value = res;
         if (!currentCloth.value) {
             proxy.$modal.msgError("衣物编码关联的衣物不存在");
             hangForm.value.clothId = null;
@@ -137,7 +137,7 @@ function getClothInfo() {
         }
     });
     getUserByClothCode(hangForm.value.clothingNumber).then(res => {
-        currentUser.value = res.data;
+        currentUser.value = res;
     });
 }
 
@@ -224,7 +224,7 @@ onMounted(async () => {
         open.value = true;
         // 获取衣挂列表
         listRack().then(res => {
-            hangLocationList.value = res.rows;
+            hangLocationList.value = res;
         })
     }
 });

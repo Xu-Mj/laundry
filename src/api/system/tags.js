@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core'
+import invoke from '@/utils/invoke'
 
 // 查询用于配置系统中用到的所有标准化的数据，包括衣物类型、衣物颜色、洗前瑕疵、以后预估等列表
 export function listTags(query) {

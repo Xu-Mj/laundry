@@ -203,6 +203,7 @@ getCookie();
   width: 33%;
   height: 40px;
   float: right;
+  overflow: hidden;
   img {
     cursor: pointer;
     vertical-align: middle;

@@ -1,46 +1,36 @@
 import request from '@/utils/request'
+import invoke from '@/utils/invoke'
 
 // 查询通知模板管理列表
 export function listTemplate(query) {
-  return request({
-    url: '/system/template/list',
-    method: 'get',
-    params: query
-  })
+  console.log(query)
+  const pageParams = { pageSize: query.pageSize, page: query.pageNum, params: query.params }
+  const temp = {
+    tempName: query.tempName,
+    tempType: query.tempType,
+    noticeMethod: query.noticeMethod,
+  };
+  return invoke('get_temp_pagination', { pageParams, temp })
 }
 
 // 查询通知模板管理详细
-export function getTemplate(tempId) {
-  return request({
-    url: '/system/template/' + tempId,
-    method: 'get'
-  })
+export function getTemplate(id) {
+  return invoke('get_temp_by_id', { id })
 }
 
 // 新增通知模板管理
 export function addTemplate(data) {
-  return request({
-    url: '/system/template',
-    method: 'post',
-    data: data
-  })
+  return invoke('create_temp', { temp: data })
 }
 
 // 修改通知模板管理
 export function updateTemplate(data) {
-  return request({
-    url: '/system/template',
-    method: 'put',
-    data: data
-  })
+  return invoke('update_temp', { temp: data })
 }
 
 // 删除通知模板管理
 export function delTemplate(tempId) {
-  return request({
-    url: '/system/template/' + tempId,
-    method: 'delete'
-  })
+  return invoke('delete_temp', { ids: [].concat(tempId) })
 }
 
 // 发送通知

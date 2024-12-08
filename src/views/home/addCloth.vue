@@ -86,7 +86,7 @@
             <el-divider border-style="dashed" />
 
             <el-upload class="upload-demo" :action="uploadAfterImgUrl" :headers="headers" :on-preview="handlePreview"
-                :on-remove="handleRemovePicture" :on-success="handleUploadAfterSucess">
+                :on-remove="handleRemovePicture" :on-success="handleUploadAfterSucess" :before-upload="beforeUpload">
                 <el-button type="primary">点击上传洗后图片</el-button>
                 <template #tip>
                     <div class="el-upload__tip">
@@ -498,6 +498,37 @@ function jumpToStep(stepNum) {
 
 }
 
+import { invoke } from '@tauri-apps/api/core'
+import { writeTextFile, BaseDirectory } from '@tauri-apps/plugin-fs'
+
+// Hook into the upload process before the file is uploaded
+const beforeUpload = async (file) => {
+    try {
+        // Convert the file to a data URL or array buffer as needed
+        const reader = new FileReader()
+        reader.readAsArrayBuffer(file.raw)
+        reader.onload = async () => {
+            const fileContent = new Uint8Array(reader.result)  // The file content
+            const filePath = `uploaded_files/${file.name}`  // Specify the target path within your app's folder
+
+            // Use Tauri's plugin-fs to write the file to the target location
+            const targetPath = await writeTextFile(filePath, fileContent, {
+                dir: BaseDirectory.AppLocalData,  // Use the app's local data directory
+            })
+            console.log('File uploaded successfully to:', targetPath)
+            alert("File uploaded successfully")
+
+            // If you need to store the file path or perform other operations, you can continue from here
+        }
+    } catch (error) {
+        console.error("Error uploading file:", error)
+    }
+}
+
+const handleUploadSuccess = () => {
+    console.log('File successfully uploaded (handled by Tauri)!')
+}
+
 function handleRemovePicture(event) {
     delClothPicture(currentCloth.value.clothId, event.response.id).then(res => {
         proxy.$modal.msgSuccess("删除成功");
@@ -556,7 +587,7 @@ function findClothingName() {
 // 当品类发生变化时动态查询子分类列表
 function cateChange(value) {
     getDicts("sys_cloth_style" + value).then(res => {
-        clothStyleList.value = res.data;
+        clothStyleList.value = res;
     })
 }
 
@@ -570,8 +601,8 @@ function getList() {
     if (props.isRewash) {
         clothList.value = props.clothes;
     } else if (props.orderId && props.orderId !== 0) {
-        listCloths({ orderClothId: props.orderId }).then(res => {
-            res.rows.map(item => {
+        listCloths({ orderId: props.orderId }).then(res => {
+            res.map(item => {
                 if (item.estimate) {
                     item.estimateArr = item.estimate.split(',').map(Number);
                 }
@@ -579,7 +610,7 @@ function getList() {
                     item.clothingFlawArr = item.clothingFlaw.split(',').map(Number);
                 }
             })
-            clothList.value = res.rows;
+            clothList.value = res;
             props.submit(clothList.value);
         })
     }
@@ -595,7 +626,7 @@ function cancel() {
 function reset() {
     form.value = {
         clothInfo: {},
-        orderClothId: null,
+        orderId: null,
         clothingId: null,
         clothingCategory: "000",
         clothingStyle: "000",
@@ -633,7 +664,7 @@ async function initList() {
     // 获取衣物列表
     if (clothingList.value.length === 0) {
         const clothingPromise = listClothingWithNoLimit().then(response => {
-            clothingList.value = response.rows;
+            clothingList.value = response;
         });
         promises.push(clothingPromise);
     }
@@ -687,9 +718,9 @@ function handleUpdate(row) {
     reset();
     if (row.clothId) {
         getCloths(row.clothId).then(res => {
-            form.value = res.data;
-            form.value.clothingFlawArr = res.data.clothingFlaw ? res.data.clothingFlaw.split(',').map(Number) : [];
-            form.value.estimateArr = res.data.estimate ? res.data.estimate.split(',').map(Number) : [];
+            form.value = res;
+            form.value.clothingFlawArr = res.clothingFlaw ? res.clothingFlaw.split(',').map(Number) : [];
+            form.value.estimateArr = res.estimate ? res.estimate.split(',').map(Number) : [];
             open.value = true;
         });
         cateChange(form.value.clothingCategory);
@@ -713,26 +744,30 @@ function submitForm() {
                 delete submitData.clothingFlawArr;
             }
             if (form.value.clothId != null) {
+                console.log(clothList.value, form.value)
                 updateCloths(submitData).then(response => {
                     proxy.$modal.msgSuccess("修改成功");
                     open.value = false;
                     // 更新衣物列表
                     const clothIndex = clothList.value.findIndex(item => item.clothId == form.value.clothId);
                     if (clothIndex !== -1) {
+                        const cloth = clothList.value[clothIndex];
+                        const clothInfo = cloth.clothInfo;
                         clothList.value[clothIndex] = form.value; // 替换整个对象
+                        clothList.value[clothIndex].clothInfo = clothInfo;
                     }
                     props.submit(clothList.value);
                 });
             } else {
                 if (props.orderId) {
-                    submitData.orderClothId = props.orderId;
+                    submitData.orderId = props.orderId;
                 }
                 addCloths(submitData).then(response => {
                     proxy.$modal.msgSuccess("新增成功");
                     open.value = false;
                     const flaw = form.value.clothingFlawArr;
                     const estimate = form.value.estimateArr;
-                    form.value = response.data;
+                    form.value = response;
                     form.value.clothingFlawArr = flaw;
                     form.value.estimateArr = estimate;
                     form.value.clothInfo = clothingList.value.find(item => item.clothingId == submitData.clothingId);
@@ -747,12 +782,12 @@ function submitForm() {
 
 /** 删除按钮操作 */
 function handleDelete(row) {
-    const _orderClothIds = row.clothId;
-    proxy.$modal.confirm('是否确认删除订单包含的衣物清单编号为"' + _orderClothIds + '"的数据项？').then(function () {
-        return delCloths(_orderClothIds);
+    const _clothIds = row.clothId;
+    proxy.$modal.confirm('是否确认删除订单包含的衣物清单编号为"' + _clothIds + '"的数据项？').then(function () {
+        return delCloths(_clothIds);
     }).then(() => {
         getList();
-        const index = clothList.value.findIndex(item => item.clothId === _orderClothIds);
+        const index = clothList.value.findIndex(item => item.clothId === _clothIds);
         clothList.value.splice(index, 1);
         proxy.$modal.msgSuccess("删除成功");
         props.submit(clothList.value);
@@ -977,7 +1012,7 @@ function createCloth() {
 
     addClothing(data).then(async response => {
         proxy.$modal.msgSuccess("新增衣物成功");
-        data.clothingId = response.data;
+        data.clothingId = response.clothingId;
         // await getClothingList();
         showPriceContent.value = false;
         showAddClothBtn.value = false;
@@ -998,7 +1033,7 @@ function createCloth() {
 function addTag(type, tagName) {
     addTags({ tagName: tagName, tagOrder: type }).then(res => {
         proxy.$modal.msgSuccess("新增成功");
-        addItemToList(type, res.data);
+        addItemToList(type, res);
         nextStep();
     });
 }

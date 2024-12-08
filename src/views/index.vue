@@ -16,10 +16,7 @@
     </el-dialog>
 
     <!-- 卡券售卖弹窗 -->
-    <el-dialog title="" v-model="showCouponSale" width="1080px" append-to-body lock-scroll modal
-      :close-on-click-modal="false">
-      <CouponSale :key="showCouponSale" />
-    </el-dialog>
+    <CouponSale :key="showCouponSale" :visible="showCouponSale" :taggle="() => { showCouponSale = !showCouponSale }" />
 
     <!-- 新增会员 -->
     <AddUser :visible="showAddUserDialog" :key="showAddUserDialog"

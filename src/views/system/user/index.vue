@@ -10,10 +10,10 @@
             <el-input v-model="queryParams.phonenumber" placeholder="请输入手机号码" clearable style="width: 240px"
                @keyup.enter="handleQuery" @input="handleTelQuery" />
          </el-form-item>
-         <el-form-item label="会员等级" prop="postName">
-            <el-select v-model="queryParams.postName" placeholder="会员等级" clearable style="width: 240px">
-               <el-option v-for="item in postOptions" :key="item.postId" :label="item.postName" :value="item.postName"
-                  :disabled="item.status == 1"></el-option>
+         <el-form-item label="会员等级" prop="levelName">
+            <el-select v-model="queryParams.levelName" placeholder="会员等级" clearable style="width: 240px">
+               <el-option v-for="item in levelOptions" :key="item.levelId" :label="item.levelName"
+                  :value="item.levelName" :disabled="item.status == 1"></el-option>
             </el-select>
          </el-form-item>
          <el-form-item>
@@ -84,7 +84,7 @@
                </el-tooltip>
             </template>
          </el-table-column>
-         <el-table-column label="会员等级" align="center" key="postName" prop="postName" v-if="columns[7].visible" />
+         <el-table-column label="会员等级" align="center" key="levelName" prop="levelName" v-if="columns[7].visible" />
          <el-table-column label="会员画像" align="center" key="userTags" prop="userTags" v-if="columns[12].visible">
             <template #default="scope">
                <!-- 如果 userTags 不为空，则显示 dict-tag，并设置 el-tooltip -->
@@ -273,6 +273,7 @@
 import { changeUserStatus, listUser, resetUserPwd, delUser, getUser, updateUser, addUser } from "@/api/system/user";
 import { listRecord } from "@/api/system/record";
 import UserDetailsCard from './info.vue';
+import { listPostAll } from '@/api/system/post';
 
 const { proxy } = getCurrentInstance();
 const {
@@ -299,7 +300,7 @@ const total = ref(0);
 const title = ref("");
 const deptName = ref("");
 const initPassword = ref(undefined);
-const postOptions = ref([]);
+const levelOptions = ref([]);
 const roleOptions = ref([]);
 
 // 列显隐信息
@@ -329,7 +330,7 @@ const data = reactive({
       pageSize: 10,
       userName: undefined,
       phonenumber: undefined,
-      postName: undefined,
+      levelName: undefined,
       deptId: undefined
    },
    rules: {
@@ -456,21 +457,22 @@ function cancel() {
 
 /* 获取会员等级下拉列表 */
 function getPostList() {
-   getUser().then(response => {
-      postOptions.value = response.posts;
+   listPostAll().then(response => {
+      levelOptions.value = response;
    });
 };
 
 /** 新增按钮操作 */
 function handleAdd() {
    reset();
-   getUser().then(response => {
-      postOptions.value = response.posts;
-      roleOptions.value = response.roles;
-      open.value = true;
-      title.value = "添加会员";
-      form.value.password = initPassword.value;
-   });
+   // getUser().then(response => {
+   //    postOptions.value = response.posts;
+   //    roleOptions.value = response.roles;
+   //    open.value = true;
+   //    title.value = "添加会员";
+   //    form.value.password = initPassword.value;
+   // });
+   open.value = true;
 };
 
 /** 修改按钮操作 */
@@ -478,8 +480,8 @@ function handleUpdate(row) {
    reset();
    const userId = row.userId || ids.value;
    getUser(userId).then(response => {
-      form.value = response.data;
-      postOptions.value = response.posts;
+      form.value = response;
+      levelOptions.value = response.posts;
       roleOptions.value = response.roles;
       form.value.postIds = response.postIds;
       form.value.roleIds = response.roleIds;

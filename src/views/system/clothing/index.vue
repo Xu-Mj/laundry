@@ -241,14 +241,14 @@ function getStyle(row) {
 async function initDictList() {
   if (sys_cloth_cate.value.length === 0) {
     await getDicts("sys_cloth_cate").then(resp => {
-      sys_cloth_cate.value = resp.data.map(p => ({ label: p.dictLabel, value: p.dictValue, elTagType: p.listClass, elTagClass: p.cssClass }))
+      sys_cloth_cate.value = resp.map(p => ({ label: p.dictLabel, value: p.dictValue, elTagType: p.listClass, elTagClass: p.cssClass }))
       useDictStore().setDict("sys_cloth_cate", sys_cloth_cate.value);
     })
   }
   sys_cloth_cate.value.forEach(item => {
     getDicts("sys_cloth_style" + item.value).then(res => {
-      if (res.data && res.data.length > 0) {
-        dictList.value.push(...res.data);
+      if (res && res.length > 0) {
+        dictList.value.push(...res);
       }
     })
   })

@@ -1,44 +1,37 @@
-import request from '@/utils/request'
+import invoke from '@/utils/invoke'
 
 // 查询岗位列表
 export function listPost(query) {
-  return request({
-    url: '/system/post/list',
-    method: 'get',
-    params: query
-  })
+  const pageParams = { pageSize: query.pageSize, page: query.pageNum, params: query.params };
+  const ml = {
+    levelCode: query.levelCode,
+    levelName: query.levelName,
+    status: query.status,
+  };
+  return invoke('get_membership_level_pagination', { pageParams, ml })
+}
+
+// 查询岗位列表
+export function listPostAll() {
+  return invoke('get_membership_level_list', { ml: {} })
 }
 
 // 查询岗位详细
-export function getPost(postId) {
-  return request({
-    url: '/system/post/' + postId,
-    method: 'get'
-  })
+export function getPost(id) {
+  return invoke('get_membership_level_by_id', { id })
 }
 
 // 新增岗位
-export function addPost(data) {
-  return request({
-    url: '/system/post',
-    method: 'post',
-    data: data
-  })
+export function addPost(ml) {
+  return invoke('create_membership_level', { ml })
 }
 
 // 修改岗位
-export function updatePost(data) {
-  return request({
-    url: '/system/post',
-    method: 'put',
-    data: data
-  })
+export function updatePost(ml) {
+  return invoke('update_membership_level', { ml })
 }
 
 // 删除岗位
 export function delPost(postId) {
-  return request({
-    url: '/system/post/' + postId,
-    method: 'delete'
-  })
+  return invoke('delete_membership_level', { ids: [].concat(postId) })
 }

@@ -1,20 +1,14 @@
-import request from '@/utils/request'
+import request from '@/utils/request';
+import invoke from '@/utils/invoke'
 
 // 查询菜单列表
 export function listMenu(query) {
-  return request({
-    url: '/system/menu/list',
-    method: 'get',
-    params: query
-  })
+  return invoke('get_menu_list', {menu: query?query:{}})
 }
 
 // 查询菜单详细
-export function getMenu(menuId) {
-  return request({
-    url: '/system/menu/' + menuId,
-    method: 'get'
-  })
+export function getMenu(id) {
+  return invoke('get_menu_by_id', {id})
 }
 
 // 查询菜单下拉树结构
@@ -34,27 +28,16 @@ export function roleMenuTreeselect(roleId) {
 }
 
 // 新增菜单
-export function addMenu(data) {
-  return request({
-    url: '/system/menu',
-    method: 'post',
-    data: data
-  })
+export function addMenu(menu) {
+  return invoke('add_menu', {menu})
 }
 
 // 修改菜单
-export function updateMenu(data) {
-  return request({
-    url: '/system/menu',
-    method: 'put',
-    data: data
-  })
+export function updateMenu(menu) {
+  return invoke('update_menu', {menu})
 }
 
 // 删除菜单
-export function delMenu(menuId) {
-  return request({
-    url: '/system/menu/' + menuId,
-    method: 'delete'
-  })
+export function delMenu(id) {
+  return invoke('delete_menu', {id})
 }

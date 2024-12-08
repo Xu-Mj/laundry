@@ -97,7 +97,7 @@
       </el-table-column>
       <el-table-column label="收衣时间" align="center" prop="createTime" width="160">
         <template #default="scope">
-          <span>{{ parseTime(scope.row.createTime) }}</span>
+          <span>{{ formatTime(scope.row.createTime) }}</span>
         </template>
       </el-table-column>
 
@@ -139,7 +139,7 @@
             @click="handleDeliveryMode(scope.row)" />
         </template>
       </el-table-column>
-      <el-table-column label="预计完成时间" align="center" prop="desireCompleteTime">
+      <el-table-column label="预计完成时间" align="center" prop="desireCompleteTime" width="160">
         <template #default="scope">
           <span>{{ parseTime(scope.row.desireCompleteTime, '{y}-{m}-{d}') }}</span>
         </template>
@@ -381,7 +381,7 @@ const { queryParams, refundForm, notifyForm, refundRules } = toRefs(data);
 
 function go2pay(row) {
   // 根据订单id查询衣物列表
-  listCloths({ orderClothId: row.orderId }).then(res => {
+  listCloths({ orderId: row.orderId }).then(res => {
     currentOrder.value = row;
     currentOrder.value.cloths = res.rows;
     showPaymentDialog.value = true;
@@ -542,9 +542,9 @@ function handleDeliveryMode(row) {
       // 获取用户信息
       getUser(row.userId).then(res => {
         if (row.deliveryMode === '02') {
-          expressInfo.value.deliveryAddr = res.data.address;
+          expressInfo.value.deliveryAddr = res.address;
         } else if (row.deliveryMode === '01') {
-          deliveryInfo.value.deliveryAddr = res.data.address;
+          deliveryInfo.value.deliveryAddr = res.address;
         }
       });
     }
@@ -558,13 +558,13 @@ function handleRefund(row) {
   refundForm.value.expType = "00";
   refundForm.value.recvAccount = row.userId;
   getRefundInfo(row.orderId, row.userId).then(res => {
-    refundForm.value.recvAccountTitle = res.data.user.userName;
-    if (res.data.payment) {
+    refundForm.value.recvAccountTitle = res.user.userName;
+    if (res.payment) {
       // 已经支付了
-      if (res.data.payment.paymentAmountMv) {
-        refundForm.value.expAmount = res.data.payment.paymentAmountMv;
+      if (res.payment.paymentAmountMv) {
+        refundForm.value.expAmount = res.payment.paymentAmountMv;
       } else {
-        refundForm.value.expAmount = res.data.payment.paymentAmount;
+        refundForm.value.expAmount = res.payment.paymentAmount;
       }
     } else {
       // 没有支付

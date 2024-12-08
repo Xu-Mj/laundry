@@ -1,11 +1,11 @@
-use std::{error::Error as StdError, fmt};
-
+use argon2::password_hash;
 use printpdf::image_crate;
 use serde::Serialize;
+use std::{error::Error as StdError, fmt};
 
 pub type Result<T> = std::result::Result<T, Error>;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum ErrorKind {
     UnknownError,
     DbError,
@@ -44,6 +44,10 @@ impl Error {
         }
     }
 
+    pub fn kind(&self) -> ErrorKind {
+        self.kind.clone()
+    }
+
     #[inline]
     pub fn with_kind(kind: ErrorKind) -> Self {
         Self {
@@ -54,9 +58,45 @@ impl Error {
     }
 
     #[inline]
+    pub fn raw(error: Box<dyn StdError + 'static + Send + Sync>) -> Self {
+        Self {
+            kind: ErrorKind::InternalServer,
+            details: Some(error.to_string()),
+            source: Some(error),
+        }
+    }
+
+    #[inline]
     pub fn with_details(kind: ErrorKind, details: impl Into<String>) -> Self {
         Self {
             kind,
+            source: None,
+            details: Some(details.into()),
+        }
+    }
+
+    #[inline]
+    pub fn internal(details: impl Into<String>) -> Self {
+        Self {
+            kind: ErrorKind::InternalServer,
+            source: None,
+            details: Some(details.into()),
+        }
+    }
+
+    #[inline]
+    pub fn not_found(details: impl Into<String>) -> Self {
+        Self {
+            kind: ErrorKind::NotFound,
+            source: None,
+            details: Some(details.into()),
+        }
+    }
+
+    #[inline]
+    pub fn bad_request(details: impl Into<String>) -> Self {
+        Self {
+            kind: ErrorKind::BadRequest,
             source: None,
             details: Some(details.into()),
         }
@@ -119,5 +159,17 @@ impl From<image_crate::error::ImageError> for Error {
 impl From<serde_yaml::Error> for Error {
     fn from(value: serde_yaml::Error) -> Self {
         Self::new(ErrorKind::ConfigParseError, value.to_string(), value)
+    }
+}
+
+impl From<password_hash::Error> for Error {
+    fn from(value: password_hash::Error) -> Self {
+        Self::with_details(ErrorKind::InternalServer, value.to_string())
+    }
+}
+
+impl From<jsonwebtoken::errors::Error> for Error {
+    fn from(value: jsonwebtoken::errors::Error) -> Self {
+        Self::new(ErrorKind::InternalServer, value.to_string(), value)
     }
 }

@@ -6,6 +6,19 @@
     "main"
   ],
   "permissions": [
-    "core:default"
+    {
+      "identifier": "fs:scope",
+      "allow": [
+        {
+          "path": "$APPDATA"
+        },
+        {
+          "path": "$APPDATA/**"
+        }
+      ]
+    },
+    "core:default",
+    "fs:default",
+    "fs:default"
   ]
 }

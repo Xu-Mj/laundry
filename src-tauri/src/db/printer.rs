@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use tauri::State;
 
-use super::DbPool;
+use super::AppState;
 
 use crate::error::Result;
 
@@ -20,8 +20,6 @@ impl PrinterConfiguration {
             driver_name,
         }
     }
-
-    
 }
 #[tauri::command]
 pub async fn get_printers() -> Vec<PrinterConfiguration> {
@@ -33,7 +31,9 @@ pub async fn get_printers() -> Vec<PrinterConfiguration> {
 }
 
 #[tauri::command]
-pub async fn get_settled_printer(state: State<'_, DbPool>) -> Result<Option<PrinterConfiguration>> {
+pub async fn get_settled_printer(
+    state: State<'_, AppState>,
+) -> Result<Option<PrinterConfiguration>> {
     let device = sqlx::query_as::<_, PrinterConfiguration>("SELECT * FROM printers LIMIT 1")
         .fetch_optional(&state.0)
         .await?;
@@ -41,10 +41,7 @@ pub async fn get_settled_printer(state: State<'_, DbPool>) -> Result<Option<Prin
 }
 
 #[tauri::command]
-pub async fn set_printer(
-    state: State<'_, DbPool>,
-    printer: PrinterConfiguration,
-) -> Result<()> {
+pub async fn set_printer(state: State<'_, AppState>, printer: PrinterConfiguration) -> Result<()> {
     sqlx::query(
         "INSERT OR REPLACE INTO printers (id, name, system_name, driver_name) VALUES (1, ?, ?, ?)",
     )

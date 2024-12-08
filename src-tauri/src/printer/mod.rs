@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use tauri::State;
 
 use crate::db::printer::get_settled_printer;
-use crate::db::DbPool;
+use crate::db::AppState;
 use crate::error::Result;
 use crate::error::{Error, ErrorKind};
 
@@ -47,7 +47,7 @@ pub struct Client {
 }
 
 #[tauri::command]
-pub async fn print(state: State<'_, DbPool>, items: Vec<Item>) -> Result<()> {
+pub async fn print(state: State<'_, AppState>, items: Vec<Item>) -> Result<()> {
     // 查询数据库，获取当前打印机的系统名称
     let printer_configuration = get_settled_printer(state.clone())
         .await?
@@ -86,7 +86,7 @@ fn gen_img(code: &str) -> Result<()> {
     Ok(())
 }
 
-fn gen_pdf(_state: State<'_, DbPool>, item: Item) -> Result<String> {
+fn gen_pdf(_state: State<'_, AppState>, item: Item) -> Result<String> {
     let (doc, page1, layer1) =
         PdfDocument::new("PDF_Document_title", Mm(WIDTH), Mm(HEIGHT), "Layer 1");
 

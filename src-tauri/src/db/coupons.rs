@@ -1,0 +1,664 @@
+use chrono::Utc;
+use serde::{Deserialize, Serialize};
+use sqlx::sqlite::SqliteRow;
+use sqlx::{
+    types::chrono::{DateTime, FixedOffset},
+    FromRow, Pool, QueryBuilder, Row, Sqlite, Transaction,
+};
+use tauri::State;
+
+use crate::db::coupon_orders::CouponOrder;
+use crate::db::payments::Payment;
+use crate::db::user_coupons::UserCoupon;
+use crate::db::{AppState, Curd, PageParams, PageResult, Validator};
+use crate::error::{Error, ErrorKind, Result};
+use crate::utils;
+use crate::utils::chrono_serde::{deserialize_date, serialize_date};
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[serde(default)]
+pub struct Coupon {
+    pub coupon_id: Option<i64>,           // Coupon ID
+    pub coupon_number: Option<String>,    // Unique Coupon Number
+    pub coupon_type: Option<String>,      // Coupon Type (e.g., '000')
+    pub coupon_title: Option<String>,     // Coupon Title
+    pub coupon_value: Option<f64>,        // Coupon Value
+    pub min_spend: Option<f64>,           // Minimum Spend
+    pub customer_invalid: Option<String>, // Whether the coupon is invalid for the customer
+    pub customer_sale_total: Option<i32>, // Total sales associated with the customer
+    pub customer_sale_count: Option<i32>, // Total count of coupons used by the customer
+    #[serde(
+        deserialize_with = "deserialize_date",
+        serialize_with = "serialize_date"
+    )]
+    pub valid_from: Option<DateTime<FixedOffset>>, // Start date of validity
+    #[serde(
+        deserialize_with = "deserialize_date",
+        serialize_with = "serialize_date"
+    )]
+    pub valid_to: Option<DateTime<FixedOffset>>, // End date of validity
+    pub auto_delay: Option<String>,       // Whether the coupon is auto-delayed
+    pub usage_value: Option<f64>,         // Usage value
+    pub usage_limit: Option<f64>,         // Usage limit
+    pub del_flag: Option<String>,         // Delete flag
+    pub applicable_category: Option<String>, // Applicable categories
+    pub applicable_style: Option<String>, // Applicable styles
+    pub applicable_cloths: Option<String>, // Applicable cloths
+    pub status: Option<String>,           // Coupon status (e.g., '0' for active, '1' for inactive)
+    pub remark: Option<String>,           // Additional remarks
+}
+
+impl FromRow<'_, SqliteRow> for Coupon {
+    fn from_row(row: &'_ SqliteRow) -> std::result::Result<Self, sqlx::Error> {
+        Ok(Self {
+            coupon_id: row.try_get("coupon_id").unwrap_or_default(),
+            coupon_number: row.try_get("coupon_number").unwrap_or_default(),
+            coupon_title: row.try_get("coupon_title").unwrap_or_default(),
+            coupon_type: row.try_get("coupon_type").unwrap_or_default(),
+            coupon_value: row.try_get("coupon_value").unwrap_or_default(),
+            min_spend: row.try_get("min_spend").unwrap_or_default(),
+            customer_invalid: row.try_get("customer_invalid").unwrap_or_default(),
+            customer_sale_total: row.try_get("customer_sale_total").unwrap_or_default(),
+            customer_sale_count: row.try_get("customer_sale_count").unwrap_or_default(),
+            valid_from: row.try_get("valid_from").unwrap_or_default(),
+            valid_to: row.try_get("valid_to").unwrap_or_default(),
+            auto_delay: row.try_get("auto_delay").unwrap_or_default(),
+            usage_value: row.try_get("usage_value").unwrap_or_default(),
+            usage_limit: row.try_get("usage_limit").unwrap_or_default(),
+            del_flag: row.try_get("del_flag").unwrap_or_default(),
+            applicable_category: row.try_get("applicable_category").unwrap_or_default(),
+            applicable_style: row.try_get("applicable_style").unwrap_or_default(),
+            applicable_cloths: row.try_get("applicable_cloths").unwrap_or_default(),
+            status: row.try_get("status").unwrap_or_default(),
+            remark: row.try_get("remark").unwrap_or_default(),
+        })
+    }
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CouponBuyReq {
+    pub coupons: Vec<CouponIdCount>,
+    pub user_id: i64,
+    pub payment_method: String,
+    pub remark: Option<String>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CouponIdCount {
+    pub coupon_id: i64,
+    pub count: i32,
+}
+
+impl Validator for Coupon {
+    fn validate(&self) -> Result<()> {
+        if self.coupon_type.is_none() {
+            return Err(Error::with_details(
+                ErrorKind::BadRequest,
+                "coupon_type is required",
+            ));
+        }
+
+        if self.coupon_title.is_none() {
+            return Err(Error::with_details(
+                ErrorKind::BadRequest,
+                "coupon_title is required",
+            ));
+        }
+
+        if self.coupon_value.is_none() {
+            return Err(Error::with_details(
+                ErrorKind::BadRequest,
+                "coupon_value is required",
+            ));
+        }
+
+        if self.valid_from.is_none() {
+            return Err(Error::with_details(
+                ErrorKind::BadRequest,
+                "valid_from is required",
+            ));
+        }
+
+        if self.valid_to.is_none() {
+            return Err(Error::with_details(
+                ErrorKind::BadRequest,
+                "valid_to is required",
+            ));
+        }
+
+        if let (Some(valid_from), Some(valid_to)) = (&self.valid_from, &self.valid_to) {
+            if valid_from > valid_to {
+                return Err(Error::with_details(
+                    ErrorKind::BadRequest,
+                    "Valid from date cannot be later than valid to date.",
+                ));
+            }
+        }
+
+        Ok(())
+    }
+}
+
+impl Coupon {
+    fn new4sale(status: impl ToString, del_flag: impl ToString) -> Self {
+        Self {
+            status: Some(status.to_string()),
+            del_flag: Some(del_flag.to_string()),
+            ..Default::default()
+        }
+    }
+}
+
+impl Curd for Coupon {
+    const COUNT_SQL: &'static str = "SELECT COUNT(*) FROM coupons WHERE 1=1 ";
+    const QUERY_SQL: &'static str = "SELECT * FROM coupons WHERE 1=1 ";
+    const BY_ID_SQL: &'static str = "SELECT * FROM coupons WHERE coupon_id = ?";
+    const DELETE_BATCH_SQL: &'static str = "UPDATE coupons SET del_flag = '2' WHERE coupon_id IN (";
+
+    fn apply_filters<'a>(&'a self, builder: &mut QueryBuilder<'a, Sqlite>) {
+        if let Some(coupon_number) = &self.coupon_number {
+            builder
+                .push(" AND coupon_number LIKE ")
+                .push_bind(format!("%{}%", coupon_number));
+        }
+
+        if let Some(coupon_name) = &self.coupon_title {
+            builder
+                .push(" AND coupon_title LIKE ")
+                .push_bind(format!("%{}%", coupon_name));
+        }
+
+        if let Some(coupon_type) = &self.coupon_type {
+            builder.push(" AND coupon_type = ").push_bind(coupon_type);
+        }
+
+        if let Some(status) = &self.status {
+            builder.push(" AND status = ").push_bind(status);
+        }
+
+        if let Some(del_flag) = &self.del_flag {
+            builder.push(" AND del_flag = ").push_bind(del_flag);
+        }
+    }
+}
+
+impl Coupon {
+    pub async fn add(&self, tr: &mut Transaction<'_, Sqlite>) -> Result<Self> {
+        let query = r#"
+        INSERT INTO coupons (coupon_number, coupon_type, coupon_title, coupon_value, min_spend, customer_invalid,
+                            customer_sale_total, customer_sale_count, valid_from, valid_to, auto_delay, usage_value,
+                            usage_limit, del_flag, applicable_category, applicable_style, applicable_cloths, status, remark)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *
+    "#;
+
+        tracing::debug!("coupon add: {:?}", self);
+        let result = sqlx::query_as(query)
+            .bind(&self.coupon_number)
+            .bind(&self.coupon_type)
+            .bind(&self.coupon_title)
+            .bind(self.coupon_value)
+            .bind(self.min_spend)
+            .bind(&self.customer_invalid)
+            .bind(self.customer_sale_total)
+            .bind(self.customer_sale_count)
+            .bind(self.valid_from)
+            .bind(self.valid_to)
+            .bind(&self.auto_delay)
+            .bind(self.usage_value)
+            .bind(self.usage_limit)
+            .bind(&self.del_flag)
+            .bind(&self.applicable_category)
+            .bind(&self.applicable_style)
+            .bind(&self.applicable_cloths)
+            .bind(&self.status)
+            .bind(&self.remark)
+            .fetch_one(&mut **tr)
+            .await?;
+
+        Ok(result)
+    }
+
+    pub async fn list4sale(&self, pool: &Pool<Sqlite>) -> Result<Vec<Self>> {
+        let mut builder = QueryBuilder::<Sqlite>::new(
+            "SELECT * FROM coupons WHERE
+                 customer_sale_count != 0
+                 AND customer_sale_total != 0
+                 AND datetime('now') BETWEEN valid_from AND valid_to ",
+        );
+
+        self.apply_filters(&mut builder);
+
+        let result = builder.build_query_as().fetch_all(pool).await?;
+        Ok(result)
+    }
+
+    pub async fn update(&self, tr: &mut Transaction<'_, Sqlite>) -> Result<bool> {
+        let mut builder = sqlx::QueryBuilder::new("UPDATE coupons SET ");
+        let mut has_updated = false;
+        if let Some(coupon_number) = &self.coupon_number {
+            builder.push("coupon_number = ").push_bind(coupon_number);
+            has_updated = true;
+        }
+
+        if let Some(name) = &self.coupon_title {
+            if has_updated {
+                builder.push(", ");
+            }
+            builder.push("coupon_title = ").push_bind(name);
+            has_updated = true;
+        }
+
+        if let Some(coupon_type) = &self.coupon_type {
+            if has_updated {
+                builder.push(", ");
+            }
+            builder.push("coupon_type = ").push_bind(coupon_type);
+            has_updated = true;
+        }
+
+        if let Some(coupon_value) = &self.coupon_value {
+            if has_updated {
+                builder.push(", ");
+            }
+            builder.push("coupon_value = ").push_bind(coupon_value);
+            has_updated = true;
+        }
+
+        if let Some(min_spend) = &self.min_spend {
+            if has_updated {
+                builder.push(", ");
+            }
+            builder.push("min_spend = ").push_bind(min_spend);
+            has_updated = true;
+        }
+
+        if let Some(customer_invalid) = &self.customer_invalid {
+            if has_updated {
+                builder.push(", ");
+            }
+            builder
+                .push("customer_invalid = ")
+                .push_bind(customer_invalid);
+            has_updated = true;
+        }
+
+        if let Some(customer_sale_total) = &self.customer_sale_total {
+            if has_updated {
+                builder.push(", ");
+            }
+            builder
+                .push("customer_sale_total = ")
+                .push_bind(customer_sale_total);
+            has_updated = true;
+        }
+
+        if let Some(customer_sale_count) = &self.customer_sale_count {
+            if has_updated {
+                builder.push(", ");
+            }
+            builder
+                .push("customer_sale_count = ")
+                .push_bind(customer_sale_count);
+            has_updated = true;
+        }
+
+        if let Some(valid_from) = &self.valid_from {
+            if has_updated {
+                builder.push(", ");
+            }
+            builder.push("valid_from = ").push_bind(valid_from);
+            has_updated = true;
+        }
+
+        if let Some(valid_to) = &self.valid_to {
+            if has_updated {
+                builder.push(", ");
+            }
+            builder.push("valid_to = ").push_bind(valid_to);
+            has_updated = true;
+        }
+
+        if let Some(auto_delay) = &self.auto_delay {
+            if has_updated {
+                builder.push(", ");
+            }
+            builder.push("auto_delay = ").push_bind(auto_delay);
+            has_updated = true;
+        }
+
+        if let Some(usage_value) = &self.usage_value {
+            if has_updated {
+                builder.push(", ");
+            }
+            builder.push("usage_value = ").push_bind(usage_value);
+            has_updated = true;
+        }
+
+        if let Some(usage_limit) = &self.usage_limit {
+            if has_updated {
+                builder.push(", ");
+            }
+            builder.push("usage_limit = ").push_bind(usage_limit);
+            has_updated = true;
+        }
+
+        if let Some(applicable_category) = &self.applicable_category {
+            if has_updated {
+                builder.push(", ");
+            }
+            builder
+                .push("applicable_category = ")
+                .push_bind(applicable_category);
+            has_updated = true;
+        }
+
+        if let Some(applicable_style) = &self.applicable_style {
+            if has_updated {
+                builder.push(", ");
+            }
+            builder
+                .push("applicable_style = ")
+                .push_bind(applicable_style);
+            has_updated = true;
+        }
+
+        if let Some(applicable_cloths) = &self.applicable_cloths {
+            if has_updated {
+                builder.push(", ");
+            }
+            builder
+                .push("applicable_cloths = ")
+                .push_bind(applicable_cloths);
+            has_updated = true;
+        }
+
+        if let Some(status) = &self.status {
+            if has_updated {
+                builder.push(", ");
+            }
+            builder.push("status = ").push_bind(status);
+            has_updated = true;
+        }
+
+        if let Some(remark) = &self.remark {
+            if has_updated {
+                builder.push(", ");
+            }
+            builder.push("remark = ").push_bind(remark);
+            has_updated = true;
+        }
+
+        if has_updated {
+            builder
+                .push(" WHERE coupon_id = ")
+                .push_bind(self.coupon_id);
+
+            let result = builder.build().execute(&mut **tr).await?;
+            return Ok(result.rows_affected() > 0);
+        }
+
+        Ok(false)
+    }
+}
+
+impl Coupon {
+    pub async fn insert(&mut self, tr: &mut Transaction<'_, Sqlite>) -> Result<Self> {
+        self.validate()?;
+        // gen number
+        let number = utils::gen_code(self.coupon_title.clone().unwrap());
+        self.coupon_number = Some(format!("{number}-{}", Utc::now().timestamp_subsec_millis()));
+
+        Ok(self.add(tr).await?)
+    }
+
+    pub async fn update_coupon(&mut self, pool: &Pool<Sqlite>) -> Result<bool> {
+        self.validate()?;
+        if self.coupon_id.is_none() {
+            return Err(Error::with_details(
+                ErrorKind::BadRequest,
+                "coupon_id is required",
+            ));
+        }
+
+        // query if there is a coupon which has sold already
+        let is_exist = UserCoupon::exists_by_coupon_id(pool, self.coupon_id.unwrap()).await?;
+
+        let mut tr = pool.begin().await?;
+        if is_exist {
+            // set old coupon to expired
+            let mut old_coupon = Self::get_by_id(pool, self.coupon_id.unwrap())
+                .await?
+                .unwrap();
+            old_coupon.status = Some("2".to_string());
+            if !old_coupon.update(&mut tr).await? {
+                return Err(Error::with_details(
+                    ErrorKind::InternalServer,
+                    "Failed to update old coupon",
+                ));
+            }
+
+            // gen new coupon number
+            let number = utils::gen_code(old_coupon.coupon_title.as_ref().unwrap());
+            self.coupon_number = Some(format!("{number}-{}", Utc::now().timestamp_subsec_millis()));
+            self.add(&mut tr).await?;
+            return Ok(true);
+        }
+        let result = self.update(&mut tr).await?;
+
+        tr.commit().await?;
+
+        Ok(result)
+    }
+
+    async fn check_coupon(
+        &mut self,
+        tr: &mut Transaction<'_, Sqlite>,
+        info: &CouponIdCount,
+    ) -> Result<()> {
+        if self.customer_sale_total != Some(-1) && self.customer_sale_count != Some(-1) {
+            if info.count > self.customer_sale_total.unwrap()
+                || info.count > self.customer_sale_count.unwrap()
+            {
+                return Err(Error::with_details(
+                    ErrorKind::BadRequest,
+                    "单用户购买数量超过购买限制",
+                ));
+            }
+        } else if self.customer_sale_total != Some(-1) {
+            if info.count > self.customer_sale_total.unwrap() {
+                return Err(Error::with_details(ErrorKind::BadRequest, "库存不足"));
+            }
+            // update customer_sale_total
+            self.customer_sale_total = Some(self.customer_sale_total.unwrap() - info.count);
+        } else if self.customer_sale_count != Some(-1) {
+            if info.count > self.customer_sale_count.unwrap() {
+                return Err(Error::with_details(
+                    ErrorKind::BadRequest,
+                    "超出单用户购买数量限制",
+                ));
+            }
+            // update customer_sale_count
+            self.customer_sale_count = Some(self.customer_sale_count.unwrap() - info.count);
+        }
+        self.update(tr).await?;
+        Ok(())
+    }
+
+    async fn send_message(user_id: i64, coupon_names: String) {
+        // todo send message to user
+        // todo record send information to db
+        tracing::debug!("send notice to user: {} -- {}", user_id, coupon_names)
+    }
+
+    async fn create_user_coupon(
+        tr: &mut Transaction<'_, Sqlite>,
+        req: &CouponBuyReq,
+        coupon: &Coupon,
+        info: &CouponIdCount,
+    ) -> Result<i64> {
+        let now = utils::get_now();
+        let user_coupon = UserCoupon {
+            uc_id: None,
+            user_id: Some(req.user_id),
+            coupon_id: coupon.coupon_id,
+            create_time: Some(now),
+            obtain_at: Some(now),
+            available_value: Some(coupon.usage_value.unwrap() * info.count as f64),
+            uc_count: Some(info.count),
+            pay_id: None,
+            uc_type: Some("01".to_string()),
+            status: Some("0".to_string()),
+            remark: coupon.remark.clone(),
+            coupon: None,
+        };
+
+        user_coupon.validate()?;
+
+        // insert into db
+        let result = user_coupon.create(tr).await?;
+        Ok(result.uc_id.unwrap())
+    }
+
+    pub async fn gift(pool: &Pool<Sqlite>, coupon_buy_req: CouponBuyReq) -> Result<()> {
+        let mut tr = pool.begin().await?;
+        let mut coupon_names = vec![];
+        for info in &coupon_buy_req.coupons {
+            // query coupon by coupon_id
+            let mut coupon = Self::get_by_id(pool, info.coupon_id)
+                .await?
+                .ok_or(Error::with_details(ErrorKind::NotFound, "Coupon not found"))?;
+
+            // check coupon status and reduce available_value if necessary
+            coupon.check_coupon(&mut tr, &info).await?;
+
+            Self::create_user_coupon(&mut tr, &coupon_buy_req, &coupon, &info).await?;
+
+            // concat coupon name
+            coupon_names.push(format!("{} x {}", coupon.coupon_title.unwrap(), info.count));
+        }
+        tr.commit().await?;
+
+        // send message to user
+        tokio::spawn(async move {
+            Self::send_message(
+                coupon_buy_req.user_id,
+                format!("Your coupon has been issued: {}", coupon_names.join(", ")),
+            )
+            .await;
+        });
+        Ok(())
+    }
+
+    pub async fn buy(pool: &Pool<Sqlite>, coupon_buy_req: CouponBuyReq) -> Result<()> {
+        let mut uc_ids = Vec::with_capacity(coupon_buy_req.coupons.len());
+        let mut total_amount = 0.0;
+        let mut amount = 0.0;
+
+        let mut tr = pool.begin().await?;
+
+        for info in &coupon_buy_req.coupons {
+            // query coupon by coupon_id
+            let mut coupon = Self::get_by_id(pool, info.coupon_id)
+                .await?
+                .ok_or(Error::with_details(ErrorKind::NotFound, "Coupon not found"))?;
+
+            // check coupon status and reduce available_value if necessary
+            coupon.check_coupon(&mut tr, &info).await?;
+
+            let uc_id = Self::create_user_coupon(&mut tr, &coupon_buy_req, &coupon, &info).await?;
+
+            // concat coupon name
+            uc_ids.push(uc_id);
+
+            total_amount += coupon.usage_value.unwrap() * info.count as f64;
+            amount += coupon.usage_value.unwrap() * info.count as f64;
+        }
+
+        // create order
+        CouponOrder::new_with_now(
+            uc_ids
+                .iter()
+                .map(|x| x.to_string())
+                .collect::<Vec<String>>()
+                .join(","),
+        )
+        .create(&mut tr)
+        .await?;
+
+        // create payment
+
+        let payment = Payment {
+            pay_number: Some(format!("KQ-{}", Utc::now().timestamp_millis())),
+            order_type: Some(0.to_string()),
+            total_amount: Some(total_amount),
+            payment_amount: Some(amount),
+            payment_status: Some("01".to_string()),
+            payment_method: Some(coupon_buy_req.payment_method),
+            order_status: Some("01".to_string()),
+            create_time: Some(utils::get_now()),
+            ..Default::default()
+        };
+        let payment = payment.create_payment(&mut tr).await?;
+
+        // update user coupon's payment_id
+        UserCoupon::update_pay_id(&mut tr, &uc_ids, payment.pay_id.unwrap()).await?;
+        tr.commit().await?;
+        Ok(())
+    }
+}
+
+#[tauri::command]
+pub async fn get_coupon_list(
+    state: State<'_, AppState>,
+    page_params: PageParams,
+    coupon: Coupon,
+) -> Result<PageResult<Coupon>> {
+    coupon.get_list(&state.0, page_params).await
+}
+
+#[tauri::command]
+pub async fn get_coupons4sale(state: State<'_, AppState>) -> Result<Vec<Coupon>> {
+    let coupon = Coupon::new4sale("0", "0");
+    coupon.list4sale(&state.0).await
+}
+
+#[tauri::command]
+pub async fn get_coupon_by_id(state: State<'_, AppState>, id: i64) -> Result<Option<Coupon>> {
+    Coupon::get_by_id(&state.0, id).await
+}
+
+#[tauri::command]
+pub async fn buy_coupons(state: State<'_, AppState>, coupon_buy_req: CouponBuyReq) -> Result<()> {
+    Coupon::buy(&state.0, coupon_buy_req).await
+}
+
+#[tauri::command]
+pub async fn gift_coupons(state: State<'_, AppState>, coupon_buy_req: CouponBuyReq) -> Result<()> {
+    Coupon::gift(&state.0, coupon_buy_req).await
+}
+
+#[tauri::command]
+pub async fn add_coupon(state: State<'_, AppState>, mut coupon: Coupon) -> Result<Coupon> {
+    let mut tr = state.0.begin().await?;
+    coupon.validate()?;
+
+    let result = coupon.insert(&mut tr).await?;
+    tr.commit().await?;
+    Ok(result)
+}
+
+#[tauri::command]
+pub async fn update_coupon(state: State<'_, AppState>, mut coupon: Coupon) -> Result<bool> {
+    coupon.update_coupon(&state.0).await
+}
+
+#[tauri::command]
+pub async fn delete_coupons(state: State<'_, AppState>, ids: Vec<i64>) -> Result<bool> {
+    let mut tr = state.0.begin().await?;
+    let result = Coupon::delete_batch(&mut tr, &ids).await?;
+    tr.commit().await?;
+    Ok(result)
+}

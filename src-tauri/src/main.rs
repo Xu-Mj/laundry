@@ -5,7 +5,12 @@ use sqlx::{migrate::MigrateDatabase, sqlite::SqlitePoolOptions, Sqlite};
 use tracing_subscriber::fmt::format::Writer;
 use tracing_subscriber::fmt::time::FormatTime;
 
-use app_lib::{config::Config, create_app, db::{initialize_database, DbPool}};
+use app_lib::captcha::start_cleanup_thread;
+use app_lib::{
+    config::Config,
+    create_app,
+    db::{initialize_database, AppState},
+};
 
 const DEFAULT_CONFIG_PATH: &str = "./config.yml";
 struct LocalTimer;
@@ -16,7 +21,6 @@ impl FormatTime for LocalTimer {
         write!(w, "{}", local_time.format("%Y-%m-%dT%H:%M:%S%.6f%:z"))
     }
 }
-
 
 #[tokio::main]
 async fn main() {
@@ -61,8 +65,13 @@ async fn main() {
     initialize_database(&pool)
         .await
         .expect("Failed to initialize database");
+    start_cleanup_thread();
 
-    create_app(tauri::Builder::default(), DbPool::new(pool)).run(|_app_handle, event| match event {
+    create_app(
+        tauri::Builder::default().plugin(tauri_plugin_fs::init()),
+        AppState::new(pool),
+    )
+    .run(|_app_handle, event| match event {
         tauri::RunEvent::ExitRequested { api, .. } => {
             api.prevent_exit();
         }

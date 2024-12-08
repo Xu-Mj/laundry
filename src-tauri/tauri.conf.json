@@ -1,8 +1,8 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "lundry",
+  "productName": "laundry",
   "version": "0.1.0",
-  "identifier": "com.tauri.dev",
+  "identifier": "com.tauri-local.dev",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:80",
@@ -24,6 +24,13 @@
     }
   },
   "bundle": {
+    "windows": {
+      "wix": {
+        "language": [
+          "en-US"
+        ]
+      }
+    },
     "active": true,
     "targets": "all",
     "icon": [

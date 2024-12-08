@@ -1,20 +1,22 @@
 pub mod config;
 pub mod db;
 
+pub mod captcha;
 pub mod error;
 pub mod printer;
+mod routers;
+pub mod sql;
 pub mod tray;
 pub mod utils;
-pub mod sql;
 
 use tauri::generate_handler;
+use tauri_plugin_fs::FsExt;
 
-use db::user;
-use db::tags;
-use db::clothing;
-use db::drying_rack;
-use db::cloth_price;
-use tray::create_tray;
+use crate::db::{
+    cloth_price, clothing, configs, coupons, dict_data, dict_type, drying_rack, expenditure,
+    local_users, membership_level, menu, notice_temp, order_clothes, orders, tags, user,
+    user_coupons,
+};
 
 pub fn create_app<R: tauri::Runtime, T: Send + Sync + 'static>(
     builder: tauri::Builder<R>,
@@ -24,13 +26,28 @@ pub fn create_app<R: tauri::Runtime, T: Send + Sync + 'static>(
         // .plugin(tauri_plugin_log::Builder::default().build())
         .manage(state)
         .setup(|app| {
-            create_tray(app.handle(), true)?;
+            // allowed the given directory
+            let scope = app.fs_scope();
+            scope.allow_directory("/path/to/directory", false);
+            dbg!(scope.allowed());
+
             Ok(())
         })
         .invoke_handler(generate_handler![
+            // captcha
+            captcha::get_captcha,
+            // login
+
             // update_tray_menu,
-            user::insert_user,
-            user::get_users,
+            user::get_users_pagination,
+            user::get_all_users,
+            user::get_user_by_id,
+            user::get_user_by_ids,
+            user::get_user_by_cloth_code,
+            user::create_user,
+            user::update_user,
+            user::change_user_status,
+            user::delete_users,
             printer::print,
             db::printer::get_printers,
             db::printer::set_printer,
@@ -70,7 +87,96 @@ pub fn create_app<R: tauri::Runtime, T: Send + Sync + 'static>(
             cloth_price::list_cloth_prices_pagination,
             cloth_price::list_cloth_prices_by_order_type,
             cloth_price::update_cloth_price_status,
-            cloth_price::update_cloth_price_ref_num
+            cloth_price::update_cloth_price_ref_num,
+            // order clothes
+            order_clothes::list_order_clothes,
+            order_clothes::list_order_clothes_history,
+            order_clothes::add_order_cloth,
+            order_clothes::update_order_cloth,
+            order_clothes::get_order_cloth_by_id,
+            order_clothes::get_order_cloth_by_code,
+            order_clothes::delete_order_cloth_by_ids,
+            order_clothes::hang_order_cloth,
+            order_clothes::pickup_order_cloth,
+            order_clothes::remove_pic_from_order_cloth,
+            // coupons
+            coupons::add_coupon,
+            coupons::update_coupon,
+            coupons::get_coupon_list,
+            coupons::get_coupons4sale,
+            coupons::get_coupon_by_id,
+            coupons::buy_coupons,
+            coupons::gift_coupons,
+            coupons::delete_coupons,
+            // user coupons
+            user_coupons::get_user_coupons,
+            user_coupons::get_user_coupons4sale,
+            user_coupons::get_user_coupon_by_user_id,
+            // orders
+            orders::create_order,
+            orders::get_orders_pagination,
+            orders::get_orders4home,
+            orders::get_order_by_id,
+            orders::update_order,
+            orders::delete_orders,
+            orders::update_adjust,
+            orders::pay_order,
+            orders::get_refund_info,
+            orders::refund_order,
+            // configs
+            configs::add_config,
+            configs::get_config_list,
+            configs::get_config_by_id,
+            configs::delete_configs,
+            configs::update_config,
+            configs::get_config_by_key,
+            // dict_type
+            dict_type::get_dict_type_list,
+            dict_type::get_dict_type_all,
+            dict_type::get_dict_type_by_id,
+            dict_type::add_dict_type,
+            dict_type::update_dict_type,
+            dict_type::delete_dict_types,
+            // dict_data
+            dict_data::get_dict_data_list,
+            dict_data::get_by_dict_type,
+            dict_data::get_dict_data_by_code,
+            dict_data::add_dict_data,
+            dict_data::update_dict_data,
+            dict_data::delete_dict_data,
+            // menu
+            menu::get_menu_list,
+            menu::get_menu_by_id,
+            menu::add_menu,
+            menu::update_menu,
+            menu::delete_menu,
+            routers::get_routers,
+            local_users::get_info,
+            local_users::login,
+            local_users::logout,
+            // expenditure
+            expenditure::get_exp_pagination,
+            expenditure::get_exp_by_id,
+            expenditure::create_exp,
+            expenditure::update_exp,
+            expenditure::delete_exp,
+            // notice
+            notice_temp::get_temp_pagination,
+            notice_temp::get_temp_by_id,
+            notice_temp::create_temp,
+            notice_temp::update_temp,
+            notice_temp::delete_temp,
+            notice_temp::get_notice_record_pagination,
+            notice_temp::delete_all_record,
+            notice_temp::delete_old_record,
+            notice_temp::send_notice,
+            // membership_level
+            membership_level::get_membership_level_pagination,
+            membership_level::get_membership_level_by_id,
+            membership_level::get_membership_level_list,
+            membership_level::create_membership_level,
+            membership_level::update_membership_level,
+            membership_level::delete_membership_level,
         ])
         .build(tauri::generate_context!())
         .expect("error while building Tauri application")

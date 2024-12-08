@@ -1,79 +1,113 @@
-use crate::error::{Error, Result};
-use crate::utils::chrono_serde::naive_date_time_serde;
-use chrono::FixedOffset;
-use rand::distributions::Uniform;
-use rand::rngs::StdRng;
-use rand::{Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
-use sqlx::types::chrono::{DateTime, Utc};
-use sqlx::{FromRow, Pool, QueryBuilder, Sqlite};
+use sqlx::sqlite::SqliteRow;
+use sqlx::types::chrono::{DateTime, FixedOffset};
+use sqlx::{FromRow, Pool, QueryBuilder, Row, Sqlite, Transaction};
 use tauri::State;
 use tracing::debug;
 
-use super::{DbPool, PageParams, PageResult};
+use super::{AppState, Curd, PageParams, PageResult, Validator};
+use crate::error::{Error, Result};
+use crate::utils;
 
-const EAST_ZONE: i32 = 8 * 60 * 60;
-#[derive(Debug, Clone, Deserialize, Serialize, FromRow)]
-#[serde(rename_all = "camelCase")]
-pub struct ClothPrice {
-    #[serde(default)]
-    pub price_id: Option<i64>,
-    #[serde(default)]
-    pub price_number: String,
-    #[serde(default)]
-    pub order_type: String,
-    #[serde(default)]
-    pub price_name: String,
-    #[serde(default)]
-    pub price_value: Option<f64>,
-    #[serde(default)]
-    pub price_discount: Option<f64>,
-    #[serde(default)]
-    pub order_num: i64,
-    #[serde(default)]
-    pub ref_num: i64,
-    #[serde(default = "status_default")]
-    pub status: String,
-    #[serde(default = "status_default")]
-    pub del_flag: String,
-    #[serde(default)]
-    pub remark: Option<String>,
-
-    #[serde(with = "naive_date_time_serde")]
-    #[serde(skip_deserializing)]
-    pub created_at: Option<DateTime<FixedOffset>>, // Use sqlx's NaiveDateTime type
-    #[serde(with = "naive_date_time_serde")]
-    #[serde(skip_deserializing)]
-    pub updated_at: Option<DateTime<FixedOffset>>, // Use sqlx's NaiveDateTime type
-}
-
-fn status_default() -> String {
-    "0".to_string()
-}
+// #[derive(Debug, Clone, Default, Deserialize, Serialize, FromRow)]
+// #[serde(rename_all = "camelCase")]
+// #[serde(default)]
+// pub struct ClothPrice {
+//     /// 主键id
+//     pub price_id: Option<i64>,
+//     /// 价格编号
+//     pub price_number: Option<String>,
+//     /// 类型
+//     pub order_type: Option<String>,
+//     /// 价格名称
+//     pub price_name: Option<String>,
+//     /// 价格
+//     pub price_value: Option<f64>,
+//     /// 折扣
+//     pub price_discount: Option<f64>,
+//     /// 显示顺序
+//     pub order_num: Option<i64>,
+//     /// 引用计数
+//     pub ref_num: Option<i64>,
+//     /// 状态
+//     pub status: Option<String>,
+//     /// 删除标记
+//     pub del_flag: Option<String>,
+//     /// 备注
+//     pub remark: Option<String>,
+//
+//     /// 创建时间
+//     pub created_at: Option<DateTime<FixedOffset>>,
+//     /// 更新时间
+//     pub updated_at: Option<DateTime<FixedOffset>>,
+// }
+//
+// fn status_default() -> String {
+//     "0".to_string()
+// }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ClothPriceParam {
-    #[serde(default)]
-    price_id: Option<i64>,
-    #[serde(default)]
-    price_number: Option<String>,
-    #[serde(default)]
-    order_type: Option<String>,
-    #[serde(default)]
-    price_name: Option<String>,
+pub struct ClothPrice {
+    /// 主键id
+    pub price_id: Option<i64>,
+    /// 价格编号
+    pub price_number: Option<String>,
+    /// 类型
+    pub order_type: Option<String>,
+    /// 价格名称
+    pub price_name: Option<String>,
+    /// 价格
+    pub price_value: Option<f64>,
+    /// 折扣
+    pub price_discount: Option<f64>,
+    /// 显示顺序
+    pub order_num: Option<i64>,
+    /// 引用计数
+    pub ref_num: Option<i64>,
+    /// 状态
+    pub status: Option<String>,
+    /// 删除标记
+    pub del_flag: Option<String>,
+    /// 备注
+    pub remark: Option<String>,
+
+    /// 创建时间
+    pub create_time: Option<DateTime<FixedOffset>>,
+    /// 更新时间
+    pub update_time: Option<DateTime<FixedOffset>>,
 }
 
-impl ClothPrice {
+impl FromRow<'_, SqliteRow> for ClothPrice {
+    fn from_row(row: &'_ SqliteRow) -> std::result::Result<Self, sqlx::Error> {
+        Ok(Self {
+            price_id: row.try_get("price_id").unwrap_or_default(),
+            price_number: row.try_get("price_number").unwrap_or_default(),
+            order_type: row.try_get("order_type").unwrap_or_default(),
+            price_name: row.try_get("price_name").unwrap_or_default(),
+            price_value: row.try_get("price_value").unwrap_or_default(),
+            price_discount: row.try_get("price_discount").unwrap_or_default(),
+            order_num: row.try_get("order_num").unwrap_or_default(),
+            ref_num: row.try_get("ref_num").unwrap_or_default(),
+            status: row.try_get("status").unwrap_or_default(),
+            del_flag: row.try_get("del_flag").unwrap_or_default(),
+            remark: row.try_get("remark").unwrap_or_default(),
+            create_time: row.try_get("created_at").unwrap_or_default(),
+            update_time: row.try_get("updated_at").unwrap_or_default(),
+        })
+    }
+}
+
+impl Validator for ClothPrice {
     fn validate(&self) -> Result<()> {
-        if self.order_type.is_empty() {
+        if self.order_type.is_none() || self.order_type.as_ref().unwrap().trim().is_empty() {
             return Err(Error::with_details(
                 crate::error::ErrorKind::BadRequest,
                 "order_type cannot be empty",
             ));
         }
 
-        if self.price_name.is_empty() {
+        if self.price_name.is_none() || self.price_name.as_ref().unwrap().trim().is_empty() {
             return Err(Error::with_details(
                 crate::error::ErrorKind::BadRequest,
                 "price_name cannot be empty",
@@ -87,6 +121,35 @@ impl ClothPrice {
             ));
         }
         Ok(())
+    }
+}
+
+impl Curd for ClothPrice {
+    const COUNT_SQL: &'static str = "SELECT COUNT(*) FROM cloth_price WHERE del_flag = '0' ";
+    const QUERY_SQL: &'static str = "SELECT * FROM cloth_price WHERE del_flag = '0' ";
+    const BY_ID_SQL: &'static str = "SELECT * FROM cloth_price WHERE price_id = ?";
+    const DELETE_BATCH_SQL: &'static str =
+        "UPDATE cloth_price SET del_flag = '2' WHERE price_id IN (";
+    const ORDER_SQL: Option<&'static str> = Some(" ORDER BY ref_num DESC, order_num ASC ");
+
+    fn apply_filters<'a>(&'a self, builder: &mut QueryBuilder<'a, Sqlite>) {
+        if let Some(name) = &self.price_name {
+            builder
+                .push(" AND price_name LIKE ")
+                .push_bind(format!("%{}%", name));
+        }
+
+        if let Some(number) = &self.price_number {
+            builder
+                .push(" AND price_number LIKE ")
+                .push_bind(format!("%{}%", number));
+        }
+
+        if let Some(order_type) = &self.order_type {
+            builder
+                .push(" AND order_type = ")
+                .push_bind(format!("{}", order_type));
+        }
     }
 }
 
@@ -108,25 +171,14 @@ impl ClothPrice {
             .bind(&self.status)
             .bind(&self.del_flag)
             .bind(&self.remark)
-            .bind(self.created_at) // created_at
+            .bind(self.create_time) // created_at
             .fetch_one(pool)
             .await?;
         Ok(result) // 返回插入的 `price_id`
     }
 
-    /// 获取记录（根据 `price_id` 查询）
-    pub async fn get(pool: &Pool<Sqlite>, price_id: i64) -> Result<Option<ClothPrice>> {
-        let result =
-            sqlx::query_as::<_, ClothPrice>("SELECT * FROM cloth_price WHERE price_id = ?")
-                .bind(price_id)
-                .fetch_optional(pool)
-                .await?;
-
-        Ok(result)
-    }
-
     /// 更新记录
-    pub async fn update(&self, pool: &Pool<Sqlite>) -> Result<u64> {
+    pub async fn update(&self, tr: &mut Transaction<'_, Sqlite>) -> Result<u64> {
         let result = sqlx::query(
             "UPDATE cloth_price SET
                 price_number = ?,
@@ -141,19 +193,19 @@ impl ClothPrice {
                 updated_at = ?
             WHERE price_id = ?",
         )
-            .bind(&self.price_number)
-            .bind(&self.order_type)
-            .bind(&self.price_name)
-            .bind(self.price_value)
-            .bind(self.price_discount)
-            .bind(self.order_num)
-            .bind(self.ref_num)
-            .bind(&self.status)
-            .bind(&self.remark)
-            .bind(self.updated_at) // updated_at
-            .bind(self.price_id.unwrap())
-            .execute(pool)
-            .await?;
+        .bind(&self.price_number)
+        .bind(&self.order_type)
+        .bind(&self.price_name)
+        .bind(self.price_value)
+        .bind(self.price_discount)
+        .bind(self.order_num)
+        .bind(self.ref_num)
+        .bind(&self.status)
+        .bind(&self.remark)
+        .bind(self.update_time) // updated_at
+        .bind(self.price_id)
+        .execute(&mut **tr)
+        .await?;
 
         Ok(result.rows_affected())
     }
@@ -179,32 +231,8 @@ impl ClothPrice {
         Ok(())
     }
 
-    /// 删除记录
-    pub async fn delete_prices(pool: &Pool<Sqlite>, price_ids: &[i64]) -> Result<u64> {
-        if price_ids.is_empty() {
-            return Ok(0);
-        }
-
-        let mut query_builder = QueryBuilder::<Sqlite>::new(
-            "UPDATE cloth_price SET del_flag = '2' WHERE price_id IN (",
-        );
-
-        for (i, clothing_id) in price_ids.iter().enumerate() {
-            if i > 0 {
-                query_builder.push(", ");
-            }
-            query_builder.push_bind(clothing_id);
-        }
-
-        query_builder.push(")");
-
-        let query = query_builder.build();
-        let result = query.execute(pool).await?;
-
-        Ok(result.rows_affected())
-    }
-
     /// 获取特定状态的记录
+    #[allow(dead_code)]
     pub async fn get_by_status(pool: &Pool<Sqlite>, status: &str) -> Result<Vec<ClothPrice>> {
         let result = sqlx::query_as::<_, ClothPrice>("SELECT * FROM cloth_price WHERE status = ?")
             .bind(status)
@@ -213,9 +241,6 @@ impl ClothPrice {
 
         Ok(result)
     }
-}
-
-impl ClothPriceParam {
     /// 获取所有记录
     pub async fn list_by_order_type(
         pool: &Pool<Sqlite>,
@@ -229,83 +254,20 @@ impl ClothPriceParam {
 
         Ok(result)
     }
-
-    fn apply_cloth_price_filters<'a>(&'a self, query_builder: &mut QueryBuilder<'a, Sqlite>) {
-        if let Some(name) = &self.price_name {
-            query_builder
-                .push(" AND price_name LIKE ")
-                .push_bind(format!("%{}%", name));
-        }
-
-        if let Some(number) = &self.price_number {
-            query_builder
-                .push(" AND price_number LIKE ")
-                .push_bind(format!("%{}%", number));
-        }
-
-        if let Some(order_type) = &self.order_type {
-            query_builder
-                .push(" AND order_type = ")
-                .push_bind(format!("{}", order_type));
-        }
-    }
-
-    async fn count_clothing(&self, pool: &Pool<Sqlite>) -> Result<u64> {
-        let mut query_builder =
-            QueryBuilder::<Sqlite>::new("SELECT COUNT(*) FROM cloth_price WHERE del_flag = '0'");
-        self.apply_cloth_price_filters(&mut query_builder);
-        let query = query_builder.build_query_scalar::<u64>();
-        Ok(query.fetch_one(pool).await?)
-    }
-
-    pub async fn list_pagination(
-        &self,
-        pool: &Pool<Sqlite>,
-        page_params: PageParams,
-    ) -> Result<PageResult<ClothPrice>> {
-        let mut query_builder =
-            QueryBuilder::<Sqlite>::new("SELECT * FROM cloth_price WHERE del_flag = '0'");
-        self.apply_cloth_price_filters(&mut query_builder);
-        query_builder.push(" ORDER BY ref_num DESC, order_num ASC ");
-
-        query_builder
-            .push(" LIMIT ")
-            .push_bind(page_params.page_size);
-        query_builder
-            .push(" OFFSET ")
-            .push_bind((page_params.page - 1) * page_params.page_size);
-
-        let query = query_builder.build_query_as::<ClothPrice>();
-        let rows = query.fetch_all(pool).await?;
-        let total = self.count_clothing(pool).await?;
-        Ok(PageResult { total, rows })
-    }
-}
-
-fn generate_random_number() -> i32 {
-    // 使用随机种子初始化 StdRng
-    let seed = rand::random::<[u8; 32]>();
-    let mut rng = StdRng::from_seed(seed);
-
-    // 生成一个六位随机数
-    let range = Uniform::from(100000..=999999);
-    let random_number: i32 = rng.sample(&range);
-
-    random_number
 }
 
 #[tauri::command]
 pub async fn add_cloth_price(
-    state: State<'_, DbPool>,
+    state: State<'_, AppState>,
     mut cloth_price: ClothPrice,
 ) -> Result<ClothPrice> {
     cloth_price.validate()?;
 
     // gen number
-    cloth_price.price_number = format!("P-{}", generate_random_number());
+    cloth_price.price_number = Some(format!("P-{}", utils::gen_random_number()));
 
     // set create time
-    cloth_price.created_at = Some(Utc::now().with_timezone(&FixedOffset::east_opt(EAST_ZONE).unwrap()));
+    cloth_price.create_time = Some(utils::get_now());
 
     debug!("add cloth_price: {:?}", cloth_price);
     Ok(cloth_price.add(&state.0).await?)
@@ -313,15 +275,15 @@ pub async fn add_cloth_price(
 
 #[tauri::command]
 pub async fn get_cloth_price(
-    state: State<'_, DbPool>,
+    state: State<'_, AppState>,
     price_id: i64,
 ) -> Result<Option<ClothPrice>> {
-    ClothPrice::get(&state.0, price_id).await
+    ClothPrice::get_by_id(&state.0, price_id).await
 }
 
 #[tauri::command]
 pub async fn update_cloth_price(
-    state: State<'_, DbPool>,
+    state: State<'_, AppState>,
     mut cloth_price: ClothPrice,
 ) -> Result<u64> {
     if cloth_price.price_id.is_none() || cloth_price.price_id == Some(0) {
@@ -333,14 +295,17 @@ pub async fn update_cloth_price(
 
     cloth_price.validate()?;
 
-    cloth_price.updated_at = Some(Utc::now().with_timezone(&FixedOffset::east_opt(EAST_ZONE).unwrap()));
+    cloth_price.update_time = Some(utils::get_now());
 
-    cloth_price.update(&state.0).await
+    let mut tr = state.0.begin().await?;
+    let i = cloth_price.update(&mut tr).await?;
+    tr.commit().await?;
+    Ok(i)
 }
 
 #[tauri::command]
 pub async fn update_cloth_price_status(
-    state: State<'_, DbPool>,
+    state: State<'_, AppState>,
     price_id: i64,
     status: String,
 ) -> Result<u64> {
@@ -351,18 +316,21 @@ pub async fn update_cloth_price_status(
         ));
     }
 
-    let mut cloth_price = ClothPrice::get(&state.0, price_id).await?.unwrap();
+    let mut cloth_price = ClothPrice::get_by_id(&state.0, price_id).await?.unwrap();
 
-    cloth_price.updated_at = Some(Utc::now().with_timezone(&FixedOffset::east_opt(EAST_ZONE).unwrap()));
-    cloth_price.status = status;
+    cloth_price.update_time = Some(utils::get_now());
+    cloth_price.status = Some(status);
 
     debug!("update cloth_price: {:?}", cloth_price);
-    cloth_price.update(&state.0).await
+    let mut tr = state.0.begin().await?;
+    let i = cloth_price.update(&mut tr).await?;
+    tr.commit().await?;
+    Ok(i)
 }
 
 #[tauri::command]
 pub async fn update_cloth_price_ref_num(
-    state: State<'_, DbPool>,
+    state: State<'_, AppState>,
     ref_num: i64,
     cloth_price_ids: Vec<i64>,
 ) -> Result<()> {
@@ -370,23 +338,26 @@ pub async fn update_cloth_price_ref_num(
 }
 
 #[tauri::command]
-pub async fn delete_cloth_prices(state: State<'_, DbPool>, price_ids: Vec<i64>) -> Result<u64> {
-    ClothPrice::delete_prices(&state.0, &price_ids).await
+pub async fn delete_cloth_prices(state: State<'_, AppState>, price_ids: Vec<i64>) -> Result<bool> {
+    let mut tr = state.0.begin().await?;
+    let result = ClothPrice::delete_batch(&mut tr, &price_ids).await?;
+    tr.commit().await?;
+    Ok(result)
 }
 
 #[tauri::command]
 pub async fn list_cloth_prices_by_order_type(
-    state: State<'_, DbPool>,
+    state: State<'_, AppState>,
     order_type: String,
 ) -> Result<Vec<ClothPrice>> {
-    ClothPriceParam::list_by_order_type(&state.0, order_type).await
+    ClothPrice::list_by_order_type(&state.0, order_type).await
 }
 
 #[tauri::command]
 pub async fn list_cloth_prices_pagination(
-    state: State<'_, DbPool>,
+    state: State<'_, AppState>,
     page_params: PageParams,
-    cloth_price: ClothPriceParam,
+    cloth_price: ClothPrice,
 ) -> Result<PageResult<ClothPrice>> {
-    cloth_price.list_pagination(&state.0, page_params).await
+    cloth_price.get_list(&state.0, page_params).await
 }

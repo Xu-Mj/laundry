@@ -1,6 +1,6 @@
 use tauri::menu::{Menu, MenuItem, Submenu};
-use tauri::{Manager, Runtime};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
+use tauri::{Manager, Runtime};
 
 #[tauri::command]
 pub fn update_tray_menu(app: &tauri::AppHandle, status: bool) -> tauri::Result<()> {

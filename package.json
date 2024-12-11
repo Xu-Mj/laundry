@@ -9,8 +9,7 @@
     "dev": "vite",
     "build:prod": "vite build",
     "build:stage": "vite build --mode staging",
-    "preview": "vite preview",
-    "electron": "electron ."
+    "preview": "vite preview"
   },
   "repository": {
     "type": "git",
@@ -37,15 +36,13 @@
     "segmentit": "^2.0.3",
     "vue": "3.4.31",
     "vue-cropper": "1.1.1",
-    "vue-router": "4.4.0"
+    "vue-router": "4.4.0",
+    "yarn": "^1.22.22"
   },
   "devDependencies": {
     "@tauri-apps/api": "^2.0.3",
     "@tauri-apps/cli": "^2",
     "@vitejs/plugin-vue": "5.0.5",
-    "electron": "^32.0.1",
-    "electron-builder": "^24.13.3",
-    "electron-devtools-installer": "^3.2.0",
     "sass": "1.77.5",
     "unplugin-auto-import": "0.17.6",
     "unplugin-vue-setup-extend-plus": "1.0.1",

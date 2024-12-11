@@ -75,14 +75,14 @@
                     <el-table-column label="衣物瑕疵" align="center" prop="clothingFlaw">
                         <template #default="scope">
                             <el-tag v-for="tagId in scope.row.clothingFlaw ? scope.row.clothingFlaw.split(',') : []"
-                                :key="item" type="danger">
+                                :key="tagId" type="danger">
                                 {{ flawList.find(item => item.tagId == tagId).tagName }}
                             </el-tag>
                         </template>
                     </el-table-column>
                     <el-table-column label="洗后预估" align="center" prop="estimate">
                         <template #default="scope">
-                            <el-tag v-for="tagId in scope.row.estimate ? scope.row.estimate.split(',') : []" :key="item"
+                            <el-tag v-for="tagId in scope.row.estimate ? scope.row.estimate.split(',') : []" :key="tagId"
                                 type="primary">
                                 {{ estimateList.find(item => item.tagId == tagId).tagName }}
                             </el-tag>
@@ -132,7 +132,7 @@
             <el-button @click="handlePay">取衣收款</el-button>
             <el-button @click="handleDelivery">上门派送</el-button>
             <el-button @click="handleReWash">售后复洗</el-button>
-            <el-button @click="">补打小票</el-button>
+            <el-button @click="() => {}">补打小票</el-button>
         </template>
     </el-dialog>
 
@@ -1059,7 +1059,10 @@ async function getList() {
     loading.value = true;
     ordersList.value = await selectListExceptCompleted(queryParams.value);
 
-    if (ordersList.value.length === 0) return;
+    if (ordersList.value.length === 0) {
+        proxy.$modal.msgWarning('没有找到相关订单');
+    return;
+    } 
 
     // 查询用户信息
     getUser(ordersList.value[0].userId).then(res => {
@@ -1077,7 +1080,7 @@ async function getList() {
     for (const item of ordersList.value) {
         item.loading = true;
 
-        item.clothList = await listCloths({ orderClothId: item.orderId });
+        item.clothList = await listCloths({ orderId: item.orderId });
         item.loading = false;
 
         let price = 0;
@@ -1150,6 +1153,14 @@ function handleQuery() {
         isEmpty(queryParams.value.orderNumber)) {
         ordersList.value = []
         return;
+    }
+
+    // check tel surfix
+    if (!isEmpty(queryParams.value.phonenumber)) {
+        if(queryParams.value.phonenumber.length < 4) {
+            proxy.$modal.msgError('请输入正确的手机后四位,或完整的手机号');
+            return;
+        }
     }
     getList();
 }
@@ -1238,13 +1249,13 @@ onMounted(async () => {
 
     :last-child {
         display: flex;
-        gap: .5rem
+        gap: .5rem;
     }
 }
 
 .address {
     display: flex;
-    gap: 2rem
+    gap: 2rem;
 }
 
 .coupon-times {

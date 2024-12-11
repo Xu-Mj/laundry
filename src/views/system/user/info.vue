@@ -44,7 +44,7 @@
             <!-- 会员等级 -->
             <div class="detail-item">
                 <span class="detail-label">会员等级:</span>
-                <span>{{ user.postName }}</span>
+                <span>{{ user.levelName }}</span>
             </div>
             <!-- 会员画像 -->
             <div class="detail-item">

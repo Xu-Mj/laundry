@@ -57,7 +57,7 @@ const menus = ref([
   { 'name': '交期预警', 'type': 'warning', show: false },
   { 'name': '派送提醒', 'type': 'primary', show: false },
   { 'name': '卡券销售', 'type': 'primary', show: true, onClick: () => { showCouponSale.value = true } },
-  { 'name': '卡券赠送', 'type': 'primary', show: true, onClick: () => { showCouponGift.value = true } },
+  { 'name': '卡券赠送', 'type': 'primary', show: false, onClick: () => { showCouponGift.value = true } },
   { 'name': '收款', 'type': 'primary', show: false },
   { 'name': '撤单处理', 'type': 'danger', show: false },
   { 'name': '新增会员', 'type': 'primary', show: true, onClick: () => { showAddUserDialog.value = true } },

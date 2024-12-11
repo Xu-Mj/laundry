@@ -1,5 +1,4 @@
-import request from '@/utils/request';
-import {invoke} from '@tauri-apps/api/core'
+import invoke from '@/utils/invoke'
 
 // 查询字典类型列表
 export function listType(query) {
@@ -32,18 +31,7 @@ export function delType(dictId) {
   return invoke('delete_dict_types', { ids: [].concat(dictId) })
 }
 
-// 刷新字典缓存
-export function refreshCache() {
-  return request({
-    url: '/system/dict/type/refreshCache',
-    method: 'delete'
-  })
-}
-
 // 获取字典选择框列表
 export function optionselect() {
-  return request({
-    url: '/system/dict/type/optionselect',
-    method: 'get'
-  })
+  return invoke('get_dict_type_all', { dictType: {} })
 }

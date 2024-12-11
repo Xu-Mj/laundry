@@ -16,8 +16,8 @@ export function listUserCouponNoPage(query) {
 }
 
 // 查询用户卡券列表
-export function listUserCouponWithValidTime() {
-  return invoke('get_user_coupons4sale')
+export function listUserCouponWithValidTime(userId) {
+  return invoke('get_user_coupons4sale', { userId })
 }
 
 // 查询用户卡券详细

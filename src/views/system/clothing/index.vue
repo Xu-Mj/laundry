@@ -11,7 +11,7 @@
         <el-input v-model="queryParams.clothingNumber" placeholder="请输入衣物编码" clearable @keyup.enter="handleQuery" />
       </el-form-item>
       <el-form-item label="衣物名称" prop="clothingName">
-        <el-input v-model="queryParams.clothingName" placeholder="请输入衣物名称，如：羽绒服、运动鞋、貂等" clearable
+        <el-input v-model="queryParams.clothingName" placeholder="请输入衣物名称" clearable
           @keyup.enter="handleQuery" />
       </el-form-item>
       <el-form-item>

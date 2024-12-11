@@ -1186,7 +1186,8 @@ onMounted(async () => {
 
 .item-list-area {
     width: 100%;
-    max-height: 3rem;
+    max-height: 6rem;
+    overflow-y: auto;
 }
 
 

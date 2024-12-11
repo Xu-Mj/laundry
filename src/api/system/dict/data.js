@@ -1,5 +1,4 @@
-import request from '@/utils/request'
-import { invoke } from '@tauri-apps/api/core'
+import invoke from '@/utils/invoke'
 
 // 查询字典数据列表
 export function listData(query) {

@@ -135,10 +135,10 @@
                   <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)"
                      v-hasPermi="['system:user:remove']"></el-button>
                </el-tooltip>
-               <el-tooltip content="兑换" placement="top">
+               <!-- <el-tooltip content="兑换" placement="top">
                   <el-button link type="primary" icon="Shop" @click=""
                      v-hasPermi="['system:user:resetPwd']"></el-button>
-               </el-tooltip>
+               </el-tooltip> -->
                <el-tooltip content="重置密码" placement="top">
                   <el-button link type="primary" icon="Key" @click="handleResetPwd(scope.row)"
                      v-hasPermi="['system:user:resetPwd']"></el-button>
@@ -344,11 +344,6 @@ const data = reactive({
 
 const { queryParams, form, rules } = toRefs(data);
 
-/** 根据名称筛选组织树 */
-watch(deptName, val => {
-   proxy.$refs["deptTreeRef"].filter(val);
-});
-
 /** 查询会员列表 */
 function getList() {
    loading.value = true;
@@ -382,6 +377,18 @@ function resetQuery() {
 
 /** 删除按钮操作 */
 function handleDelete(row) {
+   if(row && row.balance > 0) {
+      proxy.$modal.msgWarning("会员余额大于0，无法删除！");
+      return;
+   } else if(!row && ids.value.length > 0) {
+      // query user list by ids
+      if (userList.value.filter(item => ids.value.contains(item.userId)).filter(item => item.balance > 0).length > 0) {
+         proxy.$modal.msgWarning("存在会员余额大于0的用户，无法删除！");
+         return;
+      }
+   }
+
+
    const userIds = row.userId || ids.value;
    proxy.$modal.confirm('是否确认删除会员编号为"' + userIds + '"的数据项？').then(function () {
       return delUser(userIds);
@@ -436,6 +443,7 @@ function reset() {
       userId: undefined,
       deptId: undefined,
       userName: undefined,
+      userType: "01",
       nickName: undefined,
       password: undefined,
       phonenumber: undefined,
@@ -465,13 +473,6 @@ function getPostList() {
 /** 新增按钮操作 */
 function handleAdd() {
    reset();
-   // getUser().then(response => {
-   //    postOptions.value = response.posts;
-   //    roleOptions.value = response.roles;
-   //    open.value = true;
-   //    title.value = "添加会员";
-   //    form.value.password = initPassword.value;
-   // });
    open.value = true;
 };
 

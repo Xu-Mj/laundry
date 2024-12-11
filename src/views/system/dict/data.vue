@@ -36,10 +36,10 @@
             <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleDelete"
                v-hasPermi="['system:dict:remove']">删除</el-button>
          </el-col>
-         <el-col :span="1.5">
+         <!-- <el-col :span="1.5">
             <el-button type="warning" plain icon="Download" @click="handleExport"
                v-hasPermi="['system:dict:export']">导出</el-button>
-         </el-col>
+         </el-col> -->
          <el-col :span="1.5">
             <el-button type="warning" plain icon="Close" @click="handleClose">关闭</el-button>
          </el-col>
@@ -68,7 +68,7 @@
          <el-table-column label="备注" align="center" prop="remark" :show-overflow-tooltip="true" />
          <el-table-column label="创建时间" align="center" prop="createTime" width="180">
             <template #default="scope">
-               <span>{{ parseTime(scope.row.createTime) }}</span>
+               <span>{{ formatTime(scope.row.createTime) }}</span>
             </template>
          </el-table-column>
          <el-table-column label="操作" align="center" width="160" class-name="small-padding fixed-width">

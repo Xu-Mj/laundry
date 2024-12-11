@@ -493,7 +493,7 @@ const handleBlur = (event) => {
 
 /* 卡券购买完成后的回调，重新获取卡券列表 */
 function submitCouponSale() {
-    listUserCouponWithValidTime({ userId: form.value.userId }).then(response => {
+    listUserCouponWithValidTime(form.value.userId).then(response => {
         userCouponList.value = response;
         userCouponList.value.filter(item => item.coupon.couponType == '002').map(item => {
             item.selected = false;
@@ -982,7 +982,7 @@ function handleUpdate() {
         userListRes.value = userList.value;
     });
     // 获取用户卡券列表
-    listUserCouponWithValidTime({ userId: currentUserId.value }).then(response => {
+    listUserCouponWithValidTime(currentUserId.value).then(response => {
         userCouponList.value = response;
         userCouponList.value.filter(item => item.coupon.couponType == '002').map(item => {
             item.selected = false;
@@ -1014,7 +1014,7 @@ async function submitForm() {
                         nickName: form.value.nickName
                     });
 
-                    form.value.userId = res.user_id; // 设置返回的用户ID
+                    form.value.userId = res.userId; // 设置返回的用户ID
                 } catch (err) {
                     proxy.$modal.msgError(err);
                     return; // 当 addUser 出错时，中断执行
@@ -1064,8 +1064,14 @@ function createAndPay() {
                         phonenumber: form.value.userId,
                         nickName: form.value.nickName
                     });
+                    // 重新拉取用户列表
+                    await listUserWithNoLimit().then(res => {
+                        userList.value = res;
+                    });
 
-                    await listUserCouponWithValidTime({ userId: form.value.userId }).then(response => {
+                    form.value.userId = res.userId; // 设置返回的用户ID
+
+                    await listUserCouponWithValidTime(form.value.userId).then(response => {
                         userCouponList.value = response;
                         userCouponList.value.filter(item => item.coupon.couponType == '002').map(item => {
                             item.selected = false;
@@ -1073,12 +1079,7 @@ function createAndPay() {
                         });
                         couponTypeList.value = new Set(userCouponList.value.map(coupon => coupon.coupon.couponType));
                     });
-                    // 重新拉取用户列表
-                    await listUserWithNoLimit().then(res => {
-                        userList.value = res;
-                    });
-
-                    form.value.userId = res.user_id; // 设置返回的用户ID
+                    
                 } catch (err) {
                     proxy.$modal.msgError(err);
                     return; // 当 addUser 出错时，中断执行
@@ -1148,7 +1149,7 @@ function searchUserByTel(tel) {
             form.value.nickName = userListRes.value[0].nickName;
             form.value.userId = userListRes.value[0].userId;
             // 查询会员卡券信息
-            listUserCouponWithValidTime({ userId: form.value.userId }).then(response => {
+            listUserCouponWithValidTime(form.value.userId).then(response => {
                 userCouponList.value = response;
                 userCouponList.value.filter(item => item.coupon.couponType == '002').map(item => {
                     item.selected = false;
@@ -1167,11 +1168,12 @@ function selectUser(userId) {
         form.value.nickName = null;
         return;
     }
+    console.log(userId);
     currentUserId.value = userId;
     const item = userList.value.find(item => { return item.userId === userId });
     form.value.nickName = item.nickName;
     // 查询会员卡券信息
-    listUserCouponWithValidTime({ userId: userId }).then(response => {
+    listUserCouponWithValidTime(userId).then(response => {
         userCouponList.value = response;
         userCouponList.value.filter(item => item.coupon.couponType == '002').map(item => {
             item.selected = false;

@@ -5,7 +5,7 @@
   "identifier": "com.tauri-local.dev",
   "build": {
     "frontendDist": "../dist",
-    "devUrl": "http://localhost:80",
+    "devUrl": "http://localhost:8090",
     "beforeDevCommand": "yarn dev",
     "beforeBuildCommand": "yarn build:prod"
   },
@@ -13,8 +13,8 @@
     "windows": [
       {
         "title": "Tauri",
-        "width": 1920,
-        "height": 800,
+        "width": 2160,
+        "height": 1080,
         "resizable": true,
         "fullscreen": false
       }
@@ -33,7 +33,8 @@
     },
     "resources": [
       "config.yml",
-      "database.db"
+      "database.db",
+      "MSYH.TTC"
     ],
     "active": true,
     "targets": "all",

@@ -199,20 +199,23 @@ impl NoticeTemp {
 
 impl NoticeRecord {
     // insert
-    pub async fn create(self, pool: &Pool<Sqlite>) -> Result<Self> {
-        let result = sqlx::query_as("INSERT INTO notice_record (user_id, order_number, notice_method, notice_type, notice_time, title, content, result, remark) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
+    pub async fn create(&mut self, tx: &mut Transaction<'_, Sqlite>) -> Result<()> {
+        let result = sqlx::query(
+            "INSERT INTO notice_record (user_id, order_number, notice_method, notice_type, notice_time, title, content, result, remark)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
             .bind(self.user_id)
-            .bind(self.order_number)
-            .bind(self.notice_method)
-            .bind(self.notice_type)
+            .bind(&self.order_number)
+            .bind(&self.notice_method)
+            .bind(&self.notice_type)
             .bind(self.notice_time)
-            .bind(self.title)
-            .bind(self.content)
-            .bind(self.result)
-            .bind(self.remark)
-            .fetch_one(pool)
+            .bind(&self.title)
+            .bind(&self.content)
+            .bind(&self.result)
+            .bind(&self.remark)
+            .execute(&mut **tx)
             .await?;
-        Ok(result)
+        self.notice_id = Some(result.last_insert_rowid());
+        Ok(())
     }
 
     // 批量插入

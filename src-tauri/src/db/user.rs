@@ -386,7 +386,7 @@ impl User {
 
     /// check account exist
     pub async fn check_user_name_unique(pool: &Pool<Sqlite>, user_name: &str) -> Result<bool> {
-        let result = sqlx::query_scalar::<_, u64>("SELECT count(1) FROM users WHERE user_name = ?")
+        let result = sqlx::query_scalar::<_, u64>("SELECT count(1) FROM users WHERE del_flag = '0' AND user_name = ?")
             .bind(user_name)
             .fetch_one(pool)
             .await?;
@@ -396,7 +396,7 @@ impl User {
 
     pub async fn check_tel_unique(pool: &Pool<Sqlite>, tel: &str) -> Result<bool> {
         let result =
-            sqlx::query_scalar::<_, u64>("SELECT count(1) FROM users WHERE phonenumber = ?")
+            sqlx::query_scalar::<_, u64>("SELECT count(1) FROM users WHERE del_flag = '0' AND phonenumber = ?")
                 .bind(tel)
                 .fetch_one(pool)
                 .await?;
@@ -555,9 +555,9 @@ impl User {
         }
 
         // delete user coupons
-        if !UserCoupon::delete_by_user_ids(&mut tr, &ids).await? {
-            return Err(Error::internal("delete user coupons failed"));
-        }
+        // if !UserCoupon::delete_by_user_ids(&mut tr, &ids).await? {
+        //     return Err(Error::internal("delete user coupons failed"));
+        // }
 
         tr.commit().await?;
         Ok(true)

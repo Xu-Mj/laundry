@@ -154,9 +154,9 @@ impl Coupon {
 }
 
 impl Curd for Coupon {
-    const COUNT_SQL: &'static str = "SELECT COUNT(*) FROM coupons WHERE 1=1 ";
-    const QUERY_SQL: &'static str = "SELECT * FROM coupons WHERE 1=1 ";
-    const BY_ID_SQL: &'static str = "SELECT * FROM coupons WHERE coupon_id = ?";
+    const COUNT_SQL: &'static str = "SELECT COUNT(*) FROM coupons WHERE del_flag = '0' ";
+    const QUERY_SQL: &'static str = "SELECT * FROM coupons WHERE del_flag = '0' ";
+    const BY_ID_SQL: &'static str = "SELECT * FROM coupons WHERE del_flag = '0' AND coupon_id = ?";
     const DELETE_BATCH_SQL: &'static str = "UPDATE coupons SET del_flag = '2' WHERE coupon_id IN (";
 
     fn apply_filters<'a>(&'a self, builder: &mut QueryBuilder<'a, Sqlite>) {
@@ -407,10 +407,10 @@ impl Coupon {
 
 impl Coupon {
     pub async fn insert(&mut self, tr: &mut Transaction<'_, Sqlite>) -> Result<Self> {
-        self.validate()?;
         // gen number
         let number = utils::gen_code(self.coupon_title.clone().unwrap());
         self.coupon_number = Some(format!("{number}-{}", Utc::now().timestamp_subsec_millis()));
+        self.del_flag = Some("0".to_string());
 
         Ok(self.add(tr).await?)
     }

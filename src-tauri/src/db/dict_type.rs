@@ -36,7 +36,7 @@ impl FromRow<'_, SqliteRow> for DictType {
 }
 
 impl Curd for DictType {
-    const COUNT_SQL: &'static str = "SELECT COUNT(1) FROM dict_type ";
+    const COUNT_SQL: &'static str = "SELECT COUNT(1) FROM dict_type WHERE 1=1 ";
     const QUERY_SQL: &'static str = "SELECT * FROM dict_type WHERE 1=1 ";
     const BY_ID_SQL: &'static str = "SELECT * FROM dict_type WHERE dict_id = ?";
     const DELETE_BATCH_SQL: &'static str = "DELETE FROM dict_type WHERE dict_id IN ( ";

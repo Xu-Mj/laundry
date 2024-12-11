@@ -941,6 +941,7 @@ impl OrderCloth {
         let is_all_hanged = OrderCloth::get_by_order_id(pool, order.order_id.unwrap())
             .await?
             .iter()
+            .filter(|c| c.cloth_id != cloth.cloth_id)
             .all(|c| c.clothing_status == Some(CLOTH_STATUS_HANGED.to_string()));
 
         // handle order status and message sending
@@ -988,6 +989,7 @@ impl OrderCloth {
             if let Some(tel) = &order.phonenumber {
                 if let Some(code) = &order.pickup_code {
                     Self::send_pickup_msg(
+                        tr,
                         pool,
                         code,
                         tel,
@@ -1003,6 +1005,7 @@ impl OrderCloth {
     }
 
     async fn send_pickup_msg(
+        tx: &mut Transaction<'_, Sqlite>,
         pool: &Pool<Sqlite>,
         code: &str,
         tel: &str,
@@ -1046,9 +1049,10 @@ impl OrderCloth {
         };
 
         record.result = Some(result);
-        record.create(pool).await?;
+        record.create(tx).await?;
         Ok(())
     }
+
     /// clothes may be in different orders
     pub async fn pickup(pool: &Pool<Sqlite>, ids: &[i64]) -> Result<()> {
         let mut tr = pool.begin().await?;
@@ -1155,6 +1159,7 @@ mod tests {
         send_sms("+8617863935638", Some(params)).unwrap();
     }
 }
+
 #[tauri::command]
 pub async fn list_order_clothes_history(
     state: State<'_, AppState>,

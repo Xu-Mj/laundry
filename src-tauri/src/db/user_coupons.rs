@@ -121,13 +121,13 @@ impl UserCoupon {
         Ok(result)
     }
 
-    #[allow(dead_code)]
-    pub async fn find_valid_time(pool: &Pool<Sqlite>) -> Result<Vec<Self>> {
+    pub async fn find_valid_time_by_user_id(pool: &Pool<Sqlite>, user_id: i64) -> Result<Vec<Self>> {
         let result = sqlx::query_as(&format!(
-            "{SQL} WHERE datetime('now') BETWEEN c.valid_from AND c.valid_to
-                  AND c.available_value > 0
-                  AND c.uc_count > 0;"
+            "{SQL} WHERE uc.user_id = ? AND datetime('now') BETWEEN c.valid_from AND c.valid_to
+                  AND uc.available_value > 0
+                  AND uc.uc_count > 0;"
         ))
+        .bind(user_id)
         .fetch_all(pool)
         .await?;
         Ok(result)
@@ -202,6 +202,7 @@ impl UserCoupon {
     }
 
     // Delete operation
+    #[allow(dead_code)]
     pub async fn delete_by_user_ids(
         tx: &mut Transaction<'_, Sqlite>,
         user_ids: &[i64],
@@ -219,6 +220,7 @@ impl UserCoupon {
     }
 
     // Get all user coupons
+    #[allow(dead_code)]
     pub async fn find_all(pool: &Pool<Sqlite>) -> Result<Vec<UserCoupon>> {
         let result = sqlx::query_as(SQL).fetch_all(pool).await?;
 
@@ -248,8 +250,11 @@ pub async fn get_user_coupons(state: State<'_, AppState>, user_id: i64) -> Resul
 }
 
 #[tauri::command]
-pub async fn get_user_coupons4sale(state: State<'_, AppState>) -> Result<Vec<UserCoupon>> {
-    UserCoupon::find_all(&state.0).await
+pub async fn get_user_coupons4sale(
+    state: State<'_, AppState>,
+    user_id: i64,
+) -> Result<Vec<UserCoupon>> {
+    UserCoupon::find_valid_time_by_user_id(&state.0, user_id).await
 }
 
 #[tauri::command]

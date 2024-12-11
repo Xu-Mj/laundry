@@ -265,6 +265,15 @@ impl Order {
                     .push_bind(format!("%{}%", n))
             });
 
+        self.phonenumber
+            .as_ref()
+            .filter(|p| !p.is_empty())
+            .map(|p| {
+                query_builder
+                    .push(" AND u.phonenumber LIKE ")
+                    .push_bind(format!("%{}%", p))
+            });
+
         self.business_type
             .as_ref()
             .filter(|business_type| !business_type.is_empty())

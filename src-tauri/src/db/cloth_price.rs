@@ -55,8 +55,8 @@ impl FromRow<'_, SqliteRow> for ClothPrice {
             status: row.try_get("status").unwrap_or_default(),
             del_flag: row.try_get("del_flag").unwrap_or_default(),
             remark: row.try_get("remark").unwrap_or_default(),
-            create_time: row.try_get("created_at").unwrap_or_default(),
-            update_time: row.try_get("updated_at").unwrap_or_default(),
+            create_time: row.try_get("create_time").unwrap_or_default(),
+            update_time: row.try_get("update_time").unwrap_or_default(),
         })
     }
 }
@@ -120,7 +120,7 @@ impl ClothPrice {
     /// 插入记录
     pub async fn add(self, pool: &Pool<Sqlite>) -> Result<Self> {
         let result = sqlx::query_as::<_, ClothPrice>(
-            "INSERT INTO cloth_price (price_number, order_type, price_name, price_value, price_discount, order_num, ref_num, status, del_flag, remark, created_at)
+            "INSERT INTO cloth_price (price_number, order_type, price_name, price_value, price_discount, order_num, ref_num, status, del_flag, remark, create_time)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             RETURNING *"
         )
@@ -134,7 +134,7 @@ impl ClothPrice {
             .bind(&self.status)
             .bind(&self.del_flag)
             .bind(&self.remark)
-            .bind(self.create_time) // created_at
+            .bind(self.create_time) // create_time
             .fetch_one(pool)
             .await?;
         Ok(result) // 返回插入的 `price_id`
@@ -153,7 +153,7 @@ impl ClothPrice {
                 ref_num = ?,
                 status = ?,
                 remark = ?,
-                updated_at = ?
+                update_time = ?
             WHERE price_id = ?",
         )
         .bind(&self.price_number)
@@ -165,7 +165,7 @@ impl ClothPrice {
         .bind(self.ref_num)
         .bind(&self.status)
         .bind(&self.remark)
-        .bind(self.update_time) // updated_at
+        .bind(self.update_time) // update_time
         .bind(self.price_id)
         .execute(&mut **tr)
         .await?;
@@ -210,7 +210,7 @@ impl ClothPrice {
         order_type: String,
     ) -> Result<Vec<ClothPrice>> {
         let result =
-            sqlx::query_as::<_, ClothPrice>("SELECT * FROM cloth_price where order_type = ?")
+            sqlx::query_as::<_, ClothPrice>("SELECT * FROM cloth_price WHERE status = '0' AND del_flag = '0' AND order_type = ?")
                 .bind(&order_type)
                 .fetch_all(pool)
                 .await?;

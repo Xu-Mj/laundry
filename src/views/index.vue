@@ -95,7 +95,7 @@ function cancel(done) {
 <style scoped lang="scss">
 .app-container {
   width: 100%;
-  height: calc(100vh - 84px);
+  height: calc(100vh - 114px);
   background-color: #efeeee;
   overflow-y: auto;
 }

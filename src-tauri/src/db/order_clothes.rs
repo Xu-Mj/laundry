@@ -1235,3 +1235,52 @@ pub async fn hang_order_cloth(state: State<'_, AppState>, hang_req: HangReq) -> 
 pub async fn delete_order_cloth_by_ids(state: State<'_, AppState>, ids: Vec<i64>) -> Result<u64> {
     OrderCloth::delete_by_ids(&state.0, &ids).await
 }
+
+/// 上传衣物图片
+#[tauri::command]
+pub async fn upload_cloth_pic(
+    state: State<'_, AppState>,
+    filename: String,
+    cloth_id: i64,
+    is_pre: bool,
+) -> Result<Option<i64>> {
+    let pool = &state.0;
+    // query cloth information by cloth id
+    let mut cloth = OrderCloth::get_by_id(pool, cloth_id)
+        .await?
+        .ok_or(Error::not_found("衣物不存在"))?;
+
+    let mut tx = pool.begin().await?;
+    // insert into database for pic
+    let picture = OrderPicture::new_with_path(filename)
+        .insert(&mut tx)
+        .await?;
+
+    if is_pre {
+        if let Some(pic_id) = picture.picture_id {
+            if let Some(ref mut pics) = cloth.before_pics {
+                // 根据逗号进行切割，然后将新的picture id push进去
+                pics.push(',');
+                pics.push_str(&pic_id.to_string());
+            } else {
+                cloth.before_pics = Some(pic_id.to_string());
+            }
+        }
+    } else {
+        if let Some(pic_id) = picture.picture_id {
+            if let Some(ref mut pics) = cloth.after_pics {
+                // 根据逗号进行切割，然后将新的picture id push进去
+                pics.push(',');
+                pics.push_str(&pic_id.to_string());
+            } else {
+                cloth.after_pics = Some(pic_id.to_string());
+            }
+        }
+    }
+
+    if !cloth.update(&mut tx).await? {
+        return Err(Error::internal("衣物照片信息更新失败"));
+    }
+    tx.commit().await?;
+    Ok(picture.picture_id)
+}

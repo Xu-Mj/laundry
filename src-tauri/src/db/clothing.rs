@@ -150,7 +150,10 @@ impl Clothing {
     }
 
     // 增加ref_num
-    pub async fn increment_ref_num(tx: &mut Transaction<'_, Sqlite>, clothing_id: i64) -> Result<bool> {
+    pub async fn increment_ref_num(
+        tx: &mut Transaction<'_, Sqlite>,
+        clothing_id: i64,
+    ) -> Result<bool> {
         let result = sqlx::query(
             "UPDATE clothing SET clothing_degree = clothing_degree + 1 WHERE clothing_id = ? RETURNING *",
         )
@@ -158,7 +161,7 @@ impl Clothing {
         .execute(&mut **tx)
         .await?;
 
-        Ok(result.rows_affected()>0)
+        Ok(result.rows_affected() > 0)
     }
 
     // 增加ref_num

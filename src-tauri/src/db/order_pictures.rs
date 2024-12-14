@@ -1,5 +1,6 @@
 use crate::db::order_clothes::OrderCloth;
 use crate::error::{Error, ErrorKind, Result};
+use crate::utils;
 use serde::{Deserialize, Serialize};
 use sqlx::types::chrono::{DateTime, FixedOffset};
 use sqlx::{FromRow, Pool, Sqlite, Transaction};
@@ -15,7 +16,16 @@ pub struct OrderPicture {
 }
 
 impl OrderPicture {
-    #[allow(dead_code)]
+    pub fn new_with_path(picture_path: String) -> Self {
+        Self {
+            picture_path: Some(picture_path),
+            create_time: Some(utils::get_now()),
+            ..Default::default()
+        }
+    }
+}
+
+impl OrderPicture {
     pub async fn insert(&self, tr: &mut Transaction<'_, Sqlite>) -> Result<Self> {
         let query = "
             INSERT INTO order_pictures (picture_path, create_by, create_time)

@@ -226,7 +226,7 @@ impl LoginReq {
             let password = utils::hash_password(password.as_bytes(), PWD_SALT)?;
             let mut user = LocalUser::new(username.clone(), password);
             user.avatar = Some(String::from(
-                "https://music.apple.com/cn/artist/%E5%BC%A0%E6%B3%BD%E7%86%99/1448667556",
+                "../assets/images/avatar1.png",
             ));
             user.account = Some(username);
             user.role = Some(String::from("admin"));
@@ -240,7 +240,7 @@ impl LoginReq {
 pub static LOGIN_USER: Lazy<Mutex<Option<LocalUser>>> = Lazy::new(|| Mutex::new(None));
 
 #[tauri::command]
-pub async fn login(state: tauri::State<'_, AppState>, req: LoginReq) -> Result<Token> {
+pub async fn login(state: State<'_, AppState>, req: LoginReq) -> Result<Token> {
     let token = req.login(&state.0).await?;
     {
         *LOGIN_USER.lock().unwrap() = Some(token.user.clone());

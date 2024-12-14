@@ -209,11 +209,12 @@ impl ClothPrice {
         pool: &Pool<Sqlite>,
         order_type: String,
     ) -> Result<Vec<ClothPrice>> {
-        let result =
-            sqlx::query_as::<_, ClothPrice>("SELECT * FROM cloth_price WHERE status = '0' AND del_flag = '0' AND order_type = ?")
-                .bind(&order_type)
-                .fetch_all(pool)
-                .await?;
+        let result = sqlx::query_as::<_, ClothPrice>(
+            "SELECT * FROM cloth_price WHERE status = '0' AND del_flag = '0' AND order_type = ?",
+        )
+        .bind(&order_type)
+        .fetch_all(pool)
+        .await?;
 
         Ok(result)
     }

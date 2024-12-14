@@ -68,7 +68,9 @@ async fn main() {
     start_cleanup_thread();
 
     create_app(
-        tauri::Builder::default().plugin(tauri_plugin_fs::init()),
+        tauri::Builder::default()
+            .plugin(tauri_plugin_dialog::init())
+            .plugin(tauri_plugin_fs::init()),
         AppState::new(pool),
     )
     .run(|_app_handle, event| match event {

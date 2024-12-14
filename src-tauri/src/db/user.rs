@@ -386,20 +386,23 @@ impl User {
 
     /// check account exist
     pub async fn check_user_name_unique(pool: &Pool<Sqlite>, user_name: &str) -> Result<bool> {
-        let result = sqlx::query_scalar::<_, u64>("SELECT count(1) FROM users WHERE del_flag = '0' AND user_name = ?")
-            .bind(user_name)
-            .fetch_one(pool)
-            .await?;
+        let result = sqlx::query_scalar::<_, u64>(
+            "SELECT count(1) FROM users WHERE del_flag = '0' AND user_name = ?",
+        )
+        .bind(user_name)
+        .fetch_one(pool)
+        .await?;
 
         Ok(result > 0)
     }
 
     pub async fn check_tel_unique(pool: &Pool<Sqlite>, tel: &str) -> Result<bool> {
-        let result =
-            sqlx::query_scalar::<_, u64>("SELECT count(1) FROM users WHERE del_flag = '0' AND phonenumber = ?")
-                .bind(tel)
-                .fetch_one(pool)
-                .await?;
+        let result = sqlx::query_scalar::<_, u64>(
+            "SELECT count(1) FROM users WHERE del_flag = '0' AND phonenumber = ?",
+        )
+        .bind(tel)
+        .fetch_one(pool)
+        .await?;
 
         Ok(result > 0)
     }

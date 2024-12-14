@@ -1,9 +1,12 @@
 use crate::db::Validator;
 use crate::error::{Error, ErrorKind, Result};
+use crate::utils;
 use serde::{Deserialize, Serialize};
 use sqlx::sqlite::SqliteRow;
-use sqlx::{types::chrono::{DateTime, FixedOffset}, FromRow, Pool, Row, Sqlite, Transaction};
-use crate::utils;
+use sqlx::{
+    types::chrono::{DateTime, FixedOffset},
+    FromRow, Pool, Row, Sqlite, Transaction,
+};
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -132,10 +135,7 @@ impl Payment {
         Ok(result)
     }
 
-    pub async fn get_by_order_id(
-        pool: &Pool<Sqlite>,
-        order_id: i64,
-    ) -> Result<Option<Self>> {
+    pub async fn get_by_order_id(pool: &Pool<Sqlite>, order_id: i64) -> Result<Option<Self>> {
         let payment = sqlx::query_as("SELECT * FROM payments WHERE uc_order_id = ?")
             .bind(order_id)
             .fetch_optional(pool)

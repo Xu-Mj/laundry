@@ -54,16 +54,18 @@ impl UserTags {
     }
 
     pub async fn update(&self, tr: &mut Transaction<'_, Sqlite>) -> Result<()> {
-        sqlx::query("INSERT INTO user_tags (user_id, tags, remark)
+        sqlx::query(
+            "INSERT INTO user_tags (user_id, tags, remark)
                         VALUES (?, ?, ?)
                         ON CONFLICT(user_id) DO UPDATE SET
                         tags = excluded.tags,
-                        remark = excluded.remark")
-            .bind(self.user_id)
-            .bind(&self.tags)
-            .bind(&self.remark)
-            .execute(&mut **tr)
-            .await?;
+                        remark = excluded.remark",
+        )
+        .bind(self.user_id)
+        .bind(&self.tags)
+        .bind(&self.remark)
+        .execute(&mut **tr)
+        .await?;
         Ok(())
     }
 

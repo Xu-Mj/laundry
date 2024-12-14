@@ -3,6 +3,7 @@ pub mod db;
 
 pub mod captcha;
 pub mod error;
+pub mod files;
 pub mod printer;
 mod routers;
 pub mod sql;
@@ -28,8 +29,8 @@ pub fn create_app<R: tauri::Runtime, T: Send + Sync + 'static>(
         .setup(|app| {
             // allowed the given directory
             let scope = app.fs_scope();
-            scope.allow_directory("/path/to/directory", false);
-            dbg!(scope.allowed());
+            scope.allow_directory("/path/to/directory", false).expect("msg");
+            // dbg!(scope.allowed());
 
             Ok(())
         })
@@ -99,6 +100,7 @@ pub fn create_app<R: tauri::Runtime, T: Send + Sync + 'static>(
             order_clothes::hang_order_cloth,
             order_clothes::pickup_order_cloth,
             order_clothes::remove_pic_from_order_cloth,
+            order_clothes::upload_cloth_pic,
             // coupons
             coupons::add_coupon,
             coupons::update_coupon,

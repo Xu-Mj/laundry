@@ -121,7 +121,10 @@ impl UserCoupon {
         Ok(result)
     }
 
-    pub async fn find_valid_time_by_user_id(pool: &Pool<Sqlite>, user_id: i64) -> Result<Vec<Self>> {
+    pub async fn find_valid_time_by_user_id(
+        pool: &Pool<Sqlite>,
+        user_id: i64,
+    ) -> Result<Vec<Self>> {
         let result = sqlx::query_as(&format!(
             "{SQL} WHERE uc.user_id = ? AND datetime('now') BETWEEN c.valid_from AND c.valid_to
                   AND uc.available_value > 0

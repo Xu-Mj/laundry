@@ -38,31 +38,31 @@
       <el-col :span="1.5">
         <el-button type="primary" plain icon="Plus" @click="handleAdd" v-hasPermi="['system:orders:add']">新增</el-button>
       </el-col>
-      <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
+      <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" :columns="columns"></right-toolbar>
     </el-row>
 
     <el-table v-loading="loading" :data="ordersList">
       <!-- <el-table-column type="selection" width="55" align="center" /> -->
-      <el-table-column label="订单编码" align="center" width="180" prop="orderNumber" />
-      <el-table-column label="所属会员" align="center" width="180">
+      <el-table-column label="订单编码" align="center" width="180" prop="orderNumber" v-if="columns[0].visible" />
+      <el-table-column label="所属会员" align="center" width="180" v-if="columns[1].visible">
         <template #default="scope">
           {{ scope.row.nickName + ' - ' + scope.row.phonenumber }}
         </template>
       </el-table-column>
 
-      <el-table-column label="订单金额" align="center" prop="paymentAmount">
+      <el-table-column label="订单金额" align="center" prop="paymentAmount" v-if="columns[2].visible">
         <template #default="scope">
           <span style="color: red">
             {{ scope.row.paymentAmount }}元
           </span>
         </template>
       </el-table-column>
-      <el-table-column label="支付方式" align="center" prop="paymentBonusType">
+      <el-table-column label="支付方式" align="center" prop="paymentBonusType" v-if="columns[3].visible">
         <template #default="scope">
           <dict-tag :options="sys_payment_method_show" :value="scope.row.paymentBonusType" />
         </template>
       </el-table-column>
-      <el-table-column label="卡券优惠" align="center" prop="paymentBonusCount">
+      <el-table-column label="卡券优惠" align="center" prop="paymentBonusCount" v-if="columns[4].visible">
         <template #default="scope">
           <span v-if="scope.row.paymentBonusCount == 0">-</span>
           <span v-else-if="paymentTimeBasedSet.has(scope.row.paymentBonusType)">
@@ -74,77 +74,77 @@
 
         </template>
       </el-table-column>
-      <el-table-column label="实际支付" align="center">
+      <el-table-column label="实际支付" align="center" v-if="columns[5].visible">
         <template #default="scope">
           <span v-if="scope.row.diffPrice > 0" style="color: red;">
             {{ scope.row.diffPrice }}元
           </span>
         </template>
       </el-table-column>
-      <el-table-column label="衣物编码" align="center" >
+      <el-table-column label="衣物编码" align="center" v-if="columns[6].visible">
         <template #default="scope">
           <div class="cloth-code-container">
             <el-tag v-for="item in scope.row.clothCodes" :key="item">{{ item }}</el-tag>
           </div>
         </template>
       </el-table-column>
-      <el-table-column label="取件码" align="center" prop="pickupCode" />
+      <el-table-column label="取件码" align="center" prop="pickupCode" v-if="columns[7].visible" />
 
-      <el-table-column label="业务类型" align="center" prop="businessType">
+      <el-table-column label="业务类型" align="center" prop="businessType" v-if="columns[8].visible">
         <template #default="scope">
           <dict-tag :options="sys_business_type" :value="scope.row.businessType" />
         </template>
       </el-table-column>
-      <el-table-column label="收衣时间" align="center" prop="createTime" width="160">
+      <el-table-column label="收衣时间" align="center" prop="createTime" width="160" v-if="columns[9].visible">
         <template #default="scope">
           <span>{{ formatTime(scope.row.createTime) }}</span>
         </template>
       </el-table-column>
 
-      <el-table-column label="时效预警" align="center" prop="costTimeAlarm">
+      <el-table-column label="时效预警" align="center" prop="costTimeAlarm" v-if="columns[10].visible">
         <template #default="scope">
           <dict-tag :options="sys_cost_time_alarm" :value="scope.row.costTimeAlarm" />
         </template>
       </el-table-column>
-      <el-table-column label="订单完成时间" align="center" prop="completeTime" width="160">
+      <el-table-column label="订单完成时间" align="center" prop="completeTime" width="160" v-if="columns[11].visible">
         <template #default="scope">
           <span>{{ scope.row.completeTime }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="订单来源" align="center" prop="source">
+      <el-table-column label="订单来源" align="center" prop="source" v-if="columns[12].visible">
         <template #default="scope">
           <dict-tag :options="sys_price_order_type" :value="scope.row.source" />
         </template>
       </el-table-column>
-      <el-table-column label="洗护状态" align="center" prop="status">
+      <el-table-column label="洗护状态" align="center" prop="status" v-if="columns[13].visible">
         <template #default="scope">
           <dict-tag :options="sys_order_status" :value="scope.row.status" />
         </template>
       </el-table-column>
-      <el-table-column label="订单类型" align="center" prop="orderType">
+      <el-table-column label="订单类型" align="center" prop="orderType" v-if="columns[14].visible">
         <template #default="scope">
           <dict-tag :options="sys_order_type" :value="scope.row.orderType" />
         </template>
       </el-table-column>
-      <el-table-column label="支付状态" align="center" prop="paymentStatus">
+      <el-table-column label="支付状态" align="center" prop="paymentStatus" v-if="columns[15].visible">
         <template #default="scope">
           <dict-tag v-if="scope.row.paymentStatus === '01'" style="cursor: pointer;" @click="go2pay(scope.row)"
             :options="sys_payment_status" :value="scope.row.paymentStatus" />
           <dict-tag v-else :options="sys_payment_status" :value="scope.row.paymentStatus" />
         </template>
       </el-table-column>
-      <el-table-column label="取回方式" align="center" prop="deliveryMode">
+      <el-table-column label="取回方式" align="center" prop="deliveryMode" v-if="columns[16].visible">
         <template #default="scope">
           <dict-tag :options="sys_delivery_mode" :value="scope.row.deliveryMode"
             @click="handleDeliveryMode(scope.row)" />
         </template>
       </el-table-column>
-      <el-table-column label="预计完成时间" align="center" prop="desireCompleteTime" width="160">
+      <el-table-column label="预计完成时间" align="center" prop="desireCompleteTime" width="160" v-if="columns[17].visible">
         <template #default="scope">
           <span>{{ parseTime(scope.row.desireCompleteTime, '{y}-{m}-{d}') }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="备注" align="center" prop="remark" show-overflow-tooltip />
+      <el-table-column label="备注" align="center" prop="remark" show-overflow-tooltip v-if="columns[18].visible" />
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template #default="scope">
           <el-button link type="primary" @click="showClothList(scope.row)"
@@ -378,6 +378,29 @@ const data = reactive({
 });
 
 const { queryParams, refundForm, notifyForm, refundRules } = toRefs(data);
+
+// 列显隐信息
+const columns = ref([
+  { key: 1, label: `订单编码`, visible: true },
+  { key: 2, label: `所属会员`, visible: true },
+  { key: 3, label: `订单金额`, visible: true },
+  { key: 4, label: `支付方式`, visible: true },
+  { key: 5, label: `卡券优惠`, visible: true },
+  { key: 6, label: `实际支付`, visible: true },
+  { key: 7, label: `衣物编码`, visible: true },
+  { key: 8, label: `取件码`, visible: true },
+  { key: 9, label: `业务类型`, visible: true },
+  { key: 10, label: `收衣时间`, visible: true },
+  { key: 11, label: `时效预警`, visible: false },
+  { key: 12, label: `订单完成时间`, visible: true },
+  { key: 13, label: `订单来源`, visible: true },
+  { key: 14, label: `洗护状态`, visible: true },
+  { key: 15, label: `订单类型`, visible: false },
+  { key: 16, label: `支付状态`, visible: true },
+  { key: 17, label: `取回方式`, visible: true },
+  { key: 18, label: `预计完成时间`, visible: true },
+  { key: 19, label: `备注`, visible: true },
+]);
 
 function go2pay(row) {
   // 根据订单id查询衣物列表

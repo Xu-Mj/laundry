@@ -19,12 +19,12 @@
           <el-option v-for="dict in sys_coupon_status" :key="dict.value" :label="dict.label" :value="dict.value" />
         </el-select>
       </el-form-item>
-      <el-form-item label="删除状态" prop="status">
+      <!-- <el-form-item label="删除状态" prop="status">
         <el-select v-model="queryParams.delFlag" @change="selectChange" placeholder="删除状态" clearable
           style="width: 120px">
           <el-option v-for="dict in sys_del_status" :key="dict.value" :label="dict.label" :value="dict.value" />
         </el-select>
-      </el-form-item>
+      </el-form-item> -->
       <el-form-item>
         <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
         <el-button icon="Refresh" @click="resetQuery">重置</el-button>

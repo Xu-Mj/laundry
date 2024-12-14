@@ -1,4 +1,5 @@
 <template>
+  <CloseBar position="absolute"/>
   <div class="login">
     <el-form ref="loginRef" :model="loginForm" :rules="loginRules" class="login-form">
       <h3 class="title">洗衣店</h3>
@@ -68,7 +69,8 @@
 import { getCodeImg } from "@/api/login";
 import Cookies from "js-cookie";
 import { encrypt, decrypt } from "@/utils/jsencrypt";
-import useUserStore from '@/store/modules/user'
+import useUserStore from '@/store/modules/user';
+import CloseBar from '@/components/close_bar';
 
 const userStore = useUserStore()
 const route = useRoute();

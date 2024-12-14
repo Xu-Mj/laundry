@@ -41,10 +41,7 @@ return invoke('get_info')
 
 // 退出方法
 export function logout() {
-  return request({
-    url: '/logout',
-    method: 'post'
-  })
+  return invoke('logout')
 }
 
 // 获取验证码

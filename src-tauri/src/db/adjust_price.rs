@@ -66,14 +66,13 @@ impl OrderClothAdjust {
         Ok(result.rows_affected() > 0)
     }
 
-    #[allow(dead_code)]
-    pub async fn delete(pool: &sqlx::SqlitePool, order_id: i64) -> Result<u64> {
+    pub async fn delete(tx: &mut Transaction<'_, Sqlite>, order_id: i64) -> Result<bool> {
         let result = sqlx::query("DELETE FROM order_clothes_adjust WHERE order_id = ?")
             .bind(order_id)
-            .execute(pool)
+            .execute(&mut **tx)
             .await?;
 
-        Ok(result.rows_affected())
+        Ok(result.rows_affected()>0)
     }
 
     #[allow(dead_code)]

@@ -21,6 +21,7 @@ use std::cmp::Ordering;
 
 const PAY_STATUS_NOT_PAID: &str = "01";
 const PAY_STATUS_REFUND: &str = "05";
+const ORDER_STATUS_REFUND: &str = "06";
 const CLOTH_STATUS_REFUND: &str = "03";
 const PAY_STATUS_PAID: &str = "00";
 const NORMAL_ORDER: &str = "00";
@@ -105,11 +106,11 @@ pub struct TimeBasedCoupon {
     pub count: i32,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RefundInfoResp {
-    pub user: User,
-    pub payment: Payment,
+    pub user: Option<User>,
+    pub payment: Option<Payment>,
     pub user_coupons: Vec<UserCoupon>, // List in Java is equivalent to Vec in Rust
 }
 
@@ -1121,17 +1122,16 @@ impl Order {
         // check order's payment status
         if let Some(status) = &order.payment_status {
             if status == PAY_STATUS_REFUND {
-                return Err(Error::bad_request("叮当已经退单，请勿重复退单"));
+                return Err(Error::bad_request("订单已经退单，请勿重复退单"));
             }
         }
 
         // update order status to refund
         order.payment_status = Some(PAY_STATUS_REFUND.to_string());
+        // update order complete time
+        order.complete_time = Some(utils::get_now());
 
         let mut tx = pool.begin().await?;
-        if !order.update(&mut tx).await? {
-            return Err(Error::internal("update order failed"));
-        };
 
         // update clothes status to refund
         if !OrderCloth::update_status_by_order_id(
@@ -1147,8 +1147,19 @@ impl Order {
         // select payment record
         let payment = Payment::get_by_order_id(pool, order.order_id.unwrap()).await?;
         if payment.is_none() {
+            order.status = Some(PAY_STATUS_REFUND.to_string());
+            if !order.update(&mut tx).await? {
+                return Err(Error::internal("update order failed"));
+            }
+            tx.commit().await?;
             return Ok(());
+        } else {
+            order.status = Some(ORDER_STATUS_REFUND.to_string());
+            if !order.update(&mut tx).await? {
+                return Err(Error::internal("update order failed"));
+            }
         }
+
         let payment = payment.unwrap();
         // generate expenditure recorde
         if payment.payment_amount_mv.is_some() && payment.payment_amount_mv.unwrap() > 0. {
@@ -1158,6 +1169,7 @@ impl Order {
         // check if user used coupon
         let uc_id = &payment.uc_id;
         if uc_id.is_none() {
+            tx.commit().await?;
             return Ok(());
         }
 
@@ -1202,6 +1214,7 @@ impl Order {
             // Total amount used in this order
             let total_amount = payment.payment_amount_vip;
             if total_amount.is_none() {
+                tx.commit().await?;
                 return Ok(());
             }
             let mut total_amount = total_amount.unwrap();
@@ -1266,16 +1279,21 @@ impl Order {
         order_id: i64,
         user_id: i64,
     ) -> Result<RefundInfoResp> {
+        let mut resp = RefundInfoResp::default();
         // query user information
         let user = User::get_by_id(pool, user_id)
             .await?
             .ok_or(Error::not_found("用户不存在"))?;
 
-        // query payment information by order id
-        let payment = Payment::get_by_order_id(pool, order_id)
-            .await?
-            .ok_or(Error::not_found("支付信息不存在"))?;
+        resp.user = Some(user);
 
+        // query payment information by order id
+        let payment = Payment::get_by_order_id(pool, order_id).await?;
+        if payment.is_none() {
+            return Ok(resp);
+        }
+
+        let payment = payment.unwrap();
         let mut user_coupons = vec![];
         // query used coupons in this payment
         if let Some(uc_id) = &payment.uc_id {
@@ -1286,11 +1304,37 @@ impl Order {
             user_coupons = UserCoupon::find_by_uc_ids(pool, &uc_ids).await?;
         }
 
-        Ok(RefundInfoResp {
-            user,
-            payment,
-            user_coupons,
-        })
+        resp.payment = Some(payment);
+        resp.user_coupons = user_coupons;
+
+        Ok(resp)
+    }
+
+    pub async fn delete_orders(pool: &Pool<Sqlite>, ids: &[i64]) -> Result<()> {
+        let mut tx = pool.begin().await?;
+        for order_id in ids {
+            // delete related order clothes
+            let cloth_ids: Vec<i64> = OrderCloth::get_by_order_id(pool, *order_id)
+                .await?
+                .into_iter()
+                .filter_map(|c| c.cloth_id)
+                .collect();
+            OrderCloth::delete_batch(&mut tx, &cloth_ids).await?;
+
+            // delete adjust-price data
+            if !OrderClothAdjust::delete(&mut tx, *order_id).await? {
+                return Err(Error::internal("删除订单调整价格数据失败"));
+            }
+        }
+
+        // delete order by order ids
+        if !Order::delete_batch(&mut tx, ids).await? {
+            return Err(Error::internal("删除订单数据失败"));
+        }
+
+        tx.commit().await?;
+
+        Ok(())
     }
 }
 
@@ -1333,14 +1377,8 @@ pub async fn update_order(state: tauri::State<'_, AppState>, order: Order) -> Re
 }
 
 #[tauri::command]
-pub async fn delete_orders(state: tauri::State<'_, AppState>, ids: Vec<i64>) -> Result<bool> {
-    let mut tr = state.0.begin().await?;
-
-    let result = Order::delete_batch(&mut tr, &ids).await?;
-
-    tr.commit().await?;
-
-    Ok(result)
+pub async fn delete_orders(state: tauri::State<'_, AppState>, ids: Vec<i64>) -> Result<()> {
+    Order::delete_orders(&state.0, &ids).await
 }
 
 /// update adjust data

@@ -406,7 +406,7 @@ function go2pay(row) {
   // 根据订单id查询衣物列表
   listCloths({ orderId: row.orderId }).then(res => {
     currentOrder.value = row;
-    currentOrder.value.cloths = res.rows;
+    currentOrder.value.cloths  = res;
     showPaymentDialog.value = true;
   });
 }
@@ -515,12 +515,10 @@ function submitRefundForm() {
   proxy.$refs["refundFormRef"].validate(valid => {
     if (valid) {
       refund(refundForm.value).then(res => {
-        if (res.code === 200) {
-          proxy.$modal.msgSuccess('退款成功');
-          showRefundDialog.value = false;
-          resetRefundForm();
-          getList();
-        }
+        proxy.$modal.msgSuccess('退款成功');
+        showRefundDialog.value = false;
+        resetRefundForm();
+        getList();
       })
     }
   });

@@ -3,7 +3,6 @@ import invoke from '@/utils/invoke'
 
 // 查询洗护服务订单列表
 export function listOrders(query) {
-  console.log(query)
   const pageParams = { pageSize: query.pageSize, page: query.pageNum, params: query.params };
   const order = {
     orderNumber: query.orderNumber,

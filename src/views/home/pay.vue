@@ -118,6 +118,7 @@ import { pay } from "@/api/system/orders";
 import { listUserCouponWithValidTime } from '@/api/system/user_coupon';
 import { isCurrentTimeWithinRange } from "@/utils";
 import { onMounted } from "vue";
+import { getPrice } from "@/api/system/price";
 
 const props = defineProps({
     visible: {
@@ -164,7 +165,7 @@ function close() {
 }
 
 /* 初始化支付表单数据 */
-function initPaymentForm() {
+async function initPaymentForm() {
     paymentForm.value = {
         orders: [props.order],
         ucOrderId: props.order.orderId,
@@ -182,10 +183,11 @@ function initPaymentForm() {
         paymentForm.value.paymentMethod = '04';
         showCoupons.value = false;
     }
+    console.log(props)
 
     let price;
     if (props.order.priceId) {
-        const item = priceList.value.find(item => item.priceId === props.order.priceId);
+        const item = await getPrice(props.order.priceId);
         price = item ? item.priceValue : 0;
     } else {
         price = props.order.cloths.reduce((acc, cur) => {
@@ -494,9 +496,9 @@ function changeCouponCount() {
 
 onMounted(async () => {
     if (props.visible) {
-        initPaymentForm();
-        await listUserCouponWithValidTime({ userId: props.order.userId }).then(response => {
-            userCouponList.value = response.rows;
+        await initPaymentForm();
+        await listUserCouponWithValidTime(props.order.userId).then(response => {
+            userCouponList.value = response;
             userCouponList.value.filter(item => item.coupon.couponType == '002').map(item => {
                 item.selected = false;
                 item.count = 1;

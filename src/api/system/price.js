@@ -16,7 +16,7 @@ export function listPrice(query) {
 
 // 查询价格管理详细
 export function getPrice(priceId) {
-  return invoke('get_cloth_price', { priceId: priceId })
+  return invoke('get_cloth_price', { priceId })
 }
 
 // 新增价格管理

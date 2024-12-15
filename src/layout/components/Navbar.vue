@@ -205,7 +205,6 @@ onMounted(async () => {
   try {
     // 获取应用数据目录
     const appDir = await resourceDir();
-    console.log(appDir);
 
     const avatar = userStore.avatar;
     // 构建完整的文件路径
@@ -213,7 +212,6 @@ onMounted(async () => {
 
     // 使用 convertFileSrc 将文件路径转换为可访问的 URL
     imageUrl.value = convertFileSrc(fullPath);
-    console.log(imageUrl.value)
   } catch (error) {
     console.error('Error fetching image URL:', error);
   }

@@ -11,9 +11,9 @@
         <header-search id="header-search" class="right-menu-item" />
 
 
-        <el-tooltip content="布局大小" effect="dark" placement="bottom">
+        <!-- <el-tooltip content="布局大小" effect="dark" placement="bottom">
           <size-select id="size-select" class="right-menu-item hover-effect" />
-        </el-tooltip>
+        </el-tooltip> -->
       </template>
       <el-button class="right-menu-item" icon="Setting" type="text" @click="showSetting = !showSetting">
       </el-button>

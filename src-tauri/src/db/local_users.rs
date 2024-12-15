@@ -68,14 +68,23 @@ impl LocalUser {
         let user = sqlx::query_as::<_, LocalUser>(
             "INSERT INTO local_users (username, avatar, account, password, role, remark) VALUES (?, ?, ?, ?, ?, ?) RETURNING *",
         )
-        .bind(&self.username)
-        .bind(&self.avatar)
-        .bind(&self.account)
-        .bind(&self.password)
-        .bind(&self.role)
-        .bind(&self.remark)
-        .fetch_one(pool).await?;
+            .bind(&self.username)
+            .bind(&self.avatar)
+            .bind(&self.account)
+            .bind(&self.password)
+            .bind(&self.role)
+            .bind(&self.remark)
+            .fetch_one(pool).await?;
         Ok(user)
+    }
+
+    pub async fn update_pwd(pool: &Pool<Sqlite>, account: &str, password: &str) -> Result<bool> {
+        let result = sqlx::query("UPDATE local_users SET password = ? WHERE account = ? ")
+            .bind(password)
+            .bind(account)
+            .execute(pool)
+            .await?;
+        Ok(result.rows_affected() > 0)
     }
 }
 
@@ -108,10 +117,14 @@ impl Claims {
 
 impl LoginReq {
     // login
-    pub async fn validate_pwd(self, pool: &Pool<Sqlite>) -> Result<LocalUser> {
+    pub async fn validate_pwd(
+        pool: &Pool<Sqlite>,
+        username: &str,
+        password: &str,
+    ) -> Result<LocalUser> {
         let user: Option<LocalUser> =
             sqlx::query_as("SELECT * FROM local_users WHERE account = ? LIMIT 1")
-                .bind(&self.username)
+                .bind(username)
                 // .bind(&self.password)
                 .fetch_optional(pool)
                 .await?;
@@ -124,8 +137,7 @@ impl LoginReq {
         let parsed_hash = PasswordHash::new(user.password.as_ref().unwrap())
             .map_err(|e| Error::internal(e.to_string()))?;
 
-        Argon2::default()
-            .verify_password(self.password.as_ref().unwrap().as_bytes(), &parsed_hash)?;
+        Argon2::default().verify_password(password.as_bytes(), &parsed_hash)?;
         user.password = Some("".to_string());
         Ok(user)
     }
@@ -180,7 +192,12 @@ impl LoginReq {
         // decode password
         self.decode()?;
 
-        let user = self.validate_pwd(pool).await?;
+        let user = Self::validate_pwd(
+            pool,
+            self.username.as_ref().unwrap(),
+            self.password.as_ref().unwrap(),
+        )
+        .await?;
 
         // generate token
         let mut claims = Claims::new(user.username.clone().unwrap());
@@ -225,9 +242,7 @@ impl LoginReq {
             // encode the password
             let password = utils::hash_password(password.as_bytes(), PWD_SALT)?;
             let mut user = LocalUser::new(username.clone(), password);
-            user.avatar = Some(String::from(
-                "../assets/images/avatar1.png",
-            ));
+            user.avatar = Some(String::from("images/avatar1.png"));
             user.account = Some(username);
             user.role = Some(String::from("admin"));
             user.create(pool).await?;
@@ -280,6 +295,34 @@ pub async fn register(state: State<'_, AppState>, req: LoginReq) -> Result<()> {
     req.register(&state.0).await
 }
 
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdatePwdReq {
+    pub account: String,
+    pub old_password: String,
+    pub new_password: String,
+    pub confirm_password: String,
+}
+
+#[tauri::command]
+pub async fn update_pwd(state: State<'_, AppState>, req: UpdatePwdReq) -> Result<bool> {
+    // validate
+    if req.account.is_empty() {
+        return Err(Error::bad_request("账户错误"));
+    } else if req.new_password.len() < 5 || req.new_password.len() > 20 {
+        return Err(Error::bad_request("密码长度必须在5到20个字符之间"));
+    } else if req.new_password != req.confirm_password {
+        return Err(Error::bad_request("两次输入的密码不一致"));
+    }
+
+    let pool = &state.0;
+    // validate old password
+    LoginReq::validate_pwd(pool, &req.account, &req.old_password).await?;
+
+    let password = utils::hash_password(req.new_password.as_bytes(), PWD_SALT)?;
+    LocalUser::update_pwd(&state.0, &req.account, &password).await
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -289,7 +332,7 @@ mod tests {
         let password = BASE64_STANDARD_NO_PAD.encode("xmj20241025");
 
         let req = LoginReq {
-            username: Some("admin".to_string()),
+            username: Some("admin1".to_string()),
             password: Some(password),
             code: Some("1234".to_string()),
             uuid: Some("1234".to_string()),

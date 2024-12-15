@@ -20,6 +20,7 @@ pub enum ErrorKind {
     PrintError,
     PrinterNotSet,
     PrinterNotFound,
+    InvalidPassword,
 }
 
 #[derive(Debug, Serialize)]
@@ -163,8 +164,8 @@ impl From<serde_yaml::Error> for Error {
 }
 
 impl From<password_hash::Error> for Error {
-    fn from(value: password_hash::Error) -> Self {
-        Self::with_details(ErrorKind::InternalServer, value.to_string())
+    fn from(_value: password_hash::Error) -> Self {
+        Self::with_kind(ErrorKind::InvalidPassword)
     }
 }
 

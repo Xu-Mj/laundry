@@ -159,6 +159,7 @@ pub fn create_app<R: tauri::Runtime, T: Send + Sync + 'static>(
             local_users::login,
             local_users::logout,
             local_users::register,
+            local_users::update_pwd,
             // expenditure
             expenditure::get_exp_pagination,
             expenditure::get_exp_by_id,

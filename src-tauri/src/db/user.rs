@@ -122,6 +122,10 @@ impl User {
             self.integral = Some(0);
         }
 
+        if self.status.is_none() {
+            self.status = Some("0".to_string());
+        }
+
         if self.del_flag.is_none() {
             self.del_flag = Some("0".to_string());
         }

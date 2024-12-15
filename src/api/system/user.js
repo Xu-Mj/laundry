@@ -19,6 +19,10 @@ export function getUser(userId) {
   return invoke('get_user_by_id', {id: userId} )
 }
 
+export function updatePwd(data) {
+  return invoke('update_pwd', {req: data} )
+}
+
 // 查询用户详细
 export function getUserByClothCode(clothCode) {
   return invoke('get_user_by_cloth_code', {code: clothCode} )

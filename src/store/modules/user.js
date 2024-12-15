@@ -10,6 +10,7 @@ const useUserStore = defineStore(
       token: getToken(),
       id: '',
       name: '',
+      account: '',
       avatar: '',
       roles: [],
       permissions: []
@@ -44,9 +45,11 @@ const useUserStore = defineStore(
             } else {
               this.roles = ['ROLE_DEFAULT']
             }
-            this.id = user.userId
-            this.name = user.userName
+            this.id = user.id
+            this.name = user.username
+            this.account = user.account
             this.avatar = avatar
+            console.log(res, this)
             resolve(res)
           }).catch(error => {
             reject(error)

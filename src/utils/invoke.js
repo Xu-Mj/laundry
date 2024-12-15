@@ -15,6 +15,7 @@ const errorMessages = {
     PrintError: "打印失败",
     PrinterNotSet: "打印机未设置",
     PrinterNotFound: "打印机未找到",
+    InvalidPassword: "用户名或密码错误",
     default: "未知错误，请联系管理员",
 };
 

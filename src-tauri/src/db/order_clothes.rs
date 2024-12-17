@@ -306,6 +306,14 @@ impl OrderCloth {
         Ok(cloth)
     }
 
+    pub async fn get_by_order_id_with_tx(tx: &mut Transaction<'_ ,Sqlite>, order_id: i64) -> Result<Vec<Self>> {
+        let cloth = sqlx::query_as::<_, Self>(&format!("{} WHERE oc.order_id = ?", SQL))
+            .bind(order_id)
+            .fetch_all(&mut **tx)
+            .await?;
+        Ok(cloth)
+    }
+
     pub async fn get_by_user_id(
         pool: &Pool<Sqlite>,
         user_id: i64,
@@ -1072,7 +1080,7 @@ impl OrderCloth {
             }
 
             // update rack remain count
-            let mut rack = DryingRack::get_by_id(&mut tr, cloth.hang_location_code.unwrap())
+            let mut rack = DryingRack::get_by_id(pool, cloth.hang_location_code.unwrap())
                 .await?
                 .ok_or(Error::with_details(ErrorKind::NotFound, "rack not found"))?;
             rack.remaining_capacity = rack.remaining_capacity.and_then(|i| Some(i - 1));
@@ -1089,7 +1097,7 @@ impl OrderCloth {
 
         // update order status to pickup if all clothes are picked
         for order_id in order_ids {
-            let clothes = OrderCloth::get_by_order_id(pool, order_id).await?;
+            let clothes = OrderCloth::get_by_order_id_with_tx(&mut tr, order_id).await?;
             if clothes
                 .iter()
                 .filter(|c| c.clothing_status == Some(CLOTH_STATUS_PICKED.to_string()))

@@ -587,7 +587,16 @@ pub async fn get_all_users(state: State<'_, AppState>, user: User) -> Result<Vec
 
 #[tauri::command]
 pub async fn get_user_by_id(state: State<'_, AppState>, id: i64) -> Result<Option<User>> {
-    User::get_by_id(&state.0, id).await
+    let pool = &state.0;
+    let user = User::get_by_id(pool, id).await?;
+    if user.is_none() {
+        return Ok(None);
+    }
+    let mut user = user.unwrap();
+
+    // cal balance
+    user.balance = UserCoupon::cal_balance(pool, user.user_id.unwrap()).await?;
+    Ok(Some(user))
 }
 
 #[tauri::command]

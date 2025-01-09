@@ -1,3 +1,14 @@
+use std::cmp::Ordering;
+
+use rust_decimal::prelude::*;
+use rust_decimal_macros::dec;
+use serde::{Deserialize, Serialize};
+use sqlx::sqlite::SqliteRow;
+use sqlx::{
+    types::chrono::{DateTime, FixedOffset, NaiveDate, Utc},
+    FromRow, Pool, QueryBuilder, Row, Sqlite, Transaction,
+};
+
 use crate::db::adjust_price::OrderClothAdjust;
 use crate::db::cloth_price::ClothPrice;
 use crate::db::configs::Config;
@@ -9,15 +20,7 @@ use crate::db::user_coupons::UserCoupon;
 use crate::db::{AppState, Curd, PageParams, PageResult};
 use crate::error::{Error, ErrorKind, Result};
 use crate::utils;
-use rust_decimal::prelude::*;
-use rust_decimal_macros::dec;
-use serde::{Deserialize, Serialize};
-use sqlx::sqlite::SqliteRow;
-use sqlx::{
-    types::chrono::{DateTime, FixedOffset, NaiveDate, Utc},
-    FromRow, Pool, QueryBuilder, Row, Sqlite, Transaction,
-};
-use std::cmp::Ordering;
+use crate::utils::chrono_serde::deserialize_date;
 
 const PAY_STATUS_NOT_PAID: &str = "01";
 const PAY_STATUS_REFUND: &str = "05";
@@ -201,6 +204,21 @@ FROM orders o
 LEFT JOIN users u ON o.user_id = u.user_id
 LEFT JOIN order_clothes_adjust a ON o.order_id = a.order_id
 ";
+
+const SQL_BY_CLOTHING_NAME: &str = "SELECT
+    o.*,
+    u.nick_name,
+    u.phonenumber,
+    a.adjust_id,
+    a.adjust_value_add,
+    a.adjust_value_sub,
+    a.adjust_total,
+    a.remark as adjust_remark
+FROM orders o
+    INNER JOIN users u ON o.user_id = u.user_id
+    LEFT JOIN order_clothes_adjust a ON o.order_id = a.order_id
+    INNER JOIN order_clothes oc ON o.order_id = oc.order_id
+    INNER JOIN clothing c ON oc.clothing_id = c.clothing_id ";
 
 impl Order {
     // Insert a new Order into the database
@@ -403,6 +421,60 @@ impl Order {
             .await
     }
 
+    pub async fn list_by_cloth_name(
+        pool: &Pool<Sqlite>,
+        page_params: &PageParams,
+        query: &OrderQuery,
+    ) -> Result<Vec<Self>> {
+        let mut builder = QueryBuilder::new(SQL_BY_CLOTHING_NAME);
+        builder.push(" WHERE o.user_id = ").push_bind(query.user_id);
+        if let Some(cloth_name) = &query.cloth_name {
+            builder
+                .push(" AND c.clothing_name LIKE ")
+                .push_bind(format!("%{}%", cloth_name));
+        }
+        if let Some(start_time) = &query.start_time {
+            builder.push(" AND o.create_time >= ").push_bind(start_time);
+        }
+
+        if let Some(end_time) = &query.end_time {
+            builder.push(" AND o.create_time <= ").push_bind(end_time);
+        }
+
+        builder.push(" GROUP BY o.order_id");
+        builder.push(" LIMIT ").push_bind(page_params.page_size);
+        builder
+            .push(" OFFSET ")
+            .push_bind((page_params.page - 1) * page_params.page_size);
+
+        let orders = builder.build_query_as().fetch_all(pool).await?;
+        Ok(orders)
+    }
+
+    pub async fn count_by_cloth_name(pool: &Pool<Sqlite>, query: &OrderQuery) -> Result<u64> {
+        let mut builder =
+            QueryBuilder::new(format!("SELECT COUNT(*) FROM ({SQL_BY_CLOTHING_NAME}"));
+        builder.push(" WHERE o.user_id = ").push_bind(query.user_id);
+        if let Some(cloth_name) = &query.cloth_name {
+            builder
+                .push(" AND c.clothing_name LIKE ")
+                .push_bind(format!("%{}%", cloth_name));
+        }
+        if let Some(start_time) = &query.start_time {
+            builder.push(" AND o.create_time >= ").push_bind(start_time);
+        }
+
+        if let Some(end_time) = &query.end_time {
+            builder.push(" AND o.create_time <= ").push_bind(end_time);
+        }
+
+        builder.push(" GROUP BY o.order_id");
+        builder.push(")");
+
+        let count = builder.build_query_scalar().fetch_one(pool).await?;
+        Ok(count)
+    }
+
     pub async fn update(&self, tr: &mut Transaction<'_, Sqlite>) -> Result<bool> {
         let mut query_builder = QueryBuilder::<Sqlite>::new("UPDATE orders SET");
         let mut has_updated = false;
@@ -563,6 +635,37 @@ impl Order {
 
         Ok(result)
     }
+
+    pub async fn query_count_by_status(pool: &Pool<Sqlite>, status: &str) -> Result<i64> {
+        let result = sqlx::query_scalar("SELECT COUNT(1) FROM orders WHERE status = ?")
+            .bind(status)
+            .fetch_one(pool)
+            .await?;
+
+        Ok(result)
+    }
+
+    pub async fn count_by_source(pool: &Pool<Sqlite>) -> Result<Vec<SourceDistribution>> {
+        let result = sqlx::query_as("SELECT source, COUNT(1) AS count FROM orders GROUP BY source")
+            .fetch_all(pool)
+            .await?;
+
+        Ok(result)
+    }
+
+    pub async fn total(pool: &Pool<Sqlite>) -> Result<i64> {
+        let count = sqlx::query_scalar("SELECT COUNT(1) FROM orders")
+            .fetch_one(pool)
+            .await?;
+
+        Ok(count)
+    }
+}
+
+#[derive(Debug, Clone, Serialize, sqlx::FromRow, Default)]
+pub struct SourceDistribution {
+    pub source: String,
+    pub count: i64,
 }
 
 const ORDER_NUMBER_PREFIX: &str = "XYFW-";
@@ -723,6 +826,7 @@ impl Order {
                 payment.order_status = Some("01".to_string());
                 payment.payment_status = Some("01".to_string());
                 payment.pay_number = existing_order.order_number;
+                payment.uc_order_id = Some(order_id);
                 payment.create_payment(&mut tr).await?;
             }
         }
@@ -1111,6 +1215,23 @@ impl Order {
         Ok(list)
     }
 
+    pub async fn query_list4history(
+        pool: &Pool<Sqlite>,
+        page_params: PageParams,
+        query: OrderQuery,
+    ) -> Result<PageResult<Self>> {
+        let rows = Self::list_by_cloth_name(pool, &page_params, &query).await?;
+        let total = Self::count_by_cloth_name(pool, &query).await?;
+
+        let mut list = PageResult { total, rows };
+
+        for order in list.rows.iter_mut() {
+            order.payment = Payment::get_by_order_id(pool, order.order_id.unwrap()).await?;
+        }
+
+        Ok(list)
+    }
+
     pub async fn refund(pool: &Pool<Sqlite>, exp: Expenditure) -> Result<()> {
         if exp.order_id.is_none() {
             return Err(Error::bad_request("order_id is required"));
@@ -1358,6 +1479,27 @@ pub async fn get_orders4home(
     order: Order,
 ) -> Result<Vec<Order>> {
     order.query_list4home(&state.0).await
+}
+
+#[derive(Debug, Default, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[serde(default)]
+pub struct OrderQuery {
+    pub user_id: i64,
+    pub cloth_name: Option<String>,
+    #[serde(deserialize_with = "deserialize_date")]
+    pub end_time: Option<DateTime<FixedOffset>>,
+    #[serde(deserialize_with = "deserialize_date")]
+    pub start_time: Option<DateTime<FixedOffset>>,
+}
+
+#[tauri::command]
+pub async fn get_orders4history(
+    state: tauri::State<'_, AppState>,
+    query: OrderQuery,
+    page_params: PageParams,
+) -> Result<PageResult<Order>> {
+    Order::query_list4history(&state.0, page_params, query).await
 }
 
 #[tauri::command]

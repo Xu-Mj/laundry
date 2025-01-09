@@ -105,13 +105,10 @@ impl DryingRack {
     }
 
     /// Retrieve a drying rack by ID.
-    pub async fn get_by_id(
-        tr: &mut Transaction<'_, Sqlite>,
-        id: i64,
-    ) -> Result<Option<DryingRack>> {
+    pub async fn get_by_id(pool: &Pool<Sqlite>, id: i64) -> Result<Option<DryingRack>> {
         let result = sqlx::query_as::<_, DryingRack>("SELECT * FROM drying_rack WHERE id = ?")
             .bind(id)
-            .fetch_optional(&mut **tr)
+            .fetch_optional(pool)
             .await?;
         Ok(result)
     }
@@ -222,27 +219,27 @@ pub async fn add_rack(state: State<'_, AppState>, mut rack: DryingRack) -> Resul
 
 #[tauri::command]
 pub async fn get_rack_by_id(state: State<'_, AppState>, id: i64) -> Result<Option<DryingRack>> {
-    let mut tr = state.0.begin().await?;
-    let rack = DryingRack::get_by_id(&mut tr, id).await?;
-    tr.commit().await?;
-    Ok(rack)
+    DryingRack::get_by_id(&state.0, id).await
 }
 
 #[tauri::command]
-pub async fn update_rack(state: State<'_, AppState>, mut rack: DryingRack) -> Result<()> {
+pub async fn update_rack(state: State<'_, AppState>, mut rack: DryingRack) -> Result<bool> {
     rack.validate()?;
 
-    let mut tr = state.0.begin().await?;
-    let result = DryingRack::get_by_id(&mut tr, rack.id.unwrap())
+    let pool = &state.0;
+    let result = DryingRack::get_by_id(pool, rack.id.unwrap())
         .await?
         .ok_or(Error::with_details(ErrorKind::NotFound, "衣架不存在"))?;
+
+    let mut tr = pool.begin().await?;
 
     rack.remaining_capacity = Some(
         rack.capacity.unwrap()
             - (result.capacity.unwrap_or_default() - rack.remaining_capacity.unwrap_or_default()),
     );
-    rack.update(&mut tr).await?;
-    Ok(())
+    let result = rack.update(&mut tr).await?;
+    tr.commit().await?;
+    Ok(result)
 }
 
 // #[tauri::command]

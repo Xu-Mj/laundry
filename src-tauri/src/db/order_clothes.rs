@@ -208,6 +208,7 @@ const SQL: &str = "SELECT
                oc.clothing_status,
                oc.pickup_time,
                oc.pickup_method,
+               oc.remark,
                c.clothing_id,
                c.clothing_category,
                c.clothing_number,
@@ -306,7 +307,10 @@ impl OrderCloth {
         Ok(cloth)
     }
 
-    pub async fn get_by_order_id_with_tx(tx: &mut Transaction<'_ ,Sqlite>, order_id: i64) -> Result<Vec<Self>> {
+    pub async fn get_by_order_id_with_tx(
+        tx: &mut Transaction<'_, Sqlite>,
+        order_id: i64,
+    ) -> Result<Vec<Self>> {
         let cloth = sqlx::query_as::<_, Self>(&format!("{} WHERE oc.order_id = ?", SQL))
             .bind(order_id)
             .fetch_all(&mut **tx)

@@ -9,13 +9,14 @@ mod routers;
 pub mod sql;
 pub mod tray;
 pub mod utils;
+pub mod home;
 
 use tauri::generate_handler;
 use tauri_plugin_fs::FsExt;
 
 use crate::db::{
     cloth_price, clothing, configs, coupons, dict_data, dict_type, drying_rack, expenditure,
-    local_users, membership_level, menu, notice_temp, order_clothes, orders, tags, user,
+    local_users, membership_level, menu, notice_temp, order_clothes, orders, payments, tags, user,
     user_coupons,
 };
 
@@ -29,7 +30,9 @@ pub fn create_app<R: tauri::Runtime, T: Send + Sync + 'static>(
         .setup(|app| {
             // allowed the given directory
             let scope = app.fs_scope();
-            scope.allow_directory("/path/to/directory", false).expect("msg");
+            scope
+                .allow_directory("/path/to/directory", false)
+                .expect("msg");
             // dbg!(scope.allowed());
 
             Ok(())
@@ -39,6 +42,10 @@ pub fn create_app<R: tauri::Runtime, T: Send + Sync + 'static>(
             captcha::get_captcha,
             // login
 
+            // home
+            home::query_total_count,
+            home::query_count,
+            home::query_chart,
             // update_tray_menu,
             user::get_users_pagination,
             user::get_all_users,
@@ -125,6 +132,9 @@ pub fn create_app<R: tauri::Runtime, T: Send + Sync + 'static>(
             orders::pay_order,
             orders::get_refund_info,
             orders::refund_order,
+            orders::get_orders4history,
+            // payments
+            payments::get_total_amount,
             // configs
             configs::add_config,
             configs::get_config_list,

@@ -199,11 +199,12 @@ mod tests {
         let mut tr = pool.begin().await.unwrap();
         adjust.create(&mut tr).await.unwrap();
 
-        let delete_result = OrderClothAdjust::delete(&pool, 1).await.unwrap();
-        assert_eq!(delete_result, 1); // One row should be deleted
+        let delete_result = OrderClothAdjust::delete(&mut tr, 1).await.unwrap();
+        assert!(delete_result); // One row should be deleted
 
         let result = OrderClothAdjust::get_by_order_id(&pool, 1).await.unwrap();
         assert!(result.is_none()); // After delete, the record should not exist
+        tr.commit().await.unwrap();
     }
 
     #[test]

@@ -121,6 +121,17 @@ impl UserCoupon {
         Ok(result)
     }
 
+    pub async fn cal_balance(pool: &Pool<Sqlite>, user_id: i64) -> Result<f64> {
+        let result = sqlx::query_scalar(
+            "SELECT SUM(available_value) FROM user_coupons WHERE user_id = ? AND uc_type = '01'",
+        )
+        .bind(user_id)
+        .fetch_one(pool)
+        .await?;
+
+        Ok(result)
+    }
+
     pub async fn find_valid_time_by_user_id(
         pool: &Pool<Sqlite>,
         user_id: i64,

@@ -1,4 +1,4 @@
-use crate::db::Validator;
+use crate::db::{AppState, Validator};
 use crate::error::{Error, ErrorKind, Result};
 use crate::utils;
 use serde::{Deserialize, Serialize};
@@ -7,6 +7,7 @@ use sqlx::{
     types::chrono::{DateTime, FixedOffset},
     FromRow, Pool, Row, Sqlite, Transaction,
 };
+use tauri::State;
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -142,4 +143,25 @@ impl Payment {
             .await?;
         Ok(payment)
     }
+
+    pub async fn cal_total_amount(pool: &Pool<Sqlite>, user_id: i64) -> Result<f64> {
+        let result = sqlx::query_scalar(
+            "
+            SELECT SUM(payment_amount)
+            FROM payments p
+            INNER JOIN orders o ON p.uc_order_id = o.order_id
+            WHERE o.user_id =?
+            ",
+        )
+        .bind(user_id)
+        .fetch_one(pool)
+        .await?;
+
+        Ok(result)
+    }
+}
+
+#[tauri::command]
+pub async fn get_total_amount(state: State<'_, AppState>, user_id: i64) -> Result<f64> {
+    Payment::cal_total_amount(&state.0, user_id).await
 }

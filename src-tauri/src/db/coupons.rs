@@ -15,6 +15,8 @@ use crate::error::{Error, ErrorKind, Result};
 use crate::utils;
 use crate::utils::chrono_serde::{deserialize_date, serialize_date};
 
+use super::user::User;
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[serde(default)]
@@ -47,6 +49,7 @@ pub struct Coupon {
     pub applicable_cloths: Option<String>, // Applicable cloths
     pub status: Option<String>,           // Coupon status (e.g., '0' for active, '1' for inactive)
     pub remark: Option<String>,           // Additional remarks
+    pub desc: Option<String>,             // Additional description
 }
 
 impl FromRow<'_, SqliteRow> for Coupon {
@@ -72,6 +75,7 @@ impl FromRow<'_, SqliteRow> for Coupon {
             applicable_cloths: row.try_get("applicable_cloths").unwrap_or_default(),
             status: row.try_get("status").unwrap_or_default(),
             remark: row.try_get("remark").unwrap_or_default(),
+            desc: row.try_get("desc").unwrap_or_default(),
         })
     }
 }
@@ -144,10 +148,17 @@ impl Validator for Coupon {
 }
 
 impl Coupon {
-    fn new4sale(status: impl ToString, del_flag: impl ToString) -> Self {
+    fn new4sale(
+        status: impl ToString,
+        del_flag: impl ToString,
+        title: Option<String>,
+        tp: Option<String>,
+    ) -> Self {
         Self {
             status: Some(status.to_string()),
             del_flag: Some(del_flag.to_string()),
+            coupon_title: title,
+            coupon_type: tp,
             ..Default::default()
         }
     }
@@ -189,10 +200,10 @@ impl Curd for Coupon {
 impl Coupon {
     pub async fn add(&self, tr: &mut Transaction<'_, Sqlite>) -> Result<Self> {
         let query = r#"
-        INSERT INTO coupons (coupon_number, coupon_type, coupon_title, coupon_value, min_spend, customer_invalid,
+        INSERT INTO coupons (coupon_number, coupon_type, coupon_title, desc, coupon_value, min_spend, customer_invalid,
                             customer_sale_total, customer_sale_count, valid_from, valid_to, auto_delay, usage_value,
                             usage_limit, del_flag, applicable_category, applicable_style, applicable_cloths, status, remark)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *
     "#;
 
         tracing::debug!("coupon add: {:?}", self);
@@ -200,6 +211,7 @@ impl Coupon {
             .bind(&self.coupon_number)
             .bind(&self.coupon_type)
             .bind(&self.coupon_title)
+            .bind(&self.desc)
             .bind(self.coupon_value)
             .bind(self.min_spend)
             .bind(&self.customer_invalid)
@@ -402,6 +414,66 @@ impl Coupon {
         }
 
         Ok(false)
+    }
+
+    // Add this new method to check expiring coupons
+    #[allow(dead_code)]
+    pub async fn check_expiring_coupons(pool: &Pool<Sqlite>) -> Result<()> {
+        let two_weeks_later = Utc::now() + chrono::Duration::weeks(2);
+
+        // Query expiring coupons of type '000'
+        let expiring_coupons = sqlx::query_as::<_, Self>(
+            r#"
+            SELECT c.* 
+            FROM coupons c
+            WHERE c.coupon_type = '000'
+            AND c.status = '0'
+            AND c.del_flag = '0'
+            AND c.valid_to <= ?
+            "#,
+        )
+        .bind(two_weeks_later)
+        .fetch_all(pool)
+        .await?;
+
+        for coupon in expiring_coupons {
+            // Query users with valid balance
+            let users_with_balance: Vec<User> = sqlx::query_as(
+                r#"
+                SELECT uc.user_id, uc.available_value as balance, u.phone_number, u.nick_name
+                FROM user_coupons uc
+                JOIN users u ON u.user_id = uc.user_id
+                WHERE uc.coupon_id = ?
+                AND uc.status = '0'
+                AND uc.available_value > 0
+                "#,
+            )
+            .bind(coupon.coupon_id)
+            .fetch_all(pool)
+            .await?;
+
+            // Send notifications to users
+            for user in users_with_balance {
+                let message = format!(
+                    "尊敬的{}，您的{}卡券（余额：{}元）即将于{}到期，请及时使用。",
+                    user.nick_name.unwrap_or_default(),
+                    coupon.coupon_title.as_deref().unwrap_or_default(),
+                    user.balance,
+                    coupon.valid_to.unwrap().format("%Y-%m-%d")
+                );
+
+                tracing::debug!("Sending message to user: {}", message);
+                // Spawn async task to send message
+                // if let Some(tel) = user.phonenumber  {
+
+                //     tokio::spawn(async move {
+                //         utils::send_sms(tel, message).await;
+                //     });
+                // }
+            }
+        }
+
+        Ok(())
     }
 }
 
@@ -617,33 +689,37 @@ pub async fn get_coupon_list(
     page_params: PageParams,
     coupon: Coupon,
 ) -> Result<PageResult<Coupon>> {
-    coupon.get_list(&state.0, page_params).await
+    coupon.get_list(&state.pool, page_params).await
 }
 
 #[tauri::command]
-pub async fn get_coupons4sale(state: State<'_, AppState>) -> Result<Vec<Coupon>> {
-    let coupon = Coupon::new4sale("0", "0");
-    coupon.list4sale(&state.0).await
+pub async fn get_coupons4sale(
+    state: State<'_, AppState>,
+    title: Option<String>,
+    tp: Option<String>,
+) -> Result<Vec<Coupon>> {
+    let coupon = Coupon::new4sale("0", "0", title, tp);
+    coupon.list4sale(&state.pool).await
 }
 
 #[tauri::command]
 pub async fn get_coupon_by_id(state: State<'_, AppState>, id: i64) -> Result<Option<Coupon>> {
-    Coupon::get_by_id(&state.0, id).await
+    Coupon::get_by_id(&state.pool, id).await
 }
 
 #[tauri::command]
 pub async fn buy_coupons(state: State<'_, AppState>, coupon_buy_req: CouponBuyReq) -> Result<()> {
-    Coupon::buy(&state.0, coupon_buy_req).await
+    Coupon::buy(&state.pool, coupon_buy_req).await
 }
 
 #[tauri::command]
 pub async fn gift_coupons(state: State<'_, AppState>, coupon_buy_req: CouponBuyReq) -> Result<()> {
-    Coupon::gift(&state.0, coupon_buy_req).await
+    Coupon::gift(&state.pool, coupon_buy_req).await
 }
 
 #[tauri::command]
 pub async fn add_coupon(state: State<'_, AppState>, mut coupon: Coupon) -> Result<Coupon> {
-    let mut tr = state.0.begin().await?;
+    let mut tr = state.pool.begin().await?;
     coupon.validate()?;
 
     let result = coupon.insert(&mut tr).await?;
@@ -653,12 +729,12 @@ pub async fn add_coupon(state: State<'_, AppState>, mut coupon: Coupon) -> Resul
 
 #[tauri::command]
 pub async fn update_coupon(state: State<'_, AppState>, mut coupon: Coupon) -> Result<bool> {
-    coupon.update_coupon(&state.0).await
+    coupon.update_coupon(&state.pool).await
 }
 
 #[tauri::command]
 pub async fn delete_coupons(state: State<'_, AppState>, ids: Vec<i64>) -> Result<bool> {
-    let mut tr = state.0.begin().await?;
+    let mut tr = state.pool.begin().await?;
     let result = Coupon::delete_batch(&mut tr, &ids).await?;
     tr.commit().await?;
     Ok(result)

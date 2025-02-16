@@ -202,7 +202,7 @@ impl DryingRack {
 
 #[tauri::command]
 pub async fn list_rack_all(state: State<'_, AppState>) -> Result<Vec<DryingRack>> {
-    DryingRack::list(&state.0).await
+    DryingRack::list(&state.pool).await
 }
 
 #[tauri::command]
@@ -212,21 +212,21 @@ pub async fn add_rack(state: State<'_, AppState>, mut rack: DryingRack) -> Resul
     rack.remaining_capacity = Some(rack.capacity.unwrap());
     rack.position = Some(1);
 
-    let rack = rack.add(&state.0).await?;
+    let rack = rack.add(&state.pool).await?;
 
     Ok(rack)
 }
 
 #[tauri::command]
 pub async fn get_rack_by_id(state: State<'_, AppState>, id: i64) -> Result<Option<DryingRack>> {
-    DryingRack::get_by_id(&state.0, id).await
+    DryingRack::get_by_id(&state.pool, id).await
 }
 
 #[tauri::command]
 pub async fn update_rack(state: State<'_, AppState>, mut rack: DryingRack) -> Result<bool> {
     rack.validate()?;
 
-    let pool = &state.0;
+    let pool = &state.pool;
     let result = DryingRack::get_by_id(pool, rack.id.unwrap())
         .await?
         .ok_or(Error::with_details(ErrorKind::NotFound, "衣架不存在"))?;
@@ -244,7 +244,7 @@ pub async fn update_rack(state: State<'_, AppState>, mut rack: DryingRack) -> Re
 
 // #[tauri::command]
 // pub async fn get_position(state: State<'_, AppState>, rack_type: String) -> Result<DryingRack> {
-//     let pool = &state.0;
+//     let pool = &state.pool;
 //     let rack = DryingRack::get_position(pool, rack_type).await?;
 //     let mut tr = pool.begin().await?;
 //     if !rack.update(&mut tr).await? {
@@ -256,7 +256,7 @@ pub async fn update_rack(state: State<'_, AppState>, mut rack: DryingRack) -> Re
 
 #[tauri::command]
 pub async fn delete_racks(state: State<'_, AppState>, ids: Vec<i64>) -> Result<u64> {
-    DryingRack::delete_batch(&state.0, ids).await
+    DryingRack::delete_batch(&state.pool, ids).await
 }
 
 fn find_first_available_hanger(used_hangers: &[i32], capacity: i32) -> Option<i32> {

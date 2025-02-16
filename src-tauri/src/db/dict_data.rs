@@ -180,7 +180,7 @@ pub async fn get_dict_data_list(
     page_params: PageParams,
     dict_data: DictData,
 ) -> Result<PageResult<DictData>> {
-    dict_data.get_list(&state.0, page_params).await
+    dict_data.get_list(&state.pool, page_params).await
 }
 
 #[tauri::command]
@@ -188,7 +188,7 @@ pub async fn get_by_dict_type(
     state: State<'_, AppState>,
     dict_type: String,
 ) -> Result<Vec<DictData>> {
-    DictData::select_by_dict_type(&state.0, &dict_type).await
+    DictData::select_by_dict_type(&state.pool, &dict_type).await
 }
 
 #[tauri::command]
@@ -196,22 +196,22 @@ pub async fn get_dict_data_by_code(
     state: State<'_, AppState>,
     code: i64,
 ) -> Result<Option<DictData>> {
-    DictData::get_by_id(&state.0, code).await
+    DictData::get_by_id(&state.pool, code).await
 }
 
 #[tauri::command]
 pub async fn add_dict_data(state: State<'_, AppState>, dict_data: DictData) -> Result<DictData> {
-    dict_data.create_dict_data(&state.0).await
+    dict_data.create_dict_data(&state.pool).await
 }
 
 #[tauri::command]
 pub async fn update_dict_data(state: State<'_, AppState>, dict_data: DictData) -> Result<bool> {
-    dict_data.update_dict_data(&state.0).await
+    dict_data.update_dict_data(&state.pool).await
 }
 
 #[tauri::command]
 pub async fn delete_dict_data(state: State<'_, AppState>, ids: Vec<i64>) -> Result<bool> {
-    let mut tr = state.0.begin().await?;
+    let mut tr = state.pool.begin().await?;
     let result = DictData::delete_batch(&mut tr, &ids).await?;
     tr.commit().await?;
     Ok(result)

@@ -136,7 +136,7 @@ pub async fn get_membership_level_pagination(
     page_params: PageParams,
     ml: MembershipLevel,
 ) -> Result<PageResult<MembershipLevel>> {
-    ml.get_list(&state.0, page_params).await
+    ml.get_list(&state.pool, page_params).await
 }
 
 #[tauri::command]
@@ -144,7 +144,7 @@ pub async fn get_membership_level_by_id(
     state: State<'_, AppState>,
     id: i64,
 ) -> Result<Option<MembershipLevel>> {
-    MembershipLevel::get_by_id(&state.0, id).await
+    MembershipLevel::get_by_id(&state.pool, id).await
 }
 
 #[tauri::command]
@@ -152,7 +152,7 @@ pub async fn get_membership_level_list(
     state: State<'_, AppState>,
     ml: MembershipLevel,
 ) -> Result<Vec<MembershipLevel>> {
-    ml.get_all(&state.0).await
+    ml.get_all(&state.pool).await
 }
 
 #[tauri::command]
@@ -161,12 +161,12 @@ pub async fn create_membership_level(
     mut ml: MembershipLevel,
 ) -> Result<MembershipLevel> {
     ml.validate()?;
-    let mut tx = state.0.begin().await?;
-    if !MembershipLevel::check_level_name_unique(&state.0, ml.level_name.as_ref().unwrap()).await? {
+    let mut tx = state.pool.begin().await?;
+    if !MembershipLevel::check_level_name_unique(&state.pool, ml.level_name.as_ref().unwrap()).await? {
         return Err(Error::bad_request("会员等级名称已存在"));
     }
 
-    if !MembershipLevel::check_level_code_unique(&state.0, ml.level_code.as_ref().unwrap()).await? {
+    if !MembershipLevel::check_level_code_unique(&state.pool, ml.level_code.as_ref().unwrap()).await? {
         return Err(Error::bad_request("会员等级编码已存在"));
     }
 
@@ -182,7 +182,7 @@ pub async fn update_membership_level(
 ) -> Result<bool> {
     ml.validate()?;
 
-    let mut tx = state.0.begin().await?;
+    let mut tx = state.pool.begin().await?;
     let result = ml.update(&mut tx).await?;
     tx.commit().await?;
     Ok(result)
@@ -190,7 +190,7 @@ pub async fn update_membership_level(
 
 #[tauri::command]
 pub async fn delete_membership_level(state: State<'_, AppState>, ids: Vec<i64>) -> Result<bool> {
-    let mut tx = state.0.begin().await?;
+    let mut tx = state.pool.begin().await?;
     let result = MembershipLevel::delete_batch(&mut tx, &ids).await?;
     tx.commit().await?;
     Ok(result)

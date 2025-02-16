@@ -21,6 +21,7 @@ pub enum ErrorKind {
     PrinterNotSet,
     PrinterNotFound,
     InvalidPassword,
+    Unauthenticated,
 }
 
 #[derive(Debug, Serialize)]

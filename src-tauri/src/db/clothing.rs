@@ -384,7 +384,7 @@ pub async fn list_clothing_pagination(
     page_params: PageParams,
     clothing: Clothing,
 ) -> Result<PageResult<Clothing>> {
-    clothing.get_list(&state.0, page_params).await
+    clothing.get_list(&state.pool, page_params).await
 }
 
 #[tauri::command]
@@ -392,7 +392,7 @@ pub async fn list_clothing_all(
     state: State<'_, AppState>,
     clothing: Clothing,
 ) -> Result<Vec<Clothing>> {
-    clothing.query_all_clothing(&state.0).await
+    clothing.query_all_clothing(&state.pool).await
 }
 
 #[tauri::command]
@@ -407,26 +407,26 @@ pub async fn add_clothing(state: State<'_, AppState>, mut clothing: Clothing) ->
     let code = utils::gen_code(clothing.clothing_name.as_ref().unwrap());
 
     clothing.clothing_number =
-        Some(Clothing::select_next_num(&state.0, &format!("{code}-")).await?);
+        Some(Clothing::select_next_num(&state.pool, &format!("{code}-")).await?);
 
-    let clothing = clothing.add(&state.0).await?;
+    let clothing = clothing.add(&state.pool).await?;
 
     Ok(clothing)
 }
 
 #[tauri::command]
 pub async fn get_clothing_by_id(state: State<'_, AppState>, id: i64) -> Result<Option<Clothing>> {
-    Clothing::get_by_id(&state.0, id).await
+    Clothing::get_by_id(&state.pool, id).await
 }
 
 #[tauri::command]
 pub async fn update_clothing(state: State<'_, AppState>, clothing: Clothing) -> Result<Clothing> {
-    clothing.update(&state.0).await
+    clothing.update(&state.pool).await
 }
 
 #[tauri::command]
 pub async fn soft_delete_clothing(state: State<'_, AppState>, id: i64) -> Result<u64> {
-    Clothing::soft_delete(&state.0, id).await
+    Clothing::soft_delete(&state.pool, id).await
 }
 
 #[tauri::command]
@@ -435,17 +435,17 @@ pub async fn update_clothing_ref_num(
     ref_num: i64,
     clothing_ids: Vec<i64>,
 ) -> Result<()> {
-    Clothing::update_ref_num(&state.0, ref_num, clothing_ids).await
+    Clothing::update_ref_num(&state.pool, ref_num, clothing_ids).await
 }
 
 #[tauri::command]
 pub async fn clothing_name_exists(state: State<'_, AppState>, clothing_name: &str) -> Result<bool> {
-    Clothing::exists_by_clothing_name(&state.0, clothing_name).await
+    Clothing::exists_by_clothing_name(&state.pool, clothing_name).await
 }
 
 #[tauri::command]
 pub async fn delete_clothing_batch(state: State<'_, AppState>, ids: Vec<i64>) -> Result<bool> {
-    let mut tr = state.0.begin().await?;
+    let mut tr = state.pool.begin().await?;
     let result = Clothing::delete_batch(&mut tr, &ids).await?;
     tr.commit().await?;
     Ok(result)

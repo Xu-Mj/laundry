@@ -1,4 +1,5 @@
 pub(crate) mod adjust_price;
+pub(crate) mod alarm_management;
 pub(crate) mod cloth_price;
 pub(crate) mod cloth_sequence;
 pub(crate) mod clothing;
@@ -24,21 +25,66 @@ pub(crate) mod user_coupons;
 pub(crate) mod user_membership_level;
 pub(crate) mod user_tags;
 
+use std::collections::HashMap;
+use std::sync::Mutex;
+use std::time::{SystemTime, UNIX_EPOCH};
+
 use serde::{Deserialize, Serialize};
 use sqlx::sqlite::SqliteRow;
 use sqlx::{FromRow, Pool, QueryBuilder, Sqlite, Transaction};
-use std::collections::HashMap;
 
-use crate::error::Result;
+use crate::error::{Error, ErrorKind, Result};
 use crate::sql::DDL;
 
 // SQLite 连接池
-#[derive(Clone, Debug)]
-pub struct AppState(pub Pool<Sqlite>);
+#[derive(Debug)]
+pub struct AppState {
+    pub pool: Pool<Sqlite>,
+    pub last_login_time: Mutex<u64>,
+}
 
 impl AppState {
     pub fn new(pool: Pool<Sqlite>) -> Self {
-        Self(pool)
+        Self {
+            pool,
+            last_login_time: Mutex::new(
+                SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap()
+                    .as_secs(),
+            ),
+        }
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn check_auth(&self) -> Result<()> {
+        let current_time = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+
+        let last_login_time = *self.last_login_time.lock().unwrap();
+
+        // 假设会话有效期为 30 分钟
+        if current_time - last_login_time > 18 {
+            tracing::debug!("登录已过期，请重新登录-----------------------------000000000000000000000000000000000");
+
+            Err(Error::with_kind(ErrorKind::Unauthenticated))
+        } else {
+            // 更新 last_login_time 为当前时间
+            *self.last_login_time.lock().unwrap() = current_time;
+            Ok(())
+        }
+    }
+
+    fn update_last_login_time(&self) {
+        let current_time = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+
+        // 更新 last_login_time 为当前时间
+        *self.last_login_time.lock().unwrap() = current_time;
     }
 }
 

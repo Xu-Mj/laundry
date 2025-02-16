@@ -477,17 +477,17 @@ impl Menu {
 
 #[tauri::command]
 pub async fn get_menu_list(state: State<'_, AppState>, menu: Menu) -> Result<Vec<Menu>> {
-    menu.get_all(&state.0).await
+    menu.get_all(&state.pool).await
 }
 
 #[tauri::command]
 pub async fn get_menu_by_id(state: State<'_, AppState>, id: i64) -> Result<Option<Menu>> {
-    Menu::get_by_id(&state.0, id).await
+    Menu::get_by_id(&state.pool, id).await
 }
 
 #[tauri::command]
 pub async fn add_menu(state: State<'_, AppState>, menu: Menu) -> Result<Menu> {
-    menu.create_menu(&state.0).await
+    menu.create_menu(&state.pool).await
 }
 
 #[tauri::command]
@@ -495,7 +495,7 @@ pub async fn update_menu(state: State<'_, AppState>, menu: Menu) -> Result<bool>
     menu.validate()?;
     // check name unique
     if let Some(result) = Menu::check_menu_name_unique(
-        &state.0,
+        &state.pool,
         menu.menu_name.as_ref().unwrap(),
         *menu.parent_id.as_ref().unwrap(),
     )
@@ -512,12 +512,12 @@ pub async fn update_menu(state: State<'_, AppState>, menu: Menu) -> Result<bool>
     if menu.menu_id == menu.parent_id {
         return Err(Error::bad_request("上级菜单不能为自身"));
     }
-    menu.update_menu(&state.0).await
+    menu.update_menu(&state.pool).await
 }
 
 #[tauri::command]
 pub async fn delete_menu(state: State<'_, AppState>, id: i64) -> Result<bool> {
-    let pool = &state.0;
+    let pool = &state.pool;
     // if it has child menu
     if Menu::has_child_by_id(pool, id).await? {
         return Err(Error::internal("菜单存在子菜单，无法删除"));

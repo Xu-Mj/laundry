@@ -16,9 +16,9 @@ pub struct OrderPicture {
 }
 
 impl OrderPicture {
-    pub fn new_with_path(picture_path: String) -> Self {
+    pub fn new_with_path(picture_path: impl ToString) -> Self {
         Self {
-            picture_path: Some(picture_path),
+            picture_path: Some(picture_path.to_string()),
             create_time: Some(utils::get_now()),
             ..Default::default()
         }

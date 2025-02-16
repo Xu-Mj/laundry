@@ -256,10 +256,12 @@ pub static LOGIN_USER: Lazy<Mutex<Option<LocalUser>>> = Lazy::new(|| Mutex::new(
 
 #[tauri::command]
 pub async fn login(state: State<'_, AppState>, req: LoginReq) -> Result<Token> {
-    let token = req.login(&state.0).await?;
+    let token = req.login(&state.pool).await?;
     {
         *LOGIN_USER.lock().unwrap() = Some(token.user.clone());
     }
+
+    state.update_last_login_time();
 
     Ok(token)
 }
@@ -292,7 +294,7 @@ pub async fn get_info() -> Result<UserInfo> {
 
 #[tauri::command]
 pub async fn register(state: State<'_, AppState>, req: LoginReq) -> Result<()> {
-    req.register(&state.0).await
+    req.register(&state.pool).await
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
@@ -315,12 +317,12 @@ pub async fn update_pwd(state: State<'_, AppState>, req: UpdatePwdReq) -> Result
         return Err(Error::bad_request("两次输入的密码不一致"));
     }
 
-    let pool = &state.0;
+    let pool = &state.pool;
     // validate old password
     LoginReq::validate_pwd(pool, &req.account, &req.old_password).await?;
 
     let password = utils::hash_password(req.new_password.as_bytes(), PWD_SALT)?;
-    LocalUser::update_pwd(&state.0, &req.account, &password).await
+    LocalUser::update_pwd(&state.pool, &req.account, &password).await
 }
 
 #[cfg(test)]

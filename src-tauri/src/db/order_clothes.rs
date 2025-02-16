@@ -1,4 +1,3 @@
-use alibaba_cloud_sdk_rust::services::dysmsapi;
 use serde::{Deserialize, Serialize};
 use sqlx::sqlite::SqliteRow;
 use sqlx::types::chrono::{DateTime, FixedOffset, Local};
@@ -1046,7 +1045,7 @@ impl OrderCloth {
         };
 
         let param = HashMap::from([("code".to_string(), code.to_string())]);
-        let result = match send_sms(tel, Some(param)) {
+        let result = match utils::send_sms(tel, Some(param)) {
             Ok(res) => {
                 if res {
                     String::from("0")
@@ -1133,53 +1132,14 @@ impl OrderCloth {
     }
 }
 
-const ALIYUN_SMS_SERVER_REGION: &str = "cn-hangzhou";
-const ALIYUN_SMS_ACCESS_KEY_ID: &str = "LTAI5tGbR8DaKsV7ivxH1gGm";
-const ALIYUN_SMS_ACCESS_KEY_SECRET: &str = "bCWn3BBRE2YRAWPhZr471cWou73zJi";
-const ALIYUN_SMS_REPORT_TEMPLATE_CODE: &str = " SMS_474905744"; // 通知模版
-const ALIYUN_SMS_SIGN_NAME: &str = "沈阳市浑南区印洗世家洗护 "; // 短信署名
-
-fn send_sms(phone_number: &str, parameters: Option<HashMap<String, String>>) -> Result<bool> {
-    let mut client = dysmsapi::Client::NewClientWithAccessKey(
-        ALIYUN_SMS_SERVER_REGION,
-        ALIYUN_SMS_ACCESS_KEY_ID,
-        ALIYUN_SMS_ACCESS_KEY_SECRET,
-    )?;
-    let mut request = dysmsapi::CreateSendSmsRequest();
-    request.PhoneNumbers = phone_number.replace("+86", "");
-    request.SignName = ALIYUN_SMS_SIGN_NAME.to_owned();
-    request.TemplateCode = ALIYUN_SMS_REPORT_TEMPLATE_CODE.to_owned();
-    if let Some(parameters) = parameters {
-        request.TemplateParam = serde_json::to_string(&parameters)?;
-    }
-
-    let response = client.SendSms(&mut request)?;
-    if response.Code.contains("OK") {
-        return Ok(true);
-    }
-
-    Ok(false)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn send_sms_test() {
-        let params = HashMap::from([("code".to_string(), "123456".to_string())]);
-        send_sms("+8617863935638", Some(params)).unwrap();
-    }
-}
-
 #[tauri::command]
 pub async fn list_order_clothes_history(
     state: State<'_, AppState>,
     user_id: i64,
     page_params: PageParams,
 ) -> Result<PageResult<OrderCloth>> {
-    let rows = OrderCloth::get_by_user_id(&state.0, user_id, page_params).await?;
-    let total = OrderCloth::count_by_user_id(&state.0, user_id).await?;
+    let rows = OrderCloth::get_by_user_id(&state.pool, user_id, page_params).await?;
+    let total = OrderCloth::count_by_user_id(&state.pool, user_id).await?;
     Ok(PageResult { rows, total })
 }
 
@@ -1188,7 +1148,7 @@ pub async fn list_order_clothes(
     state: State<'_, AppState>,
     order_id: i64,
 ) -> Result<Vec<OrderCloth>> {
-    OrderCloth::get_by_order_id(&state.0, order_id).await
+    OrderCloth::get_by_order_id(&state.pool, order_id).await
 }
 
 #[tauri::command]
@@ -1196,7 +1156,7 @@ pub async fn get_order_cloth_by_id(
     state: State<'_, AppState>,
     cloth_id: i64,
 ) -> Result<Option<OrderCloth>> {
-    OrderCloth::get_by_id(&state.0, cloth_id).await
+    OrderCloth::get_by_id(&state.pool, cloth_id).await
 }
 
 #[tauri::command]
@@ -1204,12 +1164,12 @@ pub async fn get_order_cloth_by_code(
     state: State<'_, AppState>,
     code: String,
 ) -> Result<Option<OrderCloth>> {
-    OrderCloth::get_by_cloth_code(&state.0, &code).await
+    OrderCloth::get_by_cloth_code(&state.pool, &code).await
 }
 
 #[tauri::command]
 pub async fn update_order_cloth(state: State<'_, AppState>, cloth: OrderCloth) -> Result<bool> {
-    let mut tr = state.0.begin().await?;
+    let mut tr = state.pool.begin().await?;
     let result = cloth.update(&mut tr).await?;
     tr.commit().await?;
     Ok(result)
@@ -1220,7 +1180,7 @@ pub async fn add_order_cloth(
     state: State<'_, AppState>,
     mut order_cloth: OrderCloth,
 ) -> Result<OrderCloth> {
-    order_cloth.insert_order_cloth(&state.0).await
+    order_cloth.insert_order_cloth(&state.pool).await
 }
 
 #[tauri::command]
@@ -1229,23 +1189,23 @@ pub async fn remove_pic_from_order_cloth(
     cloth_id: i64,
     pic_id: i64,
 ) -> Result<()> {
-    OrderPicture::delete_by_id(&state.0, pic_id, cloth_id).await?;
+    OrderPicture::delete_by_id(&state.pool, pic_id, cloth_id).await?;
     Ok(())
 }
 
 #[tauri::command]
 pub async fn pickup_order_cloth(state: State<'_, AppState>, clothes_id: Vec<i64>) -> Result<()> {
-    OrderCloth::pickup(&state.0, &clothes_id).await
+    OrderCloth::pickup(&state.pool, &clothes_id).await
 }
 
 #[tauri::command]
 pub async fn hang_order_cloth(state: State<'_, AppState>, hang_req: HangReq) -> Result<()> {
-    OrderCloth::hang_cloth(&state.0, hang_req).await
+    OrderCloth::hang_cloth(&state.pool, hang_req).await
 }
 
 #[tauri::command]
 pub async fn delete_order_cloth_by_ids(state: State<'_, AppState>, ids: Vec<i64>) -> Result<u64> {
-    OrderCloth::delete_by_ids(&state.0, &ids).await
+    OrderCloth::delete_by_ids(&state.pool, &ids).await
 }
 
 /// 上传衣物图片
@@ -1256,7 +1216,7 @@ pub async fn upload_cloth_pic(
     cloth_id: i64,
     is_pre: bool,
 ) -> Result<Option<i64>> {
-    let pool = &state.0;
+    let pool = &state.pool;
     // query cloth information by cloth id
     let mut cloth = OrderCloth::get_by_id(pool, cloth_id)
         .await?

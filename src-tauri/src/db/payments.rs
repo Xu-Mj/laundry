@@ -1,6 +1,7 @@
 use crate::db::{AppState, Validator};
 use crate::error::{Error, ErrorKind, Result};
 use crate::utils;
+use chrono::{Datelike, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::sqlite::SqliteRow;
 use sqlx::{
@@ -28,6 +29,14 @@ pub struct Payment {
     pub order_status: Option<String>,
     pub create_time: Option<DateTime<FixedOffset>>,
     pub update_time: Option<DateTime<FixedOffset>>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, FromRow)]
+#[serde(rename_all = "camelCase")]
+#[serde(default)]
+pub struct PaymentSummary {
+    pub date: String,
+    pub total_amount: f64,
 }
 
 impl Validator for Payment {
@@ -161,7 +170,155 @@ impl Payment {
     }
 }
 
+fn days_in_month(year: i32, month: u32) -> u32 {
+    match month {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 if is_leap_year(year) => 29,
+        2 => 28,
+        _ => 0,
+    }
+}
+
+fn is_leap_year(year: i32) -> bool {
+    (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0)
+}
+
+pub async fn get_monthly_payment_summary(
+    pool: &Pool<Sqlite>,
+    year: Option<i32>,
+    month: Option<u32>,
+) -> Result<Vec<PaymentSummary>> {
+    let now = Utc::now().naive_utc();
+    let year = year.unwrap_or(now.year());
+    let month = month.unwrap_or(now.month());
+
+    let start_of_month = NaiveDate::from_ymd_opt(year, month, 1)
+        .ok_or(Error::bad_request("Invalid date"))?
+        .and_hms_opt(0, 0, 0)
+        .ok_or(Error::bad_request("Invalid time"))?;
+    let end_of_month = NaiveDate::from_ymd_opt(year, month, days_in_month(year, month))
+        .ok_or(Error::bad_request("Invalid date"))?
+        .and_hms_opt(23, 59, 59)
+        .ok_or(Error::bad_request("Invalid time"))?;
+
+    let summaries = sqlx::query_as(
+        r#"
+        SELECT
+            strftime('%Y-%m-%d', create_time) as date,
+            SUM(payment_amount) as total_amount
+        FROM payments
+        WHERE create_time BETWEEN ? AND ?
+        GROUP BY date
+        ORDER BY date
+        "#,
+    )
+    .bind(start_of_month)
+    .bind(end_of_month)
+    .fetch_all(pool)
+    .await?;
+
+    Ok(summaries)
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BarChartData {
+    pub label: String,
+    pub income: f64,
+    pub expense: f64,
+}
+
+pub async fn get_daily_payment_summary(pool: &Pool<Sqlite>) -> Result<BarChartData> {
+    let now = Utc::now().naive_utc();
+    let start_of_day = NaiveDate::from_ymd_opt(now.year(), now.month(), now.day())
+        .ok_or(Error::bad_request("Invalid date"))?
+        .and_hms_opt(0, 0, 0)
+        .ok_or(Error::bad_request("Invalid time"))?;
+    let end_of_day = NaiveDate::from_ymd_opt(now.year(), now.month(), now.day())
+        .ok_or(Error::bad_request("Invalid date"))?
+        .and_hms_opt(23, 59, 59)
+        .ok_or(Error::bad_request("Invalid time"))?;
+
+    let income = sqlx::query_scalar(
+        r#"
+        SELECT COALESCE(SUM(payment_amount), 0.0)
+        FROM payments
+        WHERE create_time BETWEEN ? AND ? AND payment_amount > 0
+        "#,
+    )
+    .bind(start_of_day)
+    .bind(end_of_day)
+    .fetch_one(pool)
+    .await?;
+
+    let expense: i64 = sqlx::query_scalar(
+        r#"
+        SELECT COALESCE(SUM(exp_amount), 0)
+        FROM expenditure
+        WHERE create_time BETWEEN ? AND ?
+        "#,
+    )
+    .bind(start_of_day)
+    .bind(end_of_day)
+    .fetch_one(pool)
+    .await?;
+
+    Ok(BarChartData {
+        label: "今日".to_string(),
+        income,
+        expense: -expense as f64,
+    })
+}
+
+pub async fn get_weekly_payment_summary(pool: &Pool<Sqlite>) -> Result<BarChartData> {
+    let now = Utc::now().naive_utc();
+    let start_of_week = now
+        .date()
+        .and_hms_opt(0, 0, 0)
+        .unwrap()
+        .checked_sub_signed(chrono::Duration::days(
+            now.weekday().num_days_from_monday() as i64
+        ))
+        .ok_or(Error::bad_request("Invalid date"))?;
+    let end_of_week = start_of_week
+        .checked_add_signed(chrono::Duration::days(6))
+        .ok_or(Error::bad_request("Invalid date"))?
+        .date()
+        .and_hms_opt(23, 59, 59)
+        .unwrap();
+    let income = sqlx::query_scalar(
+        r#"
+        SELECT COALESCE(SUM(payment_amount), 0.0)
+        FROM payments
+        WHERE create_time BETWEEN ? AND ? AND payment_amount > 0
+        "#,
+    )
+    .bind(start_of_week)
+    .bind(end_of_week)
+    .fetch_one(pool)
+    .await?;
+
+    let expense: i64 = sqlx::query_scalar(
+        r#"
+        SELECT COALESCE(SUM(exp_amount), 0)
+        FROM expenditure
+        WHERE create_time BETWEEN ? AND ?
+        "#,
+    )
+    .bind(start_of_week)
+    .bind(end_of_week)
+    .fetch_one(pool)
+    .await?;
+
+    Ok(BarChartData {
+        label: "本周".to_string(),
+        income,
+        expense: -expense as f64,
+    })
+}
+
 #[tauri::command]
 pub async fn get_total_amount(state: State<'_, AppState>, user_id: i64) -> Result<f64> {
-    Payment::cal_total_amount(&state.0, user_id).await
+    Payment::cal_total_amount(&state.pool, user_id).await
 }

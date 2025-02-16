@@ -577,17 +577,17 @@ pub async fn get_users_pagination(
     page_params: PageParams,
     user: User,
 ) -> Result<PageResult<User>> {
-    user.pagination(&state.0, page_params).await
+    user.pagination(&state.pool, page_params).await
 }
 
 #[tauri::command]
 pub async fn get_all_users(state: State<'_, AppState>, user: User) -> Result<Vec<User>> {
-    user.get_all(&state.0).await
+    user.get_all(&state.pool).await
 }
 
 #[tauri::command]
 pub async fn get_user_by_id(state: State<'_, AppState>, id: i64) -> Result<Option<User>> {
-    let pool = &state.0;
+    let pool = &state.pool;
     let user = User::get_by_id(pool, id).await?;
     if user.is_none() {
         return Ok(None);
@@ -601,7 +601,7 @@ pub async fn get_user_by_id(state: State<'_, AppState>, id: i64) -> Result<Optio
 
 #[tauri::command]
 pub async fn get_user_by_ids(state: State<'_, AppState>, ids: Vec<i64>) -> Result<Vec<User>> {
-    User::list_by_ids(&state.0, &ids).await
+    User::list_by_ids(&state.pool, &ids).await
 }
 
 #[tauri::command]
@@ -609,22 +609,22 @@ pub async fn get_user_by_cloth_code(
     state: State<'_, AppState>,
     code: String,
 ) -> Result<Option<User>> {
-    User::get_user_by_cloth_code(&state.0, &code).await
+    User::get_user_by_cloth_code(&state.pool, &code).await
 }
 
 #[tauri::command]
 pub async fn create_user(state: State<'_, AppState>, mut user: User) -> Result<User> {
-    user.create_user(&state.0).await
+    user.create_user(&state.pool).await
 }
 
 #[tauri::command]
 pub async fn update_user(state: State<'_, AppState>, user: User) -> Result<bool> {
-    user.update_user(&state.0).await
+    user.update_user(&state.pool).await
 }
 
 #[tauri::command]
 pub async fn change_user_status(state: State<'_, AppState>, user: User) -> Result<bool> {
-    let mut tr = state.0.begin().await?;
+    let mut tr = state.pool.begin().await?;
     let result = user.update(&mut tr).await?;
     tr.commit().await?;
     Ok(result)
@@ -632,5 +632,5 @@ pub async fn change_user_status(state: State<'_, AppState>, user: User) -> Resul
 
 #[tauri::command]
 pub async fn delete_users(state: State<'_, AppState>, ids: Vec<i64>) -> Result<bool> {
-    User::delete_users(&state.0, ids).await
+    User::delete_users(&state.pool, ids).await
 }

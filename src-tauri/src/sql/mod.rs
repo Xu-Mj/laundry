@@ -190,6 +190,7 @@ const COUPON_TABLE_DDL: &str = "CREATE TABLE IF NOT EXISTS coupons
                                     coupon_number       TEXT UNIQUE NOT NULL,
                                     coupon_type         TEXT         NOT NULL DEFAULT '000',
                                     coupon_title        TEXT        NOT NULL,
+                                    desc                TEXT        NOT NULL,
                                     coupon_value        DOUBLE             NOT NULL,
                                     min_spend           DOUBLE                      DEFAULT 0,
                                     customer_invalid    TEXT                     DEFAULT '0',

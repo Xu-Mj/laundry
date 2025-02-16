@@ -260,7 +260,7 @@ impl UserCoupon {
 
 #[tauri::command]
 pub async fn get_user_coupons(state: State<'_, AppState>, user_id: i64) -> Result<Vec<UserCoupon>> {
-    UserCoupon::find_by_user_id(&state.0, user_id).await
+    UserCoupon::find_by_user_id(&state.pool, user_id).await
 }
 
 #[tauri::command]
@@ -268,7 +268,7 @@ pub async fn get_user_coupons4sale(
     state: State<'_, AppState>,
     user_id: i64,
 ) -> Result<Vec<UserCoupon>> {
-    UserCoupon::find_valid_time_by_user_id(&state.0, user_id).await
+    UserCoupon::find_valid_time_by_user_id(&state.pool, user_id).await
 }
 
 #[tauri::command]
@@ -276,5 +276,5 @@ pub async fn get_user_coupon_by_user_id(
     state: State<'_, AppState>,
     id: i64,
 ) -> Result<Vec<UserCoupon>> {
-    UserCoupon::find_by_user_id(&state.0, id).await
+    UserCoupon::find_by_user_id(&state.pool, id).await
 }

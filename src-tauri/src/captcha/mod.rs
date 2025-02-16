@@ -49,7 +49,7 @@ pub static CAPTCHA_STORE: Lazy<Mutex<HashMap<String, (String, chrono::DateTime<U
 // 生成验证码的命令
 #[tauri::command]
 pub async fn get_captcha(state: tauri::State<'_, AppState>) -> Result<CaptchaResp> {
-    let pool = &state.0;
+    let pool = &state.pool;
 
     if !Config::is_captcha_enabled(pool).await? {
         return Ok(CaptchaResp::disabled_captcha());

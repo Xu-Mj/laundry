@@ -4,7 +4,7 @@ use tauri::{Manager, Runtime};
 
 #[tauri::command]
 pub fn update_tray_menu(app: &tauri::AppHandle, status: bool) -> tauri::Result<()> {
-    app.tray_by_id("tray").unwrap().set_visible(false).unwrap();
+    app.tray_by_id("tray").unwrap().set_visible(false)?;
     create_tray(&app, status)?;
     // 更新托盘菜单
     // app.set_menu(builder);
@@ -25,7 +25,7 @@ pub fn create_tray<R: Runtime>(app: &tauri::AppHandle<R>, status: bool) -> tauri
     let _ = TrayIconBuilder::with_id("tray")
         .icon(app.default_window_icon().unwrap().clone())
         .menu(&menu)
-        .menu_on_left_click(false)
+        .show_menu_on_left_click(false)
         .on_menu_event(move |app, event| match event.id.as_ref() {
             "quit" => {
                 app.exit(0);

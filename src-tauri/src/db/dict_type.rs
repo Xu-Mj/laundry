@@ -106,7 +106,7 @@ pub async fn get_dict_type_list(
     page_params: PageParams,
     dict_type: DictType,
 ) -> Result<PageResult<DictType>> {
-    dict_type.get_list(&state.0, page_params).await
+    dict_type.get_list(&state.pool, page_params).await
 }
 
 #[tauri::command]
@@ -114,29 +114,29 @@ pub async fn get_dict_type_all(
     state: State<'_, AppState>,
     dict_type: DictType,
 ) -> Result<Vec<DictType>> {
-    dict_type.get_all(&state.0).await
+    dict_type.get_all(&state.pool).await
 }
 
 #[tauri::command]
 pub async fn get_dict_type_by_id(state: State<'_, AppState>, id: i64) -> Result<Option<DictType>> {
-    DictType::get_by_id(&state.0, id).await
+    DictType::get_by_id(&state.pool, id).await
 }
 
 // add
 #[tauri::command]
 pub async fn add_dict_type(state: State<'_, AppState>, dict_type: DictType) -> Result<DictType> {
-    let result = dict_type.create_dict_type(&state.0).await?;
+    let result = dict_type.create_dict_type(&state.pool).await?;
     Ok(result)
 }
 
 #[tauri::command]
 pub async fn update_dict_type(state: State<'_, AppState>, dict_type: DictType) -> Result<bool> {
-    dict_type.update_dict_type(&state.0).await
+    dict_type.update_dict_type(&state.pool).await
 }
 
 #[tauri::command]
 pub async fn delete_dict_types(state: State<'_, AppState>, ids: Vec<i64>) -> Result<bool> {
-    let mut tr = state.0.begin().await?;
+    let mut tr = state.pool.begin().await?;
     let result = DictType::delete_batch(&mut tr, &ids).await?;
     tr.commit().await?;
     Ok(result)

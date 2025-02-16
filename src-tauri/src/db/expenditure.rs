@@ -114,17 +114,17 @@ pub async fn get_exp_pagination(
     page_params: PageParams,
     exp: Expenditure,
 ) -> Result<PageResult<Expenditure>> {
-    exp.get_list(&state.0, page_params).await
+    exp.get_list(&state.pool, page_params).await
 }
 
 #[tauri::command]
 pub async fn get_exp_by_id(state: State<'_, AppState>, exp_id: i64) -> Result<Option<Expenditure>> {
-    Expenditure::get_by_id(&state.0, exp_id).await
+    Expenditure::get_by_id(&state.pool, exp_id).await
 }
 
 #[tauri::command]
 pub async fn create_exp(state: State<'_, AppState>, exp: Expenditure) -> Result<Expenditure> {
-    let mut tx = state.0.begin().await?;
+    let mut tx = state.pool.begin().await?;
     let result = exp.create(&mut tx).await?;
     tx.commit().await?;
     Ok(result)
@@ -132,7 +132,7 @@ pub async fn create_exp(state: State<'_, AppState>, exp: Expenditure) -> Result<
 
 #[tauri::command]
 pub async fn update_exp(state: State<'_, AppState>, exp: Expenditure) -> Result<bool> {
-    let mut tx = state.0.begin().await?;
+    let mut tx = state.pool.begin().await?;
     let result = exp.update(&mut tx).await?;
     tx.commit().await?;
     Ok(result)
@@ -140,7 +140,7 @@ pub async fn update_exp(state: State<'_, AppState>, exp: Expenditure) -> Result<
 
 #[tauri::command]
 pub async fn delete_exp(state: State<'_, AppState>, ids: Vec<i64>) -> Result<bool> {
-    let mut tx = state.0.begin().await?;
+    let mut tx = state.pool.begin().await?;
     let result = Expenditure::delete_batch(&mut tx, &ids).await?;
     tx.commit().await?;
     Ok(result)

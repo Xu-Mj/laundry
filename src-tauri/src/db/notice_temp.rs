@@ -405,22 +405,22 @@ pub async fn get_temp_pagination(
     page_params: PageParams,
     temp: NoticeTemp,
 ) -> Result<PageResult<NoticeTemp>> {
-    temp.get_list(&state.0, page_params).await
+    temp.get_list(&state.pool, page_params).await
 }
 
 #[tauri::command]
 pub async fn get_temp_by_id(state: State<'_, AppState>, id: i64) -> Result<Option<NoticeTemp>> {
-    NoticeTemp::get_by_id(&state.0, id).await
+    NoticeTemp::get_by_id(&state.pool, id).await
 }
 
 #[tauri::command]
 pub async fn create_temp(state: State<'_, AppState>, temp: NoticeTemp) -> Result<NoticeTemp> {
-    temp.create(&state.0).await
+    temp.create(&state.pool).await
 }
 
 #[tauri::command]
 pub async fn update_temp(state: State<'_, AppState>, temp: NoticeTemp) -> Result<bool> {
-    temp.update(&state.0).await
+    temp.update(&state.pool).await
 }
 
 #[tauri::command]
@@ -428,7 +428,7 @@ pub async fn delete_temp(state: State<'_, AppState>, ids: Vec<i64>) -> Result<bo
     if ids.contains(&1) {
         return Err(Error::bad_request("不允许删除取衣通知模板！"));
     }
-    let mut tx = state.0.begin().await?;
+    let mut tx = state.pool.begin().await?;
     let result = NoticeTemp::delete_batch(&mut tx, &ids).await?;
     tx.commit().await?;
     Ok(result)
@@ -440,18 +440,18 @@ pub async fn get_notice_record_pagination(
     page_params: PageParams,
     record: NoticeRecord,
 ) -> Result<PageResult<NoticeRecord>> {
-    record.get_list(&state.0, page_params).await
+    record.get_list(&state.pool, page_params).await
 }
 
 #[tauri::command]
 pub async fn delete_all_record(state: State<'_, AppState>) -> Result<bool> {
-    let count = NoticeRecord::delete_all(&state.0).await?;
+    let count = NoticeRecord::delete_all(&state.pool).await?;
     Ok(count > 0)
 }
 
 #[tauri::command]
 pub async fn delete_old_record(state: State<'_, AppState>, days: i64) -> Result<bool> {
-    let count = NoticeRecord::delete_old_records(&state.0, days).await?;
+    let count = NoticeRecord::delete_old_records(&state.pool, days).await?;
     Ok(count > 0)
 }
 
@@ -461,6 +461,6 @@ pub async fn send_notice(
     temp_id: i64,
     user_ids: Vec<i64>,
 ) -> Result<bool> {
-    let count = NoticeTemp::send_notice(&state.0, temp_id, &user_ids).await?;
+    let count = NoticeTemp::send_notice(&state.pool, temp_id, &user_ids).await?;
     Ok(count == user_ids.len() as u64)
 }

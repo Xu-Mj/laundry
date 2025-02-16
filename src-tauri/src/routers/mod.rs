@@ -55,6 +55,6 @@ impl MetaVo {
 
 #[tauri::command]
 pub async fn get_routers(state: tauri::State<'_, AppState>) -> crate::error::Result<Vec<RouterVo>> {
-    let menus = Menu::get_menu_tree(&state.0).await?;
+    let menus = Menu::get_menu_tree(&state.pool).await?;
     Ok(Menu::build_menus(menus))
 }

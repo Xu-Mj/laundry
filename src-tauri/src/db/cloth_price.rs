@@ -234,7 +234,7 @@ pub async fn add_cloth_price(
     cloth_price.create_time = Some(utils::get_now());
 
     debug!("add cloth_price: {:?}", cloth_price);
-    Ok(cloth_price.add(&state.0).await?)
+    Ok(cloth_price.add(&state.pool).await?)
 }
 
 #[tauri::command]
@@ -242,7 +242,7 @@ pub async fn get_cloth_price(
     state: State<'_, AppState>,
     price_id: i64,
 ) -> Result<Option<ClothPrice>> {
-    ClothPrice::get_by_id(&state.0, price_id).await
+    ClothPrice::get_by_id(&state.pool, price_id).await
 }
 
 #[tauri::command]
@@ -261,7 +261,7 @@ pub async fn update_cloth_price(
 
     cloth_price.update_time = Some(utils::get_now());
 
-    let mut tr = state.0.begin().await?;
+    let mut tr = state.pool.begin().await?;
     let i = cloth_price.update(&mut tr).await?;
     tr.commit().await?;
     Ok(i)
@@ -280,13 +280,13 @@ pub async fn update_cloth_price_status(
         ));
     }
 
-    let mut cloth_price = ClothPrice::get_by_id(&state.0, price_id).await?.unwrap();
+    let mut cloth_price = ClothPrice::get_by_id(&state.pool, price_id).await?.unwrap();
 
     cloth_price.update_time = Some(utils::get_now());
     cloth_price.status = Some(status);
 
     debug!("update cloth_price: {:?}", cloth_price);
-    let mut tr = state.0.begin().await?;
+    let mut tr = state.pool.begin().await?;
     let i = cloth_price.update(&mut tr).await?;
     tr.commit().await?;
     Ok(i)
@@ -298,12 +298,12 @@ pub async fn update_cloth_price_ref_num(
     ref_num: i64,
     cloth_price_ids: Vec<i64>,
 ) -> Result<()> {
-    ClothPrice::update_ref_num(&state.0, ref_num, cloth_price_ids).await
+    ClothPrice::update_ref_num(&state.pool, ref_num, cloth_price_ids).await
 }
 
 #[tauri::command]
 pub async fn delete_cloth_prices(state: State<'_, AppState>, price_ids: Vec<i64>) -> Result<bool> {
-    let mut tr = state.0.begin().await?;
+    let mut tr = state.pool.begin().await?;
     let result = ClothPrice::delete_batch(&mut tr, &price_ids).await?;
     tr.commit().await?;
     Ok(result)
@@ -314,7 +314,7 @@ pub async fn list_cloth_prices_by_order_type(
     state: State<'_, AppState>,
     order_type: String,
 ) -> Result<Vec<ClothPrice>> {
-    ClothPrice::list_by_order_type(&state.0, order_type).await
+    ClothPrice::list_by_order_type(&state.pool, order_type).await
 }
 
 #[tauri::command]
@@ -323,5 +323,5 @@ pub async fn list_cloth_prices_pagination(
     page_params: PageParams,
     cloth_price: ClothPrice,
 ) -> Result<PageResult<ClothPrice>> {
-    cloth_price.get_list(&state.0, page_params).await
+    cloth_price.get_list(&state.pool, page_params).await
 }

@@ -309,7 +309,7 @@ pub async fn list_pagination(
     page_params: PageParams,
     tag: Tag,
 ) -> Result<PageResult<Tag>> {
-    tag.get_list(&state.0, page_params).await
+    tag.get_list(&state.pool, page_params).await
 }
 
 /// 异步获取所有标签信息
@@ -325,7 +325,7 @@ pub async fn list_pagination(
 /// 返回一个结果，其中包含一个标签信息的向量，如果查询成功，否则包含一个错误
 #[tauri::command]
 pub async fn list_all(state: State<'_, AppState>, tag: Tag) -> Result<Vec<Tag>> {
-    tag.get_all(&state.0).await
+    tag.get_all(&state.pool).await
 }
 
 ///
@@ -349,7 +349,7 @@ pub async fn add_tag(state: State<'_, AppState>, mut tag: Tag) -> Result<Tag> {
         return Err(Error::with_details(ErrorKind::BadRequest, "标签名不能为空"));
     }
 
-    let pool = &state.0;
+    let pool = &state.pool;
     tag.init_default(pool).await?;
 
     tag.add(pool).await
@@ -370,7 +370,7 @@ pub async fn add_tag(state: State<'_, AppState>, mut tag: Tag) -> Result<Tag> {
 /// 返回一个结果类型，包含可能的标签信息（`Tags`）或错误信息
 #[tauri::command]
 pub async fn get_tag_by_id(state: State<'_, AppState>, id: i64) -> Result<Option<Tag>> {
-    Tag::get_by_id(&state.0, id).await
+    Tag::get_by_id(&state.pool, id).await
 }
 
 /// 异步更新标签信息
@@ -389,7 +389,7 @@ pub async fn get_tag_by_id(state: State<'_, AppState>, id: i64) -> Result<Option
 /// - `Err(_)`: 如果更新过程中发生错误，返回一个错误对象
 #[tauri::command]
 pub async fn update_tag(state: State<'_, AppState>, tag: Tag) -> Result<Tag> {
-    tag.update(&state.0).await
+    tag.update(&state.pool).await
 }
 
 /// 使用软删除方式删除指定的标签。
@@ -408,7 +408,7 @@ pub async fn update_tag(state: State<'_, AppState>, tag: Tag) -> Result<Tag> {
 /// 如果数据库操作失败，将返回一个错误。
 #[tauri::command]
 pub async fn soft_delete_tag(state: State<'_, AppState>, id: i64) -> Result<u64> {
-    Tag::soft_delete(&state.0, id).await
+    Tag::soft_delete(&state.pool, id).await
 }
 
 /// 异步增加指定标签的引用数目
@@ -430,12 +430,12 @@ pub async fn update_ref_num(
     ref_num: i64,
     tag_ids: Vec<i64>,
 ) -> Result<()> {
-    Tag::update_ref_num(&state.0, ref_num, tag_ids).await
+    Tag::update_ref_num(&state.pool, ref_num, tag_ids).await
 }
 
 #[tauri::command]
 pub async fn change_tag_status(state: State<'_, AppState>, tag_param: Tag) -> Result<()> {
-    tag_param.update(&state.0).await?;
+    tag_param.update(&state.pool).await?;
     Ok(())
 }
 
@@ -453,7 +453,7 @@ pub async fn change_tag_status(state: State<'_, AppState>, tag_param: Tag) -> Re
 /// - `Result<bool>`: 返回一个布尔值，指示标签名称是否存在如果查询过程中发生错误，将返回一个错误类型
 #[tauri::command]
 pub async fn tag_name_exists(state: State<'_, AppState>, tag_name: &str) -> Result<bool> {
-    Tag::exists_by_tag_name(&state.0, tag_name).await
+    Tag::exists_by_tag_name(&state.pool, tag_name).await
 }
 
 /// 批量软删除标签
@@ -471,7 +471,7 @@ pub async fn tag_name_exists(state: State<'_, AppState>, tag_name: &str) -> Resu
 /// - 失败时，返回一个错误
 #[tauri::command]
 pub async fn delete_tags_batch(state: State<'_, AppState>, ids: Vec<i64>) -> Result<bool> {
-    let mut tr = state.0.begin().await?;
+    let mut tr = state.pool.begin().await?;
     let result = Tag::delete_batch(&mut tr, &ids).await?;
     Ok(result)
 }

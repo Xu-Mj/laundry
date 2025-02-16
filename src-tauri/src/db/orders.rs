@@ -50,7 +50,7 @@ const PAYMENT_METHOD_COMBINATION_CASH_COUPON: &str = "58";
 
 const DEFAULT_DESIRE_DAYS: i64 = 7;
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[serde(default)]
 pub struct Order {
@@ -115,6 +115,15 @@ pub struct RefundInfoResp {
     pub user: Option<User>,
     pub payment: Option<Payment>,
     pub user_coupons: Vec<UserCoupon>, // List in Java is equivalent to Vec in Rust
+}
+
+impl Order {
+    pub fn new_with_user_id(user_id: i64) -> Self {
+        Self {
+            user_id: Some(user_id),
+            ..Default::default()
+        }
+    }
 }
 
 impl FromRow<'_, SqliteRow> for Order {
@@ -390,12 +399,16 @@ impl Order {
 
         self.apply_filters(&mut query_builder);
 
+        // sort
+        query_builder.push(" ORDER BY o.create_time DESC");
+        
         if let Some(param) = page_params {
             query_builder.push(" LIMIT ").push_bind(param.page_size);
             query_builder
                 .push(" OFFSET ")
                 .push_bind((param.page - 1) * param.page_size);
         }
+
 
         let orders = query_builder
             .build_query_as::<Order>()
@@ -1461,7 +1474,7 @@ impl Order {
 
 #[tauri::command]
 pub async fn create_order(state: tauri::State<'_, AppState>, mut order: Order) -> Result<Order> {
-    Ok(order.add_order(&state.0).await?)
+    Ok(order.add_order(&state.pool).await?)
 }
 
 #[tauri::command]
@@ -1470,7 +1483,7 @@ pub async fn get_orders_pagination(
     page_params: PageParams,
     order: Order,
 ) -> Result<PageResult<Order>> {
-    order.query_list(&state.0, page_params).await
+    order.query_list(&state.pool, page_params).await
 }
 
 #[tauri::command]
@@ -1478,7 +1491,7 @@ pub async fn get_orders4home(
     state: tauri::State<'_, AppState>,
     order: Order,
 ) -> Result<Vec<Order>> {
-    order.query_list4home(&state.0).await
+    order.query_list4home(&state.pool).await
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -1499,17 +1512,17 @@ pub async fn get_orders4history(
     query: OrderQuery,
     page_params: PageParams,
 ) -> Result<PageResult<Order>> {
-    Order::query_list4history(&state.0, page_params, query).await
+    Order::query_list4history(&state.pool, page_params, query).await
 }
 
 #[tauri::command]
 pub async fn get_order_by_id(state: tauri::State<'_, AppState>, id: i64) -> Result<Option<Order>> {
-    Order::get_by_id(&state.0, id).await
+    Order::get_by_id(&state.pool, id).await
 }
 
 #[tauri::command]
 pub async fn update_order(state: tauri::State<'_, AppState>, order: Order) -> Result<bool> {
-    let mut tr = state.0.begin().await?;
+    let mut tr = state.pool.begin().await?;
 
     let result = order.update(&mut tr).await?;
 
@@ -1520,14 +1533,14 @@ pub async fn update_order(state: tauri::State<'_, AppState>, order: Order) -> Re
 
 #[tauri::command]
 pub async fn delete_orders(state: tauri::State<'_, AppState>, ids: Vec<i64>) -> Result<()> {
-    Order::delete_orders(&state.0, &ids).await
+    Order::delete_orders(&state.pool, &ids).await
 }
 
 /// update adjust data
 #[tauri::command]
 pub async fn update_adjust(state: tauri::State<'_, AppState>, order: Order) -> Result<bool> {
     if let Some(adjust) = order.adjust {
-        if !adjust.upsert(&state.0).await? {
+        if !adjust.upsert(&state.pool).await? {
             return Err(Error::with_details(
                 ErrorKind::InternalServer,
                 "update adjust data failed",
@@ -1540,7 +1553,7 @@ pub async fn update_adjust(state: tauri::State<'_, AppState>, order: Order) -> R
 
 #[tauri::command]
 pub async fn pay_order(state: tauri::State<'_, AppState>, req: PaymentReq) -> Result<()> {
-    Order::pay(&state.0, req).await
+    Order::pay(&state.pool, req).await
 }
 
 #[tauri::command]
@@ -1549,10 +1562,15 @@ pub async fn get_refund_info(
     order_id: i64,
     user_id: i64,
 ) -> Result<RefundInfoResp> {
-    Order::get_refund_info(&state.0, order_id, user_id).await
+    Order::get_refund_info(&state.pool, order_id, user_id).await
 }
 
 #[tauri::command]
 pub async fn refund_order(state: tauri::State<'_, AppState>, exp: Expenditure) -> Result<()> {
-    Order::refund(&state.0, exp).await
+    Order::refund(&state.pool, exp).await
+}
+
+#[tauri::command]
+pub async fn get_count_by_user_id(state: tauri::State<'_, AppState>, user_id: i64) -> Result<u64> {
+    Order::new_with_user_id(user_id).count(&state.pool).await
 }

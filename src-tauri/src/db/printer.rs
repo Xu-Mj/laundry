@@ -35,7 +35,7 @@ pub async fn get_settled_printer(
     state: State<'_, AppState>,
 ) -> Result<Option<PrinterConfiguration>> {
     let device = sqlx::query_as::<_, PrinterConfiguration>("SELECT * FROM printers LIMIT 1")
-        .fetch_optional(&state.0)
+        .fetch_optional(&state.pool)
         .await?;
     Ok(device)
 }
@@ -48,7 +48,7 @@ pub async fn set_printer(state: State<'_, AppState>, printer: PrinterConfigurati
     .bind(printer.name)
     .bind(printer.system_name)
     .bind(printer.driver_name)
-    .execute(&state.0)
+    .execute(&state.pool)
     .await?;
     Ok(())
 }

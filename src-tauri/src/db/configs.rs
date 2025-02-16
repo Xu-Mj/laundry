@@ -142,17 +142,17 @@ pub async fn get_config_list(
     page_params: PageParams,
     config: Config,
 ) -> Result<PageResult<Config>> {
-    config.get_list(&state.0, page_params).await
+    config.get_list(&state.pool, page_params).await
 }
 
 #[tauri::command]
 pub async fn get_config_by_id(state: State<'_, AppState>, id: i64) -> Result<Option<Config>> {
-    Config::get_by_id(&state.0, id).await
+    Config::get_by_id(&state.pool, id).await
 }
 
 #[tauri::command]
 pub async fn delete_configs(state: State<'_, AppState>, ids: Vec<i64>) -> Result<bool> {
-    let mut tr = state.0.begin().await?;
+    let mut tr = state.pool.begin().await?;
     let result = Config::delete_batch(&mut tr, &ids).await?;
     tr.commit().await?;
     Ok(result)
@@ -162,15 +162,15 @@ pub async fn delete_configs(state: State<'_, AppState>, ids: Vec<i64>) -> Result
 #[tauri::command]
 pub async fn add_config(state: State<'_, AppState>, config: Config) -> Result<Config> {
     tracing::debug!("add config: {:?}", config);
-    config.create(&state.0).await
+    config.create(&state.pool).await
 }
 
 #[tauri::command]
 pub async fn update_config(state: State<'_, AppState>, config: Config) -> Result<bool> {
-    config.update(&state.0).await
+    config.update(&state.pool).await
 }
 
 #[tauri::command]
 pub async fn get_config_by_key(state: State<'_, AppState>, key: String) -> Result<Option<Config>> {
-    Config::get_config_by_key(&state.0, &key).await
+    Config::get_config_by_key(&state.pool, &key).await
 }

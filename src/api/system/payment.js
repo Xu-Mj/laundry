@@ -1,5 +1,6 @@
 import request from '@/utils/request'
 
+import invoke from '@/utils/invoke'
 // 查询支付记录列表
 export function listPayment(query) {
   return request({
@@ -7,6 +8,10 @@ export function listPayment(query) {
     method: 'get',
     params: query
   })
+}
+// 查询支付记录列表
+export function getTotalAmountAndAvgConsume(userId) {
+  return invoke('get_total_amount', { userId })
 }
 
 // 查询支付记录详细

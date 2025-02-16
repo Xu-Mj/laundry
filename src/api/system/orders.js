@@ -29,9 +29,24 @@ export function selectListExceptCompleted(query) {
   return invoke('get_orders4home', { order: query })
 }
 
+export function selectListHistory(param) {
+  const pageParams = { pageSize: param.pageSize, page: param.pageNum, params: param.params };
+  const query = {
+    clothName: param.clothingName,
+    startTime: param.startTime,
+    endTime: param.endTime,
+    userId: param.userId
+  };
+  return invoke('get_orders4history', { query, pageParams })
+}
+
 // 查询洗护服务订单详细
 export function getOrders(orderId) {
   return invoke('get_order_by_id', { id: orderId })
+}
+
+export function getCountByUserId(userId) {
+  return invoke('get_count_by_user_id', { userId })
 }
 
 // 查询退单所需的信息，用户手机号、订单实际支付金额

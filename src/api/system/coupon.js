@@ -15,8 +15,9 @@ export function listCoupon(query) {
 }
 
 // 查询卡券列表
-export function listCoupon4sale() {
-  return invoke('get_coupons4sale')
+export function listCoupon4sale(query) {
+  const { title, tp } = query;
+  return invoke('get_coupons4sale', { title, tp })
 }
 
 // 查询卡券详细

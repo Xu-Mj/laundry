@@ -166,6 +166,7 @@ CREATE TABLE coupons
     coupon_number       TEXT UNIQUE NOT NULL,
     coupon_type         TEXT        NOT NULL DEFAULT '000',
     coupon_title        TEXT        NOT NULL,
+    desc                TEXT,
     coupon_value        DOUBLE      NOT NULL,
     min_spend           DOUBLE               DEFAULT 0,
     customer_invalid    TEXT                 DEFAULT '0',

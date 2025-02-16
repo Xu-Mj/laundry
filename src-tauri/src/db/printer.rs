@@ -34,7 +34,7 @@ pub async fn get_printers() -> Vec<PrinterConfiguration> {
 pub async fn get_settled_printer(
     state: State<'_, AppState>,
 ) -> Result<Option<PrinterConfiguration>> {
-    let device = sqlx::query_as::<_, PrinterConfiguration>("SELECT * FROM printers LIMIT 1")
+    let device = sqlx::query_as("SELECT * FROM printers LIMIT 1")
         .fetch_optional(&state.pool)
         .await?;
     Ok(device)

@@ -54,6 +54,11 @@
                     <dict-tag :options="sys_clothing_status" :value="scope.row.clothingStatus" />
                 </template>
             </el-table-column>
+            <el-table-column label="上挂位置" align="center">
+                <template #default="scope">
+                    {{ scope.row.hangLocationCode ? scope.row.hangerName + '-' + scope.row.hangerNumber : '' }}
+                </template>
+            </el-table-column>
             <el-table-column label="取回方式" align="center" prop="pickupMethod">
                 <template #default="scope">
                     <dict-tag :options="sys_delivery_mode" :value="scope.row.pickupMethod" />
@@ -64,13 +69,9 @@
                     <span>{{ formatTime(scope.row.pickupTime, '{y}-{m}-{d}') }}</span>
                 </template>
             </el-table-column>
-            <el-table-column label="上挂位置" align="center">
-                <template #default="scope">
-                    {{ scope.row.hangLocationCode ? scope.row.hangerName + '-' + scope.row.hangerNumber : '' }}
-                </template>
-            </el-table-column>
             <el-table-column label="上挂备注" align="center" prop="hangRemark" />
-            <el-table-column label="操作" align="center" :width="280" class-name="small-padding fixed-width">
+            <el-table-column label="操作" align="center" fixed="right" :width="280"
+                class-name="small-padding fixed-width">
                 <template #default="scope">
                     <el-button link type="primary" icon="Picture"
                         :disabled="scope.row.beforePics == null || scope.row.beforePics.length == 0"
@@ -167,6 +168,7 @@ import { ref } from "vue";
 import { getCloths, hangup } from "@/api/system/cloths";
 import { getUser } from "@/api/system/user";
 import { addExpenditure } from "@/api/system/expenditure";
+import {invoke} from '@tauri-apps/api/core';
 
 const props = defineProps({
     visible: {
@@ -208,7 +210,6 @@ const showCompensationDialog = ref(false);
 const showClothesDialog = ref(false);
 const loading = ref(true);
 const showHangUp = ref(false);
-const total = ref(0);
 const title = ref("");
 const colorList = ref([]);
 const flawList = ref([]);
@@ -276,7 +277,6 @@ async function getList() {
 
     await listCloths({ orderId: props.orderId }).then(response => {
         clothsList.value = response;
-        total.value = response.total;
         loading.value = false;
     });
 }
@@ -288,7 +288,7 @@ async function initList() {
     // 获取颜色列表
     if (colorList.value.length === 0) {
         const colorPromise = listTagsNoLimit({ tagOrder: '003' }).then(response => {
-            colorList.value = response.rows;
+            colorList.value = response;
         });
         promises.push(colorPromise);
     }
@@ -296,7 +296,7 @@ async function initList() {
     // 获取瑕疵列表
     if (flawList.value.length === 0) {
         const flawPromise = listTagsNoLimit({ tagOrder: '001' }).then(response => {
-            flawList.value = response.rows;
+            flawList.value = response;
         });
         promises.push(flawPromise);
     }
@@ -304,7 +304,7 @@ async function initList() {
     // 获取预估列表
     if (estimateList.value.length === 0) {
         const estimatePromise = listTagsNoLimit({ tagOrder: '002' }).then(response => {
-            estimateList.value = response.rows;
+            estimateList.value = response;
         });
         promises.push(estimatePromise);
     }
@@ -312,7 +312,7 @@ async function initList() {
     // 获取品牌列表
     if (brandList.value.length === 0) {
         const brandPromise = listTagsNoLimit({ tagOrder: '004' }).then(response => {
-            brandList.value = response.rows;
+            brandList.value = response;
         });
         promises.push(brandPromise);
     }
@@ -432,22 +432,45 @@ function closeHangUpDialog(done) {
     done();
 }
 
+const loadImage = async (id) => {
+    try {
+        // 调用 Tauri 后端命令获取图片二进制数据
+        const imageData = await invoke('get_image', { id });
+
+        // 将二进制数据转换为 Blob
+        const blob = new Blob([new Uint8Array(imageData)], { type: 'image/png' });
+
+        // 生成图片 URL
+        return URL.createObjectURL(blob);
+
+        // 提示加载成功
+    } catch (error) {
+        // 提示加载失败
+    }
+};
+
 /* 获取图片列表id */
-function handleShowPicture(row, flag) {
+async function handleShowPicture(row, flag) {
     showPicture.value = true;
-    getCloths(row.clothId).then(response => {
-        if (flag) {
-            pictureList.value = response.data.beforePics ?
-                response.data.beforePics.split(',').map(item => pictureUrl.value + item) : [];
+
+    try {
+        // 获取图片 ID 列表
+        const picIds = flag ? row.beforePics?.split(',') : row.afterPics?.split(',');
+
+        if (picIds && picIds.length > 0) {
+            // 使用 Promise.all 等待所有图片加载完成
+            const imageUrls = await Promise.all(picIds.map(id => loadImage(Number(id))));
+
+            // 过滤掉加载失败的图片（null）
+            pictureList.value = imageUrls.filter(url => url !== null);
         } else {
-            pictureList.value = response.data.afterPics ?
-                response.data.afterPics.split(',').map(item => pictureUrl.value + item) : [];
+            pictureList.value = []; // 如果没有图片 ID，清空列表
         }
-        console.log(pictureList.value)
-    });
-
+    } catch (error) {
+        console.error(`处理图片列表失败: ${error}`);
+        pictureList.value = []; // 出错时清空列表
+    }
 }
-
 // 显示取走
 function handlePickup() {
     showPickUpDialog.value = true;

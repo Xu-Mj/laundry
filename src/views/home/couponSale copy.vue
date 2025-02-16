@@ -1,20 +1,11 @@
 <template>
     <!-- show sell coupon -->
-    <!-- <el-dialog :title="title" v-model="open" width="780px" :show-close="true" append-to-body @closed="closeHangUpDialog" > -->
-    <el-form ref="sellFormRef" :model="sellForm" :rules="rules" label-width="90px">
-        <el-row v-if="props.userId && props.userId != 0">
-            <el-col :span="12">
-                <el-form-item label="会员信息:">
-                    {{ user.nickName }} - {{ user.phonenumber }}
-                </el-form-item>
-            </el-col>
-            <el-col :span="12">
-                <el-form-item label="会员积分:">
-                    {{ user.integral }}
-                </el-form-item>
-            </el-col>
-        </el-row>
-
+    <el-dialog :title="title" v-model="open" width="780px" :show-close="true" append-to-body @closed="closeHangUpDialog" >
+    <el-form ref="sellFormRef"
+        :model="sellForm" :rules="rules" label-width="90px">
+        <el-form-item v-if="props.userId && props.userId != 0" label="会员身份">
+            {{ user.nickName }} - {{ user.phonenumber }}
+        </el-form-item>
         <el-row v-else>
             <el-col :span="6">
                 <el-form-item label="会员身份" prop="userId">
@@ -32,50 +23,17 @@
                 </el-form-item>
             </el-col>
         </el-row>
-        <!-- <el-form style="margin-top: 1rem;" :model="queryParams" ref="queryRef" :inline="true" label-width="68px">
-            <el-form-item label="卡券名称" prop="couponTitle">
-                <el-input v-model="queryParams.couponTitle" placeholder="请输入卡券名称" clearable
-                    @keyup.enter="handleQuery" />
-            </el-form-item>
-            <el-form-item label="卡券类型" prop="couponType">
-                <el-select v-model="queryParams.couponType" @change="handleQuery" placeholder="卡券类型" clearable
-                    style="width: 120px">
-                    <el-option v-for="dict in sys_coupon_type" :key="dict.value" :label="dict.label"
-                        :value="dict.value" />
-                </el-select>
-            </el-form-item>
-            <el-form-item>
-                <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
-                <el-button icon="Refresh" @click="resetQuery">重置</el-button>
-            </el-form-item>
-        </el-form> -->
         <el-row>
-            <h3 class="title">在售会员卡列表:</h3>
+            <h3 class="title">卡券信息</h3>
         </el-row>
         <el-table :data="couponList" max-height="15rem" border @selection-change="handleSelectionChange">
-            <el-table-column type="selection" width="35" align="center" />
+            <el-table-column type="selection" width="55" align="center" />
             <el-table-column label="卡券名称" align="center" key="couponTitle" prop="couponTitle" />
             <el-table-column label="卡券类型" align="center" key="couponType" prop="couponType">
                 <template #default="scope">
                     <dict-tag :options="sys_coupon_type" :value="scope.row.couponType" />
                 </template>
             </el-table-column>
-            <!-- <el-table-column label="有效时间-起" align="center" prop="validFrom" v-if="columns[9].visible">
-                <template #default="scope">
-                    <span>{{ parseTime(scope.row.validFrom, '{y}-{m}-{d}') }}</span>
-                </template>
-            </el-table-column>
-            <el-table-column label="有效时间-止" align="center" prop="validTo" v-if="columns[10].visible">
-                <template #default="scope">
-                    <span>{{ parseTime(scope.row.validTo, '{y}-{m}-{d}') }}</span>
-                </template>
-            </el-table-column>
-            <el-table-column label="限制条件" align="center" prop="usageLimit" v-if="columns[13].visible">
-                <template #default="scope">
-                    {{ scope.row.couponType === '003' ? '最高消费金额限制' + scope.row.usageLimit + '元' :
-                        scope.row.usageLimit == 0 ? '无限制' : scope.row.usageLimit }}
-                </template>
-            </el-table-column> -->
             <el-table-column label="价格" align="center" key="couponValue" prop="couponValue" />
             <el-table-column label="数量" align="center">
                 <template #default="scope">
@@ -83,7 +41,7 @@
                         ? Math.min(scope.row.customerSaleCount, scope.row.customerSaleTotal)
                         : (scope.row.customerSaleTotal != -1 ? scope.row.customerSaleTotal
                             : (scope.row.customerSaleCount != -1 ? scope.row.customerSaleCount : Infinity))"
-                        controls-position="right" style="width: 6rem;" />
+                        controls-position="right" />
                 </template>
             </el-table-column>
         </el-table>
@@ -106,27 +64,24 @@
                 <el-input type="textarea" v-model="sellForm.remark" placeholder="备注信息" />
             </el-form-item>
         </el-row>
-
         <el-row>
-            <h3 class="title">订单金额: {{ totalPrice }} 元</h3>
+            <el-col :span="21" class="cash">
+                总价：{{ totalPrice }}
+            </el-col>
+            <el-col :span="3" justify="center" align="right">
+                <el-button type="primary" @click="buy">立即购买</el-button>
+            </el-col>
         </el-row>
-        <el-row style="margin-top: 1rem; display: flex; justify-content: center; align-items: center; gap: 1rem;">
-            <el-button type="primary" style="width: 6rem; height: 2rem;" @click="props.taggle()">返回</el-button>
-            <el-button type="primary" style="width: 6rem; height: 2rem;" @click="buy">立即购买</el-button>
-        </el-row>
-    </el-form>
-    <Information :user="currentUser" :visible="showInfoDialog" :key="showInfoDialog"
-        :toggle="() => { showInfoDialog = !showInfoDialog }" />
-    <!-- </el-dialog> -->
+        </el-form>
+    </el-dialog>
 </template>
 
 <script setup name="CouponSale">
 import { listCoupon4sale, buyCoupon } from "@/api/system/coupon";
 import { getUser, listUserWithNoLimit, addUser } from "@/api/system/user";
-import Information from "@/views/system/user/information.vue";
+import { listClothing } from "@/api/system/clothing";
 import { ref, computed } from "vue";
 
-const router = useRouter();
 const props = defineProps({
     userId: {
         type: String,
@@ -134,7 +89,7 @@ const props = defineProps({
     submit: {
         type: Function,
         default: (data) => { }
-    },
+    }, 
     visible: {
         type: Boolean,
         required: true,
@@ -163,19 +118,12 @@ const open = ref(false);
 const user = ref({});
 const needCreateUser = ref(false);
 const searchUserloading = ref(false);
-const showInfoDialog = ref(false);
-const currentUser = ref({});
 
 const userListRes = ref([]);
 const userList = ref([]);
 const sellFormRef = ref();
 const phoneRegex = /^1[3-9]\d{9}$/;
-const queryParams = ref({
-    pageNum: 1,
-    pageSize: 10,
-    couponType: null,
-    couponTitle: null,
-});
+
 // 列显隐信息
 const columns = ref([
     { key: 0, label: `卡券名称`, visible: true },
@@ -232,29 +180,15 @@ const { sellForm, selectedList, rules } = toRefs(data);
 function closeHangUpDialog() {
     props.taggle();
 }
-/** 搜索按钮操作 */
-function handleQuery() {
-    queryParams.value.pageNum = 1;
-    getList();
-}
-
-/** 重置按钮操作 */
-function resetQuery() {
-    proxy.resetForm("queryRef");
-    queryParams.value.delFlag = null;
-    handleQuery();
-}
 
 /* 选择会员信息 */
-async function selectUser(userId) {
+function selectUser(userId) {
     if (!userId || userId.length == 0) {
         sellForm.value.nickName = null;
         return;
     }
     const item = userList.value.find(item => { return item.userId === userId });
     sellForm.value.nickName = item.nickName;
-    currentUser.value = await getUser(userId);
-
 }
 
 /* 根据手机号搜索用户列表 */
@@ -301,7 +235,7 @@ function getList() {
             user.value = response;
         });
     }
-    listCoupon4sale({ title: queryParams.value.couponTitle, tp: queryParams.value.couponType }).then(response => {
+    listCoupon4sale().then(response => {
         couponList.value = response;
         couponList.value.forEach(item => item.count = 1);
         loading.value = false;
@@ -310,11 +244,7 @@ function getList() {
 
 // 多选框选中数据
 function handleSelectionChange(selection) {
-    selection.forEach(item => {
-        if (!item.count) {
-            item.count = 1;
-        }
-    });
+    selection.forEach(item => item.count = 1);
     selectedList.value = selection;
 }
 
@@ -398,9 +328,5 @@ onMounted(async () => {
     display: flex;
     justify-content: right;
     align-items: center;
-}
-
-.equal-width-button {
-    width: 120px;
 }
 </style>

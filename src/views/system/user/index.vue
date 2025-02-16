@@ -298,8 +298,6 @@ const single = ref(true);
 const multiple = ref(true);
 const total = ref(0);
 const title = ref("");
-const deptName = ref("");
-const initPassword = ref(undefined);
 const levelOptions = ref([]);
 const roleOptions = ref([]);
 
@@ -344,6 +342,22 @@ const data = reactive({
 
 const { queryParams, form, rules } = toRefs(data);
 
+// Save column visibility to local storage
+const saveColumnVisibility = () => {
+   localStorage.setItem('userColumns', JSON.stringify(columns.value));
+};
+
+// Retrieve column visibility from local storage
+const loadColumnVisibility = () => {
+   const savedColumns = localStorage.getItem('userColumns');
+   if (savedColumns) {
+      columns.value = JSON.parse(savedColumns);
+   }
+};
+
+// Watch for changes in column visibility and save to local storage
+watch(columns, saveColumnVisibility, { deep: true });
+
 /** 查询会员列表 */
 function getList() {
    loading.value = true;
@@ -377,10 +391,10 @@ function resetQuery() {
 
 /** 删除按钮操作 */
 function handleDelete(row) {
-   if(row && row.balance > 0) {
+   if (row && row.balance > 0) {
       proxy.$modal.msgWarning("会员余额大于0，无法删除！");
       return;
-   } else if(!row && ids.value.length > 0) {
+   } else if (!row && ids.value.length > 0) {
       // query user list by ids
       if (userList.value.filter(item => ids.value.contains(item.userId)).filter(item => item.balance > 0).length > 0) {
          proxy.$modal.msgWarning("存在会员余额大于0的用户，无法删除！");
@@ -520,6 +534,8 @@ function submitForm() {
             if (form.value.userTagsArr && form.value.userTagsArr.length > 0) {
                form.value.userTags = form.value.userTagsArr.join(",");
                delete form.value.userTagsArr;
+            } else {
+               form.value.userTags = "";
             }
 
             updateUser(form.value).then(response => {
@@ -548,6 +564,7 @@ function submitForm() {
    });
 };
 
+loadColumnVisibility();
 getPostList();
 getList();
 </script>

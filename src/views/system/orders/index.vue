@@ -35,9 +35,9 @@
     </el-form>
 
     <el-row :gutter="10" class="mb8">
-      <el-col :span="1.5">
+      <!-- <el-col :span="1.5">
         <el-button type="primary" plain icon="Plus" @click="handleAdd" v-hasPermi="['system:orders:add']">新增</el-button>
-      </el-col>
+      </el-col> -->
       <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" :columns="columns"></right-toolbar>
     </el-row>
 
@@ -145,7 +145,7 @@
         </template>
       </el-table-column>
       <el-table-column label="备注" align="center" prop="remark" show-overflow-tooltip v-if="columns[18].visible" />
-      <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
+      <el-table-column label="操作" fixed="right" align="center" class-name="small-padding fixed-width">
         <template #default="scope">
           <el-button link type="primary" @click="showClothList(scope.row)"
             v-hasPermi="['system:orders:list']">衣物</el-button>
@@ -156,17 +156,16 @@
             <template #dropdown>
               <el-dropdown-menu>
                 <el-dropdown-item>
-                  <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)"
-                    v-hasPermi="['system:orders:edit']">编辑</el-button>
+                  <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)">编辑</el-button>
                 </el-dropdown-item>
                 <el-dropdown-item>
                   <el-button link type="primary" icon="Edit" :disabled="scope.row.status == '05'"
-                    @click="handleRefund(scope.row)" v-hasPermi="['system:orders:edit']">退单</el-button>
+                    @click="handleRefund(scope.row)">退单</el-button>
                 </el-dropdown-item>
                 <el-dropdown-item>
                   <el-button link type="primary" icon="Edit"
-                    :disabled="scope.row.status !== '02' && scope.row.status !== '03'" @click="handleNotify(scope.row)"
-                    v-hasPermi="['system:orders:edit']">通知</el-button>
+                    :disabled="scope.row.status !== '02' && scope.row.status !== '03'"
+                    @click="handleNotify(scope.row)">通知</el-button>
                 </el-dropdown-item>
                 <el-dropdown-item>
                   <el-button link type="danger" icon="Delete" @click="handleDelete(scope.row)">删除</el-button>
@@ -174,7 +173,7 @@
                 <el-dropdown-item disabled>
                   <el-button link type="primary" icon="Edit"
                     :disabled="scope.row.paymentStatus !== '01' || scope.row.status == '05'"
-                    @click="handleUpdate(scope.row)" v-hasPermi="['system:orders:edit']">收款</el-button>
+                    @click="go2pay(scope.row)">收款</el-button>
                 </el-dropdown-item>
               </el-dropdown-menu>
             </template>
@@ -277,9 +276,9 @@
     <!-- 衣物列表弹窗 -->
     <ShowCloths :orderId="currentOrderId" :visible="showClothListDialog" :flashList="getList" :userId="currentUserId"
       :key="showClothListDialog" :toggle="() => { showClothListDialog = !showClothListDialog }" />
-    <el-dialog :show-close="false" v-model="open" width="1366px" append-to-body lock-scroll modal :before-close="cancel"
-      :close-on-click-modal="false">
-      <CreateOrder ref="createOrderRef" :orderId="currentOrderId" :userId="currentUserId"
+    <el-dialog :show-close="false" v-model="open" fullscreen width="1366px" append-to-body lock-scroll modal
+      :before-close="cancel" :close-on-click-modal="false">
+      <CreateOrder ref="createOrderRef" :visible="true" :orderId="currentOrderId" :userId="currentUserId"
         :toggle="() => { open = !open; getList(); }" :refresh="getList" :key="open" />
     </el-dialog>
     <Pay :visible="showPaymentDialog" :key="showPaymentDialog" :order="currentOrder" :refresh="getList"
@@ -297,7 +296,7 @@ import { listTemplate } from '@/api/system/template';
 import ShowCloths from './showCloths.vue';
 import CreateOrder from "@/views/home/createOrder.vue";
 import Pay from "@/views/home/pay.vue";
-import { listCloths } from "../../../api/system/cloths";
+import { listCloths } from "@/api/system/cloths";
 
 const { proxy } = getCurrentInstance();
 const {
@@ -402,11 +401,28 @@ const columns = ref([
   { key: 19, label: `备注`, visible: true },
 ]);
 
+// Save column visibility to local storage
+const saveColumnVisibility = () => {
+  localStorage.setItem('orderColumns', JSON.stringify(columns.value));
+};
+
+// Retrieve column visibility from local storage
+const loadColumnVisibility = () => {
+  const savedColumns = localStorage.getItem('orderColumns');
+  if (savedColumns) {
+    columns.value = JSON.parse(savedColumns);
+  }
+};
+
+// Watch for changes in column visibility and save to local storage
+watch(columns, saveColumnVisibility, { deep: true });
+
+
 function go2pay(row) {
   // 根据订单id查询衣物列表
   listCloths({ orderId: row.orderId }).then(res => {
     currentOrder.value = row;
-    currentOrder.value.cloths  = res;
+    currentOrder.value.cloths = res;
     showPaymentDialog.value = true;
   });
 }
@@ -618,6 +634,7 @@ function tempSelectChange(tempId) {
   }
 }
 
+loadColumnVisibility();
 getList();
 </script>
 

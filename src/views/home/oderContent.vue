@@ -1,140 +1,156 @@
 <template>
-    <el-dialog v-model="showOrderDialog" width="1280px" append-to-body @closed="taggle">
-        <el-form :model="queryParams" ref="queryRef" :inline="true" label-width="68px">
-            <el-form-item label="取件码" prop="pickupCode">
-                <el-input v-model="queryParams.pickupCode" placeholder="请输入取件码" clearable @keyup.enter="handleQuery" />
-            </el-form-item>
-            <el-form-item label="手机号" prop="phonenumber">
-                <el-input v-model="queryParams.phonenumber" placeholder="请输入会员手机号" clearable
-                    @keyup.enter="handleQuery" />
-            </el-form-item>
-            <el-form-item label="订单编码" prop="orderNumber">
-                <el-input v-model="queryParams.orderNumber" placeholder="请输入订单编码" clearable
-                    @keyup.enter="handleQuery" />
-            </el-form-item>
-            <el-form-item>
-                <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
-                <el-button icon="Refresh" @click="resetQuery">重置</el-button>
-            </el-form-item>
-        </el-form>
-        <!-- 渲染订单抖索结果列表 -->
-        <div class="search-result-list">
-
-            <div class="result-item" v-for="order in ordersList" :key="order.orderId">
-                <!-- 信息行 -->
-                <div class="result-item-info">
-                    <!-- 订单编码 -->
-                    <span>订单编码: {{ order.orderNumber }}</span>
-                    <!-- 所属会员 -->
-                    <span>所属会员: {{ order.nickName }}</span>
-                    <!-- 实际支付金额 -->
-                    <span style="display: flex; align-items: center; gap: .5rem;">实际支付金额:
-                        <span style="color: red;font-weight: bold; align-items: center;">
-                            {{ order.mount }}
-                        </span>
-                    </span>
-                    <!-- 取件码 -->
-                    <span>取件码: {{ order.pickupCode }}</span>
-                    <!-- 支付状态 -->
-                    <span style="display: flex; align-items: center; gap: .5rem;">支付状态:
-                        <!-- <dict-tag :options="sys_payment_status" :value="order.paymentStatus" /> -->
-                        <dict-tag v-if="order.paymentStatus === '01'" style="cursor: pointer;" @click="go2pay(order)"
-                            :options="sys_payment_status" :value="order.paymentStatus" />
-                        <dict-tag v-else :options="sys_payment_status" :value="order.paymentStatus" />
-                    </span>
+    <transition @before-enter="beforeEnter" @enter="enter">
+        <div class="result-container">
+            <el-form :model="queryParams" ref="queryRef" :inline="true" label-width="68px">
+                <el-form-item label="取件码" prop="pickupCode">
+                    <el-input v-model="queryParams.pickupCode" placeholder="请输入取件码" clearable
+                        @keyup.enter="handleQuery" />
+                </el-form-item>
+                <el-form-item label="手机号" prop="phonenumber">
+                    <el-input ref="phonenumber" v-model="queryParams.phonenumber" placeholder="请输入会员手机号" clearable
+                        @keyup.enter="handleQuery" />
+                </el-form-item>
+                <el-form-item label="订单编码" prop="orderNumber">
+                    <el-input v-model="queryParams.orderNumber" placeholder="请输入订单编码" clearable
+                        @keyup.enter="handleQuery" />
+                </el-form-item>
+                <el-form-item>
+                    <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
+                    <el-button icon="Refresh" @click="resetQuery">重置</el-button>
+                </el-form-item>
+            </el-form>
+            <!-- 渲染订单抖索结果列表 -->
+            <div class="search-result-list">
+                <div v-if="ordersList.length === 0" class="no-result">
+                    <h1 style="color: #ccc;">暂无数据</h1>
                 </div>
-                <!-- 订单包含的衣物列表 -->
-                <el-table v-if="order.clothList && order.clothList.length > 0" class="cloths-table"
-                    :data="order.clothList" :loading="order.loading" row-key="clothingId"
-                    @selection-change="selectedItems => handleClothSelectionChange(selectedItems, order)"
-                    ref="clothsTableRef" border="dash">
-                    <el-table-column type="selection" width="55" align="center" />
-                    <el-table-column label="衣物" align="center">
-                        <template #default="scope">
-                            {{ scope.row.clothInfo.clothingName }}
-                            {{ scope.row.clothingColor ? '-' + colorList.find(item => item.tagId ==
-                                scope.row.clothingColor).tagName : '' }}
-                        </template>
-                    </el-table-column>
-                    <el-table-column label="衣物编码" align="center" prop="clothingColor" width="110">
-                        <template #default="scope">
-                            {{ scope.row.hangClothCode }}
-                        </template>
-                    </el-table-column>
-                    <el-table-column label="服务类型" align="center">
-                        <template #default="scope">
-                            <span class="service-type">
-                                <dict-tag :options="sys_service_type" :value="scope.row.serviceType" />
-                                -
-                                <dict-tag :options="sys_service_requirement" :value="scope.row.serviceRequirement" />
+                <div v-else class="result-item" v-for="order in ordersList" :key="order.orderId">
+                    <div class="result-item-order-num">
+                        <span>
+                            订单编码: {{ order.orderNumber }}
+                        </span>
+                        <el-button type="primary" size="small">补打小票</el-button>
+                    </div>
+                    <div class="result-item-info">
+                        <span>会员身份: {{ order.nickName + '-' + order.phonenumber }}</span>
+                        <span style="display: flex; align-items: center; gap: .5rem;">支付状态:
+                            <dict-tag v-if="order.paymentStatus === '01'" style="cursor: pointer;"
+                                @click="go2pay(order)" :options="sys_payment_status" :value="order.paymentStatus" />
+                            <dict-tag v-else :options="sys_payment_status" :value="order.paymentStatus" />
+                        </span>
+                        <span style="display: flex; align-items: center; gap: .5rem;">
+                            {{ order.paymentStatus === '00' ? '实际支付金额:' : '应支付金额:' }}
+                            <span style="color: red;font-weight: bold; align-items: center;">
+                                {{ order.mount }}
                             </span>
-                        </template>
-                    </el-table-column>
-                    <el-table-column label="洗护价格" align="center" prop="priceValue" />
-                    <el-table-column label="工艺加价" align="center" prop="processMarkup" />
-                    <el-table-column label="衣物瑕疵" align="center" prop="clothingFlaw">
-                        <template #default="scope">
-                            <el-tag v-for="tagId in scope.row.clothingFlaw ? scope.row.clothingFlaw.split(',') : []"
-                                :key="tagId" type="danger">
-                                {{ flawList.find(item => item.tagId == tagId).tagName }}
-                            </el-tag>
-                        </template>
-                    </el-table-column>
-                    <el-table-column label="洗后预估" align="center" prop="estimate">
-                        <template #default="scope">
-                            <el-tag v-for="tagId in scope.row.estimate ? scope.row.estimate.split(',') : []" :key="tagId"
-                                type="primary">
-                                {{ estimateList.find(item => item.tagId == tagId).tagName }}
-                            </el-tag>
-                        </template>
-                    </el-table-column>
-                    <el-table-column label="衣物品牌" align="center" prop="clothingBrand">
-                        <template #default="scope">
-                            <el-tag v-if="scope.row.clothingBrand" type="primary">
-                                {{ brandList.find(item => item.tagId == scope.row.clothingBrand).tagName }}
-                            </el-tag>
-                        </template>
-                    </el-table-column>
-                    <el-table-column label="图片" align="center" class-name="small-padding fixed-width">
-                        <template #default="scope">
-                            <el-button link type="primary"
-                                :disabled="scope.row.beforePics == null || scope.row.beforePics.length == 0"
-                                @click="handleShowPicture(scope.row, true)"
-                                v-hasPermi="['system:cloths:edit']">洗前</el-button>
-                            <el-button link type="primary"
-                                :disabled="scope.row.afterPics == null || scope.row.afterPics.length == 0"
-                                @click="handleShowPicture(scope.row, false)"
-                                v-hasPermi="['system:cloths:edit']">洗后</el-button>
-                        </template>
-                    </el-table-column>
-                    <el-table-column label="洗护状态" align="center" prop="clothingStatus">
-                        <template #default="scope">
-                            <dict-tag :options="sys_clothing_status" :value="scope.row.clothingStatus" />
-                        </template>
-                    </el-table-column>
-                    <el-table-column label="上挂位置" align="center">
-                        <template #default="scope">
-                            {{
-                                scope.row.hangLocationCode ?
-                                    scope.row.hangerName + '-' + scope.row.hangerNumber : ''
-                            }}
-                        </template>
-                    </el-table-column>
-                    <el-table-column label="上挂备注" align="center" prop="hangRemark" />
-                </el-table>
+                        </span>
+                        <span>取件码: {{ order.pickupCode }}</span>
+                        <span style="display: flex; align-items: center; gap: .5rem;">订单状态:
+                            <dict-tag :options="sys_order_status" :value="order.status" />
+                        </span>
+                    </div>
+                    <!-- 订单包含的衣物列表 -->
+                    <el-table v-if="order.clothList && order.clothList.length > 0" :data="order.clothList"
+                        :loading="order.loading" row-key="clothingId"
+                        @selection-change="selectedItems => handleClothSelectionChange(selectedItems, order)"
+                        ref="clothsTableRef">
+                        <el-table-column type="selection" width="55" align="center" />
+                        <el-table-column label="衣物" align="center">
+                            <template #default="scope">
+                                {{ scope.row.clothInfo.clothingName }}
+                                {{ scope.row.clothingColor ? '-' + colorList.find(item => item.tagId ==
+                                    scope.row.clothingColor).tagName : '' }}
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="衣物编码" align="center" prop="clothingColor" width="110">
+                            <template #default="scope">
+                                {{ scope.row.hangClothCode }}
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="服务类型" align="center">
+                            <template #default="scope">
+                                <span class="service-type">
+                                    <dict-tag :options="sys_service_type" :value="scope.row.serviceType" />
+                                    -
+                                    <dict-tag :options="sys_service_requirement"
+                                        :value="scope.row.serviceRequirement" />
+                                </span>
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="洗护价格" align="center" prop="priceValue" />
+                        <el-table-column label="工艺加价" align="center" prop="processMarkup" />
+                        <el-table-column label="衣物瑕疵" align="center" prop="clothingFlaw">
+                            <template #default="scope">
+                                <el-tag v-for="tagId in scope.row.clothingFlaw ? scope.row.clothingFlaw.split(',') : []"
+                                    :key="tagId" type="danger">
+                                    {{ flawList.find(item => item.tagId == tagId).tagName }}
+                                </el-tag>
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="洗后预估" align="center" prop="estimate">
+                            <template #default="scope">
+                                <el-tag v-for="tagId in scope.row.estimate ? scope.row.estimate.split(',') : []"
+                                    :key="tagId" type="primary">
+                                    {{ estimateList.find(item => item.tagId == tagId).tagName }}
+                                </el-tag>
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="衣物品牌" align="center" prop="clothingBrand">
+                            <template #default="scope">
+                                <el-tag v-if="scope.row.clothingBrand" type="primary">
+                                    {{ brandList.find(item => item.tagId == scope.row.clothingBrand).tagName }}
+                                </el-tag>
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="图片" align="center" class-name="small-padding fixed-width">
+                            <template #default="scope">
+                                <el-button link type="primary"
+                                    :disabled="scope.row.beforePics == null || scope.row.beforePics.length == 0"
+                                    @click="handleShowPicture(scope.row, true)"
+                                    v-hasPermi="['system:cloths:edit']">洗前</el-button>
+                                <el-button link type="primary"
+                                    :disabled="scope.row.afterPics == null || scope.row.afterPics.length == 0"
+                                    @click="handleShowPicture(scope.row, false)"
+                                    v-hasPermi="['system:cloths:edit']">洗后</el-button>
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="洗护状态" align="center" prop="clothingStatus">
+                            <template #default="scope">
+                                <dict-tag :options="sys_clothing_status" :value="scope.row.clothingStatus" />
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="上挂位置" align="center">
+                            <template #default="scope">
+                                {{
+                                    scope.row.hangLocationCode ?
+                                        scope.row.hangerName + '-' + scope.row.hangerNumber : ''
+                                }}
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="上挂备注" align="center" prop="hangRemark" />
+                        <el-table-column label="操作" align="center">
+                            <template #default="scope">
+                                <div v-if="scope.row.clothingStatus == '02'">
+                                    <el-button type="text" @click="pickup(scope.row)">取衣</el-button>
+                                    <el-button type="text" @click="handleReWash(scope.row)">复洗</el-button>
+                                </div>
+                            </template>
+                        </el-table-column>
+                    </el-table>
 
+                </div>
+            </div>
+
+            <div class="footer">
+                <el-button @click="props.taggle()">关闭</el-button>
+                <el-button type="primary" @click="pickup()">取衣</el-button>
+                <el-button @click="handlePay">取衣收款</el-button>
+                <el-button @click="handleDelivery">上门派送</el-button>
+                <!-- <el-button @click="handleReWash">售后复洗</el-button> -->
+                <el-button @click="() => { }">补打小票</el-button>
             </div>
         </div>
-
-        <!--footer包含 四个button -->
-        <template #footer>
-            <el-button type="primary" @click="pickup">取衣</el-button>
-            <el-button @click="handlePay">取衣收款</el-button>
-            <el-button @click="handleDelivery">上门派送</el-button>
-            <el-button @click="handleReWash">售后复洗</el-button>
-            <el-button @click="() => {}">补打小票</el-button>
-        </template>
-    </el-dialog>
+    </transition>
 
     <!-- 展示照片 -->
     <el-dialog title="照片" v-model="showPicture" width="400px" append-to-body>
@@ -298,14 +314,10 @@ import { isCurrentTimeWithinRange } from "@/utils";
 import { selectListExceptCompleted } from "@/api/system/orders";
 import { getPrice } from "@/api/system/price";
 import ReWash from "./rewash.vue";
-import { ElMessageBox } from 'element-plus'
+import { ElMessageBox } from 'element-plus';
+import { gsap } from 'gsap'
 
 const props = defineProps({
-    visible: {
-        type: Boolean,
-        required: true,
-        default: false,
-    },
     taggle: {
         type: Function,
         required: true,
@@ -315,7 +327,7 @@ const props = defineProps({
 const { proxy } = getCurrentInstance();
 const {
     sys_payment_status,
-    sys_delivery_mode,
+    sys_order_status,
     sys_payment_method,
     sys_service_requirement,
     sys_service_type,
@@ -323,14 +335,13 @@ const {
 } =
     proxy.useDict(
         'sys_payment_status',
-        "sys_delivery_mode",
+        "sys_order_status",
         "sys_payment_method",
         "sys_service_requirement",
         "sys_service_type",
         "sys_clothing_status",
     );
 
-const showOrderDialog = ref(props.visible);
 
 // 订单列表
 const ordersList = ref([]);
@@ -379,6 +390,7 @@ const showCoupons = ref(true);
 const rewashOrder = ref(null);
 const rewashClothesId = ref([]);
 
+const phonenumber = ref();
 
 const data = reactive({
     deliveryForm: {},
@@ -393,11 +405,30 @@ const data = reactive({
 
 const { deliveryForm, paymentForm, pickupRules, queryParams } = toRefs(data);
 
+// 加载动画
+function beforeEnter(el) {
+    console.log('before enter')
+    gsap.set(el, {
+        y: 50,
+        opacity: 0
+    });
+}
+
+function enter(el, done) {
+    gsap.to(el, {
+        y: 0,
+        opacity: 1,
+        duration: 0.5,
+        ease: "power4.out",
+        onComplete: done
+    });
+}
+
 async function go2pay(row) {
     initPaymentForm();
     paymentForm.value.orders = [row];
     // 获取用户的卡券列表
-    await listUserCouponWithValidTime({ userId: row.userId }).then(response => {
+    await listUserCouponWithValidTime(row.userId).then(response => {
         userCouponList.value = response;
         // 初始化次卡信息
         userCouponList.value.filter(item => item.coupon.couponType == '002').map(item => {
@@ -422,7 +453,10 @@ async function go2pay(row) {
 }
 
 // 显示售后复洗
-function handleReWash() {
+function handleReWash(cloth) {
+    if (cloth) {
+        selectedCloths.value = [cloth];
+    }
     if (selectedCloths.value.length == 0) {
         proxy.$message.error("请先选择衣物");
         return;
@@ -480,7 +514,7 @@ async function handlePay() {
     }
     initPaymentForm();
     // 获取用户的卡券列表
-    await listUserCouponWithValidTime({ userId: ordersList.value[0].userId }).then(response => {
+    await listUserCouponWithValidTime(ordersList.value[0].userId).then(response => {
         userCouponList.value = response;
         // 初始化次卡信息
         userCouponList.value.filter(item => item.coupon.couponType == '002').map(item => {
@@ -821,7 +855,11 @@ function changeCoupon(couponType, card) {
 }
 
 // 显示取走
-async function pickup() {
+async function pickup(cloth) {
+    if (cloth) {
+        selectedCloths.value = [cloth];
+    }
+    console.log(selectedCloths.value)
     const cloths = selectedCloths.value.filter(item => item.clothingStatus !== '00');
     if (cloths.length == 0) {
         proxy.$modal.msgWarning("没有选中符合条件的衣物");
@@ -847,6 +885,7 @@ async function pickup() {
     const ids = cloths.map(item => item.clothId);
 
     const orderIds = cloths.map(item => item.orderClothId);
+    console.log(ids)
 
     // 判断是否包含未支付的订单
     const unpaidOrders = ordersList.value.filter(item => orderIds.includes(item.orderId) && item.paymentStatus !== '00');
@@ -962,6 +1001,7 @@ function handleClothSelectionChange(selectedItems, row) {
 
     // 将新的选中项合并到 shared array
     selectedCloths.value.push(...selectedItems);
+    console.log(selectedCloths.value)
     // if (!selectedCloths.value.find(item => item.orderClothId === orderId)) {
     //     // 说明该订单下已经没有选中项，则删除该订单
     //     orderTableRef.value.toggleRowSelection(row, false);
@@ -1051,7 +1091,6 @@ async function initList() {
 
 /** 查询洗护服务订单列表 */
 async function getList() {
-    if (!showOrderDialog.value) return;
 
     if (queryParams.value.pickupCode === '' && queryParams.value.phonenumber === '' && queryParams.value.orderNumber === '') {
         return;
@@ -1061,8 +1100,8 @@ async function getList() {
 
     if (ordersList.value.length === 0) {
         proxy.$modal.msgWarning('没有找到相关订单');
-    return;
-    } 
+        return;
+    }
 
     // 查询用户信息
     getUser(ordersList.value[0].userId).then(res => {
@@ -1070,7 +1109,7 @@ async function getList() {
     });
 
     // 获取用户卡券列表
-    await listUserCouponWithValidTime({ userId: ordersList.value[0].userId }).then(res => {
+    await listUserCouponWithValidTime(ordersList.value[0].userId).then(res => {
         userCouponList.value = res;
         // 计算用户卡券种类
         couponTypeList.value = new Set(userCouponList.value.map(coupon => coupon.coupon.couponType));
@@ -1157,7 +1196,7 @@ function handleQuery() {
 
     // check tel surfix
     if (!isEmpty(queryParams.value.phonenumber)) {
-        if(queryParams.value.phonenumber.length < 4) {
+        if (queryParams.value.phonenumber.length < 4) {
             proxy.$modal.msgError('请输入正确的手机后四位,或完整的手机号');
             return;
         }
@@ -1174,25 +1213,41 @@ function resetQuery() {
 function isEmpty(value) {
     return value === null || value === undefined || value === '';
 }
+console.log('phonenumber.value')
 
 // 如果初始化时visible是true，则直接加载数据
 onMounted(async () => {
-    if (props.visible) {
-        await initList();
-        if (isEmpty(queryParams.value.pickupCode) &&
-            isEmpty(queryParams.value.phonenumber) &&
-            isEmpty(queryParams.value.orderNumber)) {
-            return;
-        }
-        getList();
-        showOrderDialog.value = true;
+    console.log('phonenumber.value')
+    phonenumber.value.focus();
+    await initList();
+    if (isEmpty(queryParams.value.pickupCode) &&
+        isEmpty(queryParams.value.phonenumber) &&
+        isEmpty(queryParams.value.orderNumber)) {
+        return;
     }
+    getList();
 });
 </script>
 <style scoped>
-.cloths-table {
-    border-radius: .4rem;
-    border: 1px dashed;
+.result-container {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    position: absolute;
+    left: 0;
+    top: 0;
+    background-color: white;
+    overflow: auto;
+    padding: 1rem;
+}
+
+.footer {
+    position: fixed;
+    padding: .5rem;
+    bottom: .5rem;
+    right: .5rem;
+    z-index: 999;
+    background-color: rgba(255, 255, 255, 0.9);
 }
 
 .payment-status {
@@ -1219,21 +1274,37 @@ onMounted(async () => {
     text-align: center;
 }
 
-.el-dialog .pagination-container {
-    position: relative !important;
-    margin-top: 0;
-}
-
 .search-result-list {
     display: flex;
     flex-direction: column;
     gap: 1rem;
+    margin-bottom: 3rem;
+}
+
+.no-result {
+    height: 20rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .result-item {
     display: flex;
     flex-direction: column;
-    gap: .5rem;
+    gap: 1rem;
+    border: 1px solid #ccc;
+    border-radius: .5rem;
+    padding: .5rem;
+    /* background-color: aquamarine; */
+}
+
+.result-item-order-num {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 1rem;
+    color: #007bff;
+
 }
 
 .result-item-info {
@@ -1242,15 +1313,20 @@ onMounted(async () => {
     justify-content: flex-start;
     align-items: center;
     gap: 3rem;
-    padding: .5rem;
-    border: 1px dashed;
-    border-radius: .5rem;
-    background-color: aquamarine;
+    font-size: small;
+    color: #6c6c6c;
 
     :last-child {
         display: flex;
         gap: .5rem;
     }
+}
+
+.service-type {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: .5rem;
 }
 
 .address {
@@ -1279,7 +1355,7 @@ onMounted(async () => {
 .row-class-name {
     background-color: rgb(5, 252, 169) !important;
     cursor: pointer;
-    border: 1px dashed !important;
-    border-radius: .4rem !important;
+    /* border: 1px dashed !important; */
+    /* border-radius: .4rem !important; */
 }
 </style>

@@ -1,250 +1,279 @@
 <template>
-    <!-- <div > -->
-    <!-- 添加或修改洗护服务订单对话框 -->
-    <el-row class="container" v-if="showDialog">
-        <el-col class="left" :span="10">
-            <el-form ref="ordersRef" :model="form" :rules="rules" label-width="80px">
-                <el-row>
-                    <el-col :span="10">
-                        <el-form-item label="会员：" prop="userId">
-                            <el-select v-model="form.userId" :disabled="notEditable" filterable :clearable="true" remote
-                                reserve-keyword placeholder="请输入手机号码搜索" allow-create @blur="handleBlur"
-                                remote-show-suffix :remote-method="searchUserByTel" @change="selectUser"
-                                value-key="userId" style="width: 240px">
-                                <el-option v-for="item in userListRes" :key="item.userId"
-                                    :label="item.nickName + '\t' + item.phonenumber" :value="item.userId" />
-                            </el-select>
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="10">
-                        <el-form-item label="姓名：" prop="nickName">
-                            <el-input :disabled="notEditable" v-model="form.nickName" placeholder="请输入会员姓名" />
-                        </el-form-item>
-                    </el-col>
-                    <!-- <el-col :span="4" style="display: flex; align-items: start; justify-content: center;">
-                        <el-button v-if="form.userId" type="primary" @click="">充值</el-button>
-                    </el-col> -->
-                </el-row>
-                <el-row v-if="form.userId">
-                    <el-col :span="9">
-                        <el-form-item label="余额：">
-                            {{ currentUser.balance }}元
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="10">
-                        <el-form-item label="积分：">
-                            {{ currentUser.integral }}分
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="1">
-                        <el-button type="primary" link icon="DArrowRight" @click="showInfoDialog = true" />
-                    </el-col>
-                    <!-- <el-col :span="4" style="display: flex; align-items: start; justify-content: center;">
-                        <el-button type="primary" @click="">团购</el-button>
-                    </el-col> -->
-                </el-row>
-                <el-form-item label="订单来源" prop="source">
-                    <el-radio-group v-model="form.source" @change="sourceChanged" :disabled="notEditable">
-                        <el-radio v-for="dict in sys_price_order_type" :key="dict.value" :label="dict.label"
-                            :value="dict.value">
-                            {{ dict.label }}
-                        </el-radio>
-                    </el-radio-group>
-                </el-form-item>
-                <el-form-item class="price-group">
-                    <el-radio-group v-model="form.priceId" :disabled="notEditable">
-                        <el-radio v-for="item in priceList" @click="(event) => priceChange(event, item.priceId)"
-                            :key="item.priceId" :label="item.priceName" :value="item.priceId">
-                            {{ item.priceName }}
-                        </el-radio>
-                    </el-radio-group>
-                </el-form-item>
-                <el-row>
-                    <h3>订单</h3>
-                    <CustomTable :table-data="form.cloths" @delete="handleDelete" />
-                </el-row>
-
-                <el-row class="footer">
-                    <el-col :span="5">
-                        <el-form-item label="总件数：">{{ form.cloths.length }}</el-form-item>
-                    </el-col>
-                    <el-col :span="8">
-                        <el-form-item label-width="auto" label="预计取衣：">
-                            {{ form.desireCompleteTime }}
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="8">
-                        <el-form-item label-width="auto" label="单据打印：">
-                            <el-input-number :min="1" v-model="printCount" controls-position="right" />
-                        </el-form-item>
-                    </el-col>
-                </el-row>
-                <el-row>
-                    <el-col :span="24">
-                        <h2
-                            style="width: 100%; display: flex; justify-content: flex-end; padding-right: 1rem;">
-                            总价: {{ totalPrice }}元
-                        </h2>
-                    </el-col>
-                </el-row>
-            </el-form>
-            <div class="btn-container">
-                <el-button type="warning" plain @click="cancelSelf">{{ form.orderId ? '关 闭' : '取 消'
-                    }}</el-button>
-                <el-button type="primary" plain @click="submitForm"
-                    :disabled="notEditable || form.priceId || form.source == '02' || form.source === '01'">取衣收款</el-button>
-                <el-button type="success" plain @click="createAndPay" :disabled="notEditable">收衣收款</el-button>
-                <!-- <el-button type="danger" plain :disabled="!form.userId || notEditable"
-                    @click="handleShowCouponSale">卡券购买</el-button> -->
-            </div>
-        </el-col>
-        <el-col class="right" :span="14">
-            <AddCloth :userId="form.userId" :orderId="form.orderId" :submit="submitClothes" :disabled="notEditable"
-                :key="form.userId" />
-        </el-col>
-    </el-row>
-
-    <!-- 付款弹窗 -->
-    <!-- <el-dialog title="付款" v-model="showPaymentDialog" width="600px" append-to-body lock-scroll modal
-        :close-on-click-modal="false" @closed="initPaymentForm">
-        <el-form ref="paymentRef" :model="paymentForm" :rules="paymentRules" label-width="80px">
-            <el-form-item label="订单编号">
-                {{ paymentForm.payNumber }}
+    <el-card v-if="showDialog">
+        <!-- 添加或修改洗护服务订单对话框 -->
+        <el-form ref="ordersRef" :model="form" :rules="rules" label-width="80px">
+            <el-row>
+                <el-col :span="6">
+                    <el-form-item label="会员身份" prop="userId">
+                        <el-select v-model="form.userId" :disabled="notEditable" filterable :clearable="true" remote
+                            reserve-keyword placeholder="请输入手机号码搜索" allow-create @blur="handleBlur" remote-show-suffix
+                            :remote-method="searchUserByTel" @change="selectUser" value-key="userId"
+                            style="width: 240px">
+                            <el-option v-for="item in userListRes" :key="item.userId"
+                                :label="item.nickName + '\t' + item.phonenumber" :value="item.userId" />
+                        </el-select>
+                    </el-form-item>
+                </el-col>
+                <el-col :span="6">
+                    <el-form-item label="会员姓名" prop="nickName">
+                        <el-input :disabled="notEditable" v-model="form.nickName" placeholder="请输入会员姓名" />
+                    </el-form-item>
+                </el-col>
+            </el-row>
+            <el-form-item label="订单来源" prop="source">
+                <el-radio-group v-model="form.source" @change="sourceChanged" :disabled="notEditable">
+                    <el-radio v-for="dict in sys_price_order_type" :key="dict.value" :label="dict.label"
+                        :value="dict.value">
+                        {{ dict.label }}
+                    </el-radio>
+                </el-radio-group>
             </el-form-item>
-            <el-form-item label="支付方式">
-                <template v-if="form.source === '01'">
-                    美团结转
-                </template>
-<template v-else-if="form.source === '02'">
-                    抖音结转
-                </template>
-<template v-else>
-                    <el-radio-group v-model="paymentForm.paymentMethod">
-                        <template v-for="dict in sys_payment_method" :key="dict.value">
-                            <template v-if="dict.value == '06'">
-                                <el-radio v-if="couponTypeList.has('000')" :value="dict.value">
-                                    {{ dict.label }}
-                                </el-radio>
-                            </template>
-<template v-else-if="dict.value == '07'">
-                                <el-radio v-if="couponTypeList.has('002')" :value="dict.value">
-                                    {{ dict.label }}
-                                </el-radio>
-                            </template>
-<el-radio v-else-if="dict.value !== '03' && dict.value !== '04'" :value="dict.value">
-    {{ dict.label }}
-</el-radio>
-</template>
-</el-radio-group>
-</template>
-</el-form-item>
-<template v-if="showCoupons">
-                <el-form-item v-if="userCouponList.filter(item => item.coupon.couponType == '000').length !== 0"
-                    label="储值卡">
-                    <el-checkbox-group v-model="couponStorageCardId" @change="changeCoupon(1)">
-                        <el-checkbox v-for="card in userCouponList.filter(item => item.coupon.couponType == '000')"
-                            :disabled="!card.isValid" :key="card.ucId" :value="card.ucId">
-                            {{ card.coupon.couponTitle }}
-                            -余额
-                            {{ card.availableValue }}
-                            {{ card.coupon.couponType == '000' ? '元' : '次' }}
-                            {{ card.isValid ? '' : '(' + card.unValidReason + ')' }}
-                        </el-checkbox>
-                    </el-checkbox-group>
+            <!-- 价格管理 -->
+            <el-form-item class="price-group">
+                <el-radio-group v-model="form.priceId" :disabled="notEditable">
+                    <el-radio v-for="item in priceList" @click="(event) => priceChange(event, item.priceId)"
+                        :key="item.priceId" :label="item.priceName" :value="item.priceId">
+                        {{ item.priceName }}
+                    </el-radio>
+                </el-radio-group>
+            </el-form-item>
+            <el-form-item label="衣物信息">
+                <AddCloth v-if="form.userId" :userId="form.userId" :orderId="form.orderId" :submit="submitClothes"
+                    :disabled="notEditable" :key="form.orderId" />
+                <span v-else>请选择会员信息后添加衣物</span>
+            </el-form-item>
+            <el-form-item label="店主调价">
+                <el-col :span="12" class="adjust-price-group">
+                    <el-input type="number" :min="0" :max="1000" @input="adjustInput" @change="adjustInputChange"
+                        v-model="form.adjust.adjustValueSub" placeholder="请输入调减金额" :disabled="notEditable" />
+                    <el-input type="number" :min="0" :max="1000" @input="adjustInput" @change="adjustInputChange"
+                        v-model="form.adjust.adjustValueAdd" placeholder="请输入调增金额" :disabled="notEditable" />
+                    <el-input type="number" :min="0" :max="Infinity" @input="adjustInput" @change="adjustInputChange"
+                        v-model="form.adjust.adjustTotal" placeholder="请输入总金额" :disabled="notEditable" />
+                    <el-input v-model="form.adjust.remark" placeholder="备注信息" @change="adjustInputChange"
+                        :disabled="notEditable" />
+                </el-col>
+            </el-form-item>
+            <!-- 底部左侧信息区域，以及右侧按钮区域 -->
+            <el-divider border-style="dashed" />
+            <el-row class="footer">
+                <el-col class="left" :span="18">
+                    <el-row>
+                        <el-col :span="4">
+                            <el-form-item label="总件数：">{{ form.cloths.length }}</el-form-item>
+                        </el-col>
+                        <el-col :span="5">
+                            <el-form-item label="总金额：">
+                                <span class="payment-amount">
+                                    {{ totalPrice }}
+                                </span>
+                            </el-form-item>
+                        </el-col>
+                        <el-col :span="6">
+                            <el-form-item label-width="auto" label="预计取衣时间：">
+                                {{ form.desireCompleteTime }}
+                            </el-form-item>
+                        </el-col>
+                        <el-col :span="6">
+                            <el-form-item label-width="auto" label="单据打印：">
+                                <el-input-number :min="1" v-model="printCount" controls-position="right" />
+                            </el-form-item>
+                        </el-col>
+                        <el-col :span="3">
+                            <el-button type="primary" @click="printCloth" plain>打印</el-button>
+                        </el-col>
+
+                    </el-row>
+                    <el-form-item class="coupon-list-container" label="卡信息：">
+                        <div class="coupon-list">
+                            <!-- 用户卡相关的信息：coupon类型为000、001、002的 -->
+                            <span
+                                v-if="userCouponList.filter(item => item.coupon.couponType == '000' || item.coupon.couponType == '001' || item.coupon.couponType == '002').length == 0">无</span>
+                            <span v-else
+                                v-for="(item, index) in userCouponList.filter(item => item.coupon.couponType == '000' || item.coupon.couponType == '001' || item.coupon.couponType == '002')"
+                                :key="index">
+                                <el-tooltip :content="getValidTime(item.coupon.validFrom, item.coupon.validTo)">
+                                    {{ item.coupon.couponTitle }}
+                                    -余额
+                                    {{ item.availableValue }}
+                                    {{ item.coupon.couponType == '000' ? '元' : '次' }}
+                                    {{ isCurrentTimeWithinRange(item.coupon.validFrom,
+                                        item.coupon.validTo) ? '' : '(不在有效期内)' }}
+                                </el-tooltip>
+                            </span>
+                        </div>
+                    </el-form-item>
+                    <el-form-item label="券信息：">
+                        <div class="coupon-list">
+                            <!-- 用户券相关的信息：coupon类型为003、004的 -->
+                            <span
+                                v-if="userCouponList.filter(item => item.coupon.couponType == '003' || item.coupon.couponType == '004').length == 0">无</span>
+                            <span v-else
+                                v-for="(item, index) in userCouponList.filter(item => item.coupon.couponType == '003' || item.coupon.couponType == '004')"
+                                :key="index">
+                                {{ item.coupon.couponTitle }}
+                                {{ isCurrentTimeWithinRange(item.coupon.validFrom,
+                                    item.coupon.validTo) ? '' : '(不在有效期内)' }}
+                            </span>
+                        </div>
+                    </el-form-item>
+                    <el-form-item v-if="form.userId" label-width="auto" label="历史消费：">
+                        <el-button type="primary" plain @click="() => { showHistoryDialog = true }">查看</el-button>
+                    </el-form-item>
+
+                </el-col>
+                <el-col class="right" :span="6">
+                    <div class="btn-container">
+                        <el-button type="success" plain @click="createAndPay" :disabled="notEditable">收衣收款</el-button>
+                        <el-button type="danger" plain :disabled="!form.userId || notEditable"
+                            @click="handleShowCouponSale">卡券购买</el-button>
+                        <el-button type="primary" plain @click="submitForm"
+                            :disabled="notEditable || form.priceId || form.source == '02' || form.source === '01'">取衣收款</el-button>
+                        <el-button type="warning" plain @click="cancelSelf">{{ form.orderId ? '关 闭' : '取 消'
+                            }}</el-button>
+                    </div>
+                </el-col>
+            </el-row>
+        </el-form>
+
+        <!-- 付款弹窗 -->
+        <el-dialog title="付款" v-model="showPaymentDialog" width="600px" append-to-body lock-scroll modal
+            :close-on-click-modal="false" @closed="initPaymentForm">
+            <el-form ref="paymentRef" :model="paymentForm" :rules="paymentRules" label-width="80px">
+                <el-form-item label="订单编号">
+                    {{ paymentForm.payNumber }}
                 </el-form-item>
-                <el-form-item v-if="userCouponList.filter(item => item.coupon.couponType == '002').length != 0"
-                    label="次卡">
-                    <div class="coupon-times">
-                        <div class="coupon-times-item"
-                            v-for="card in userCouponList.filter(item => item.coupon.couponType == '002')"
-                            :key="card.ucId">
-                            <el-checkbox @change="changeCoupon(2, card)" :disabled="!card.isValid"
-                                v-model="card.selected" :value="card.ucId">
+                <el-form-item label="支付方式">
+                    <template v-if="form.source === '01'">
+                        美团结转
+                    </template>
+                    <template v-else-if="form.source === '02'">
+                        抖音结转
+                    </template>
+                    <template v-else>
+                        <el-radio-group v-model="paymentForm.paymentMethod">
+                            <template v-for="dict in sys_payment_method" :key="dict.value">
+                                <template v-if="dict.value == '06'">
+                                    <el-radio v-if="couponTypeList.has('000')" :value="dict.value">
+                                        {{ dict.label }}
+                                    </el-radio>
+                                </template>
+                                <template v-else-if="dict.value == '07'">
+                                    <el-radio v-if="couponTypeList.has('002')" :value="dict.value">
+                                        {{ dict.label }}
+                                    </el-radio>
+                                </template>
+                                <el-radio v-else-if="dict.value !== '03' && dict.value !== '04'" :value="dict.value">
+                                    {{ dict.label }}
+                                </el-radio>
+                            </template>
+                        </el-radio-group>
+                    </template>
+                </el-form-item>
+                <template v-if="showCoupons">
+                    <el-form-item v-if="userCouponList.filter(item => item.coupon.couponType == '000').length !== 0"
+                        label="储值卡">
+                        <el-checkbox-group v-model="couponStorageCardId" @change="changeCoupon(1)">
+                            <el-checkbox v-for="card in userCouponList.filter(item => item.coupon.couponType == '000')"
+                                :disabled="!card.isValid" :key="card.ucId" :value="card.ucId">
+                                {{ card.coupon.couponTitle }}
+                                -余额
+                                {{ card.availableValue }}
+                                {{ card.coupon.couponType == '000' ? '元' : '次' }}
+                                {{ card.isValid ? '' : '(' + card.unValidReason + ')' }}
+                            </el-checkbox>
+                        </el-checkbox-group>
+                    </el-form-item>
+                    <el-form-item v-if="userCouponList.filter(item => item.coupon.couponType == '002').length != 0"
+                        label="次卡">
+                        <div class="coupon-times">
+                            <div class="coupon-times-item"
+                                v-for="card in userCouponList.filter(item => item.coupon.couponType == '002')"
+                                :key="card.ucId">
+                                <el-checkbox @change="changeCoupon(2, card)" :disabled="!card.isValid"
+                                    v-model="card.selected" :value="card.ucId">
+                                    {{ card.coupon.couponTitle }}
+                                    {{ card.isValid ? '' : '(' + card.unValidReason + ')' }}
+                                    {{ '(剩余: ' + card.availableValue + '次)' }}
+                                </el-checkbox>
+                                <el-input-number controls-position="right" v-if="card.selected" v-model="card.count"
+                                    @change="changeCouponCount(card)" :min="1" :max="card.availableValue"
+                                    placeholder="请输入次卡数量" />
+                            </div>
+                        </div>
+                    </el-form-item>
+                    <el-form-item label="优惠券">
+                        <el-radio-group v-model="paymentForm.couponId" @change="changeCoupon(3)">
+                            <el-radio
+                                v-for="card in userCouponList.filter(item => item.coupon.couponType !== '000' && item.coupon.couponType !== '002')"
+                                :disabled="!card.isValid" :key="card.ucId" :value="card.ucId">
                                 {{ card.coupon.couponTitle }}
                                 {{ card.isValid ? '' : '(' + card.unValidReason + ')' }}
-                                {{ '(剩余: ' + card.availableValue + '次)' }}
-                            </el-checkbox>
-                            <el-input-number controls-position="right" v-if="card.selected" v-model="card.count"
-                                @change="changeCouponCount(card)" :min="1" :max="card.availableValue"
-                                placeholder="请输入次卡数量" />
-                        </div>
-                    </div>
-                </el-form-item>
-                <el-form-item label="优惠券">
-                    <el-radio-group v-model="paymentForm.couponId" @change="changeCoupon(3)">
-                        <el-radio
-                            v-for="card in userCouponList.filter(item => item.coupon.couponType !== '000' && item.coupon.couponType !== '002')"
-                            :disabled="!card.isValid" :key="card.ucId" :value="card.ucId">
-                            {{ card.coupon.couponTitle }}
-                            {{ card.isValid ? '' : '(' + card.unValidReason + ')' }}
-                            {{ '(剩余: ' + card.ucCount + '张)' }}
-                        </el-radio>
-                    </el-radio-group>
-                </el-form-item>
+                                {{ '(剩余: ' + card.ucCount + '张)' }}
+                            </el-radio>
+                        </el-radio-group>
+                    </el-form-item>
+                </template>
+                <el-row>
+                    <el-col :span="8">
+                        <el-form-item label="订单金额">
+                            <span class="payment-amount">
+                                {{ paymentForm.totalAmount }}
+                            </span>
+                        </el-form-item>
+                    </el-col>
+                    <el-col :span="8">
+                        <el-form-item label="优惠金额">
+                            {{ paymentForm.bonusAmount }}
+                        </el-form-item>
+                    </el-col>
+                    <el-col :span="8">
+                        <el-form-item label-width="auto" label="优惠后金额">
+                            <span class="payment-amount">
+                                {{ paymentForm.paymentAmount }}
+                            </span>
+                        </el-form-item>
+                    </el-col>
+                </el-row>
+                <el-row>
+                    <el-form-item label="补差价" v-if="paymentForm.priceDiff > 0">
+                        <el-input-number v-model="paymentForm.priceDiff" controls-position="right" :min="0"
+                            :max="paymentForm.paymentAmount" placeholder="请输入补差价" />
+                    </el-form-item>
+                </el-row>
+            </el-form>
+            <template #footer>
+                <div class="payment-footer">
+                    <el-button type="primary" @click="submitPaymentForm">确认收款</el-button>
+                </div>
             </template>
-<el-row>
-    <el-col :span="8">
-        <el-form-item label="订单金额">
-            <span class="payment-amount">
-                {{ paymentForm.totalAmount }}
-            </span>
-        </el-form-item>
-    </el-col>
-    <el-col :span="8">
-        <el-form-item label="优惠金额">
-            {{ paymentForm.bonusAmount }}
-        </el-form-item>
-    </el-col>
-    <el-col :span="8">
-        <el-form-item label-width="auto" label="优惠后金额">
-            <span class="payment-amount">
-                {{ paymentForm.paymentAmount }}
-            </span>
-        </el-form-item>
-    </el-col>
-</el-row>
-<el-row>
-    <el-form-item label="补差价" v-if="paymentForm.priceDiff > 0">
-        <el-input-number v-model="paymentForm.priceDiff" controls-position="right" :min="0"
-            :max="paymentForm.paymentAmount" placeholder="请输入补差价" />
-    </el-form-item>
-</el-row>
-</el-form>
-<template #footer>
-            <div class="payment-footer">
-                <el-button type="primary" @click="submitPaymentForm">确认收款</el-button>
-            </div>
-        </template>
-</el-dialog> -->
+        </el-dialog>
 
-    <!-- 卡券售卖弹窗 -->
-    <!-- <CouponSale :userId="form.userId" :key="showCouponSale" :taggle="() => { showCouponSale = !showCouponSale }"
-        :visible="showCouponSale" :submit="submitCouponSale" /> -->
+        <!-- 卡券售卖弹窗 -->
+        <el-dialog title="卡券购买" v-model="showCouponSale" width="1080px" append-to-body lock-scroll modal
+            :close-on-click-modal="false">
+            <CouponSale :userId="form.userId" :key="showCouponSale" :submit="submitCouponSale" />
+        </el-dialog>
 
-    <Pay :visible="showPaymentDialog" :key="showPaymentDialog" :order="form" :refresh="getList"
-        :toggle="() => { showPaymentDialog = !showPaymentDialog }" />
-    <History :visible="showHistoryDialog" :userId="currentUserId" :key="showHistoryDialog"
-        :toggle="() => { showHistoryDialog = !showHistoryDialog }" />
-    <Information :user="currentUser" :visible="showInfoDialog" :key="showInfoDialog"
-        :toggle="() => { showInfoDialog = !showInfoDialog }" />
+        <History :visible="showHistoryDialog" :userId="currentUserId" :key="showHistoryDialog"
+            :toggle="() => { showHistoryDialog = !showHistoryDialog }" />
+    </el-card>
 </template>
 
 <script setup name="CreateOrders">
-
 import { ElMessageBox } from 'element-plus'
 import { getOrders, addOrders, updateOrders, pay, updateAdjust } from "@/api/system/orders";
 import { listPrice } from "@/api/system/price";
-import { listUserWithNoLimit, addUser, getUser } from "@/api/system/user";
+import { listUserWithNoLimit, addUser } from "@/api/system/user";
 import { delCloths } from "@/api/system/cloths";
 import { listUserCouponWithValidTime } from '@/api/system/user_coupon';
 import { isCurrentTimeWithinRange, getFutureDate } from "@/utils";
 import { getConfigKey } from '@/api/system/config';
 import AddCloth from "./addCloth.vue";
+import CouponSale from './couponSale.vue';
 import History from "@/views/home/history.vue";
 import { invoke } from "@tauri-apps/api/core";
-import Information from "@/views/system/user/information.vue";
-import CustomTable from '@/components/CustomTable';
-import Pay from '@/views/home/pay.vue';
+
 const props = defineProps({
     visible: {
         type: Boolean,
@@ -279,9 +308,6 @@ const {
         "sys_payment_method",
     );
 
-const router = useRouter();
-const route = useRoute();
-
 // 用户列表，创建/更新订单时选择框使用
 const userList = ref([]);
 const userListRes = ref([]);
@@ -303,13 +329,11 @@ const couponStorageCardId = ref([]);
 
 const currentOrderId = ref(props.orderId);
 const currentUserId = ref(props.userId);
-const currentUser = ref({});
+
 const ordersRef = ref();
 /* 单据打印数量 */
 const printCount = ref(1);
 const phoneRegex = /^1[3-9]\d{9}$/;
-
-const showInfoDialog = ref(false);
 
 const notEditable = ref(false);
 const showCoupons = ref(true);
@@ -357,18 +381,7 @@ const data = reactive({
 
 const { form, paymentForm, rules } = toRefs(data);
 
-function calculateTotalPrice(base, markup, serviceType) {
-    switch (serviceType) {
-        case "000":
-            return base + markup;
-        case "001":
-            return base * 2 + markup;
-        case "002":
-            return base * 1.5 + markup;
-        default:
-            return base;
-    }
-}
+
 
 function printAllItems() {
     form.value.cloths.forEach((item, index) => {
@@ -748,12 +761,73 @@ function checkCoupon() {
     }
 }
 
+// function checkCoupon() {
+//     // 判断每个卡券是否有效
+//     for (const item of userCouponList.value) {
+//         item.isValid = true;
+//         item.unValidReason = '';
+//         // 判断有效期
+//         if (!isCurrentTimeWithinRange(item.coupon.validFrom, item.coupon.validTo)) {
+//             item.isValid = false;
+//             item.unValidReason = "不在有效期内";
+//             continue;
+//         }
+
+//         // 判断最低消费金额
+//         if (item.coupon.couponType == '004' && item.coupon.minSpend > totalPrice.value) {
+//             item.isValid = false;
+//             item.unValidReason = "最低消费金额不足";
+//             continue;
+//         }
+
+//         if (item.coupon.couponType == '003') {
+//             if (item.coupon.minSpend > totalPrice.value) {
+//                 item.isValid = false;
+//                 item.unValidReason = "最低消费金额不足";
+//                 continue;
+//             }
+//             if (item.coupon.usageLimit < totalPrice.value) {
+//                 item.isValid = false;
+//                 item.unValidReason = "订单金额超过使用上限";
+//                 continue;
+//             }
+//         }
+//         // 适用衣物列表
+//         const applicableClothsList = item.coupon.applicableCloths ? item.coupon.applicableCloths.split(',') : [];
+//         // 适用分类列表
+//         const applicableStyleList = item.coupon.applicableStyle ? item.coupon.applicableStyle.split(',') : [];
+//         // 适用品类列表
+//         const applicableCategoryList = item.coupon.applicableCategory ? item.coupon.applicableCategory.split(',') : [];
+//         // 判断品类
+//         for (const cloth of form.value.cloths) {
+//             // 先判断适用衣物
+//             if (applicableClothsList.length != 0 && !applicableClothsList.includes(cloth.clothInfo.clothingId)) {
+//                 item.isValid = false;
+//                 item.unValidReason = "适用衣物不匹配";
+//                 break;
+//             }
+
+//             // 判断适用分类
+//             if (applicableStyleList.length != 0 && applicableStyleList.includes(cloth.applicableStyle)) {
+//                 item.isValid = false;
+//                 item.unValidReason = "适用分类不匹配";
+//                 break;
+//             }
+//             // 判断适用品类
+//             if (applicableCategoryList.length != 0 && applicableCategoryList.includes(cloth.applicableCategory)) {
+//                 item.isValid = false;
+//                 item.unValidReason = "适用品类不匹配";
+//                 break;
+//             }
+//         }
+//     }
+// }
+
 // 取消按钮
 function cancelSelf() {
     // 检查是否有未保存的数据
     if (!form.value.userId) {
         reset();
-        showDialog.value = false;
         props.toggle();
         return;
     }
@@ -761,7 +835,6 @@ function cancelSelf() {
     // 修改操作不允许反悔
     if (form.value.orderId) {
         reset();
-        showDialog.value = false;
         props.toggle();
         return;
     }
@@ -796,8 +869,6 @@ function cancel() {
         // 检查是否有未保存的数据
         if (!form.value.userId) {
             reset();
-            showDialog.value = true;
-
             resolve(true); // 确认取消
             return;
         }
@@ -805,7 +876,6 @@ function cancel() {
         // 修改操作不允许反悔
         if (form.value.orderId) {
             reset();
-            showDialog.value = true;
             props.toggle();
             return;
         }
@@ -819,7 +889,6 @@ function cancel() {
                     delCloths(form.value.cloths.map(item => item.clothId))
                         .then(() => {
                             reset();
-                            showDialog.value = true;
                             resolve(true); // 允许关闭
                         })
                         .catch(res => {
@@ -828,7 +897,6 @@ function cancel() {
                         });
                 } else {
                     reset();
-                    showDialog.value = true;
                     props.toggle();
                     resolve(true); // 允许关闭
                 }
@@ -863,11 +931,6 @@ function reset() {
         createTime: null,
         updateTime: null
     };
-    totalPrice.value = 0;
-    showDialog.value = false; // Reset dialog visibility
-    notEditable.value = false; // Reset editable state
-    showCreateUser.value = false; // Reset user creation state
-
     proxy.resetForm("ordersRef");
 }
 
@@ -887,8 +950,7 @@ function handleAdd() {
     title.value = "添加洗护服务订单";
     // 获取预计完成时间
     getConfigKey('desire_complete_time').then(res => {
-        const days = res ? Number(res.configValue) : 7;
-        form.value.desireCompleteTime = getFutureDate(days);
+        form.value.desireCompleteTime = getFutureDate(res);
     });
     listUserWithNoLimit().then(res => {
         userList.value = res;
@@ -973,7 +1035,6 @@ async function submitForm() {
                 addOrders(form.value).then(async response => {
                     proxy.$modal.msgSuccess("新增成功");
                     await printCloth();
-                    reset();
                     props.refresh();
                     props.toggle();
                 });
@@ -1088,7 +1149,6 @@ function searchUserByTel(tel) {
         form.value.nickName = null;
         form.value.userId = null;
         userCouponList.value = [];
-        currentUser.value = {};
     } else {
         if (userListRes.value.length == 1) {
             form.value.nickName = userListRes.value[0].nickName;
@@ -1108,15 +1168,14 @@ function searchUserByTel(tel) {
 }
 
 /* 选择会员信息 */
-async function selectUser(userId) {
+function selectUser(userId) {
     if (!userId || userId.length == 0) {
         form.value.nickName = null;
         return;
     }
+    console.log(userId);
     currentUserId.value = userId;
     const item = userList.value.find(item => { return item.userId === userId });
-    currentUser.value = await getUser(userId);
-
     form.value.nickName = item.nickName;
     // 查询会员卡券信息
     listUserCouponWithValidTime(userId).then(response => {
@@ -1211,66 +1270,8 @@ async function printCloth() {
     proxy.$modal.closeLoading();
 }
 
-function handleDelete(clothId) {
-    proxy.$modal.confirm('是否确认删除订单包含的衣物清单编号为"' + clothId + '"的数据项？').then(function () {
-        return delCloths(clothId);
-    }).then(() => {
-
-        const index = form.value.cloths.findIndex(item => item.clothId === clothId);
-        form.value.cloths.splice(index, 1);
-        proxy.$modal.msgSuccess("删除成功");
-    }).catch(() => { });
-}
-
-
-const handleRouteLeave = (to, from, next) => {
-    if (!form.value.userId) {
-        reset();
-        next();
-        return;
-    }
-
-    // 修改操作不允许反悔
-    if (form.value.orderId) {
-        reset();
-        next();
-        return;
-    }
-
-    // 弹出确认对话框
-    ElMessageBox.confirm('确认取消创建订单？此操作不可逆！')
-        .then(() => {
-            // 用户确认取消，处理逻辑
-            if (!form.value.orderId && form.value.cloths.length > 0) {
-                // 删除添加的衣物列表
-                delCloths(form.value.cloths.map(item => item.clothId))
-                    .then(() => {
-                        reset();
-                        next();
-                    })
-                    .catch(res => {
-                        console.error(res);
-                    });
-            } else {
-                reset();
-                next();
-            }
-        })
-        .catch(() => {
-            // 用户取消操作，不关闭对话框
-            next(false);
-        });
-};
-
 
 onMounted(async () => {
-    router.beforeEach((to, from, next) => {
-        if (from.path === route.path) {
-            handleRouteLeave(to, from, next);
-        } else {
-            next();
-        }
-    });
     if (props.visible) {
         if (props.orderId !== 0) {
             handleUpdate();
@@ -1280,68 +1281,20 @@ onMounted(async () => {
         showDialog.value = true;
     }
 });
-
-
-onBeforeUnmount(() => {
-    // router.beforeEach(() => { });
-});
 defineExpose({
     cancel,
 });
 </script>
 
 <style scoped>
-.container {
+.el-card {
     height: 100%;
     width: 100%;
     margin: 0;
     position: absolute;
     left: 0;
     top: 0;
-    background-color: white;
-    padding: 2rem 1rem 0 1rem;
 }
-
-.left,
-.right {
-    /* padding: 1rem; */
-    border: none;
-    border-radius: .4rem;
-    position: relative;
-    overflow: hidden;
-    width: 100%;
-    height: 100%;
-}
-
-/* .left::before {
-    content: "";
-    width: calc(100% - .5rem);
-    height: 100%;
-    position: absolute;
-    border-radius: .4rem;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    backdrop-filter: blur(40px);
-    background-color: rgba(255, 255, 255, 0.2);
-    transition: background-color 0.3s ease;
-}
-
-.right::before {
-    content: "";
-    width: calc(100% - .5rem);
-    height: 100%;
-    position: absolute;
-
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: .5rem;
-    backdrop-filter: blur(40px);
-    background-color: rgba(255, 255, 255, 0.2);
-    transition: background-color 0.3s ease;
-} */
 
 .adjust-price-group {
     width: 100%;
@@ -1351,26 +1304,26 @@ defineExpose({
     gap: 1rem;
 }
 
-.footer {
-    padding: 1rem;
+.right {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-left: 1px dashed #ccc;
 }
 
 .btn-container {
-    padding: 1rem;
-    display: flex;
-    /* grid-template-columns: repeat(2, 1fr); */
-    /* grid-template-rows: repeat(2, 1fr); */
-    justify-content: flex-end;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    /* 创建两列，每列等宽 */
+    grid-template-rows: repeat(2, 1fr);
+    justify-content: center;
     align-items: center;
     /* 创建两行，每行等高 */
     gap: 1rem;
-    position: absolute;
-    bottom: 0;
-    right: 0;
 
     button {
-        width: 7rem;
-        height: 3rem;
+        width: 100%;
+        height: 2.5rem;
         margin: 0;
         font-size: large;
     }
@@ -1414,9 +1367,5 @@ defineExpose({
 
 .coupon-list-container {
     overflow: hidden;
-}
-
-.el-form-item__label {
-    color: black;
 }
 </style>

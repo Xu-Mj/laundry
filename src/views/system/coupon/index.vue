@@ -39,7 +39,7 @@
         <el-button type="success" :disabled="selectedList.length == 0" plain icon="Sell"
           @click="handleShowSell">卡券销售</el-button>
       </el-col>
-      <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" :columns="columns"></right-toolbar>
+      <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" :columns="columns"/>
     </el-row>
 
     <el-table v-loading="loading" :data="couponList" ref="table" @selection-change="handleSelectionChange">
@@ -69,27 +69,27 @@
           {{ scope.row.customerSaleCount == -1 ? '无限制' : scope.row.customerSaleCount }}
         </template>
       </el-table-column>
-      <el-table-column label="有效时间-起" align="center" prop="validFrom" v-if="columns[9].visible">
+      <el-table-column label="有效时间-起" align="center" prop="validFrom" v-if="columns[8].visible">
         <template #default="scope">
           <span>{{ parseTime(scope.row.validFrom, '{y}-{m}-{d}') }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="有效时间-止" align="center" prop="validTo" v-if="columns[10].visible">
+      <el-table-column label="有效时间-止" align="center" prop="validTo" v-if="columns[9].visible">
         <template #default="scope">
           <span>{{ parseTime(scope.row.validTo, '{y}-{m}-{d}') }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="自动延期" align="center" prop="autoDelay" v-if="columns[11].visible">
+      <el-table-column label="自动延期" align="center" prop="autoDelay" v-if="columns[10].visible">
         <template #default="scope">
           <dict-tag :options="sys_coupon_auto_delay" :value="scope.row.autoDelay" />
         </template>
       </el-table-column>
-      <el-table-column label="卡券价值" align="center" prop="usageValue" v-if="columns[12].visible">
+      <el-table-column label="卡券价值" align="center" prop="usageValue" v-if="columns[11].visible">
         <template #default="scope">
           {{ scope.row.couponType === '003' ? scope.row.usageValue / 10 + '折' : scope.row.usageValue + '元' }}
         </template>
       </el-table-column>
-      <el-table-column label="限制条件" align="center" prop="usageLimit" v-if="columns[13].visible">
+      <el-table-column label="限制条件" align="center" prop="usageLimit" v-if="columns[12].visible">
         <template #default="scope">
           {{ scope.row.couponType === '003' ? '最高消费金额限制' + scope.row.usageLimit + '元' :
             scope.row.usageLimit == 0 ? '无限制' : scope.row.usageLimit }}
@@ -100,7 +100,8 @@
           <dict-tag :options="sys_coupon_status" :value="scope.row.status" />
         </template>
       </el-table-column>
-      <el-table-column label="卡券描述" align="center" prop="remark" v-if="columns[14].visible" show-overflow-tooltip />
+      <el-table-column label="卡券描述" align="center" prop=" desc" v-if="columns[14].visible" show-overflow-tooltip />
+      <el-table-column label="备注" align="center" prop="remark" v-if="columns[15].visible" show-overflow-tooltip />
       <el-table-column label="操作" align="center" class-name="small-padding" width="140">
         <template #default="scope">
           <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)"
@@ -278,11 +279,14 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="卡券描述" prop="remark">
-              <el-input v-model="form.remark" type="textarea" placeholder="请输入内容" />
+            <el-form-item label="卡券描述" prop="desc">
+              <el-input v-model="form.desc" type="textarea" placeholder="请输入内容" />
             </el-form-item>
           </el-col>
         </el-row>
+        <el-form-item label="备注" prop="remark">
+          <el-input v-model="form.remark" type="textarea" placeholder="请输入内容" />
+        </el-form-item>
       </el-form>
       <template #footer>
         <div class="dialog-footer">
@@ -375,7 +379,7 @@
 <script setup name="Coupon">
 import { listCoupon, getCoupon, delCoupon, addCoupon, updateCoupon, buyCoupon } from "@/api/system/coupon";
 import { listUserWithNoLimit, addUser } from "@/api/system/user";
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 
 const { proxy } = getCurrentInstance();
 
@@ -429,8 +433,24 @@ const columns = ref([
   // { key: 14, label: `适用分类`, visible: true },
   // { key: 15, label: `适用衣物`, visible: true },
   { key: 16, label: `卡券状态`, visible: true },
-  { key: 17, label: `描述`, visible: true },
+  { key: 17, label: `卡券描述`, visible: true },
+  { key: 18, label: `备注`, visible: true },
 ]);
+// Save column visibility to local storage
+const saveColumnVisibility = () => {
+  localStorage.setItem('couponColumns', JSON.stringify(columns.value));
+};
+
+// Retrieve column visibility from local storage
+const loadColumnVisibility = () => {
+  const savedColumns = localStorage.getItem('couponColumns');
+  if (savedColumns) {
+    columns.value = JSON.parse(savedColumns);
+  }
+};
+
+// Watch for changes in column visibility and save to local storage
+watch(columns, saveColumnVisibility, { deep: true });
 
 const data = reactive({
   form: {},
@@ -583,7 +603,7 @@ function handleAdd() {
 
   // 获取6个月后的日期
   const sixMonthsLater = new Date();
-  sixMonthsLater.setMonth(sixMonthsLater.getMonth() + 6);
+  sixMonthsLater.setMonth(sixMonthsLater.getMonth() + 12);
   const validTo = sixMonthsLater.toISOString().split('T')[0]; // 格式化为 YYYY-MM-DD
 
   // 设置默认值
@@ -736,6 +756,7 @@ async function buy() {
   });
 }
 
+loadColumnVisibility();
 getList();
 </script>
 

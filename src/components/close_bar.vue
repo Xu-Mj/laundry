@@ -1,10 +1,9 @@
 <template>
-    <div data-tauri-drag-region class="close-bar"
-        :style="position === 'relative' ? 'position: relative;' : 'position: absolute; left: 0; right: 0; top: 0; color: white;'">
+    <div data-tauri-drag-region class="close-bar">
 
         <el-button link icon="Minus" :color="buttonColor" @click="minimizeWindow" />
-        <el-button link :icon="isMaximized ? 'FullScreen' : 'FullScreen'"
-            :color="buttonColor" @click="maximizeOrRestoreWindow" />
+        <el-button link :icon="isMaximized ? 'FullScreen' : 'FullScreen'" :color="buttonColor"
+            @click="maximizeOrRestoreWindow" />
         <el-button link icon="Close" :color="buttonColor" @click="closeWindow" />
     </div>
 </template>
@@ -46,6 +45,11 @@ const closeWindow = () => {
 
 <style scoped>
 .close-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 0;
+    color: white;
     display: flex;
     justify-content: flex-end;
     align-items: center;
@@ -53,5 +57,6 @@ const closeWindow = () => {
     padding-right: 1rem;
     height: 30px;
     width: 100%;
+    z-index: 9999;
 }
 </style>

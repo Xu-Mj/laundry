@@ -260,7 +260,8 @@ const LOCAL_USER_TABLE_DDL: &str = "CREATE TABLE IF NOT EXISTS local_users
                                         account     TEXT    NOT NULL,
                                         password    TEXT    NOT NULL,
                                         role        TEXT    NOT NULL,
-                                        remark   TEXT
+                                        remark   TEXT,
+                                        is_first_login   INTEGER
                                     );";
 
 const DICT_TYPE_TABLE_DDL: &str = "CREATE TABLE IF NOT EXISTS dict_type

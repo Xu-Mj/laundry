@@ -23,6 +23,7 @@ pub struct LocalUser {
     pub password: Option<String>,
     pub role: Option<String>,
     pub remark: Option<String>,
+    pub is_first_login: bool,
 }
 
 impl FromRow<'_, SqliteRow> for LocalUser {
@@ -35,6 +36,7 @@ impl FromRow<'_, SqliteRow> for LocalUser {
             password: row.try_get("password").unwrap_or_default(),
             role: row.try_get("role").unwrap_or_default(),
             remark: row.try_get("remark").unwrap_or_default(),
+            is_first_login: row.try_get("is_first_login").unwrap_or_default(),
         })
     }
 }
@@ -81,6 +83,14 @@ impl LocalUser {
     pub async fn update_pwd(pool: &Pool<Sqlite>, account: &str, password: &str) -> Result<bool> {
         let result = sqlx::query("UPDATE local_users SET password = ? WHERE account = ? ")
             .bind(password)
+            .bind(account)
+            .execute(pool)
+            .await?;
+        Ok(result.rows_affected() > 0)
+    }
+
+    pub async fn update_is_first_login(pool: &Pool<Sqlite>, account: &str) -> Result<bool> {
+        let result = sqlx::query("UPDATE local_users SET is_first_login = 0 WHERE account = ? ")
             .bind(account)
             .execute(pool)
             .await?;
@@ -322,7 +332,9 @@ pub async fn update_pwd(state: State<'_, AppState>, req: UpdatePwdReq) -> Result
     LoginReq::validate_pwd(pool, &req.account, &req.old_password).await?;
 
     let password = utils::hash_password(req.new_password.as_bytes(), PWD_SALT)?;
-    LocalUser::update_pwd(&state.pool, &req.account, &password).await
+    LocalUser::update_pwd(&state.pool, &req.account, &password).await?;
+    // update is_first_login
+    LocalUser::update_is_first_login(&state.pool, &req.account).await
 }
 
 #[cfg(test)]

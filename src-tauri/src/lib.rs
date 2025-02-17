@@ -152,6 +152,7 @@ fn handle_command<R: Runtime>(invoke: Invoke<R>) -> bool {
         dict_type::get_dict_type_list,
         dict_type::get_dict_type_all,
         dict_type::get_dict_type_by_id,
+        dict_type::get_dict_type_by_type,
         dict_type::add_dict_type,
         dict_type::update_dict_type,
         dict_type::delete_dict_types,
@@ -160,6 +161,7 @@ fn handle_command<R: Runtime>(invoke: Invoke<R>) -> bool {
         dict_data::get_by_dict_type,
         dict_data::get_dict_data_by_code,
         dict_data::add_dict_data,
+        dict_data::add_dict_data_auto,
         dict_data::update_dict_data,
         dict_data::delete_dict_data,
         // menu

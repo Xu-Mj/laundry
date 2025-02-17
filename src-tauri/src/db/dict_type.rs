@@ -80,6 +80,13 @@ impl DictType {
         Ok(result)
     }
 
+    async fn get_by_type(pool: &Pool<Sqlite>, dict_type: &str) -> Result<Option<Self>> {
+        let result = sqlx::query_as("SELECT * FROM dict_type WHERE dict_type = ?")
+            .bind(dict_type)
+            .fetch_optional(pool)
+            .await?;
+        Ok(result)
+    }
     // update
     pub async fn update_dict_type(&self, pool: &Pool<Sqlite>) -> Result<bool> {
         let query = r#"
@@ -120,6 +127,14 @@ pub async fn get_dict_type_all(
 #[tauri::command]
 pub async fn get_dict_type_by_id(state: State<'_, AppState>, id: i64) -> Result<Option<DictType>> {
     DictType::get_by_id(&state.pool, id).await
+}
+
+#[tauri::command]
+pub async fn get_dict_type_by_type(
+    state: State<'_, AppState>,
+    dict_type: String,
+) -> Result<Option<DictType>> {
+    DictType::get_by_type(&state.pool, &dict_type).await
 }
 
 // add

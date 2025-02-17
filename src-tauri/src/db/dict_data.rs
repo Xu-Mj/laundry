@@ -205,6 +205,34 @@ pub async fn add_dict_data(state: State<'_, AppState>, dict_data: DictData) -> R
 }
 
 #[tauri::command]
+pub async fn add_dict_data_auto(
+    state: State<'_, AppState>,
+    mut dict_data: DictData,
+) -> Result<DictData> {
+    // 查询该dict_type下对应的dict_value的最大值
+    let max_dict_value: Option<i64> = sqlx::query_scalar(
+        "SELECT MAX(CAST(dict_value AS INTEGER)) FROM dict_data WHERE dict_type = ?",
+    )
+    .bind(dict_data.dict_type.clone().unwrap_or_default())
+    .fetch_optional(&state.pool)
+    .await?;
+
+    // 如果没有找到记录，设置初始值为0
+    let new_dict_value = match max_dict_value {
+        Some(max_value) => (max_value + 1).to_string(),
+        None => "0".to_string(),
+    };
+
+    // 设置新的dict_value
+    dict_data.dict_sort = Some(new_dict_value.parse().unwrap());
+    dict_data.dict_value = Some(new_dict_value);
+
+    tracing::debug!("new dict_data: {:?}", dict_data);
+    // 插入新的DictData记录
+    dict_data.create_dict_data(&state.pool).await
+}
+
+#[tauri::command]
 pub async fn update_dict_data(state: State<'_, AppState>, dict_data: DictData) -> Result<bool> {
     dict_data.update_dict_data(&state.pool).await
 }

@@ -120,8 +120,8 @@ impl ClothPrice {
     /// 插入记录
     pub async fn add(self, pool: &Pool<Sqlite>) -> Result<Self> {
         let result = sqlx::query_as::<_, ClothPrice>(
-            "INSERT INTO cloth_price (price_number, order_type, price_name, price_value, price_discount, order_num, ref_num, status, del_flag, remark, create_time)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            "INSERT INTO cloth_price (price_number, order_type, price_name, price_value, price_discount, order_num, ref_num, status, remark, create_time, del_flag)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '0')
             RETURNING *"
         )
             .bind(&self.price_number)
@@ -132,7 +132,6 @@ impl ClothPrice {
             .bind(self.order_num)
             .bind(self.ref_num)
             .bind(&self.status)
-            .bind(&self.del_flag)
             .bind(&self.remark)
             .bind(self.create_time) // create_time
             .fetch_one(pool)

@@ -81,8 +81,7 @@
                 </el-row>
                 <el-row>
                     <el-col :span="24">
-                        <h2
-                            style="width: 100%; display: flex; justify-content: flex-end; padding-right: 1rem;">
+                        <h2 style="width: 100%; display: flex; justify-content: flex-end; padding-right: 1rem;">
                             总价: {{ totalPrice }}元
                         </h2>
                     </el-col>
@@ -90,12 +89,10 @@
             </el-form>
             <div class="btn-container">
                 <el-button type="warning" plain @click="cancelSelf">{{ form.orderId ? '关 闭' : '取 消'
-                    }}</el-button>
+                }}</el-button>
                 <el-button type="primary" plain @click="submitForm"
                     :disabled="notEditable || form.priceId || form.source == '02' || form.source === '01'">取衣收款</el-button>
                 <el-button type="success" plain @click="createAndPay" :disabled="notEditable">收衣收款</el-button>
-                <!-- <el-button type="danger" plain :disabled="!form.userId || notEditable"
-                    @click="handleShowCouponSale">卡券购买</el-button> -->
             </div>
         </el-col>
         <el-col class="right" :span="14">
@@ -103,123 +100,6 @@
                 :key="form.userId" />
         </el-col>
     </el-row>
-
-    <!-- 付款弹窗 -->
-    <!-- <el-dialog title="付款" v-model="showPaymentDialog" width="600px" append-to-body lock-scroll modal
-        :close-on-click-modal="false" @closed="initPaymentForm">
-        <el-form ref="paymentRef" :model="paymentForm" :rules="paymentRules" label-width="80px">
-            <el-form-item label="订单编号">
-                {{ paymentForm.payNumber }}
-            </el-form-item>
-            <el-form-item label="支付方式">
-                <template v-if="form.source === '01'">
-                    美团结转
-                </template>
-<template v-else-if="form.source === '02'">
-                    抖音结转
-                </template>
-<template v-else>
-                    <el-radio-group v-model="paymentForm.paymentMethod">
-                        <template v-for="dict in sys_payment_method" :key="dict.value">
-                            <template v-if="dict.value == '06'">
-                                <el-radio v-if="couponTypeList.has('000')" :value="dict.value">
-                                    {{ dict.label }}
-                                </el-radio>
-                            </template>
-<template v-else-if="dict.value == '07'">
-                                <el-radio v-if="couponTypeList.has('002')" :value="dict.value">
-                                    {{ dict.label }}
-                                </el-radio>
-                            </template>
-<el-radio v-else-if="dict.value !== '03' && dict.value !== '04'" :value="dict.value">
-    {{ dict.label }}
-</el-radio>
-</template>
-</el-radio-group>
-</template>
-</el-form-item>
-<template v-if="showCoupons">
-                <el-form-item v-if="userCouponList.filter(item => item.coupon.couponType == '000').length !== 0"
-                    label="储值卡">
-                    <el-checkbox-group v-model="couponStorageCardId" @change="changeCoupon(1)">
-                        <el-checkbox v-for="card in userCouponList.filter(item => item.coupon.couponType == '000')"
-                            :disabled="!card.isValid" :key="card.ucId" :value="card.ucId">
-                            {{ card.coupon.couponTitle }}
-                            -余额
-                            {{ card.availableValue }}
-                            {{ card.coupon.couponType == '000' ? '元' : '次' }}
-                            {{ card.isValid ? '' : '(' + card.unValidReason + ')' }}
-                        </el-checkbox>
-                    </el-checkbox-group>
-                </el-form-item>
-                <el-form-item v-if="userCouponList.filter(item => item.coupon.couponType == '002').length != 0"
-                    label="次卡">
-                    <div class="coupon-times">
-                        <div class="coupon-times-item"
-                            v-for="card in userCouponList.filter(item => item.coupon.couponType == '002')"
-                            :key="card.ucId">
-                            <el-checkbox @change="changeCoupon(2, card)" :disabled="!card.isValid"
-                                v-model="card.selected" :value="card.ucId">
-                                {{ card.coupon.couponTitle }}
-                                {{ card.isValid ? '' : '(' + card.unValidReason + ')' }}
-                                {{ '(剩余: ' + card.availableValue + '次)' }}
-                            </el-checkbox>
-                            <el-input-number controls-position="right" v-if="card.selected" v-model="card.count"
-                                @change="changeCouponCount(card)" :min="1" :max="card.availableValue"
-                                placeholder="请输入次卡数量" />
-                        </div>
-                    </div>
-                </el-form-item>
-                <el-form-item label="优惠券">
-                    <el-radio-group v-model="paymentForm.couponId" @change="changeCoupon(3)">
-                        <el-radio
-                            v-for="card in userCouponList.filter(item => item.coupon.couponType !== '000' && item.coupon.couponType !== '002')"
-                            :disabled="!card.isValid" :key="card.ucId" :value="card.ucId">
-                            {{ card.coupon.couponTitle }}
-                            {{ card.isValid ? '' : '(' + card.unValidReason + ')' }}
-                            {{ '(剩余: ' + card.ucCount + '张)' }}
-                        </el-radio>
-                    </el-radio-group>
-                </el-form-item>
-            </template>
-<el-row>
-    <el-col :span="8">
-        <el-form-item label="订单金额">
-            <span class="payment-amount">
-                {{ paymentForm.totalAmount }}
-            </span>
-        </el-form-item>
-    </el-col>
-    <el-col :span="8">
-        <el-form-item label="优惠金额">
-            {{ paymentForm.bonusAmount }}
-        </el-form-item>
-    </el-col>
-    <el-col :span="8">
-        <el-form-item label-width="auto" label="优惠后金额">
-            <span class="payment-amount">
-                {{ paymentForm.paymentAmount }}
-            </span>
-        </el-form-item>
-    </el-col>
-</el-row>
-<el-row>
-    <el-form-item label="补差价" v-if="paymentForm.priceDiff > 0">
-        <el-input-number v-model="paymentForm.priceDiff" controls-position="right" :min="0"
-            :max="paymentForm.paymentAmount" placeholder="请输入补差价" />
-    </el-form-item>
-</el-row>
-</el-form>
-<template #footer>
-            <div class="payment-footer">
-                <el-button type="primary" @click="submitPaymentForm">确认收款</el-button>
-            </div>
-        </template>
-</el-dialog> -->
-
-    <!-- 卡券售卖弹窗 -->
-    <!-- <CouponSale :userId="form.userId" :key="showCouponSale" :taggle="() => { showCouponSale = !showCouponSale }"
-        :visible="showCouponSale" :submit="submitCouponSale" /> -->
 
     <Pay :visible="showPaymentDialog" :key="showPaymentDialog" :order="form" :refresh="getList"
         :toggle="() => { showPaymentDialog = !showPaymentDialog }" />
@@ -237,6 +117,7 @@ import { listPrice } from "@/api/system/price";
 import { listUserWithNoLimit, addUser, getUser } from "@/api/system/user";
 import { delCloths } from "@/api/system/cloths";
 import { listUserCouponWithValidTime } from '@/api/system/user_coupon';
+import { listCloths } from "@/api/system/cloths";
 import { isCurrentTimeWithinRange, getFutureDate } from "@/utils";
 import { getConfigKey } from '@/api/system/config';
 import AddCloth from "./addCloth.vue";
@@ -900,10 +781,10 @@ function handleAdd() {
 }
 
 /** 修改按钮操作 */
-function handleUpdate() {
+async function handleUpdate() {
     reset();
     // 获取订单内容
-    getOrders(currentOrderId.value).then(response => {
+    await getOrders(currentOrderId.value).then(response => {
         form.value = response;
         form.value.cloths = [];
         if (form.value.paymentStatus == '00' || form.value.status == '05') {
@@ -913,17 +794,35 @@ function handleUpdate() {
             form.value.adjust = {};
         }
         title.value = "修改服务订单";
-        // 获取价格列表
-        listPrice({ orderType: form.value.source }).then(res => {
-            priceList.value = res;
-            console.log('create order price list', res)
-        });
+    });
+    // 获取衣物列表
+    await listCloths({ orderId: props.orderId }).then(res => {
+        res.map(item => {
+            if (item.estimate) {
+                item.estimateArr = item.estimate.split(',').map(Number);
+            }
+            if (item.clothingFlaw) {
+                item.clothingFlawArr = item.clothingFlaw.split(',').map(Number);
+            }
+        })
+        form.value.cloths = res;
+    })
+    // 获取价格列表
+    await listPrice({ orderType: form.value.source }).then(res => {
+        priceList.value = res;
+        console.log('create order price list', res)
     });
 
-    listUserWithNoLimit().then(res => {
-        userList.value = res.rows;
+    // 获取用户信息
+    await getUser(form.value.userId).then(res => {
+        currentUser.value = res;
+    });
+
+    await listUserWithNoLimit().then(res => {
+        userList.value = res;
         userListRes.value = userList.value;
     });
+
     // 获取用户卡券列表
     listUserCouponWithValidTime(currentUserId.value).then(response => {
         userCouponList.value = response;
@@ -934,7 +833,8 @@ function handleUpdate() {
         couponTypeList.value = new Set(userCouponList.value.map(coupon => coupon.coupon.couponType));
     });
 
-
+    // 计算总价
+    adjustInput();
 }
 
 /** 提交按钮 */
@@ -1206,6 +1106,7 @@ async function printCloth() {
     }));
     proxy.$modal.loading('正在打印衣物信息...')
     await invoke('print', { items: result }).catch(err => {
+        console.error(" print file error: ",err);
         proxy.$modal.msgError(err.kind)
     })
     proxy.$modal.closeLoading();

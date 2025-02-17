@@ -1,43 +1,5 @@
 <template>
     <div class="app-container">
-        <!-- 上传照片对话框 -->
-        <el-dialog title="上传照片" v-model="showUploadPicture" width="500px" append-to-body @closed="handleCloseUploadPic">
-            <el-upload class="upload-demo" :action="uploadBeforeImgUrl" :headers="headers" :on-preview="handlePreview"
-                :on-remove="handleRemovePicture" :on-success="handleUploadPreSucess" list-type="picture">
-                <el-button type="primary">点击上传洗前图片</el-button>
-                <template #tip>
-                    <div class="el-upload__tip">
-                        jpg/png files with a size less than 500kb
-                    </div>
-                </template>
-            </el-upload>
-            <div class="img-container">
-                <div class="img-item" v-for="item in prePictureList" :key="item.id">
-                    <el-image :src="item.url" fit="contain" />
-                    <span @click="removePicByClick(item.id)">x</span>
-                </div>
-            </div>
-            <el-divider border-style="dashed" />
-
-            <el-upload class="upload-demo" :action="uploadAfterImgUrl" :headers="headers" :on-preview="handlePreview"
-                :on-remove="handleRemovePicture" :on-success="handleUploadAfterSucess" :before-upload="beforeUpload">
-                <el-button type="primary">点击上传洗后图片</el-button>
-                <template #tip>
-                    <div class="el-upload__tip">
-                        jpg/png files with a size less than 500kb
-                    </div>
-                </template>
-            </el-upload>
-            <div class="img-container">
-                <div class="img-item" v-for="item in afterPictureList" :key="item.id">
-                    <el-image :src="item.url" fit="contain" />
-                    <span @click="removePicByClick(item.id)">x</span>
-                </div>
-            </div>
-            <el-dialog v-model="dialogVisible" title="预览" width="800px" append-to-body>
-                <img :src="dialogImageUrl" style="display: block; max-width: 100%; margin: 0 auto" />
-            </el-dialog>
-        </el-dialog>
         <!-- 添加或修改订单包含的衣物清单对话框 -->
         <el-steps :active="step" finish-status="success" simple>
             <el-step class="step-item" title="选择品类" :icon="CopyDocument" v-if="step !== maxStepNum"
@@ -69,7 +31,7 @@
         </el-steps>
         <el-form ref="clothsRef" :model="form" :rules="rules" class="form-container">
             <div class="wrapper" v-show="step == 0">
-                <el-col :span="4">
+                <el-col :span="3">
                     <el-scrollbar class="scrollbar-wrapper">
                         <CustomRadioButtonGroup class="radio-group-column" v-model="form.clothingCategory"
                             @change="cateChange">
@@ -80,7 +42,13 @@
                         </CustomRadioButtonGroup>
                     </el-scrollbar>
                 </el-col>
-                <el-col :span="20">
+                <el-col :span="21">
+                    <el-form-item label="">
+                        <div class="input-btn-row">
+                            <el-input v-model="cateName" placeholder="请输入分类名称" />
+                            <el-button type="primary" @click="handleAddCate">新增</el-button>
+                        </div>
+                    </el-form-item>
                     <el-scrollbar>
                         <CustomRadioButtonGroup class="items-break" v-model="form.clothingStyle">
                             <CustomRadioButton v-for="dict in clothStyleList" :key="dict.dictValue"
@@ -321,9 +289,8 @@
                     <div class="image-list">
                         <div v-for="(image, index) in images" :key="index" class="image-item">
                             <img :src="image.url" alt="Uploaded Image" class="image-preview" />
-                            <el-button type="danger" @click="removeImage(index)" class="delete-button">
-                                删除
-                            </el-button>
+                            <el-button type="danger" :icon="Close" size="small" circle @click="removeImage(index)"
+                                class="delete-button" />
                         </div>
                     </div>
                 </div>
@@ -345,9 +312,16 @@
             <video ref="video" class="video" autoplay></video>
             <canvas ref="canvas" class="canvas"></canvas>
             <div class="camera-controls">
-                <el-button type="primary" @click="capturePhoto">拍照</el-button>
-                <el-button type="primary" @click="savePhoto">保存</el-button>
+                <el-button type="primary" @click="capturePhoto" :disabled="capturedImages.length >= 16">拍照</el-button>
+                <el-button type="primary" @click="savePhotos" :disabled="capturedImages.length === 0">保存</el-button>
                 <el-button @click="closeCamera">关闭</el-button>
+            </div>
+            <div class="image-list">
+                <div v-for="(image, index) in capturedImages" :key="index" class="image-item">
+                    <img :src="image.url" alt="Captured Image" class="image-preview" />
+                    <el-button type="danger" :icon="Close" size="small" circle @click="removeCapturedImage(index)"
+                        class="delete-button" />
+                </div>
             </div>
         </el-dialog>
     </div>
@@ -361,15 +335,15 @@ import { getDicts } from '@/api/system/dict/data'
 import { listTagsNoLimit, addTags } from "@/api/system/tags";
 import pinyin from 'pinyin';
 import { ref, reactive, toRefs } from "vue";
-import { listCloths } from "@/api/system/cloths";
-import { getToken } from "@/utils/auth";
-import { delClothPicture } from "@/api/system/cloths";
 import CustomRadioButton from "@/components/CustomRadioButton";
 import CustomRadioButtonGroup from "@/components/CustomRadioButtonGroup";
 import CheckboxGroup from "../../components/CheckBoxGroup.vue";
 import CheckboxButton from '../../components/CheckboxButton.vue';
 import { ElMessage } from 'element-plus';
 import { invoke } from '@tauri-apps/api/core';
+import { Close } from '@element-plus/icons-vue';
+import { getTypeByType, addType } from "@/api/system/dict/type";
+import { addDataAuto } from "@/api/system/dict/data";
 
 const props = defineProps({
     userId: {
@@ -444,21 +418,10 @@ const estimateList = ref([]);
 const brandList = ref([]);
 const currentCloth = ref();
 const featureList = [colorList, flawList, estimateList, brandList]
+const cateName = ref();
 
 const clothNameRef = ref();
-
-const headers = ref({ Authorization: "Bearer " + getToken() });
-const baseUrl = import.meta.env.VITE_APP_BASE_API;
-const baseUploadBeforeUrl = baseUrl + `/system/cloths/upload?isPre=true&clothId=`;
-const baseUploadAfterUrl = baseUrl + `/system/cloths/upload?isPre=false&clothId=`;
-const uploadBeforeImgUrl = ref(''); // 上传的图片服务器地址
-const uploadAfterImgUrl = ref(''); // 上传的图片服务器地址
-const pictureUrl = ref(baseUrl + "/system/cloths/download/");
-const dialogImageUrl = ref("");
-const dialogVisible = ref(false);// 预览
-const prePictureList = ref([]);// 洗前图片
 const prePictureList2 = ref(new Set());// 洗前图片
-const afterPictureList = ref([]);// 洗后图片
 
 const data = reactive({
     form: {},
@@ -484,40 +447,77 @@ const data = reactive({
 const { form, rules } = toRefs(data);
 const images = ref([]); // 用于存储上传的图片
 const showCameraModal = ref(false); // 是否显示拍照对话框
+const video = ref(null);
+const canvas = ref(null);
+const capturedImages = ref([]);
 
 // 打开摄像头
 const openCamera = async () => {
-  showCameraModal.value = true;
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-    video.value.srcObject = stream;
-  } catch (error) {
-    ElMessage.error('无法访问摄像头: ' + error);
-  }
+    showCameraModal.value = true;
+    try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        console.log('devices:', devices);
+        const videoDevices = devices.filter(device => device.kind === 'videoinput');
+        if (videoDevices.length === 0) {
+            ElMessage.error('没有可用的摄像头设备');
+            return;
+        }
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+                deviceId: videoDevices[0].deviceId,
+                width: { ideal: 1920 },
+                height: { ideal: 1080 }
+            }
+        });
+        video.value.srcObject = stream;
+    } catch (error) {
+        ElMessage.error('无法访问摄像头: ' + error);
+        console.error('无法访问摄像头:', error);
+        // try {
+        //     const stream = await navigator.mediaDevices.getDisplayMedia({
+        //         video: true
+        //     });
+        //     video.value.srcObject = stream;
+        // } catch (error) {
+        //     ElMessage.error('无法访问桌面: ' + error);
+        //     console.error('无法访问桌面:', error);
+        // }
+    }
 };
 
 // 关闭摄像头
 const closeCamera = () => {
-  showCameraModal.value = false;
-  const stream = video.value.srcObject;
-  const tracks = stream.getTracks();
-  tracks.forEach(track => track.stop());
-  video.value.srcObject = null;
+    showCameraModal.value = false;
+    const stream = video.value.srcObject;
+    const tracks = stream.getTracks();
+    tracks.forEach(track => track.stop());
+    video.value.srcObject = null;
+    capturedImages.value = [];
 };
 
 // 拍照
 const capturePhoto = () => {
-  const context = canvas.value.getContext('2d');
-  context.drawImage(video.value, 0, 0, canvas.value.width, canvas.value.height);
+    const context = canvas.value.getContext('2d');
+    canvas.value.width = 1920;
+    canvas.value.height = 1080;
+    context.drawImage(video.value, 0, 0, canvas.value.width, canvas.value.height);
+    const dataUrl = canvas.value.toDataURL('image/png');
+    capturedImages.value.push({ url: dataUrl });
+};
+
+// 删除拍照的图片
+const removeCapturedImage = (index) => {
+    capturedImages.value.splice(index, 1);
 };
 
 // 保存照片
-const savePhoto = async () => {
-  const dataUrl = canvas.value.toDataURL('image/png');
-  const blob = await (await fetch(dataUrl)).blob();
-  const file = new File([blob], 'photo.png', { type: 'image/png' });
-  handleFileChange({ raw: file });
-  closeCamera();
+const savePhotos = async () => {
+    for (const image of capturedImages.value) {
+        const blob = await (await fetch(image.url)).blob();
+        const file = new File([blob], 'photo.png', { type: 'image/png' });
+        await handleFileChange({ raw: file });
+    }
+    closeCamera();
 };
 
 // 处理文件选择
@@ -577,72 +577,35 @@ function jumpToStep(stepNum) {
 
 }
 
-// import { invoke } from '@tauri-apps/api/core'
-import { writeTextFile, BaseDirectory } from '@tauri-apps/plugin-fs'
-
-// Hook into the upload process before the file is uploaded
-const beforeUpload = async (file) => {
-    try {
-        // Convert the file to a data URL or array buffer as needed
-        const reader = new FileReader()
-        reader.readAsArrayBuffer(file.raw)
-        reader.onload = async () => {
-            const fileContent = new Uint8Array(reader.result)  // The file content
-            const filePath = `uploaded_files/${file.name}`  // Specify the target path within your app's folder
-
-            // Use Tauri's plugin-fs to write the file to the target location
-            const targetPath = await writeTextFile(filePath, fileContent, {
-                dir: BaseDirectory.AppLocalData,  // Use the app's local data directory
-            })
-            console.log('File uploaded successfully to:', targetPath)
-            alert("File uploaded successfully")
-
-            // If you need to store the file path or perform other operations, you can continue from here
-        }
-    } catch (error) {
-        console.error("Error uploading file:", error)
+async function handleAddCate() {
+    const t = "sys_cloth_style" + form.value.clothingCategory;
+    // check if the cate is already exist
+    const cate = await getTypeByType(t);
+    console.log(cate);
+    // if not in the list, add it
+    if (!cate) {
+        console.log("add cate", sys_cloth_cate);
+        const name = sys_cloth_cate.value.find(item => item.value == form.value.clothingCategory).label + "分类";
+        addType({ dictName: name, dictType: t, status: "0" }).then(res => {
+            proxy.$modal.msgSuccess("添加成功");
+        });
     }
-}
 
-const handleUploadSuccess = () => {
-    console.log('File successfully uploaded (handled by Tauri)!')
-}
-
-function handleRemovePicture(event) {
-    delClothPicture(currentCloth.value.clothId, event.response.id).then(res => {
-        proxy.$modal.msgSuccess("删除成功");
-        prePictureList.value = prePictureList.value.filter(item => item.id != event.response.id);
-        afterPictureList.value = afterPictureList.value.filter(item => item.id != event.response.id);
-    })
-}
-
-function removePicByClick(id) {
-    delClothPicture(currentCloth.value.clothId, id).then(res => {
-        proxy.$modal.msgSuccess("删除成功");
-        prePictureList.value = prePictureList.value.filter(item => item.id != id);
-        afterPictureList.value = afterPictureList.value.filter(item => item.id != id);
-    })
-}
-
-function handleUploadPreSucess(event) {
-    prePictureList.value.unshift({ id: event.id, url: pictureUrl.value + event.id });
-}
-
-function handleUploadAfterSucess(event) {
-    afterPictureList.value.unshift({ id: event.id, url: pictureUrl.value + event.id });
-}
-
-/* 获取图片列表id */
-function handleShowPicture(row) {
-    getCloths(row.clothId).then(response => {
-        prePictureList.value = response.data.beforePics ?
-            response.data.beforePics.split(',').map(item => ({ id: item, url: pictureUrl.value + item })) : [];
-        afterPictureList.value = response.data.afterPics ?
-            response.data.afterPics.split(',').map(item => ({ id: item, url: pictureUrl.value + item })) : [];
-
+    // create a new style
+    // value need to check the data in database which is already exist and then increase 1
+    const style = {
+        dictLabel: cateName.value,
+        dictType: t,
+        listClass: "default",
+        dictSort: 0,
+        status: "0",
+    };
+    addDataAuto(style).then(() => {
+        proxy.$modal.msgSuccess("添加成功");
+        cateChange(form.value.clothingCategory);
+        cateName.value = "";
     });
 }
-
 // 获取颜色名称
 function findColorName() {
     if (form.value.clothingColor) {
@@ -669,31 +632,6 @@ function cateChange(value) {
     getDicts("sys_cloth_style" + value).then(res => {
         clothStyleList.value = res;
     })
-}
-
-function handlePreview(file) {
-    dialogImageUrl.value = file.response.url;
-    dialogVisible.value = true;
-}
-
-// 当订单id不为空时那么为修改操作
-function getList() {
-    if (props.isRewash) {
-        clothList.value = props.clothes;
-    } else if (props.orderId && props.orderId !== 0) {
-        listCloths({ orderId: props.orderId }).then(res => {
-            res.map(item => {
-                if (item.estimate) {
-                    item.estimateArr = item.estimate.split(',').map(Number);
-                }
-                if (item.clothingFlaw) {
-                    item.clothingFlawArr = item.clothingFlaw.split(',').map(Number);
-                }
-            })
-            clothList.value = res;
-            props.submit(clothList.value);
-        })
-    }
 }
 
 // 表单重置
@@ -786,22 +724,6 @@ function handleAdd() {
     cateChange(form.value.clothingCategory);
 }
 
-/** 修改按钮操作 */
-function handleUpdate(row) {
-    reset();
-    if (row.clothId) {
-        getCloths(row.clothId).then(res => {
-            form.value = res;
-            form.value.clothingFlawArr = res.clothingFlaw ? res.clothingFlaw.split(',').map(Number) : [];
-            form.value.estimateArr = res.estimate ? res.estimate.split(',').map(Number) : [];
-        });
-        cateChange(form.value.clothingCategory);
-
-    } else {
-        proxy.$modal.msgError("请先选择衣物");
-    }
-}
-
 /** 提交按钮 */
 function submitForm() {
     proxy.$refs["clothsRef"].validate(valid => {
@@ -861,21 +783,6 @@ function submitForm() {
     });
 }
 
-
-/** 删除按钮操作 */
-function handleDelete(row) {
-    const _clothIds = row.clothId;
-    proxy.$modal.confirm('是否确认删除订单包含的衣物清单编号为"' + _clothIds + '"的数据项？').then(function () {
-        return delCloths(_clothIds);
-    }).then(() => {
-        getList();
-        const index = clothList.value.findIndex(item => item.clothId === _clothIds);
-        clothList.value.splice(index, 1);
-        proxy.$modal.msgSuccess("删除成功");
-        props.submit(clothList.value);
-    }).catch(() => { });
-}
-
 /* 上一步 */
 function preStep() {
     if (step.value > 0) {
@@ -885,7 +792,6 @@ function preStep() {
 
 /* 下一步 */
 function nextStep() {
-    console.log(form.value)
     // 校验衣物是否选择
     if (step.value === 1 && !form.value.clothingId) {
         return;
@@ -1117,25 +1023,8 @@ function step2ClothChange() {
     }
 }
 
-/* 显示上传照片dialog */
-function handleShowUploadPic(row) {
-    currentCloth.value = row;
-    showUploadPicture.value = true;
-    uploadBeforeImgUrl.value = baseUploadBeforeUrl + row.clothId;
-    uploadAfterImgUrl.value = baseUploadAfterUrl + row.clothId;
-    handleShowPicture(row);
-}
-
-/* 关闭上传图片时清理对象 */
-function handleCloseUploadPic() {
-    currentCloth.value = {};
-    prePictureList.value = [];
-    afterPictureList.value = [];
-}
-
 onMounted(async () => {
     await initList();  // 确保 initList 完成
-    // getList();         // 在 initList 完成后调用
     handleAdd();
 });
 </script>
@@ -1165,7 +1054,6 @@ onMounted(async () => {
 .wrapper {
     height: 100%;
     display: flex;
-    gap: 2rem;
 }
 
 .scrollbar-wrapper {
@@ -1371,5 +1259,29 @@ onMounted(async () => {
             display: block;
         }
     }
+}
+
+.video {
+    width: 100%;
+    height: auto;
+}
+
+.canvas {
+    display: none;
+    position: relative;
+}
+
+
+.camera-controls {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 1rem;
+}
+
+.delete-button {
+    position: absolute;
+    top: 0px;
+    right: 0px;
 }
 </style>

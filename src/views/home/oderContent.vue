@@ -1,156 +1,151 @@
 <template>
-    <transition @before-enter="beforeEnter" @enter="enter">
-        <div class="result-container">
-            <el-form :model="queryParams" ref="queryRef" :inline="true" label-width="68px">
-                <el-form-item label="取件码" prop="pickupCode">
-                    <el-input v-model="queryParams.pickupCode" placeholder="请输入取件码" clearable
-                        @keyup.enter="handleQuery" />
-                </el-form-item>
-                <el-form-item label="手机号" prop="phonenumber">
-                    <el-input ref="phonenumber" v-model="queryParams.phonenumber" placeholder="请输入会员手机号" clearable
-                        @keyup.enter="handleQuery" />
-                </el-form-item>
-                <el-form-item label="订单编码" prop="orderNumber">
-                    <el-input v-model="queryParams.orderNumber" placeholder="请输入订单编码" clearable
-                        @keyup.enter="handleQuery" />
-                </el-form-item>
-                <el-form-item>
-                    <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
-                    <el-button icon="Refresh" @click="resetQuery">重置</el-button>
-                </el-form-item>
-            </el-form>
-            <!-- 渲染订单抖索结果列表 -->
-            <div class="search-result-list">
-                <div v-if="ordersList.length === 0" class="no-result">
-                    <h1 style="color: #ccc;">暂无数据</h1>
-                </div>
-                <div v-else class="result-item" v-for="order in ordersList" :key="order.orderId">
-                    <div class="result-item-order-num">
-                        <span>
-                            订单编码: {{ order.orderNumber }}
-                        </span>
-                        <el-button type="primary" size="small">补打小票</el-button>
-                    </div>
-                    <div class="result-item-info">
-                        <span>会员身份: {{ order.nickName + '-' + order.phonenumber }}</span>
-                        <span style="display: flex; align-items: center; gap: .5rem;">支付状态:
-                            <dict-tag v-if="order.paymentStatus === '01'" style="cursor: pointer;"
-                                @click="go2pay(order)" :options="sys_payment_status" :value="order.paymentStatus" />
-                            <dict-tag v-else :options="sys_payment_status" :value="order.paymentStatus" />
-                        </span>
-                        <span style="display: flex; align-items: center; gap: .5rem;">
-                            {{ order.paymentStatus === '00' ? '实际支付金额:' : '应支付金额:' }}
-                            <span style="color: red;font-weight: bold; align-items: center;">
-                                {{ order.mount }}
-                            </span>
-                        </span>
-                        <span>取件码: {{ order.pickupCode }}</span>
-                        <span style="display: flex; align-items: center; gap: .5rem;">订单状态:
-                            <dict-tag :options="sys_order_status" :value="order.status" />
-                        </span>
-                    </div>
-                    <!-- 订单包含的衣物列表 -->
-                    <el-table v-if="order.clothList && order.clothList.length > 0" :data="order.clothList"
-                        :loading="order.loading" row-key="clothingId"
-                        @selection-change="selectedItems => handleClothSelectionChange(selectedItems, order)"
-                        ref="clothsTableRef">
-                        <el-table-column type="selection" width="55" align="center" />
-                        <el-table-column label="衣物" align="center">
-                            <template #default="scope">
-                                {{ scope.row.clothInfo.clothingName }}
-                                {{ scope.row.clothingColor ? '-' + colorList.find(item => item.tagId ==
-                                    scope.row.clothingColor).tagName : '' }}
-                            </template>
-                        </el-table-column>
-                        <el-table-column label="衣物编码" align="center" prop="clothingColor" width="110">
-                            <template #default="scope">
-                                {{ scope.row.hangClothCode }}
-                            </template>
-                        </el-table-column>
-                        <el-table-column label="服务类型" align="center">
-                            <template #default="scope">
-                                <span class="service-type">
-                                    <dict-tag :options="sys_service_type" :value="scope.row.serviceType" />
-                                    -
-                                    <dict-tag :options="sys_service_requirement"
-                                        :value="scope.row.serviceRequirement" />
-                                </span>
-                            </template>
-                        </el-table-column>
-                        <el-table-column label="洗护价格" align="center" prop="priceValue" />
-                        <el-table-column label="工艺加价" align="center" prop="processMarkup" />
-                        <el-table-column label="衣物瑕疵" align="center" prop="clothingFlaw">
-                            <template #default="scope">
-                                <el-tag v-for="tagId in scope.row.clothingFlaw ? scope.row.clothingFlaw.split(',') : []"
-                                    :key="tagId" type="danger">
-                                    {{ flawList.find(item => item.tagId == tagId).tagName }}
-                                </el-tag>
-                            </template>
-                        </el-table-column>
-                        <el-table-column label="洗后预估" align="center" prop="estimate">
-                            <template #default="scope">
-                                <el-tag v-for="tagId in scope.row.estimate ? scope.row.estimate.split(',') : []"
-                                    :key="tagId" type="primary">
-                                    {{ estimateList.find(item => item.tagId == tagId).tagName }}
-                                </el-tag>
-                            </template>
-                        </el-table-column>
-                        <el-table-column label="衣物品牌" align="center" prop="clothingBrand">
-                            <template #default="scope">
-                                <el-tag v-if="scope.row.clothingBrand" type="primary">
-                                    {{ brandList.find(item => item.tagId == scope.row.clothingBrand).tagName }}
-                                </el-tag>
-                            </template>
-                        </el-table-column>
-                        <el-table-column label="图片" align="center" class-name="small-padding fixed-width">
-                            <template #default="scope">
-                                <el-button link type="primary"
-                                    :disabled="scope.row.beforePics == null || scope.row.beforePics.length == 0"
-                                    @click="handleShowPicture(scope.row, true)"
-                                    v-hasPermi="['system:cloths:edit']">洗前</el-button>
-                                <el-button link type="primary"
-                                    :disabled="scope.row.afterPics == null || scope.row.afterPics.length == 0"
-                                    @click="handleShowPicture(scope.row, false)"
-                                    v-hasPermi="['system:cloths:edit']">洗后</el-button>
-                            </template>
-                        </el-table-column>
-                        <el-table-column label="洗护状态" align="center" prop="clothingStatus">
-                            <template #default="scope">
-                                <dict-tag :options="sys_clothing_status" :value="scope.row.clothingStatus" />
-                            </template>
-                        </el-table-column>
-                        <el-table-column label="上挂位置" align="center">
-                            <template #default="scope">
-                                {{
-                                    scope.row.hangLocationCode ?
-                                        scope.row.hangerName + '-' + scope.row.hangerNumber : ''
-                                }}
-                            </template>
-                        </el-table-column>
-                        <el-table-column label="上挂备注" align="center" prop="hangRemark" />
-                        <el-table-column label="操作" align="center">
-                            <template #default="scope">
-                                <div v-if="scope.row.clothingStatus == '02'">
-                                    <el-button type="text" @click="pickup(scope.row)">取衣</el-button>
-                                    <el-button type="text" @click="handleReWash(scope.row)">复洗</el-button>
-                                </div>
-                            </template>
-                        </el-table-column>
-                    </el-table>
-
-                </div>
+    <div class="result-container">
+        <el-form :model="queryParams" ref="queryRef" :inline="true" label-width="68px">
+            <el-form-item label="取件码" prop="pickupCode">
+                <el-input v-model="queryParams.pickupCode" placeholder="请输入取件码" clearable @keyup.enter="handleQuery" />
+            </el-form-item>
+            <el-form-item label="手机号" prop="phonenumber">
+                <el-input ref="phonenumber" v-model="queryParams.phonenumber" placeholder="请输入会员手机号" clearable
+                    @keyup.enter="handleQuery" />
+            </el-form-item>
+            <el-form-item label="订单编码" prop="orderNumber">
+                <el-input v-model="queryParams.orderNumber" placeholder="请输入订单编码" clearable
+                    @keyup.enter="handleQuery" />
+            </el-form-item>
+            <el-form-item>
+                <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
+                <el-button icon="Refresh" @click="resetQuery">重置</el-button>
+            </el-form-item>
+        </el-form>
+        <!-- 渲染订单抖索结果列表 -->
+        <div class="search-result-list">
+            <div v-if="ordersList.length === 0" class="no-result">
+                <h1 style="color: #ccc;">暂无数据</h1>
             </div>
+            <div v-else class="result-item" v-for="order in ordersList" :key="order.orderId">
+                <div class="result-item-order-num">
+                    <span>
+                        订单编码: {{ order.orderNumber }}
+                    </span>
+                    <el-button type="primary" size="small">补打小票</el-button>
+                </div>
+                <div class="result-item-info">
+                    <span>会员身份: {{ order.nickName + '-' + order.phonenumber }}</span>
+                    <span style="display: flex; align-items: center; gap: .5rem;">支付状态:
+                        <dict-tag v-if="order.paymentStatus === '01'" style="cursor: pointer;" @click="go2pay(order)"
+                            :options="sys_payment_status" :value="order.paymentStatus" />
+                        <dict-tag v-else :options="sys_payment_status" :value="order.paymentStatus" />
+                    </span>
+                    <span style="display: flex; align-items: center; gap: .5rem;">
+                        {{ order.paymentStatus === '00' ? '实际支付金额:' : '应支付金额:' }}
+                        <span style="color: red;font-weight: bold; align-items: center;">
+                            {{ order.mount }}
+                        </span>
+                    </span>
+                    <span>取件码: {{ order.pickupCode }}</span>
+                    <span style="display: flex; align-items: center; gap: .5rem;">订单状态:
+                        <dict-tag :options="sys_order_status" :value="order.status" />
+                    </span>
+                </div>
+                <!-- 订单包含的衣物列表 -->
+                <el-table v-if="order.clothList && order.clothList.length > 0" :data="order.clothList"
+                    :loading="order.loading" row-key="clothingId"
+                    @selection-change="selectedItems => handleClothSelectionChange(selectedItems, order)"
+                    ref="clothsTableRef">
+                    <el-table-column type="selection" width="55" align="center" />
+                    <el-table-column label="衣物" align="center">
+                        <template #default="scope">
+                            {{ scope.row.clothInfo.clothingName }}
+                            {{scope.row.clothingColor ? '-' + colorList.find(item => item.tagId ==
+                                scope.row.clothingColor).tagName : ''}}
+                        </template>
+                    </el-table-column>
+                    <el-table-column label="衣物编码" align="center" prop="clothingColor" width="110">
+                        <template #default="scope">
+                            {{ scope.row.hangClothCode }}
+                        </template>
+                    </el-table-column>
+                    <el-table-column label="服务类型" align="center">
+                        <template #default="scope">
+                            <span class="service-type">
+                                <dict-tag :options="sys_service_type" :value="scope.row.serviceType" />
+                                -
+                                <dict-tag :options="sys_service_requirement" :value="scope.row.serviceRequirement" />
+                            </span>
+                        </template>
+                    </el-table-column>
+                    <el-table-column label="洗护价格" align="center" prop="priceValue" />
+                    <el-table-column label="工艺加价" align="center" prop="processMarkup" />
+                    <el-table-column label="衣物瑕疵" align="center" prop="clothingFlaw">
+                        <template #default="scope">
+                            <el-tag v-for="tagId in scope.row.clothingFlaw ? scope.row.clothingFlaw.split(',') : []"
+                                :key="tagId" type="danger">
+                                {{flawList.find(item => item.tagId == tagId).tagName}}
+                            </el-tag>
+                        </template>
+                    </el-table-column>
+                    <el-table-column label="洗后预估" align="center" prop="estimate">
+                        <template #default="scope">
+                            <el-tag v-for="tagId in scope.row.estimate ? scope.row.estimate.split(',') : []"
+                                :key="tagId" type="primary">
+                                {{estimateList.find(item => item.tagId == tagId).tagName}}
+                            </el-tag>
+                        </template>
+                    </el-table-column>
+                    <el-table-column label="衣物品牌" align="center" prop="clothingBrand">
+                        <template #default="scope">
+                            <el-tag v-if="scope.row.clothingBrand" type="primary">
+                                {{brandList.find(item => item.tagId == scope.row.clothingBrand).tagName}}
+                            </el-tag>
+                        </template>
+                    </el-table-column>
+                    <el-table-column label="图片" align="center" class-name="small-padding fixed-width">
+                        <template #default="scope">
+                            <el-button link type="primary"
+                                :disabled="scope.row.beforePics == null || scope.row.beforePics.length == 0"
+                                @click="handleShowPicture(scope.row, true)"
+                                v-hasPermi="['system:cloths:edit']">洗前</el-button>
+                            <el-button link type="primary"
+                                :disabled="scope.row.afterPics == null || scope.row.afterPics.length == 0"
+                                @click="handleShowPicture(scope.row, false)"
+                                v-hasPermi="['system:cloths:edit']">洗后</el-button>
+                        </template>
+                    </el-table-column>
+                    <el-table-column label="洗护状态" align="center" prop="clothingStatus">
+                        <template #default="scope">
+                            <dict-tag :options="sys_clothing_status" :value="scope.row.clothingStatus" />
+                        </template>
+                    </el-table-column>
+                    <el-table-column label="上挂位置" align="center">
+                        <template #default="scope">
+                            {{
+                                scope.row.hangLocationCode ?
+                                    scope.row.hangerName + '-' + scope.row.hangerNumber : ''
+                            }}
+                        </template>
+                    </el-table-column>
+                    <el-table-column label="上挂备注" align="center" prop="hangRemark" />
+                    <el-table-column label="操作" align="center">
+                        <template #default="scope">
+                            <div v-if="scope.row.clothingStatus == '02'">
+                                <el-button type="text" @click="pickup(scope.row)">取衣</el-button>
+                                <el-button type="text" @click="handleReWash(scope.row)">复洗</el-button>
+                            </div>
+                        </template>
+                    </el-table-column>
+                </el-table>
 
-            <div class="footer">
-                <el-button @click="props.taggle()">关闭</el-button>
-                <el-button type="primary" @click="pickup()">取衣</el-button>
-                <el-button @click="handlePay">取衣收款</el-button>
-                <el-button @click="handleDelivery">上门派送</el-button>
-                <!-- <el-button @click="handleReWash">售后复洗</el-button> -->
-                <el-button @click="() => { }">补打小票</el-button>
             </div>
         </div>
-    </transition>
+
+        <div class="footer">
+            <el-button @click="props.taggle()">关闭</el-button>
+            <el-button type="primary" @click="pickup()">取衣</el-button>
+            <el-button @click="handlePay">取衣收款</el-button>
+            <el-button @click="handleDelivery">上门派送</el-button>
+            <el-button @click="() => { }">补打小票</el-button>
+        </div>
+    </div>
 
     <!-- 展示照片 -->
     <el-dialog title="照片" v-model="showPicture" width="400px" append-to-body>
@@ -185,7 +180,6 @@
             </div>
         </template>
     </el-dialog>
-
 
     <!-- 付款弹窗 -->
     <el-dialog title="付款" v-model="showPaymentDialog" width="600px" append-to-body lock-scroll modal

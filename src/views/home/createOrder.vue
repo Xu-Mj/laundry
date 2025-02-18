@@ -1,112 +1,113 @@
 <template>
-    <!-- <div > -->
-    <!-- 添加或修改洗护服务订单对话框 -->
-    <el-row class="container" v-if="showDialog">
-        <el-col class="left" :span="10">
-            <el-form ref="ordersRef" :model="form" :rules="rules" label-width="80px">
-                <el-row>
-                    <el-col :span="10">
-                        <el-form-item label="会员：" prop="userId">
-                            <el-select v-model="form.userId" :disabled="notEditable" filterable :clearable="true" remote
-                                reserve-keyword placeholder="请输入手机号码搜索" allow-create @blur="handleBlur"
-                                remote-show-suffix :remote-method="searchUserByTel" @change="selectUser"
-                                value-key="userId" style="width: 240px">
-                                <el-option v-for="item in userListRes" :key="item.userId"
-                                    :label="item.nickName + '\t' + item.phonenumber" :value="item.userId" />
-                            </el-select>
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="10">
-                        <el-form-item label="姓名：" prop="nickName">
-                            <el-input :disabled="notEditable" v-model="form.nickName" placeholder="请输入会员姓名" />
-                        </el-form-item>
-                    </el-col>
-                    <!-- <el-col :span="4" style="display: flex; align-items: start; justify-content: center;">
+    <div>
+        <!-- 添加或修改洗护服务订单对话框 -->
+        <el-row class="container" v-if="showDialog">
+            <el-col class="left" :span="10">
+                <el-form ref="ordersRef" :model="form" :rules="rules" label-width="80px">
+                    <el-row>
+                        <el-col :span="10">
+                            <el-form-item label="会员：" prop="userId">
+                                <el-select v-model="form.userId" :disabled="notEditable" filterable :clearable="true"
+                                    remote reserve-keyword placeholder="请输入手机号码搜索" allow-create @blur="handleBlur"
+                                    remote-show-suffix :remote-method="searchUserByTel" @change="selectUser"
+                                    value-key="userId" style="width: 240px">
+                                    <el-option v-for="item in userListRes" :key="item.userId"
+                                        :label="item.nickName + '\t' + item.phonenumber" :value="item.userId" />
+                                </el-select>
+                            </el-form-item>
+                        </el-col>
+                        <el-col :span="10">
+                            <el-form-item label="姓名：" prop="nickName">
+                                <el-input :disabled="notEditable" v-model="form.nickName" placeholder="请输入会员姓名" />
+                            </el-form-item>
+                        </el-col>
+                        <!-- <el-col :span="4" style="display: flex; align-items: start; justify-content: center;">
                         <el-button v-if="form.userId" type="primary" @click="">充值</el-button>
                     </el-col> -->
-                </el-row>
-                <el-row v-if="form.userId">
-                    <el-col :span="9">
-                        <el-form-item label="余额：">
-                            {{ currentUser.balance }}元
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="10">
-                        <el-form-item label="积分：">
-                            {{ currentUser.integral }}分
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="1">
-                        <el-button type="primary" link icon="DArrowRight" @click="showInfoDialog = true" />
-                    </el-col>
-                    <!-- <el-col :span="4" style="display: flex; align-items: start; justify-content: center;">
+                    </el-row>
+                    <el-row v-if="form.userId">
+                        <el-col :span="9">
+                            <el-form-item label="余额：">
+                                {{ currentUser.balance }}元
+                            </el-form-item>
+                        </el-col>
+                        <el-col :span="10">
+                            <el-form-item label="积分：">
+                                {{ currentUser.integral }}分
+                            </el-form-item>
+                        </el-col>
+                        <el-col :span="1">
+                            <el-button type="primary" link icon="DArrowRight" @click="showInfoDialog = true" />
+                        </el-col>
+                        <!-- <el-col :span="4" style="display: flex; align-items: start; justify-content: center;">
                         <el-button type="primary" @click="">团购</el-button>
                     </el-col> -->
-                </el-row>
-                <el-form-item label="订单来源" prop="source">
-                    <el-radio-group v-model="form.source" @change="sourceChanged" :disabled="notEditable">
-                        <el-radio v-for="dict in sys_price_order_type" :key="dict.value" :label="dict.label"
-                            :value="dict.value">
-                            {{ dict.label }}
-                        </el-radio>
-                    </el-radio-group>
-                </el-form-item>
-                <el-form-item class="price-group">
-                    <el-radio-group v-model="form.priceId" :disabled="notEditable">
-                        <el-radio v-for="item in priceList" @click="(event) => priceChange(event, item.priceId)"
-                            :key="item.priceId" :label="item.priceName" :value="item.priceId">
-                            {{ item.priceName }}
-                        </el-radio>
-                    </el-radio-group>
-                </el-form-item>
-                <el-row>
-                    <h3>订单</h3>
-                    <CustomTable :table-data="form.cloths" @delete="handleDelete" />
-                </el-row>
+                    </el-row>
+                    <el-form-item label="订单来源" prop="source">
+                        <el-radio-group v-model="form.source" @change="sourceChanged" :disabled="notEditable">
+                            <el-radio v-for="dict in sys_price_order_type" :key="dict.value" :label="dict.label"
+                                :value="dict.value">
+                                {{ dict.label }}
+                            </el-radio>
+                        </el-radio-group>
+                    </el-form-item>
+                    <el-form-item class="price-group">
+                        <el-radio-group v-model="form.priceId" :disabled="notEditable">
+                            <el-radio v-for="item in priceList" @click="(event) => priceChange(event, item.priceId)"
+                                :key="item.priceId" :label="item.priceName" :value="item.priceId">
+                                {{ item.priceName }}
+                            </el-radio>
+                        </el-radio-group>
+                    </el-form-item>
+                    <el-row>
+                        <h3>订单</h3>
+                        <CustomTable :table-data="form.cloths" @delete="handleDelete" />
+                    </el-row>
 
-                <el-row class="footer">
-                    <el-col :span="5">
-                        <el-form-item label="总件数：">{{ form.cloths.length }}</el-form-item>
-                    </el-col>
-                    <el-col :span="8">
-                        <el-form-item label-width="auto" label="预计取衣：">
-                            {{ form.desireCompleteTime }}
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="8">
-                        <el-form-item label-width="auto" label="单据打印：">
-                            <el-input-number :min="1" v-model="printCount" controls-position="right" />
-                        </el-form-item>
-                    </el-col>
-                </el-row>
-                <el-row>
-                    <el-col :span="24">
-                        <h2 style="width: 100%; display: flex; justify-content: flex-end; padding-right: 1rem;">
-                            总价: {{ totalPrice }}元
-                        </h2>
-                    </el-col>
-                </el-row>
-            </el-form>
-            <div class="btn-container">
-                <el-button type="warning" plain @click="cancelSelf">{{ form.orderId ? '关 闭' : '取 消'
-                }}</el-button>
-                <el-button type="primary" plain @click="submitForm"
-                    :disabled="notEditable || form.priceId || form.source == '02' || form.source === '01'">取衣收款</el-button>
-                <el-button type="success" plain @click="createAndPay" :disabled="notEditable">收衣收款</el-button>
-            </div>
-        </el-col>
-        <el-col class="right" :span="14">
-            <AddCloth :userId="form.userId" :orderId="form.orderId" :submit="submitClothes" :disabled="notEditable"
-                :key="form.userId" />
-        </el-col>
-    </el-row>
+                    <el-row class="footer">
+                        <el-col :span="5">
+                            <el-form-item label="总件数：">{{ form.cloths.length }}</el-form-item>
+                        </el-col>
+                        <el-col :span="8">
+                            <el-form-item label-width="auto" label="预计取衣：">
+                                {{ form.desireCompleteTime }}
+                            </el-form-item>
+                        </el-col>
+                        <el-col :span="8">
+                            <el-form-item label-width="auto" label="单据打印：">
+                                <el-input-number :min="1" v-model="printCount" controls-position="right" />
+                            </el-form-item>
+                        </el-col>
+                    </el-row>
+                    <el-row>
+                        <el-col :span="24">
+                            <h2 style="width: 100%; display: flex; justify-content: flex-end; padding-right: 1rem;">
+                                总价: {{ totalPrice }}元
+                            </h2>
+                        </el-col>
+                    </el-row>
+                </el-form>
+                <div class="btn-container">
+                    <el-button type="warning" plain @click="cancelSelf">{{ form.orderId ? '关 闭' : '取 消'
+                        }}</el-button>
+                    <el-button type="primary" plain @click="submitForm"
+                        :disabled="notEditable && !(form.source === '03') && (form.priceId || form.source === '02' || form.source === '01')">取衣收款</el-button>
+                    <el-button type="success" plain @click="createAndPay" :disabled="notEditable">收衣收款</el-button>
+                </div>
+            </el-col>
+            <el-col class="right" :span="14">
+                <AddCloth :userId="form.userId" :orderId="form.orderId" :submit="submitClothes" :disabled="notEditable"
+                    :key="form.userId" />
+            </el-col>
+        </el-row>
 
-    <Pay :visible="showPaymentDialog" :key="showPaymentDialog" :order="form" :refresh="getList"
-        :toggle="() => { showPaymentDialog = !showPaymentDialog }" />
-    <History :visible="showHistoryDialog" :userId="currentUserId" :key="showHistoryDialog"
-        :toggle="() => { showHistoryDialog = !showHistoryDialog }" />
-    <Information :user="currentUser" :visible="showInfoDialog" :key="showInfoDialog"
-        :toggle="() => { showInfoDialog = !showInfoDialog }" />
+        <Pay :visible="showPaymentDialog" :key="showPaymentDialog" :order="form" :refresh="getList"
+            :toggle="() => { showPaymentDialog = !showPaymentDialog }" />
+        <History :visible="showHistoryDialog" :userId="currentUserId" :key="showHistoryDialog"
+            :toggle="() => { showHistoryDialog = !showHistoryDialog }" />
+        <Information :user="currentUser" :visible="showInfoDialog" :key="showInfoDialog"
+            :toggle="() => { showInfoDialog = !showInfoDialog }" />
+    </div>
 </template>
 
 <script setup name="CreateOrders">
@@ -177,7 +178,6 @@ const showCreateUser = ref(false);
 const showPaymentDialog = ref(false);
 const showCouponSale = ref(false);
 const showHistoryDialog = ref(false);
-const title = ref("");
 const totalPrice = ref(0);
 // 储值卡
 const couponStorageCardId = ref([]);
@@ -237,6 +237,15 @@ const data = reactive({
 });
 
 const { form, paymentForm, rules } = toRefs(data);
+
+// 共享的状态
+const selectedCloth = ref(null);
+
+// 提供共享的状态和方法
+provide('selectedCloth', selectedCloth);
+provide('setSelectedCloth', (cloth) => {
+    selectedCloth.value = cloth;
+});
 
 function calculateTotalPrice(base, markup, serviceType) {
     switch (serviceType) {
@@ -748,7 +757,9 @@ function reset() {
     showDialog.value = false; // Reset dialog visibility
     notEditable.value = false; // Reset editable state
     showCreateUser.value = false; // Reset user creation state
-
+    currentOrderId.value = props.orderId; // Reset current order ID
+    currentUserId.value = props.userId; // Reset current user ID
+    currentUser.value = {};
     proxy.resetForm("ordersRef");
 }
 
@@ -765,7 +776,6 @@ function sourceChanged() {
 /** 新增按钮操作 */
 function handleAdd() {
     reset();
-    title.value = "添加洗护服务订单";
     // 获取预计完成时间
     getConfigKey('desire_complete_time').then(res => {
         const days = res ? Number(res.configValue) : 7;
@@ -793,7 +803,6 @@ async function handleUpdate() {
         if (!form.value.adjust) {
             form.value.adjust = {};
         }
-        title.value = "修改服务订单";
     });
     // 获取衣物列表
     await listCloths({ orderId: props.orderId }).then(res => {
@@ -1106,7 +1115,7 @@ async function printCloth() {
     }));
     proxy.$modal.loading('正在打印衣物信息...')
     await invoke('print', { items: result }).catch(err => {
-        console.error(" print file error: ",err);
+        console.error(" print file error: ", err);
         proxy.$modal.msgError(err.kind)
     })
     proxy.$modal.closeLoading();

@@ -24,9 +24,8 @@ yarn.lock
 .yarnrc
 .yarn
 
-src-tauri\Cargo.lock
 src-tauri/target/
 src-tauri/gen/schemas
 src-tauri/Cargo.lock
-src-tauri/databse.db-shm
-src-tauri/databse.db-wal
+src-tauri/database.db-shm
+src-tauri/database.db-wal

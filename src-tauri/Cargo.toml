@@ -37,7 +37,7 @@ sqlx = { version = "0.8", features = [
 
 printpdf = { version = "0.7.0", features = ['embedded_images'] }
 image = "0.25"
-printers = "2.0.0"
+printers = "2.1.2"
 barcoders = { version = "2.0.0", features = ["image"] }
 lopdf = "0.34.0"
 pdf = "0.9.0"
@@ -63,3 +63,6 @@ rusttype = "0.9.3"
 regex = "1.11.1"
 alibaba-cloud-sdk-rust = "0.1.15"
 tauri-plugin-dialog = "2"
+
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-updater = "2"

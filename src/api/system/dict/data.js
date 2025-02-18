@@ -26,6 +26,11 @@ export function addData(data) {
   return invoke('add_dict_data', { dictData: data })
 }
 
+// 新增字典数据
+export function addDataAuto(data) {
+  return invoke('add_dict_data_auto', { dictData: data })
+}
+
 // 修改字典数据
 export function updateData(data) {
   return invoke('update_dict_data', { dictData: data })

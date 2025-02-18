@@ -55,6 +55,7 @@ const isAdmin = ref(localStorage.getItem('isAdmin') === 'true');
  */
 const menus = ref([
   { 'name': '首页', 'type': 'primary', show: true, path: '/index', onClick: () => router.push('/') },
+  // { 'name': '图片识别', 'type': 'primary', show: true, path: '/image-test', onClick: () => router.push('/image-test') },
   { 'name': '收衣收鞋', 'type': 'primary', show: true, path: '/create-order', onClick: () => router.push('/create-order') },
   { 'name': '订单管理', 'type': 'primary', show: true, path: '/order-list', onClick: () => router.push('/order-list') },
   { 'name': '取衣取鞋', 'type': 'primary', show: true, path: '/pick-up', onClick: () => router.push('/pick-up') },

@@ -16,6 +16,11 @@ export function getType(id) {
   return invoke('get_dict_type_by_id', { id })
 }
 
+// 查询字典类型详细
+export function getTypeByType(dictType) {
+  return invoke('get_dict_type_by_type', { dictType })
+}
+
 // 新增字典类型
 export function addType(data) {
   return invoke('add_dict_type', { dictType: data })

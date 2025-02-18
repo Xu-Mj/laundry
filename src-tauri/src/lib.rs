@@ -14,6 +14,7 @@ pub mod utils;
 use tauri::ipc::Invoke;
 use tauri::Runtime;
 use tauri_plugin_fs::FsExt;
+use tauri_plugin_updater::UpdaterExt;
 
 use crate::db::{
     cloth_price, clothing, configs, coupons, dict_data, dict_type, drying_rack, expenditure,
@@ -234,9 +235,37 @@ pub fn create_app<R: tauri::Runtime, T: Send + Sync + 'static>(
                 .allow_directory("/path/to/directory", false)
                 .expect("msg");
 
+            let handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                update(handle).await.unwrap();
+            });
             Ok(())
         })
         .invoke_handler(handle_command)
         .build(tauri::generate_context!())
         .expect("error while building Tauri application")
+}
+
+async fn update<R: tauri::Runtime>(app: tauri::AppHandle<R>) -> tauri_plugin_updater::Result<()> {
+    if let Some(update) = app.updater()?.check().await? {
+        let mut downloaded = 0;
+
+        // alternatively we could also call update.download() and update.install() separately
+        update
+            .download_and_install(
+                |chunk_length, content_length| {
+                    downloaded += chunk_length;
+                    tracing::info!("downloaded {downloaded} from {content_length:?}");
+                },
+                || {
+                    tracing::info!("download finished");
+                },
+            )
+            .await?;
+
+        tracing::info!("update installed");
+        app.restart();
+    }
+
+    Ok(())
 }

@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::db::orders::Order;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

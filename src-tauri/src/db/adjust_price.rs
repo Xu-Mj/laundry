@@ -72,7 +72,7 @@ impl OrderClothAdjust {
             .execute(&mut **tx)
             .await?;
 
-        Ok(result.rows_affected()>0)
+        Ok(result.rows_affected() > 0)
     }
 
     #[allow(dead_code)]

@@ -162,11 +162,15 @@ pub async fn create_membership_level(
 ) -> Result<MembershipLevel> {
     ml.validate()?;
     let mut tx = state.pool.begin().await?;
-    if !MembershipLevel::check_level_name_unique(&state.pool, ml.level_name.as_ref().unwrap()).await? {
+    if !MembershipLevel::check_level_name_unique(&state.pool, ml.level_name.as_ref().unwrap())
+        .await?
+    {
         return Err(Error::bad_request("会员等级名称已存在"));
     }
 
-    if !MembershipLevel::check_level_code_unique(&state.pool, ml.level_code.as_ref().unwrap()).await? {
+    if !MembershipLevel::check_level_code_unique(&state.pool, ml.level_code.as_ref().unwrap())
+        .await?
+    {
         return Err(Error::bad_request("会员等级编码已存在"));
     }
 

@@ -17,10 +17,12 @@
         <div class="cell">{{ item.clothInfo.clothingName ? item.clothInfo.clothingName : '-' }}</div>
         <div class="cell">{{ item.priceValue }} 元</div>
         <div class="cell">{{ item.processMarkup }} 元</div>
-        <div class="cell">{{ item.serviceRequirement }}</div> <!-- 洗护要求留空 -->
+        <div class="cell">
+          <dict-tag :options="sys_service_requirement" :value="item.serviceRequirement" />
+        </div> <!-- 洗护要求留空 -->
         <div class="cell">{{ calculateTotalPrice(item.priceValue, item.processMarkup) }} 元</div>
         <div class="cell action-cell">
-          <el-button type="danger" icon="Delete" @click="handleDelete(item.id)" />
+          <el-button type="danger" icon="Delete" @click="handleDelete(item.clothId)" />
         </div>
 
         <!-- 下半部分 -->
@@ -55,7 +57,8 @@ const props = defineProps({
   },
 });
 
-console.log(props);
+const { proxy } = getCurrentInstance();
+const {  sys_service_requirement } = proxy.useDict("sys_service_requirement");
 // 定义 Emits
 const emit = defineEmits(['delete']);
 

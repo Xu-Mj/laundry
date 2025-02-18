@@ -16,9 +16,10 @@
 <script setup>
 import useTagsViewStore from '@/store/modules/tagsView'
 import { getConfigKey } from '@/api/system/config';
+import useUserStore from '@/store/modules/user';
 
+const userStore = useUserStore();
 const tagsViewStore = useTagsViewStore()
-const router = useRouter();
 const showWarning = ref(false);
 const defaultTimeoutLength = 300; // 5 minutes
 const timeOut = ref(defaultTimeoutLength);
@@ -46,14 +47,13 @@ const resetTimeout = (timeoutLength = defaultTimeoutLength) => {
     countdownIntervalId = setInterval(() => {
       countdown.value -= 1;
       if (countdown.value <= 0) {
+        showWarning.value = false;
         clearInterval(countdownIntervalId);
+        userStore.logOut().then(() => {
+          location.href = '/index';
+        })
       }
     }, 1000);
-
-    redirectTimeoutId = setTimeout(() => {
-      router.push('/login');
-    }, countdownInit * 1000); // 30 seconds
-
   }, (timeoutLength - countdownInit) * 1000); // 4 minutes 30 seconds
 };
 

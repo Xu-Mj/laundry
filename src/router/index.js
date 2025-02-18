@@ -7,6 +7,7 @@ import CouponSale from '@/views/container/couponSaleContainer.vue'; // 引入组
 import HangUp from '@/views/home/hangUp.vue'; // 引入组件
 import User from '@/views/system/user/index.vue'; // 引入组件
 import Coupon from '@/views/system/coupon/index.vue'; // 引入组件
+import ImageTest from '@/views/container/imageTest.vue'
 /**
  * Note: 路由配置项
  *
@@ -38,6 +39,16 @@ export const constantRoutes = [
   {
     path: '/hang-up',
     component: HangUp
+  },
+  {
+    path: '/image-test',
+    component: Layout,
+    children: [
+      {
+        path: '',
+        component: ImageTest,
+      }
+    ]
   },
   {
     path: '/coupon',

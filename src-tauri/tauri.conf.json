@@ -31,6 +31,7 @@
     }
   },
   "bundle": {
+    "createUpdaterArtifacts": true,
     "windows": {
       "wix": {
         "language": [
@@ -53,5 +54,17 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDY1MENBMEIwOEUzM0Q1RApSV1JkUGVNSUM4cFFCcWNDSTFKZm9pMFdOc1k1WXZSLzBkUlJZL3lDY0xrRHk5K3h0R2w4THJuLwo=",
+      "endpoints": [
+        "https://releases.myapp.com/{{target}}/{{arch}}/{{current_version}}",
+        "https://github.com/user/repo/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
   }
 }

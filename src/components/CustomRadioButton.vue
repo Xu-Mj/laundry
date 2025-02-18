@@ -34,7 +34,6 @@ const isChecked = computed(() => groupValue.value == props.value);
 const handleChange = (event) => {
     if (!props.disabled) {
         updateValue(event.target.value);
-        console.log(groupValue.value === props.value)
     }
 };
 </script>

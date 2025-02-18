@@ -401,14 +401,13 @@ impl Order {
 
         // sort
         query_builder.push(" ORDER BY o.create_time DESC");
-        
+
         if let Some(param) = page_params {
             query_builder.push(" LIMIT ").push_bind(param.page_size);
             query_builder
                 .push(" OFFSET ")
                 .push_bind((param.page - 1) * param.page_size);
         }
-
 
         let orders = query_builder
             .build_query_as::<Order>()

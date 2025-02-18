@@ -225,7 +225,7 @@ const { queryParams, form, rules } = toRefs(data);
 /** 查询订单包含的衣物清单列表 */
 function getList() {
   loading.value = true;
-  listCloths(queryParams.value).then(response => {
+  listCloths({orderId:queryParams.value.orderClothId}).then(response => {
     clothsList.value = response.rows;
     total.value = response.total;
     loading.value = false;

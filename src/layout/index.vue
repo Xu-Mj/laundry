@@ -1,23 +1,21 @@
 <template>
-  <div :class="classObj" class="app-wrapper" :style="{ '--current-color': theme }">
-    <div v-if="device === 'mobile' && sidebar.opened" class="drawer-bg" @click="handleClickOutside"/>
-    <sidebar v-if="!sidebar.hide" class="sidebar-container" />
-    <div :class="{ hasTagsView: needTagsView, sidebarHide: sidebar.hide }" class="main-container">
-      <div :class="{ 'fixed-header': fixedHeader }">
-        <navbar @setLayout="setLayout" />
-        <tags-view v-if="needTagsView" />
-      </div>
-      <app-main />
-      <settings ref="settingRef" />
-    </div>
+  <!-- <div :class="classObj" class="app-wrapper" :style="{ '--current-color': theme }"> -->
+  <!-- <div v-if="device === 'mobile' && sidebar.opened" class="drawer-bg" @click="handleClickOutside"/> -->
+  <!-- <sidebar v-if="!sidebar.hide" class="sidebar-container" /> -->
+  <SidebarNew class="sidebar-container" />
+  <div :class="{ hasTagsView: needTagsView, sidebarHide: sidebar.hide }" class="main-container">
+    <CloseBar />
+    <app-main />
+    <settings ref="settingRef" />
   </div>
+  <!-- </div> -->
 </template>
 
 <script setup>
 import { useWindowSize } from '@vueuse/core'
-import Sidebar from './components/Sidebar/index.vue'
-import { AppMain, Navbar, Settings, TagsView } from './components'
-import defaultSettings from '@/settings'
+import SidebarNew from './components/SidebarNew/index.vue'
+import { AppMain, Settings } from './components'
+import CloseBar from '@/components/close_bar'
 
 import useAppStore from '@/store/modules/app'
 import useSettingsStore from '@/store/modules/settings'
@@ -66,8 +64,8 @@ function setLayout() {
 </script>
 
 <style lang="scss" scoped>
-  @import "@/assets/styles/mixin.scss";
-  @import "@/assets/styles/variables.module.scss";
+@import "@/assets/styles/mixin.scss";
+@import "@/assets/styles/variables.module.scss";
 
 .app-wrapper {
   @include clearfix;

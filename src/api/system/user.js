@@ -1,71 +1,53 @@
 import request from '@/utils/request'
 import { parseStrEmpty } from "@/utils/ruoyi";
+import invoke from '@/utils/invoke'
 
 // 查询用户列表
 export function listUser(query) {
-  return request({
-    url: '/system/user/list',
-    method: 'get',
-    params: query
-  })
+  const pageParams = { pageSize: query.pageSize, page: query.pageNum, params: query.params };
+  const user = { userName: query.userName, phonenumber: query.phonenumber, levelId: query.levelId };
+  return invoke('get_users_pagination', { pageParams: pageParams, user: user })
 }
 
 // 查询用户列表
 export function listUserWithNoLimit() {
-  return request({
-    url: '/system/user/list-with-no-limit',
-    method: 'get',
-  })
+  return invoke('get_all_users', { user: {} })
 }
 
 // 查询用户详细
 export function getUser(userId) {
-  return request({
-    url: '/system/user/' + parseStrEmpty(userId),
-    method: 'get'
-  })
+  return invoke('get_user_by_id', {id: userId} )
+}
+
+export function updatePwd(data) {
+  return invoke('update_pwd', {req: data} )
 }
 
 // 查询用户详细
 export function getUserByClothCode(clothCode) {
-  return request({
-    url: '/system/user/by-cloth-code/' + clothCode,
-    method: 'get'
-  })
+  return invoke('get_user_by_cloth_code', {code: clothCode} )
+
 }
 
 // 查询用户详细
 export function getUserListByIds(userIds) {
-  return request({
-    url: '/system/user/listByIds/' + userIds,
-    method: 'get'
-  })
+  return invoke('get_user_by_ids', {ids: [].concat(userIds)} )
+
 }
 
 // 新增用户
 export function addUser(data) {
-  return request({
-    url: '/system/user',
-    method: 'post',
-    data: data
-  })
+  return invoke('create_user', {user: data} )
 }
 
 // 修改用户
 export function updateUser(data) {
-  return request({
-    url: '/system/user',
-    method: 'put',
-    data: data
-  })
+  return invoke('update_user', {user: data} )
 }
 
 // 删除用户
 export function delUser(userId) {
-  return request({
-    url: '/system/user/' + userId,
-    method: 'delete'
-  })
+  return invoke('delete_users', {ids: [].concat(userId)} )
 }
 
 // 用户密码重置
@@ -87,11 +69,7 @@ export function changeUserStatus(userId, status) {
     userId,
     status
   }
-  return request({
-    url: '/system/user/changeStatus',
-    method: 'put',
-    data: data
-  })
+  return invoke('change_user_status',{user: data})
 }
 
 // 查询用户个人信息

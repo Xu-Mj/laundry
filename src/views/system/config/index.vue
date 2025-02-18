@@ -10,14 +10,15 @@
                @keyup.enter="handleQuery" />
          </el-form-item>
          <el-form-item label="系统内置" prop="configType">
-            <el-select v-model="queryParams.configType" placeholder="系统内置" clearable>
+            <el-select v-model="queryParams.configType" placeholder="系统内置" @change="getList" clearable
+               style="width: 100px">
                <el-option v-for="dict in sys_yes_no" :key="dict.value" :label="dict.label" :value="dict.value" />
             </el-select>
-         </el-form-item>
+         </el-form-item><!-- 
          <el-form-item label="创建时间" style="width: 308px;">
             <el-date-picker v-model="dateRange" value-format="YYYY-MM-DD" type="daterange" range-separator="-"
                start-placeholder="开始日期" end-placeholder="结束日期"></el-date-picker>
-         </el-form-item>
+         </el-form-item> -->
          <el-form-item>
             <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
             <el-button icon="Refresh" @click="resetQuery">重置</el-button>
@@ -29,22 +30,22 @@
             <el-button type="primary" plain icon="Plus" @click="handleAdd"
                v-hasPermi="['system:config:add']">新增</el-button>
          </el-col>
-         <el-col :span="1.5">
+         <!-- <el-col :span="1.5">
             <el-button type="success" plain icon="Edit" :disabled="single" @click="handleUpdate"
                v-hasPermi="['system:config:edit']">修改</el-button>
-         </el-col>
+         </el-col> -->
          <el-col :span="1.5">
             <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleDelete"
                v-hasPermi="['system:config:remove']">删除</el-button>
-         </el-col>
+         </el-col><!-- 
          <el-col :span="1.5">
             <el-button type="warning" plain icon="Download" @click="handleExport"
                v-hasPermi="['system:config:export']">导出</el-button>
-         </el-col>
+         </el-col> --><!-- 
          <el-col :span="1.5">
             <el-button type="danger" plain icon="Refresh" @click="handleRefreshCache"
                v-hasPermi="['system:config:remove']">刷新缓存</el-button>
-         </el-col>
+         </el-col> -->
          <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
       </el-row>
 
@@ -62,7 +63,7 @@
          <el-table-column label="备注" align="center" prop="remark" :show-overflow-tooltip="true" />
          <el-table-column label="创建时间" align="center" prop="createTime" width="180">
             <template #default="scope">
-               <span>{{ parseTime(scope.row.createTime) }}</span>
+               <span>{{ formatTime(scope.row.createTime) }}</span>
             </template>
          </el-table-column>
          <el-table-column label="操作" align="center" width="150" class-name="small-padding fixed-width">
@@ -202,9 +203,9 @@ function handleAdd() {
 /** 修改按钮操作 */
 function handleUpdate(row) {
    reset();
-   const configId = row.configId || ids.value;
+   const configId = row.configId;
    getConfig(configId).then(response => {
-      form.value = response.data;
+      form.value = response;
       open.value = true;
       title.value = "修改参数";
    });
@@ -250,11 +251,11 @@ function handleExport() {
 }
 
 /** 刷新缓存按钮操作 */
-function handleRefreshCache() {
-   refreshCache().then(() => {
-      proxy.$modal.msgSuccess("刷新缓存成功");
-   });
-}
+// function handleRefreshCache() {
+//    refreshCache().then(() => {
+//       proxy.$modal.msgSuccess("刷新缓存成功");
+//    });
+// }
 
 getList();
 </script>

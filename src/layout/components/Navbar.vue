@@ -1,72 +1,157 @@
 <template>
   <div class="navbar">
-    <hamburger id="hamburger-container" :is-active="appStore.sidebar.opened" class="hamburger-container" @toggleClick="toggleSideBar" />
-    <breadcrumb id="breadcrumb-container" class="breadcrumb-container" v-if="!settingsStore.topNav" />
-    <top-nav id="topmenu-container" class="topmenu-container" v-if="settingsStore.topNav" />
-
-    <div class="right-menu">
-      <template v-if="appStore.device !== 'mobile'">
-        <header-search id="header-search" class="right-menu-item" />
-
-        <el-tooltip content="源码地址" effect="dark" placement="bottom">
-          <ruo-yi-git id="ruoyi-git" class="right-menu-item hover-effect" />
-        </el-tooltip>
-
-        <el-tooltip content="文档地址" effect="dark" placement="bottom">
-          <ruo-yi-doc id="ruoyi-doc" class="right-menu-item hover-effect" />
-        </el-tooltip>
-
-        <screenfull id="screenfull" class="right-menu-item hover-effect" />
-
-        <el-tooltip content="布局大小" effect="dark" placement="bottom">
-          <size-select id="size-select" class="right-menu-item hover-effect" />
-        </el-tooltip>
+    <el-dropdown @command="handleCommand" class="right-menu-item hover-effect" trigger="click">
+      <el-button class="right-menu-item" icon="Setting" type="text" />
+      <!-- <div class="avatar-wrapper"> -->
+      <!-- <img :src="userStore.avatar" class="user-avatar" />
+        </div> -->
+      <template #dropdown>
+        <el-dropdown-menu>
+          <el-dropdown-item @click="showSetting = true">选择打印机</el-dropdown-item>
+          <el-dropdown-item command="goAdmin">
+            <span>{{props.isAdmin? '后台管理': '返回'}}</span>
+          </el-dropdown-item>
+        </el-dropdown-menu>
       </template>
-      <div class="avatar-container">
-        <el-dropdown @command="handleCommand" class="right-menu-item hover-effect" trigger="click">
-          <div class="avatar-wrapper">
-            <img :src="userStore.avatar" class="user-avatar" />
-            <el-icon><caret-bottom /></el-icon>
-          </div>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <router-link to="/user/profile">
-                <el-dropdown-item>个人中心</el-dropdown-item>
-              </router-link>
-              <el-dropdown-item command="setLayout" v-if="settingsStore.showSettings">
-                <span>布局设置</span>
-              </el-dropdown-item>
-              <el-dropdown-item divided command="logout">
-                <span>退出登录</span>
-              </el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
-      </div>
+    </el-dropdown>
+    <div class="avatar-container">
+      <el-dropdown @command="handleCommand" class="right-menu-item hover-effect" trigger="click">
+        <div class="avatar-wrapper">
+          <img :src="userStore.avatar" class="user-avatar" />
+        </div>
+        <template #dropdown>
+          <el-dropdown-menu>
+            <!-- <router-link to="/user/profile"> -->
+            <el-dropdown-item @click="showChangePwd = true">修改密码</el-dropdown-item>
+            <!-- </router-link> -->
+            <el-dropdown-item command="setLayout" v-if="settingsStore.showSettings">
+              <span>布局设置</span>
+            </el-dropdown-item>
+            <el-dropdown-item divided command="logout">
+              <span>退出登录</span>
+            </el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
     </div>
+
+    <Setting :visible="showSetting" :key="showSetting" :taggle="() => { showSetting = !showSetting }" />
+
+    <el-dialog v-model="showChangePwd" title="修改密码" :show-close="false" width="300px">
+      <el-form ref="formRef" :model="form" :rules="rules" label-width="80px">
+        <el-form-item label="旧密码" prop="oldPassword">
+          <el-input v-model="form.oldPassword" type="password" />
+        </el-form-item>
+        <el-form-item label="新密码" prop="newPassword">
+          <el-input v-model="form.newPassword" type="password" />
+        </el-form-item>
+        <el-form-item label="确认密码" prop="confirmPassword">
+          <el-input v-model="form.confirmPassword" type="password" />
+        </el-form-item>
+      </el-form>
+      <template #footer center>
+        <el-button type="" @click="cancelChangePwd">取消</el-button>
+        <el-button type="primary" @click="submitPwd">提交</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ElMessageBox } from 'element-plus'
-import Breadcrumb from '@/components/Breadcrumb'
-import TopNav from '@/components/TopNav'
-import Hamburger from '@/components/Hamburger'
-import Screenfull from '@/components/Screenfull'
-import SizeSelect from '@/components/SizeSelect'
-import HeaderSearch from '@/components/HeaderSearch'
-import RuoYiGit from '@/components/RuoYi/Git'
-import RuoYiDoc from '@/components/RuoYi/Doc'
-import useAppStore from '@/store/modules/app'
 import useUserStore from '@/store/modules/user'
 import useSettingsStore from '@/store/modules/settings'
+import Setting from '@/views/setting/index.vue';
+import { updatePwd } from '@/api/system/user'
 
-const appStore = useAppStore()
+const props = defineProps({
+  switch: Function,
+  isAdmin: Boolean,
+})
+
+const { proxy } = getCurrentInstance();
+
 const userStore = useUserStore()
 const settingsStore = useSettingsStore()
+const showSetting = ref(false);
+const showChangePwd = ref(false);
+const form = ref({
+  oldPassword: '',
+  newPassword: '',
+  confirmPassword: ''
+});
+const formRef = ref();
 
-function toggleSideBar() {
-  appStore.toggleSideBar()
+function reset() {
+  form.value = {
+    oldPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  };
+  proxy.resetForm("formRef");
+}
+
+// 验证规则
+const validateOldPass = (rule, value, callback) => {
+  if (value === '') {
+    callback(new Error('请输入旧密码'));
+  } else if (value === form.value.newPassword) {
+    callback(new Error('新密码不能与旧密码相同'));
+  } else {
+    callback();
+  }
+};
+
+const validateNewPass = (rule, value, callback) => {
+  if (value === '') {
+    callback(new Error('请输入新密码'));
+  } else if (value.length < 6 || value.length > 20) {
+    callback(new Error('长度在 6 到 20 个字符'));
+  } else {
+    callback();
+  }
+};
+
+const validateConfirmPass = (rule, value, callback) => {
+  if (value === '') {
+    callback(new Error('请再次输入密码'));
+  } else if (value !== form.value.newPassword) {
+    callback(new Error('两次输入密码不一致!'));
+  } else {
+    callback();
+  }
+};
+
+const rules = reactive({
+  oldPassword: [
+    { validator: validateOldPass, trigger: 'blur' },
+  ],
+  newPassword: [
+    { validator: validateNewPass, trigger: 'blur' },
+  ],
+  confirmPassword: [
+    { validator: validateConfirmPass, trigger: 'blur' },
+  ]
+});
+
+function submitPwd() {
+  proxy.$refs["formRef"].validate(valid => {
+    if (valid) {
+      form.value.account = userStore.account;
+      updatePwd(form.value).then(() => {
+        // 修改成功，正在跳转登录页面
+        proxy.$modal.msgSuccess('密码修改成功，正在退出登录');
+        userStore.logOut().then(() => {
+          location.href = '/index';
+        })
+      }).catch(err => { })
+    }
+  })
+}
+
+function cancelChangePwd() {
+  reset();
+  showChangePwd.value = false;
 }
 
 function handleCommand(command) {
@@ -76,6 +161,9 @@ function handleCommand(command) {
       break;
     case "logout":
       logout();
+      break;
+    case "goAdmin":
+      props.switch();
       break;
     default:
       break;
@@ -98,15 +186,25 @@ const emits = defineEmits(['setLayout'])
 function setLayout() {
   emits('setLayout');
 }
+
 </script>
 
 <style lang='scss' scoped>
 .navbar {
-  height: 50px;
+  // height: 80px;
+  width: 100%;
   overflow: hidden;
-  position: relative;
+  position: absolute;
+  bottom: 0;
+  left: 0;
   background: #fff;
-  box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
+  // box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
+  padding-bottom: 1rem;
+  display: flex;
+  align-items: end;
+  justify-content: space-around;
+  // gap: 1rem;
+
 
   .hamburger-container {
     line-height: 46px;
@@ -133,6 +231,27 @@ function setLayout() {
   .errLog-container {
     display: inline-block;
     vertical-align: top;
+  }
+
+  .avatar-container {
+    .avatar-wrapper {
+      position: relative;
+
+      .user-avatar {
+        cursor: pointer;
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+      }
+
+      i {
+        cursor: pointer;
+        position: absolute;
+        right: -20px;
+        top: 25px;
+        font-size: 12px;
+      }
+    }
   }
 
   .right-menu {
@@ -163,29 +282,7 @@ function setLayout() {
       }
     }
 
-    .avatar-container {
-      margin-right: 40px;
 
-      .avatar-wrapper {
-        margin-top: 5px;
-        position: relative;
-
-        .user-avatar {
-          cursor: pointer;
-          width: 40px;
-          height: 40px;
-          border-radius: 10px;
-        }
-
-        i {
-          cursor: pointer;
-          position: absolute;
-          right: -20px;
-          top: 25px;
-          font-size: 12px;
-        }
-      }
-    }
   }
 }
 </style>

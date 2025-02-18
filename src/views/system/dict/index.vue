@@ -38,14 +38,14 @@
             <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleDelete"
                v-hasPermi="['system:dict:remove']">删除</el-button>
          </el-col>
-         <el-col :span="1.5">
+         <!-- <el-col :span="1.5">
             <el-button type="warning" plain icon="Download" @click="handleExport"
                v-hasPermi="['system:dict:export']">导出</el-button>
          </el-col>
          <el-col :span="1.5">
             <el-button type="danger" plain icon="Refresh" @click="handleRefreshCache"
                v-hasPermi="['system:dict:remove']">刷新缓存</el-button>
-         </el-col>
+         </el-col> -->
          <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
       </el-row>
 
@@ -68,7 +68,7 @@
          <el-table-column label="备注" align="center" prop="remark" :show-overflow-tooltip="true" />
          <el-table-column label="创建时间" align="center" prop="createTime" width="180">
             <template #default="scope">
-               <span>{{ parseTime(scope.row.createTime) }}</span>
+               <span>{{ formatTime(scope.row.createTime) }}</span>
             </template>
          </el-table-column>
          <el-table-column label="操作" align="center" width="160" class-name="small-padding fixed-width">
@@ -115,7 +115,7 @@
 
 <script setup name="Dict">
 import useDictStore from '@/store/modules/dict'
-import { listType, getType, delType, addType, updateType, refreshCache } from "@/api/system/dict/type";
+import { listType, getType, delType, addType, updateType } from "@/api/system/dict/type";
 
 const { proxy } = getCurrentInstance();
 const { sys_normal_disable } = proxy.useDict("sys_normal_disable");
@@ -207,7 +207,7 @@ function handleUpdate(row) {
    reset();
    const dictId = row.dictId || ids.value;
    getType(dictId).then(response => {
-      form.value = response.data;
+      form.value = response;
       open.value = true;
       title.value = "修改字典类型";
    });

@@ -44,7 +44,7 @@
             <!-- 会员等级 -->
             <div class="detail-item">
                 <span class="detail-label">会员等级:</span>
-                <span>{{ user.postName }}</span>
+                <span>{{ user.levelName }}</span>
             </div>
             <!-- 会员画像 -->
             <div class="detail-item">
@@ -74,7 +74,7 @@
             <!-- 创建时间 -->
             <div class="detail-item">
                 <span class="detail-label">创建时间:</span>
-                <span>{{ parseTime(user.createTime) }}</span>
+                <span>{{ formatTime(user.createTime) }}</span>
             </div>
             <!-- 卡券列表信息 -->
             <div class="detail-item">
@@ -168,7 +168,7 @@ const handleStatusChange = (row) => {
 // 获取会员优惠券列表
 if (props.user && props.user.userId) {
     listUserCouponNoPage({ userId: props.user.userId }).then(response => {
-        coupons.value = response.rows;
+        coupons.value = response;
     });
 }
 

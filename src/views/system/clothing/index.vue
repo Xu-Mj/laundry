@@ -11,7 +11,7 @@
         <el-input v-model="queryParams.clothingNumber" placeholder="请输入衣物编码" clearable @keyup.enter="handleQuery" />
       </el-form-item>
       <el-form-item label="衣物名称" prop="clothingName">
-        <el-input v-model="queryParams.clothingName" placeholder="请输入衣物名称，如：羽绒服、运动鞋、貂等" clearable
+        <el-input v-model="queryParams.clothingName" placeholder="请输入衣物名称" clearable
           @keyup.enter="handleQuery" />
       </el-form-item>
       <el-form-item>
@@ -186,12 +186,7 @@ const data = reactive({
     pageSize: 10,
     clothingCategory: null,
     clothingNumber: null,
-    clothingStyle: null,
     clothingName: null,
-    clothingBasePrice: null,
-    clothingMinPrice: null,
-    orderNum: null,
-    clothingDegree: null,
   },
   rules: {
     clothingCategory: [
@@ -246,14 +241,14 @@ function getStyle(row) {
 async function initDictList() {
   if (sys_cloth_cate.value.length === 0) {
     await getDicts("sys_cloth_cate").then(resp => {
-      sys_cloth_cate.value = resp.data.map(p => ({ label: p.dictLabel, value: p.dictValue, elTagType: p.listClass, elTagClass: p.cssClass }))
+      sys_cloth_cate.value = resp.map(p => ({ label: p.dictLabel, value: p.dictValue, elTagType: p.listClass, elTagClass: p.cssClass }))
       useDictStore().setDict("sys_cloth_cate", sys_cloth_cate.value);
     })
   }
   sys_cloth_cate.value.forEach(item => {
     getDicts("sys_cloth_style" + item.value).then(res => {
-      if (res.data && res.data.length > 0) {
-        dictList.value.push(...res.data);
+      if (res && res.length > 0) {
+        dictList.value.push(...res);
       }
     })
   })
@@ -261,15 +256,15 @@ async function initDictList() {
 
 // 当品类发生变化时动态查询子分类列表
 function cateChange(value) {
+  console.log(value);
   form.value.clothingStyle = null;
   clothStyleList.value = dictList.value.filter(p => p.dictType === 'sys_cloth_style' + value);
 }
 
 function updateRefNum() {
   proxy.$refs["tagNumRef"].validate(valid => {
-    console.log(valid)
     if (valid) {
-      updateClothingRefNum({ tagIds: ids.value, refNum: tagNumForm.value.refNumber }).then(res => {
+      updateClothingRefNum({ clothingIds: ids.value, refNum: tagNumForm.value.refNumber }).then(res => {
         proxy.$modal.msgSuccess("修改成功");
         showUpdateRefNum.value = false;
         tagNumForm.value.refNumber = null;
@@ -349,7 +344,7 @@ function handleUpdate(row) {
   reset();
   const _clothingId = row.clothingId || ids.value
   getClothing(_clothingId).then(response => {
-    form.value = response.data;
+    form.value = response;
     clothStyleList.value = dictList.value.filter(p => p.dictType === 'sys_cloth_style' + form.value.clothingCategory);
     open.value = true;
     title.value = "修改衣物管理";

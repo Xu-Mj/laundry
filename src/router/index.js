@@ -1,7 +1,13 @@
 import { createWebHistory, createRouter } from 'vue-router'
 /* Layout */
 import Layout from '@/layout'
-
+import OrderContent from '@/views/container/orderContentContainer.vue'; // 引入组件
+import CreateOrder from '@/views/container/createOrderContainer.vue'; // 引入组件
+import CouponSale from '@/views/container/couponSaleContainer.vue'; // 引入组件
+import HangUp from '@/views/home/hangUp.vue'; // 引入组件
+import User from '@/views/system/user/index.vue'; // 引入组件
+import Coupon from '@/views/system/coupon/index.vue'; // 引入组件
+import ImageTest from '@/views/container/imageTest.vue'
 /**
  * Note: 路由配置项
  *
@@ -26,6 +32,98 @@ import Layout from '@/layout'
 
 // 公共路由
 export const constantRoutes = [
+  {
+    path: '/',
+    redirect: '/index' // 默认重定向到首页
+  },
+  {
+    path: '/hang-up',
+    component: HangUp
+  },
+  {
+    path: '/image-test',
+    component: Layout,
+    children: [
+      {
+        path: '',
+        component: ImageTest,
+      }
+    ]
+  },
+  {
+    path: '/coupon',
+    component: Layout,
+    children: [
+      {
+        path: '',
+        component: Coupon,
+      }
+    ]
+  },
+  {
+    path: '/users',
+    component: Layout,
+    children: [
+      {
+        path: '',
+        component: User,
+      }
+    ]
+  },
+  {
+    path: '/coupon-sale',
+    component: Layout,
+    children: [
+      {
+        path: '',
+        component: CouponSale,
+      }
+    ]
+  },
+  {
+    path: '/create-order',
+    component: Layout,
+    children: [
+      {
+        path: '',
+        component: CreateOrder,
+      }
+    ]
+  },
+  {
+    path: '/pick-up',
+    component: Layout,
+    children: [
+      {
+        path: '',
+        component: OrderContent,
+      }
+    ]
+  },
+  {
+    path: '/expenditures',
+    component: Layout,
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/system/expenditure/index.vue'),
+        // name: 'Expenditures',
+        // meta: { title: '支出', }
+      }
+    ]
+  },
+  {
+    path: '/order-list',
+    component: Layout,
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/system/orders/index.vue'),
+        // name: 'Orders',
+        // meta: { title: '订单列表', }
+      }
+    ]
+  },
   {
     path: '/redirect',
     component: Layout,

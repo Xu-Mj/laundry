@@ -10,9 +10,14 @@ const useAppStore = defineStore(
         hide: false
       },
       device: 'desktop',
-      size: Cookies.get('size') || 'default'
+      size: Cookies.get('size') || 'default',
+      sidebarWidth: 100
     }),
     actions: {
+      setSidebarWidth(isAdmin) {
+        this.sidebarWidth = isAdmin ? 200 : 100;
+        document.documentElement.style.setProperty('--sidebar-width', `${this.sidebarWidth}px`)
+      },
       toggleSideBar(withoutAnimation) {
         if (this.sidebar.hide) {
           return false;

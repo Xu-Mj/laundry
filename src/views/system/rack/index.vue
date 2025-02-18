@@ -6,10 +6,6 @@
         <el-button type="primary" plain icon="Plus" @click="handleAdd" v-hasPermi="['system:rack:add']">新增</el-button>
       </el-col>
       <el-col :span="1.5">
-        <el-button type="success" plain icon="Edit" :disabled="single" @click="handleUpdate"
-          v-hasPermi="['system:rack:edit']">修改</el-button>
-      </el-col>
-      <el-col :span="1.5">
         <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleDelete"
           v-hasPermi="['system:rack:remove']">删除</el-button>
       </el-col>
@@ -100,8 +96,7 @@ const { form, rules } = toRefs(data);
 function getList() {
   loading.value = true;
   listRack({ pageSize: 100 }).then(response => {
-    rackList.value = response.rows;
-    total.value = response.total;
+    rackList.value = response;
     loading.value = false;
   });
 }
@@ -144,7 +139,7 @@ function handleUpdate(row) {
   reset();
   const _id = row.id || ids.value
   getRack(_id).then(response => {
-    form.value = response.data;
+    form.value = response;
     open.value = true;
     title.value = "修改晾衣架";
   });

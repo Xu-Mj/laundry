@@ -102,3 +102,7 @@
 .el-table .el-table__body td .cell .line-limit-length:empty::after {
   content: '-';
 }
+
+.el-table {
+  border-radius: .5rem;
+}

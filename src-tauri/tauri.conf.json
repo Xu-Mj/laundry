@@ -1,0 +1,70 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "productName": "laundry",
+  "version": "0.1.0",
+  "identifier": "com.tauri-local.dev",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:8090",
+    "beforeDevCommand": "yarn dev",
+    "beforeBuildCommand": "yarn build:prod"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "laundry",
+        "width": 2160,
+        "height": 1080,
+        "resizable": true,
+        "fullscreen": false,
+        "decorations": false
+      }
+    ],
+    "security": {
+      "assetProtocol": {
+        "enable": true,
+        "scope": [
+          "*/**"
+        ]
+      },
+      "csp": "default-src 'self' ipc: http://ipc.localhost; img-src 'self' asset: http://asset.localhost"
+    }
+  },
+  "bundle": {
+    "createUpdaterArtifacts": true,
+    "windows": {
+      "wix": {
+        "language": [
+          "en-US"
+        ]
+      }
+    },
+    "resources": [
+      "config.yml",
+      "database.db",
+      "MSYH.TTC",
+      "images/"
+    ],
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDY1MENBMEIwOEUzM0Q1RApSV1JkUGVNSUM4cFFCcWNDSTFKZm9pMFdOc1k1WXZSLzBkUlJZL3lDY0xrRHk5K3h0R2w4THJuLwo=",
+      "endpoints": [
+        "https://releases.myapp.com/{{target}}/{{arch}}/{{current_version}}",
+        "https://github.com/user/repo/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
+  }
+}

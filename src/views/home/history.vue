@@ -11,7 +11,11 @@
                     {{ scope.row.hangClothCode }}
                 </template>
             </el-table-column>
-            <el-table-column label="服务日期" align="center" prop="createTime" />
+            <el-table-column label="服务日期" align="center" prop="createTime" >
+                <template #default="scope">
+                    {{ formatTime(scope.row.createTime) }}
+                </template>
+            </el-table-column>
             <el-table-column label="衣物颜色" align="center" prop="clothingColor">
                 <template #default="scope">
                     <el-tag v-if="scope.row.clothingColor" type="success">

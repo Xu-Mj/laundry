@@ -28,11 +28,14 @@ const sizeOptions = ref([
   { label: "默认", value: "default" },
   { label: "稍小", value: "small" },
 ]);
-
+watch(size, (newSize) => {
+  document.documentElement.classList.remove('size-large', 'size-default', 'size-small');
+  document.documentElement.classList.add(`size-${newSize}`);
+});
 function handleSetSize(size) {
-  proxy.$modal.loading("正在设置布局大小，请稍候...");
+  // proxy.$modal.loading("正在设置布局大小，请稍候...");
   appStore.setSize(size);
-  setTimeout("window.location.reload()", 1000);
+  // setTimeout("window.location.reload()", 1000);
 }
 </script>
 
@@ -41,5 +44,24 @@ function handleSetSize(size) {
   font-size: 18px;
   line-height: 50px;
   padding-right: 7px;
+}
+</style>
+<style>
+/* 默认尺寸 */
+.size-default {
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+/* 稍小尺寸 */
+.size-small {
+  font-size: 0.7rem;
+  line-height: 1.4;
+}
+
+/* 较大尺寸 */
+.size-large {
+  font-size: 2rem;
+  line-height: 1.6;
 }
 </style>

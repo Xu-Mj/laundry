@@ -1,12 +1,14 @@
 import request from '@/utils/request'
+import invoke from '@/utils/invoke'
 
 // 查询通知记录管理列表
 export function listRecord(query) {
-  return request({
-    url: '/system/notice-record/list',
-    method: 'get',
-    params: query
-  })
+  const pageParams = { pageSize: query.pageSize, page: query.pageNum, params: query.params }
+  const record = {
+    phonenumber: query.phonenumber,
+    orderNumber: query.orderNumber
+  };
+  return invoke('get_notice_record_pagination', { pageParams, record })
 }
 
 // 查询通知记录管理详细
@@ -45,17 +47,12 @@ export function delRecord(noticeId) {
 
 // 删除所有通知记录管理
 export function delAllRecord() {
-  return request({
-    url: '/system/notice-record/',
-    method: 'delete'
-  })
+  return invoke('delete_all_record')
 }
 
 // 删除30天通知记录管理
-export function delRecordsByDay(day) {
-  return request({
-    url: '/system/notice-record/day/' + day,
-    method: 'delete'
-  })
+export function delRecordsByDay(days) {
+  return invoke('delete_old_record', {days})
+
 }
 

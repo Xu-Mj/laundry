@@ -1,11 +1,29 @@
 <template>
     <!-- 付款弹窗 -->
-    <el-dialog title="付款" v-model="showPaymentDialog" width="600px" append-to-body lock-scroll modal
-        :close-on-click-modal="false" @closed="close">
-        <el-form ref="paymentRef" :model="paymentForm" :rules="paymentRules" label-width="80px">
-            <el-form-item label="订单编号">
+    <el-dialog v-model="showPaymentDialog" width="600px" append-to-body lock-scroll modal :close-on-click-modal="false"
+        :show-close="false" @closed="close">
+        <template #header>
+            <span style="color: cornflowerblue; padding: 0 1rem;">
+                订单 -
                 {{ paymentForm.payNumber }}
-            </el-form-item>
+            </span>
+            <el-button type="primary" size="small" style="margin-left: 1rem;"
+                @click="showCouponSale = true">购买卡券</el-button>
+        </template>
+
+        <!-- 会员信息 -->
+        <el-row class="member-info" style="padding: 0 1rem; margin-bottom: 2rem;">
+            <el-col :span="12">
+                <span>会员信息：</span>
+                <span>{{ user.nickName + '-' + user.phonenumber }}</span>
+            </el-col>
+            <el-col :span="12">
+                <span>会员积分：</span>
+                <span>{{ user.integral }}</span>
+            </el-col>
+        </el-row>
+
+        <el-form ref="paymentRef" :model="paymentForm" :rules="paymentRules" label-width="80px">
             <el-form-item label="支付方式">
                 <template v-if="props.order.source === '01'">
                     美团结转
@@ -77,26 +95,28 @@
                     </el-radio-group>
                 </el-form-item>
             </template>
-            <el-row>
-                <el-col :span="8">
-                    <el-form-item label="订单金额">
-                        <span class="payment-amount">
-                            {{ paymentForm.totalAmount }}
-                        </span>
-                    </el-form-item>
-                </el-col>
-                <el-col :span="8">
-                    <el-form-item label="优惠金额">
-                        {{ paymentForm.bonusAmount }}
-                    </el-form-item>
-                </el-col>
-                <el-col :span="8">
-                    <el-form-item label-width="auto" label="优惠后金额">
-                        <span class="payment-amount">
-                            {{ paymentForm.paymentAmount }}
-                        </span>
-                    </el-form-item>
-                </el-col>
+            <el-row class="price-area">
+                <div>
+                    <span class="payment-label">
+                        订单金额:
+                    </span>
+                    <span class="payment-amount">
+                        {{ paymentForm.totalAmount }}
+                    </span>
+                    元
+                </div>
+                <el-form-item label="优惠金额:">
+                    {{ paymentForm.bonusAmount ? paymentForm.bonusAmount + '元' : '' }}
+                </el-form-item>
+                <div>
+                    <span class="payment-label">
+                        优惠后金额:
+                    </span>
+                    <span class="payment-amount" style="font-size: xx-large; color: red;">
+                        {{ paymentForm.paymentAmount }}
+                    </span>
+                    元
+                </div>
             </el-row>
             <el-row>
                 <el-form-item label="补差价" v-if="paymentForm.priceDiff > 0">
@@ -111,13 +131,22 @@
             </div>
         </template>
     </el-dialog>
+    <el-dialog v-model="showCouponSale" width="600px" append-to-body lock-scroll modal :close-on-click-modal="false"
+        :show-close="false">
+        <CouponSale :userId="props.order.userId" :key="showCouponSale"
+            :taggle="() => { showCouponSale = !showCouponSale }" :visible="showCouponSale" :submit="submitCouponSale" />
+    </el-dialog>
+
 </template>
 
 <script setup name="Pay">
 import { pay } from "@/api/system/orders";
+import CouponSale from './couponSale.vue';
 import { listUserCouponWithValidTime } from '@/api/system/user_coupon';
+import { getUser } from '@/api/system/user';
 import { isCurrentTimeWithinRange } from "@/utils";
 import { onMounted } from "vue";
+import { getPrice } from "@/api/system/price";
 
 const props = defineProps({
     visible: {
@@ -154,6 +183,8 @@ const userCouponList = ref([]);
 const couponTypeList = ref(new Set());
 const totalPrice = ref(0);
 const couponStorageCardId = ref([]);
+const user = ref({});
+const showCouponSale = ref(false);
 
 // 支付方式：01 支付宝，02 微信支付，03 美团结转，04 抖音结转，05 现金支付，06 储值卡支付，07 次卡支付 ，09 其他
 // 组合支付：16 支付宝+储值卡，26 微信支付+储值卡， 27 微信支付+次卡，17 支付宝+次卡，18 支付宝+优惠券， 28 微信支付+优惠券
@@ -163,8 +194,23 @@ function close() {
     props.toggle();
 }
 
+
+/* 卡券购买完成后的回调，重新获取卡券列表 */
+function submitCouponSale() {
+    listUserCouponWithValidTime(form.value.userId).then(response => {
+        userCouponList.value = response;
+        userCouponList.value.filter(item => item.coupon.couponType == '002').map(item => {
+            item.selected = false;
+            item.count = 1;
+        });
+        couponTypeList.value = new Set(userCouponList.value.map(coupon => coupon.coupon.couponType));
+        checkCoupon();
+    });
+    showCouponSale.value = false;
+}
+
 /* 初始化支付表单数据 */
-function initPaymentForm() {
+async function initPaymentForm() {
     paymentForm.value = {
         orders: [props.order],
         ucOrderId: props.order.orderId,
@@ -182,10 +228,11 @@ function initPaymentForm() {
         paymentForm.value.paymentMethod = '04';
         showCoupons.value = false;
     }
+    console.log(props)
 
     let price;
     if (props.order.priceId) {
-        const item = priceList.value.find(item => item.priceId === props.order.priceId);
+        const item = await getPrice(props.order.priceId);
         price = item ? item.priceValue : 0;
     } else {
         price = props.order.cloths.reduce((acc, cur) => {
@@ -494,9 +541,9 @@ function changeCouponCount() {
 
 onMounted(async () => {
     if (props.visible) {
-        initPaymentForm();
-        await listUserCouponWithValidTime({ userId: props.order.userId }).then(response => {
-            userCouponList.value = response.rows;
+        await initPaymentForm();
+        await listUserCouponWithValidTime(props.order.userId).then(response => {
+            userCouponList.value = response;
             userCouponList.value.filter(item => item.coupon.couponType == '002').map(item => {
                 item.selected = false;
                 item.count = 1;
@@ -505,6 +552,10 @@ onMounted(async () => {
             console.log(props.order)
             checkCoupon();
             showPaymentDialog.value = true;
+        });
+        // get user information
+        await getUser(props.order.userId).then(response => {
+            user.value = response;
         });
     }
 });
@@ -523,9 +574,21 @@ onMounted(async () => {
     }
 }
 
-.payment-amount {
+.price-area {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    align-items: flex-end;
+}
+
+.payment-label {
+    font-weight: bold;
+}
+
+/* .payment-amount {
     color: red;
     font-size: large;
     font-weight: bold;
-}
+} */
 </style>

@@ -23,3 +23,9 @@ package-lock.json
 yarn.lock
 .yarnrc
 .yarn
+
+src-tauri/target/
+src-tauri/gen/schemas
+src-tauri/Cargo.lock
+src-tauri/databse.db-shm
+src-tauri/databse.db-wal

@@ -1,7 +1,7 @@
 <template>
     <!-- show sell coupon -->
-    <el-dialog title="" v-model="open" width="1080px" append-to-body lock-scroll modal
-        :close-on-click-modal="false" @closed="handleClose">
+    <el-dialog title="" v-model="open" width="1080px" append-to-body lock-scroll modal :close-on-click-modal="false"
+        @closed="handleClose">
         <el-form ref="sellFormRef" :model="sellForm" :rules="rules" label-width="90px">
             <el-form-item v-if="props.userId && props.userId != 0" label="会员身份" prop="userId">
                 {{ user.nickName }} - {{ user.phonenumber }}
@@ -179,15 +179,15 @@ function getList() {
         searchUserloading.value = true;
         listUserWithNoLimit().then(res => {
             searchUserloading.value = false;
-            userList.value = res.rows;
+            userList.value = res;
         });
     } else {
         getUser(props.userId).then(response => {
-            user.value = response.data;
+            user.value = response;
         });
     }
     listCoupon4sale().then(response => {
-        couponList.value = response.rows;
+        couponList.value = response;
         couponList.value.forEach(item => item.count = 1);
         loading.value = false;
     });

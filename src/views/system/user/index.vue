@@ -10,10 +10,10 @@
             <el-input v-model="queryParams.phonenumber" placeholder="请输入手机号码" clearable style="width: 240px"
                @keyup.enter="handleQuery" @input="handleTelQuery" />
          </el-form-item>
-         <el-form-item label="会员等级" prop="postName">
-            <el-select v-model="queryParams.postName" placeholder="会员等级" clearable style="width: 240px">
-               <el-option v-for="item in postOptions" :key="item.postId" :label="item.postName" :value="item.postName"
-                  :disabled="item.status == 1"></el-option>
+         <el-form-item label="会员等级" prop="levelName">
+            <el-select v-model="queryParams.levelName" placeholder="会员等级" clearable style="width: 240px">
+               <el-option v-for="item in levelOptions" :key="item.levelId" :label="item.levelName"
+                  :value="item.levelName" :disabled="item.status == 1"></el-option>
             </el-select>
          </el-form-item>
          <el-form-item>
@@ -84,7 +84,7 @@
                </el-tooltip>
             </template>
          </el-table-column>
-         <el-table-column label="会员等级" align="center" key="postName" prop="postName" v-if="columns[7].visible" />
+         <el-table-column label="会员等级" align="center" key="levelName" prop="levelName" v-if="columns[7].visible" />
          <el-table-column label="会员画像" align="center" key="userTags" prop="userTags" v-if="columns[12].visible">
             <template #default="scope">
                <!-- 如果 userTags 不为空，则显示 dict-tag，并设置 el-tooltip -->
@@ -135,10 +135,10 @@
                   <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)"
                      v-hasPermi="['system:user:remove']"></el-button>
                </el-tooltip>
-               <el-tooltip content="兑换" placement="top">
+               <!-- <el-tooltip content="兑换" placement="top">
                   <el-button link type="primary" icon="Shop" @click=""
                      v-hasPermi="['system:user:resetPwd']"></el-button>
-               </el-tooltip>
+               </el-tooltip> -->
                <el-tooltip content="重置密码" placement="top">
                   <el-button link type="primary" icon="Key" @click="handleResetPwd(scope.row)"
                      v-hasPermi="['system:user:resetPwd']"></el-button>
@@ -273,6 +273,7 @@
 import { changeUserStatus, listUser, resetUserPwd, delUser, getUser, updateUser, addUser } from "@/api/system/user";
 import { listRecord } from "@/api/system/record";
 import UserDetailsCard from './info.vue';
+import { listPostAll } from '@/api/system/post';
 
 const { proxy } = getCurrentInstance();
 const {
@@ -297,9 +298,7 @@ const single = ref(true);
 const multiple = ref(true);
 const total = ref(0);
 const title = ref("");
-const deptName = ref("");
-const initPassword = ref(undefined);
-const postOptions = ref([]);
+const levelOptions = ref([]);
 const roleOptions = ref([]);
 
 // 列显隐信息
@@ -329,7 +328,7 @@ const data = reactive({
       pageSize: 10,
       userName: undefined,
       phonenumber: undefined,
-      postName: undefined,
+      levelName: undefined,
       deptId: undefined
    },
    rules: {
@@ -343,10 +342,21 @@ const data = reactive({
 
 const { queryParams, form, rules } = toRefs(data);
 
-/** 根据名称筛选组织树 */
-watch(deptName, val => {
-   proxy.$refs["deptTreeRef"].filter(val);
-});
+// Save column visibility to local storage
+const saveColumnVisibility = () => {
+   localStorage.setItem('userColumns', JSON.stringify(columns.value));
+};
+
+// Retrieve column visibility from local storage
+const loadColumnVisibility = () => {
+   const savedColumns = localStorage.getItem('userColumns');
+   if (savedColumns) {
+      columns.value = JSON.parse(savedColumns);
+   }
+};
+
+// Watch for changes in column visibility and save to local storage
+watch(columns, saveColumnVisibility, { deep: true });
 
 /** 查询会员列表 */
 function getList() {
@@ -381,6 +391,18 @@ function resetQuery() {
 
 /** 删除按钮操作 */
 function handleDelete(row) {
+   if (row && row.balance > 0) {
+      proxy.$modal.msgWarning("会员余额大于0，无法删除！");
+      return;
+   } else if (!row && ids.value.length > 0) {
+      // query user list by ids
+      if (userList.value.filter(item => ids.value.contains(item.userId)).filter(item => item.balance > 0).length > 0) {
+         proxy.$modal.msgWarning("存在会员余额大于0的用户，无法删除！");
+         return;
+      }
+   }
+
+
    const userIds = row.userId || ids.value;
    proxy.$modal.confirm('是否确认删除会员编号为"' + userIds + '"的数据项？').then(function () {
       return delUser(userIds);
@@ -435,6 +457,7 @@ function reset() {
       userId: undefined,
       deptId: undefined,
       userName: undefined,
+      userType: "01",
       nickName: undefined,
       password: undefined,
       phonenumber: undefined,
@@ -456,21 +479,15 @@ function cancel() {
 
 /* 获取会员等级下拉列表 */
 function getPostList() {
-   getUser().then(response => {
-      postOptions.value = response.posts;
+   listPostAll().then(response => {
+      levelOptions.value = response;
    });
 };
 
 /** 新增按钮操作 */
 function handleAdd() {
    reset();
-   getUser().then(response => {
-      postOptions.value = response.posts;
-      roleOptions.value = response.roles;
-      open.value = true;
-      title.value = "添加会员";
-      form.value.password = initPassword.value;
-   });
+   open.value = true;
 };
 
 /** 修改按钮操作 */
@@ -478,8 +495,8 @@ function handleUpdate(row) {
    reset();
    const userId = row.userId || ids.value;
    getUser(userId).then(response => {
-      form.value = response.data;
-      postOptions.value = response.posts;
+      form.value = response;
+      levelOptions.value = response.posts;
       roleOptions.value = response.roles;
       form.value.postIds = response.postIds;
       form.value.roleIds = response.roleIds;
@@ -517,6 +534,8 @@ function submitForm() {
             if (form.value.userTagsArr && form.value.userTagsArr.length > 0) {
                form.value.userTags = form.value.userTagsArr.join(",");
                delete form.value.userTagsArr;
+            } else {
+               form.value.userTags = "";
             }
 
             updateUser(form.value).then(response => {
@@ -545,6 +564,7 @@ function submitForm() {
    });
 };
 
+loadColumnVisibility();
 getPostList();
 getList();
 </script>

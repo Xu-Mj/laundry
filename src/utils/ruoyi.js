@@ -1,4 +1,53 @@
 
+export function formatTime(time, pattern) {
+  if (arguments.length === 0 || !time) {
+    return null
+  }
+  const format = pattern || '{y}-{m}-{d} {h}:{i}:{s}'
+
+  let date
+  if (typeof time === 'object') {
+    date = time
+  } else {
+    if ((typeof time === 'string') && (/^[0-9]+$/.test(time))) {
+      time = parseInt(time)
+    } else if (typeof time === 'string') {
+      // 处理 ISO 8601 格式的时间字符串，去掉毫秒部分
+      time = time.replace(new RegExp(/\.[\d]+/gm), '') // 去掉毫秒部分
+        .replace('T', ' ')  // 替换T为一个空格
+    }
+
+    // 如果是数字，且长度为 10，则乘以 1000 转换为毫秒
+    if ((typeof time === 'number') && (time.toString().length === 10)) {
+      time = time * 1000
+    }
+
+    // 创建日期对象，处理时区信息
+    date = new Date(time)
+  }
+
+  const formatObj = {
+    y: date.getFullYear(),
+    m: date.getMonth() + 1,
+    d: date.getDate(),
+    h: date.getHours(),
+    i: date.getMinutes(),
+    s: date.getSeconds(),
+    a: date.getDay()
+  }
+
+  const time_str = format.replace(/{(y|m|d|h|i|s|a)+}/g, (result, key) => {
+    let value = formatObj[key]
+    // Note: getDay() returns 0 on Sunday
+    if (key === 'a') { return ['日', '一', '二', '三', '四', '五', '六'][value] }
+    if (result.length > 0 && value < 10) {
+      value = '0' + value
+    }
+    return value || 0
+  })
+
+  return time_str
+}
 
 /**
  * 通用js方法封装处理

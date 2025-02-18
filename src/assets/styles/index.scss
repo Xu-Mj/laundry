@@ -26,7 +26,22 @@ html {
 
 #app {
   height: 100%;
+  position: relative;
+  background-color: rgba(255, 255, 255, 0.9);
+  // background-image: url("@/assets/images/login-background.jpg");
+  background-size: cover;
+
 }
+
+// #app::before {
+//   content: "";
+//   position: absolute;
+//   top: 0;
+//   right: 0;
+//   bottom: 0;
+//   left: 0;
+//   backdrop-filter: blur(40px);
+// }
 
 *,
 *:before,
@@ -122,9 +137,9 @@ aside {
 }
 
 //main-container全局样式
-.app-container {
-  padding: 20px;
-}
+// .app-container {
+//   padding: 20px;
+// }
 
 .components-container {
   margin: 30px 50px;
@@ -133,6 +148,13 @@ aside {
 
 .pagination-container {
   margin-top: 30px;
+  background-color: transparent !important;
+
+  .el-pagination{
+    background-color: #fff;
+    border-radius: .4rem;
+    padding:.2rem 1rem;
+  }
 }
 
 .text-center {

@@ -1,5 +1,6 @@
 <template>
-    <div class="app-container">
+    <div class="overlay" v-if="!props.userId">请先选择会员</div>
+    <div class="app-container" v-else>
         <!-- 添加或修改订单包含的衣物清单对话框 -->
         <el-steps :active="step" finish-status="success" simple>
             <el-step class="step-item" title="选择品类" :icon="CopyDocument" v-if="step !== maxStepNum"
@@ -30,7 +31,8 @@
 
         </el-steps>
         <el-form ref="clothsRef" :model="form" :rules="rules" class="form-container">
-            <div class="wrapper" v-show="step == 0">
+
+            <div class="wrapper" v-if="step == 0" key="step0">
                 <el-col :span="3">
                     <el-scrollbar class="scrollbar-wrapper">
                         <CustomRadioButtonGroup class="radio-group-column" v-model="form.clothingCategory"
@@ -50,7 +52,7 @@
                         </div>
                     </el-form-item>
                     <el-scrollbar>
-                        <CustomRadioButtonGroup class="items-break" v-model="form.clothingStyle">
+                        <CustomRadioButtonGroup class="items-break" v-model="form.clothingStyle" @change="nextStep">
                             <CustomRadioButton v-for="dict in clothStyleList" :key="dict.dictValue"
                                 :value="dict.dictValue">
                                 {{ dict.dictLabel }}
@@ -63,7 +65,7 @@
                         @click="nextStep">下一步</el-button>
                 </el-row>
             </div>
-            <div v-show="step == 1">
+            <div style="height: 100%;" v-if="step == 1" key="step1">
                 <el-row>
                     <el-col :span="24">
                         <el-form-item label="衣物名称">
@@ -102,7 +104,6 @@
                 </div>
                 <!-- 展示衣物标签 -->
                 <el-row class="item-list-area">
-
                     <el-scrollbar>
                         <CustomRadioButtonGroup class="color-radio-group" v-model="form.clothingId"
                             @change="step2ClothChange">
@@ -119,7 +120,7 @@
                     <el-button type="danger" @click="reset">重新录入</el-button>
                 </el-row>
             </div>
-            <div v-show="step == 2">
+            <div style="height: 100%;" v-if="step == 2" key="step2">
                 <el-row>
                     <el-col :span="24">
                         <el-form-item label="颜色名称">
@@ -153,7 +154,7 @@
                     <el-button type="primary" @click="jump2last">跳过后续步骤</el-button>
                 </el-row>
             </div>
-            <div v-show="step == 3">
+            <div style="height: 100%;" v-if="step == 3" key="step3">
                 <el-row>
                     <el-col :span="24">
                         <el-form-item label="瑕疵名称">
@@ -184,7 +185,7 @@
                     <el-button type="primary" @click="jump2last">跳过后续步骤</el-button>
                 </el-row>
             </div>
-            <div v-show="step == 4">
+            <div style="height: 100%;" v-if="step == 4" key="step4">
                 <el-row>
                     <el-col :span="24">
                         <el-form-item label="洗后预估">
@@ -215,7 +216,7 @@
                     <el-button type="primary" @click="jump2last">跳过后续步骤</el-button>
                 </el-row>
             </div>
-            <div v-show="step == 5">
+            <div style="height: 100%;" v-if="step == 5" key="step5">
                 <el-row>
                     <el-col :span="24">
                         <el-form-item label="品牌名称">
@@ -246,7 +247,7 @@
                     <el-button type="primary" @click="jump2last">跳过后续步骤</el-button>
                 </el-row>
             </div>
-            <div v-show="step == 6" class="step6">
+            <div style="height: 100%;" v-if="step == 6" class="step6" key="step6">
                 <el-row class="row-item">
                     <label>服务类型:</label>
                     <el-radio-group v-model="form.serviceType">
@@ -299,10 +300,7 @@
                     <el-button @click="reset">取消</el-button>
                     <el-button type="primary" @click="openCamera">拍照留档</el-button>
                     <el-button type="primary" @click="submitForm">
-                        {{
-                            form.clothId ?
-                                '确认修改' : '确认'
-                        }}
+                        {{ form.clothId ? '确认修改' : '确认' }}
                     </el-button>
                 </el-row>
             </div>
@@ -376,7 +374,7 @@ const props = defineProps({
     }
 });
 
-
+const selectedCloth = inject('selectedCloth');
 const { proxy } = getCurrentInstance();
 const { sys_cloth_cate,
     sys_service_type,
@@ -451,6 +449,24 @@ const video = ref(null);
 const canvas = ref(null);
 const capturedImages = ref([]);
 
+// 监听 selectedCloth 的变化
+watch(selectedCloth, (newVal) => {
+    if (newVal) {
+        Object.assign(form.value, newVal);
+        step.value = 0; // 直接跳到最后一步进行编辑
+    } else {
+        reset(); // 如果没有选中任何衣物，则重置表单
+    }
+});
+const transitionName = ref('slide-right');
+
+watch(step, (newStep, oldStep) => {
+    if (newStep > oldStep) {
+        transitionName.value = 'slide-left';
+    } else {
+        transitionName.value = 'slide-right';
+    }
+});
 // 打开摄像头
 const openCamera = async () => {
     showCameraModal.value = true;
@@ -566,6 +582,10 @@ const removeImage = async (index) => {
 };
 
 function jumpToStep(stepNum) {
+    if (stepNum == 0) {
+        step.value = stepNum;
+        return
+    }
     if (stepNum < 0 || stepNum > maxStepNum) {
         return;
     }
@@ -578,6 +598,10 @@ function jumpToStep(stepNum) {
 }
 
 async function handleAddCate() {
+    if (!cateName.value || cateName.value == "") {
+        proxy.$modal.msgError("请输入分类名称");
+        return;
+    }
     const t = "sys_cloth_style" + form.value.clothingCategory;
     // check if the cate is already exist
     const cate = await getTypeByType(t);
@@ -628,7 +652,6 @@ function findClothingName() {
 
 // 当品类发生变化时动态查询子分类列表
 function cateChange(value) {
-    console.log(value);
     getDicts("sys_cloth_style" + value).then(res => {
         clothStyleList.value = res;
     })
@@ -641,7 +664,7 @@ function reset() {
         orderId: null,
         clothingId: null,
         clothingCategory: "000",
-        clothingStyle: "000",
+        clothingStyle: "0",
         clothingColor: null,
         clothingFlaw: null,
         estimate: null,
@@ -720,7 +743,6 @@ async function initList() {
 /** 新增按钮操作 */
 function handleAdd() {
     reset();
-    // title.value = "添加衣物";
     cateChange(form.value.clothingCategory);
 }
 
@@ -1020,6 +1042,7 @@ function step2ClothChange() {
         const cloth = clothingList.value.find(item => item.clothingId == form.value.clothingId);
         form.value.priceValue = cloth.clothingBasePrice;
         form.value.hangType = cloth.hangType;
+        nextStep();
     }
 }
 
@@ -1048,12 +1071,16 @@ onMounted(async () => {
 
 .form-container {
     height: 100%;
+    /* width: 201%; */
     padding-bottom: 1rem;
+    /* display: flex; */
 }
 
 .wrapper {
     height: 100%;
+
     display: flex;
+    position: relative;
 }
 
 .scrollbar-wrapper {
@@ -1283,5 +1310,18 @@ onMounted(async () => {
     position: absolute;
     top: 0px;
     right: 0px;
+}
+
+.overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    /* background-color: rgba(0, 0, 0, 0.5); */
+    z-index: 999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 </style>

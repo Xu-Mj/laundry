@@ -12,7 +12,7 @@
 
     <!-- 表格内容 -->
     <div class="body">
-      <div v-for="item in tableData" :key="item.id" class="row" @click="handleRowClick(item)">
+      <div v-for="item in tableData" :key="item.id" class="row">
         <!-- 上半部分 -->
         <div class="cell">{{ item.clothInfo.clothingName ? item.clothInfo.clothingName : '-' }}</div>
         <div class="cell">{{ item.priceValue }} 元</div>
@@ -29,12 +29,12 @@
         <div class="cell remark-cell"
           :class="{ 'hidden': !item.remark && (!item.clothingFlawArr || item.clothingFlawArr.length == 0) && (!item.estimateArr || item.estimateArr.length == 0) }">
           <el-tag v-for="tagId in item.clothingFlawArr" :key="tagId" type="danger">
-            {{flawList.find(item => item.tagId == tagId).tagName}}
+            {{ flawList.find(item => item.tagId == tagId).tagName }}
           </el-tag>
           <span
             v-if="item.clothingFlawArr && item.clothingFlawArr.length > 0 && (item.estimateArr && item.estimateArr.length > 0 || item.remark)">||</span>
           <el-tag v-for="tagId in item.estimateArr" :key="tagId" type="primary">
-            {{estimateList.find(item => item.tagId == tagId).tagName}}
+            {{ estimateList.find(item => item.tagId == tagId).tagName }}
           </el-tag>
           <span v-if="item.estimateArr && item.estimateArr.length > 0 && item.remark">||</span>
           {{ item.remark }}
@@ -45,8 +45,9 @@
 </template>
 
 <script setup>
-import { onMounted, inject } from 'vue';
+import { onMounted } from 'vue';
 import { listTagsNoLimit } from "@/api/system/tags";
+
 
 // 定义 Props
 const props = defineProps({
@@ -56,11 +57,8 @@ const props = defineProps({
   },
 });
 
-const { proxy } = getCurrentInstance();
-const { sys_service_requirement } = proxy.useDict("sys_service_requirement");
-
-const setSelectedCloth = inject('setSelectedCloth');
-
+  const { proxy } = getCurrentInstance();
+  const {  sys_service_requirement } = proxy.useDict("sys_service_requirement");
 // 定义 Emits
 const emit = defineEmits(['delete']);
 
@@ -142,13 +140,7 @@ async function initList() {
 onMounted(async () => {
   await initList();
 });
-
-// 处理行点击事件
-const handleRowClick = (row) => {
-  setSelectedCloth(row);
-};
 </script>
-
 
 <style scoped>
 .custom-table {
@@ -197,13 +189,11 @@ const handleRowClick = (row) => {
   grid-template-columns: 1fr 1fr 1fr 1fr 1fr 80px;
   gap: 1px;
   background-color: #f5f7fa;
-  cursor: pointer;
-  /* 添加鼠标指针样式 */
+  cursor: pointer; /* 添加鼠标指针样式 */
 }
 
 .row:hover {
-  background-color: #e0e0e0;
-  /* 添加鼠标悬停时的背景颜色变化 */
+  background-color: #e0e0e0; /* 添加鼠标悬停时的背景颜色变化 */
 }
 
 .cell {

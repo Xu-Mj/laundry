@@ -1,11 +1,11 @@
 <template>
   <section class="app-main">
     <router-view v-slot="{ Component, route }">
-      <!-- <transition name="fade-transform" mode="out-in"> -->
-      <keep-alive :include="tagsViewStore.cachedViews">
-        <component :is="Component" :key="route.path" />
-      </keep-alive>
-      <!-- </transition> -->
+      <transition name="fade-transform" mode="out-in" enter-from-class="fade-transform-enter">
+        <keep-alive :include="tagsViewStore.cachedViews">
+          <component :is="Component" :key="route.path" />
+        </keep-alive>
+      </transition>
     </router-view>
   </section>
   <el-dialog v-model="showWarning" :show-close="false" width="300px" center="true">
@@ -20,6 +20,7 @@ import useUserStore from '@/store/modules/user';
 
 const userStore = useUserStore();
 const tagsViewStore = useTagsViewStore()
+console.log('tagsViewStore', tagsViewStore)
 const showWarning = ref(false);
 const defaultTimeoutLength = 300; // 5 minutes
 const timeOut = ref(defaultTimeoutLength);

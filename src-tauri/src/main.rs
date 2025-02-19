@@ -1,16 +1,13 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use sqlx::{migrate::MigrateDatabase, sqlite::SqlitePoolOptions, Sqlite};
+use app_lib::update::migrate;
+use sqlx::sqlite::SqlitePoolOptions;
 use tracing_subscriber::fmt::format::Writer;
 use tracing_subscriber::fmt::time::FormatTime;
 
 use app_lib::captcha::start_cleanup_thread;
-use app_lib::{
-    config::Config,
-    create_app,
-    db::{initialize_database, AppState},
-};
+use app_lib::{config::Config, create_app, db::AppState};
 
 const DEFAULT_CONFIG_PATH: &str = "./config.yml";
 struct LocalTimer;
@@ -47,24 +44,20 @@ async fn main() {
             .with_timer(LocalTimer)
             .init();
     }
+    // 执行数据迁移
+    migrate().await.expect("database migrate failed");
     // 获取应用数据目录
     let db_url = "sqlite://database.db";
-    if !Sqlite::database_exists(&db_url).await.unwrap_or(false) {
-        // 数据库不存在，创建数据库文件
-        println!("Creating database file...");
-        Sqlite::create_database(&db_url)
-            .await
-            .expect("Failed to create database file");
-    }
+
     let pool = SqlitePoolOptions::new()
         .connect(&db_url)
         .await
         .expect("Failed to connect to database");
 
-    // 初始化数据库
-    initialize_database(&pool)
-        .await
-        .expect("Failed to initialize database");
+    // // 初始化数据库
+    // initialize_database(&pool)
+    //     .await
+    //     .expect("Failed to initialize database");
     start_cleanup_thread();
 
     create_app(

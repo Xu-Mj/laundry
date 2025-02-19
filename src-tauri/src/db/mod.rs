@@ -34,7 +34,7 @@ use sqlx::sqlite::SqliteRow;
 use sqlx::{FromRow, Pool, QueryBuilder, Sqlite, Transaction};
 
 use crate::error::{Error, ErrorKind, Result};
-use crate::sql::DDL;
+// use crate::scripts::DDL;
 
 // SQLite 连接池
 #[derive(Debug)]
@@ -89,12 +89,12 @@ impl AppState {
 }
 
 // 初始化数据库并创建表
-pub async fn initialize_database(pool: &Pool<Sqlite>) -> Result<()> {
-    for sql in DDL {
-        sqlx::query(sql).execute(pool).await?;
-    }
-    Ok(())
-}
+// pub async fn initialize_database(pool: &Pool<Sqlite>) -> Result<()> {
+//     for sql in DDL {
+//         sqlx::query(sql).execute(pool).await?;
+//     }
+//     Ok(())
+// }
 
 fn default_page_size() -> i64 {
     10

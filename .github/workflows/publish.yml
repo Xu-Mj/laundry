@@ -45,13 +45,6 @@ jobs:
       - name: install frontend dependencies
         run: yarn install # change this to npm, pnpm or bun depending on which one you use.
 
-      - name: install sccache
-        run: |
-          curl -sSf https://raw.githubusercontent.com/mozilla/sccache/master/installer.sh | sh -s -- -b
-          rustup component add rust-src
-          echo "export RUSTC_WRAPPER=$(which sccache)" >> $GITHUB_ENV
-          echo "export SCCACHE_CACHE_SIZE=5G" >> $GITHUB_ENV
-
       - name: Cache sccache
         uses: actions/cache@v3
         with:

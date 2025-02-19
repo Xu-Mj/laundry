@@ -41,7 +41,7 @@
     },
     "resources": [
       "config.yml",
-      "database.db",
+      "scripts/",
       "MSYH.TTC",
       "images/"
     ],

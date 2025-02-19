@@ -7,8 +7,9 @@ pub mod files;
 pub mod home;
 pub mod printer;
 pub mod routers;
-pub mod sql;
+// pub mod scripts;
 pub mod tray;
+pub mod update;
 pub mod utils;
 
 use tauri::ipc::Invoke;

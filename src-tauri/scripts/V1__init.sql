@@ -1,3 +1,46 @@
+CREATE TABLE IF NOT EXISTS migrations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    version INTEGER NOT NULL,
+    applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS printers 
+(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    system_name TEXT NOT NULL,
+    driver_name TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS local_users
+(
+    id  INTEGER PRIMARY KEY AUTOINCREMENT,
+    username    TEXT    NOT NULL,
+    avatar      TEXT    NOT NULL,
+    account     TEXT    NOT NULL,
+    password    TEXT    NOT NULL,
+    role        TEXT    NOT NULL,
+    remark   TEXT,
+    is_first_login   INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS membership_level (
+    level_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, -- 会员等级ID
+    level_code TEXT NOT NULL,                            -- 等级编码
+    level_name TEXT NOT NULL,                            -- 等级名称
+    level_sort INTEGER NOT NULL,                         -- 显示顺序
+    status TEXT NOT NULL,                                -- 状态（0: 正常, 1: 停用）
+    create_time DATETIME DEFAULT NULL,                   -- 创建时间
+    update_time DATETIME DEFAULT NULL,                   -- 更新时间
+    remark TEXT DEFAULT NULL                             -- 备注
+);
+
+CREATE TABLE IF NOT EXISTS user_membership_level (
+    user_id INTEGER NOT NULL,      -- 用户ID
+    level_id INTEGER NOT NULL,     -- 会员等级ID
+    PRIMARY KEY (user_id, level_id) -- 复合主键: 用户ID和会员等级ID
+);
+
 CREATE TABLE IF NOT EXISTS menu
 (
     menu_id     INTEGER PRIMARY KEY AUTOINCREMENT, -- 菜单ID
@@ -90,18 +133,6 @@ CREATE TABLE IF NOT EXISTS users
     remark      TEXT          DEFAULT NULL
 );
 
-CREATE TABLE IF NOT EXISTS post
-(
-    post_id     INTEGER PRIMARY KEY AUTOINCREMENT,
-    post_code   TEXT    NOT NULL,
-    post_name   TEXT    NOT NULL,
-    post_sort   INTEGER NOT NULL,
-    status      TEXT    NOT NULL,
-    create_time DATETIME DEFAULT NULL,
-    update_time DATETIME DEFAULT NULL,
-    remark      TEXT     DEFAULT NULL
-);
-
 -- 会员画像表
 CREATE TABLE user_tags
 (
@@ -113,7 +144,7 @@ CREATE TABLE user_tags
 -- 积分使用记录表
 CREATE TABLE user_integral_record
 (
-    id          INTEGER AUTOINCREMENT PRIMARY KEY,
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id     INTEGER NOT NULL,
     coupon_id   INTEGER NOT NULL,
     identify    INTEGER NOT NULL,
@@ -121,7 +152,7 @@ CREATE TABLE user_integral_record
 );
 
 -- 创建索引，提高根据用户id查询效率
-CREATE INDEX idx_user_id ON user_integral_record (user_id);
+CREATE INDEX idx_user_integral_record_user_id ON user_integral_record (user_id);
 
 -- 标签管理表
 CREATE TABLE tags
@@ -162,7 +193,7 @@ CREATE INDEX idx_clothing_name ON clothing (clothing_name);
 -- 卡券管理表
 CREATE TABLE coupons
 (
-    coupon_id           INTEGER AUTOINCREMENT PRIMARY KEY,
+    coupon_id           INTEGER PRIMARY KEY AUTOINCREMENT,
     coupon_number       TEXT UNIQUE NOT NULL,
     coupon_type         TEXT        NOT NULL DEFAULT '000',
     coupon_title        TEXT        NOT NULL,
@@ -195,9 +226,9 @@ CREATE INDEX idx_coupon_status ON coupons (status);
 CREATE INDEX idx_coupon_del_flag ON coupons (del_flag);
 
 -- 用户卡券关联表
-CREATE TABLE user_coupon
+CREATE TABLE user_coupons
 (
-    uc_id           INTEGER AUTOINCREMENT PRIMARY KEY,
+    uc_id           INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id         INTEGER NOT NULL,
     coupon_id       INTEGER NOT NULL,
     create_time     TIMESTAMP,
@@ -211,18 +242,18 @@ CREATE TABLE user_coupon
 );
 
 -- 用户卡券索引
-CREATE INDEX idx_user_id_user_coupon ON user_coupon (user_id);
+CREATE INDEX idx_user_coupons_user_id_user_coupons ON user_coupons (user_id);
 
-CREATE INDEX idx_coupon_id ON user_coupon (coupon_id);
+CREATE INDEX idx_coupon_id ON user_coupons (coupon_id);
 
-CREATE INDEX idx_status ON user_coupon (status);
+CREATE INDEX idx_status ON user_coupons (status);
 
-CREATE INDEX idx_user_status ON user_coupon (user_id, status);
+CREATE INDEX idx_user_status ON user_coupons (user_id, status);
 
 -- 卡券订单表
 CREATE TABLE coupon_orders
 (
-    order_id    INTEGER AUTOINCREMENT PRIMARY KEY,
+    order_id    INTEGER PRIMARY KEY AUTOINCREMENT,
     uc_id       TEXT NOT NULL,
     create_time TIMESTAMP
 );
@@ -230,17 +261,14 @@ CREATE TABLE coupon_orders
 -- 卡券订单索引
 CREATE INDEX idx_uc_id ON coupon_orders (uc_id);
 
-CREATE INDEX idx_create_time ON coupon_orders (create_time);
+CREATE INDEX idx_coupon_orders_create_time ON coupon_orders (create_time);
 
 CREATE INDEX idx_create_uc ON coupon_orders (create_time, uc_id);
 
 -- 支付记录表
-CREATE INDEX idx_order_type ON payments (order_type);
-
--- 支付记录索引
 CREATE TABLE payments
 (
-    pay_id             INTEGER AUTOINCREMENT PRIMARY KEY,
+    pay_id             INTEGER PRIMARY KEY AUTOINCREMENT,
     pay_number         TEXT   NOT NULL,
     order_type         TEXT   NOT NULL,
     total_amount       DOUBLE NOT NULL,
@@ -257,11 +285,12 @@ CREATE TABLE payments
     order_status       TEXT   NOT NULL
 );
 
-CREATE INDEX idx_payment_status ON payments (payment_status);
+CREATE INDEX idx_payments_order_type ON payments (order_type); -- 支付记录索引
+CREATE INDEX idx_payments_payment_status ON payments (payment_status);
 
 CREATE INDEX idx_pay_number ON payments (pay_number);
 
-CREATE INDEX idx_create_time ON payments (create_time);
+CREATE INDEX idx_payments_create_time ON payments (create_time);
 
 CREATE INDEX idx_order_status ON payments (order_type, payment_status);
 
@@ -296,7 +325,7 @@ CREATE TABLE notice_record
 );
 
 -- 创建索引
-CREATE INDEX idx_user_id ON notice_record (user_id);
+CREATE INDEX idx_notice_record_user_id ON notice_record (user_id);
 
 -- 衣物价格表
 CREATE TABLE cloth_price
@@ -316,7 +345,7 @@ CREATE TABLE cloth_price
     update_time    TIMESTAMP
 );
 
-CREATE INDEX idx_order_type ON cloth_price (order_type);
+CREATE INDEX idx_cloth_price_order_type ON cloth_price (order_type);
 
 -- 订单表
 CREATE TABLE orders
@@ -343,13 +372,13 @@ CREATE TABLE orders
 -- 创建索引
 CREATE INDEX idx_order_number ON orders (order_number);
 
-CREATE INDEX idx_user_id ON orders (user_id);
+CREATE INDEX idx_orders_user_id ON orders (user_id);
 
 CREATE INDEX idx_pickup_code ON orders (pickup_code);
 
 CREATE INDEX idx_cost_time_alarm ON orders (cost_time_alarm);
 
-CREATE INDEX idx_payment_status ON orders (payment_status);
+CREATE INDEX idx_orders_payment_status ON orders (payment_status);
 
 -- 衣物清单表
 CREATE TABLE order_clothes
@@ -501,6 +530,10 @@ CREATE TABLE promote_record
     promote_time    TIMESTAMP,
     status          TEXT DEFAULT '0'
 );
+
+INSERT INTO configs (config_id, config_name, config_key, config_value, config_type, create_by, create_time, update_by, update_time, remark) VALUES (1, '账号自助-验证码开关', 'sys.account.captchaEnabled', 'false', 'Y', 'admin', null, '', null, '是否开启验证码功能（true开启，false关闭）');
+INSERT INTO configs (config_id, config_name, config_key, config_value, config_type, create_by, create_time, update_by, update_time, remark) VALUES (2, '预计取衣事件', 'desire_complete_time', '17', 'Y', null, '2025-02-15T10:22:13.032273400+08:00', null, '2025-02-15T10:23:31.618923900+08:00', '默认七天后取衣');
+INSERT INTO configs (config_id, config_name, config_key, config_value, config_type, create_by, create_time, update_by, update_time, remark) VALUES (3, '页面无操作注销时间', 'logout_timeout', '600', 'Y', null, '2025-02-15T11:40:01.890123500+08:00', null, null, '单位：秒');
 
 INSERT INTO `menu` (`menu_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `query`, `route_name`,
                     `is_frame`, `is_cache`, `menu_type`, `visible`, `status`, `perms`, `icon`, `create_by`,

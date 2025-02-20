@@ -25,25 +25,43 @@ async fn main() {
     let config = Config::load(DEFAULT_CONFIG_PATH).unwrap();
 
     // init tracing
-    if config.log.output != "console" {
-        // redirect log to file
+    if cfg!(debug_assertions) {
+        // 在 debug 模式下，日志输出到控制台
+        tracing_subscriber::FmtSubscriber::builder()
+            .with_line_number(true)
+            .with_max_level(config.log.level())
+            .with_timer(LocalTimer)
+            .init();
+    } else {
+        // 在 release 模式下，日志输出到文件
         let file_appender = tracing_appender::rolling::daily(&config.log.output, "laundry");
         let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
-        // builder = builder.with_writer(non_blocking);
         tracing_subscriber::FmtSubscriber::builder()
             .with_line_number(true)
             .with_max_level(config.log.level())
             .with_writer(non_blocking)
             .with_timer(LocalTimer)
             .init();
-    } else {
-        // log to console
-        tracing_subscriber::FmtSubscriber::builder()
-            .with_line_number(true)
-            .with_max_level(config.log.level())
-            .with_timer(LocalTimer)
-            .init();
     }
+    // if config.log.output != "console" {
+    //     // redirect log to file
+    //     let file_appender = tracing_appender::rolling::daily(&config.log.output, "laundry");
+    //     let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
+    //     // builder = builder.with_writer(non_blocking);
+    //     tracing_subscriber::FmtSubscriber::builder()
+    //         .with_line_number(true)
+    //         .with_max_level(config.log.level())
+    //         .with_writer(non_blocking)
+    //         .with_timer(LocalTimer)
+    //         .init();
+    // } else {
+    //     // log to console
+    //     tracing_subscriber::FmtSubscriber::builder()
+    //         .with_line_number(true)
+    //         .with_max_level(config.log.level())
+    //         .with_timer(LocalTimer)
+    //         .init();
+    // }
     // 执行数据迁移
     migrate().await.expect("database migrate failed");
     // 获取应用数据目录

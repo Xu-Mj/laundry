@@ -169,6 +169,7 @@ function handleLogin() {
         if (res.user.isFirstLogin) { // 根据实际响应字段判断
           pwdDialogVisible.value = true; // 显示修改密码弹窗
         } else {
+          proxy.$modal.msgSuccess("登录成功!")
           routeJump();
         }
       }).catch(() => {

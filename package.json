@@ -3,7 +3,6 @@
   "version": "0.1.1",
   "description": "laundry",
   "author": "xu_mj",
-  "license": "MIT",
   "main": "main.js",
   "scripts": {
     "dev": "vite",
@@ -13,7 +12,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://gitee.com/y_project/RuoYi-Vue.git"
+    "url": "https://github.com/Xu-Mj/laundry.git"
   },
   "dependencies": {
     "@element-plus/icons-vue": "2.3.1",

@@ -109,8 +109,8 @@ CREATE TABLE IF NOT EXISTS dict_data
 CREATE TABLE IF NOT EXISTS users
 (
     user_id     INTEGER PRIMARY KEY AUTOINCREMENT,
-    open_id     TEXT NOT NULL DEFAULT '',
-    dept_id     INTEGER       DEFAULT NULL,
+    open_id     TEXT ,
+    dept_id     INTEGER  DEFAULT NULL,
     user_name   TEXT NOT NULL,
     nick_name   TEXT NOT NULL,
     address     TEXT,
@@ -297,7 +297,7 @@ CREATE INDEX idx_order_status ON payments (order_type, payment_status);
 CREATE INDEX idx_pay_number_order ON payments (pay_number, order_type);
 
 -- 通知模板管理表
-CREATE TABLE notice_template
+CREATE TABLE notice_temp
 (
     temp_id       INTEGER PRIMARY KEY AUTOINCREMENT,
     temp_name     TEXT NOT NULL,
@@ -531,260 +531,348 @@ CREATE TABLE promote_record
     status          TEXT DEFAULT '0'
 );
 
+INSERT INTO local_users (id, username, avatar, account, password, role, remark, is_first_login) VALUES (1, 'admin', 'images/avatars/avatar1.png', 'admin', '$argon2id$v=19$m=19456,t=2,p=1$xmj1234xmj1234xmj1234xmj1234xmj1234$xcjB3Mxf+IbNnfZMiHNE+XrGRv+bWdmyiM6uTbZ1Mxs', 'admin', null, 0);
+
 INSERT INTO configs (config_id, config_name, config_key, config_value, config_type, create_by, create_time, update_by, update_time, remark) VALUES (1, '账号自助-验证码开关', 'sys.account.captchaEnabled', 'false', 'Y', 'admin', null, '', null, '是否开启验证码功能（true开启，false关闭）');
 INSERT INTO configs (config_id, config_name, config_key, config_value, config_type, create_by, create_time, update_by, update_time, remark) VALUES (2, '预计取衣事件', 'desire_complete_time', '17', 'Y', null, '2025-02-15T10:22:13.032273400+08:00', null, '2025-02-15T10:23:31.618923900+08:00', '默认七天后取衣');
 INSERT INTO configs (config_id, config_name, config_key, config_value, config_type, create_by, create_time, update_by, update_time, remark) VALUES (3, '页面无操作注销时间', 'logout_timeout', '600', 'Y', null, '2025-02-15T11:40:01.890123500+08:00', null, null, '单位：秒');
 
-INSERT INTO `menu` (`menu_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `query`, `route_name`,
-                    `is_frame`, `is_cache`, `menu_type`, `visible`, `status`, `perms`, `icon`, `create_by`,
-                    `create_time`, `update_by`, `update_time`, `remark`)
-VALUES (1, '系统管理', 0, 1, 'system', NULL, '', '', 1, 0, 'M', '0', '0', '', 'system', 'admin', '2024-08-16 06:41:56',
-        '', NULL, '系统管理目录'),
-       (2, '系统监控', 0, 2, 'monitor', NULL, '', '', 1, 0, 'M', '0', '0', '', 'monitor', 'admin',
-        '2024-08-16 06:41:56', '', NULL, '系统监控目录'),
-       (3, '系统工具', 0, 3, 'tool', NULL, '', '', 1, 0, 'M', '0', '0', '', 'tool', 'admin', '2024-08-16 06:41:56', '',
-        NULL, '系统工具目录'),
-       (4, '若依官网', 0, 4, 'http://ruoyi.vip', NULL, '', '', 0, 0, 'M', '0', '0', '', 'guide', 'admin',
-        '2024-08-16 06:41:56', '', NULL, '若依官网地址'),
-       (100, '用户管理', 1, 1, 'user', 'system/user/index', '', '', 1, 0, 'C', '0', '0', 'system:user:list', 'user',
-        'admin', '2024-08-16 06:41:56', '', NULL, '用户管理菜单'),
-       (101, '角色管理', 1, 2, 'role', 'system/role/index', '', '', 1, 0, 'C', '0', '0', 'system:role:list', 'peoples',
-        'admin', '2024-08-16 06:41:56', '', NULL, '角色管理菜单'),
-       (102, '菜单管理', 1, 3, 'menu', 'system/menu/index', '', '', 1, 0, 'C', '0', '0', 'system:menu:list',
-        'tree-table', 'admin', '2024-08-16 06:41:56', '', NULL, '菜单管理菜单'),
-       (103, '组织管理', 1, 4, 'dept', 'system/dept/index', '', '', 1, 0, 'C', '0', '0', 'system:dept:list', 'tree',
-        'admin', '2024-08-16 06:41:56', 'admin', '2024-08-22 17:51:15', '部门管理菜单'),
-       (104, '等级管理', 1, 5, 'post', 'system/post/index', '', '', 1, 0, 'C', '0', '0', 'system:post:list', 'post',
-        'admin', '2024-08-16 06:41:56', 'admin', '2024-08-22 15:31:54', '岗位管理菜单'),
-       (105, '字典管理', 1, 6, 'dict', 'system/dict/index', '', '', 1, 0, 'C', '0', '0', 'system:dict:list', 'dict',
-        'admin', '2024-08-16 06:41:56', '', NULL, '字典管理菜单'),
-       (106, '参数设置', 1, 7, 'config', 'system/config/index', '', '', 1, 0, 'C', '0', '0', 'system:config:list',
-        'edit', 'admin', '2024-08-16 06:41:56', '', NULL, '参数设置菜单'),
-       (107, '通知公告', 1, 8, 'notice', 'system/notice/index', '', '', 1, 0, 'C', '0', '0', 'system:notice:list',
-        'message', 'admin', '2024-08-16 06:41:56', '', NULL, '通知公告菜单'),
-       (108, '日志管理', 1, 9, 'log', '', '', '', 1, 0, 'M', '0', '0', '', 'log', 'admin', '2024-08-16 06:41:56', '',
-        NULL, '日志管理菜单'),
-       (109, '在线用户', 2, 1, 'online', 'monitor/online/index', '', '', 1, 0, 'C', '0', '0', 'monitor:online:list',
-        'online', 'admin', '2024-08-16 06:41:56', '', NULL, '在线用户菜单'),
-       (110, '定时任务', 2, 2, 'job', 'monitor/job/index', '', '', 1, 0, 'C', '0', '0', 'monitor:job:list', 'job',
-        'admin', '2024-08-16 06:41:56', '', NULL, '定时任务菜单'),
-       (111, '数据监控', 2, 3, 'druid', 'monitor/druid/index', '', '', 1, 0, 'C', '0', '0', 'monitor:druid:list',
-        'druid', 'admin', '2024-08-16 06:41:56', '', NULL, '数据监控菜单'),
-       (112, '服务监控', 2, 4, 'server', 'monitor/server/index', '', '', 1, 0, 'C', '0', '0', 'monitor:server:list',
-        'server', 'admin', '2024-08-16 06:41:56', '', NULL, '服务监控菜单'),
-       (113, '缓存监控', 2, 5, 'cache', 'monitor/cache/index', '', '', 1, 0, 'C', '0', '0', 'monitor:cache:list',
-        'redis', 'admin', '2024-08-16 06:41:56', '', NULL, '缓存监控菜单'),
-       (114, '缓存列表', 2, 6, 'cacheList', 'monitor/cache/list', '', '', 1, 0, 'C', '0', '0', 'monitor:cache:list',
-        'redis-list', 'admin', '2024-08-16 06:41:56', '', NULL, '缓存列表菜单'),
-       (115, '表单构建', 3, 1, 'build', 'tool/build/index', '', '', 1, 0, 'C', '0', '0', 'tool:build:list', 'build',
-        'admin', '2024-08-16 06:41:56', '', NULL, '表单构建菜单'),
-       (116, '代码生成', 3, 2, 'gen', 'tool/gen/index', '', '', 1, 0, 'C', '0', '0', 'tool:gen:list', 'code', 'admin',
-        '2024-08-16 06:41:56', '', NULL, '代码生成菜单'),
-       (117, '系统接口', 3, 3, 'swagger', 'tool/swagger/index', '', '', 1, 0, 'C', '0', '0', 'tool:swagger:list',
-        'swagger', 'admin', '2024-08-16 06:41:56', '', NULL, '系统接口菜单'),
-       (500, '操作日志', 108, 1, 'operlog', 'monitor/operlog/index', '', '', 1, 0, 'C', '0', '0',
-        'monitor:operlog:list', 'form', 'admin', '2024-08-16 06:41:56', '', NULL, '操作日志菜单'),
-       (501, '登录日志', 108, 2, 'logininfor', 'monitor/logininfor/index', '', '', 1, 0, 'C', '0', '0',
-        'monitor:logininfor:list', 'logininfor', 'admin', '2024-08-16 06:41:56', '', NULL, '登录日志菜单'),
-       (1000, '用户查询', 100, 1, '', '', '', '', 1, 0, 'F', '0', '0', 'system:user:query', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1001, '用户新增', 100, 2, '', '', '', '', 1, 0, 'F', '0', '0', 'system:user:add', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1002, '用户修改', 100, 3, '', '', '', '', 1, 0, 'F', '0', '0', 'system:user:edit', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1003, '用户删除', 100, 4, '', '', '', '', 1, 0, 'F', '0', '0', 'system:user:remove', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1004, '用户导出', 100, 5, '', '', '', '', 1, 0, 'F', '0', '0', 'system:user:export', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1005, '用户导入', 100, 6, '', '', '', '', 1, 0, 'F', '0', '0', 'system:user:import', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1006, '重置密码', 100, 7, '', '', '', '', 1, 0, 'F', '0', '0', 'system:user:resetPwd', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1007, '角色查询', 101, 1, '', '', '', '', 1, 0, 'F', '0', '0', 'system:role:query', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1008, '角色新增', 101, 2, '', '', '', '', 1, 0, 'F', '0', '0', 'system:role:add', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1009, '角色修改', 101, 3, '', '', '', '', 1, 0, 'F', '0', '0', 'system:role:edit', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1010, '角色删除', 101, 4, '', '', '', '', 1, 0, 'F', '0', '0', 'system:role:remove', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1011, '角色导出', 101, 5, '', '', '', '', 1, 0, 'F', '0', '0', 'system:role:export', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1012, '菜单查询', 102, 1, '', '', '', '', 1, 0, 'F', '0', '0', 'system:menu:query', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1013, '菜单新增', 102, 2, '', '', '', '', 1, 0, 'F', '0', '0', 'system:menu:add', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1014, '菜单修改', 102, 3, '', '', '', '', 1, 0, 'F', '0', '0', 'system:menu:edit', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1015, '菜单删除', 102, 4, '', '', '', '', 1, 0, 'F', '0', '0', 'system:menu:remove', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1016, '部门查询', 103, 1, '', '', '', '', 1, 0, 'F', '0', '0', 'system:dept:query', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1017, '部门新增', 103, 2, '', '', '', '', 1, 0, 'F', '0', '0', 'system:dept:add', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1018, '部门修改', 103, 3, '', '', '', '', 1, 0, 'F', '0', '0', 'system:dept:edit', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1019, '部门删除', 103, 4, '', '', '', '', 1, 0, 'F', '0', '0', 'system:dept:remove', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1020, '岗位查询', 104, 1, '', '', '', '', 1, 0, 'F', '0', '0', 'system:post:query', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1021, '岗位新增', 104, 2, '', '', '', '', 1, 0, 'F', '0', '0', 'system:post:add', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1022, '岗位修改', 104, 3, '', '', '', '', 1, 0, 'F', '0', '0', 'system:post:edit', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1023, '岗位删除', 104, 4, '', '', '', '', 1, 0, 'F', '0', '0', 'system:post:remove', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1024, '岗位导出', 104, 5, '', '', '', '', 1, 0, 'F', '0', '0', 'system:post:export', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1025, '字典查询', 105, 1, '#', '', '', '', 1, 0, 'F', '0', '0', 'system:dict:query', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1026, '字典新增', 105, 2, '#', '', '', '', 1, 0, 'F', '0', '0', 'system:dict:add', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1027, '字典修改', 105, 3, '#', '', '', '', 1, 0, 'F', '0', '0', 'system:dict:edit', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1028, '字典删除', 105, 4, '#', '', '', '', 1, 0, 'F', '0', '0', 'system:dict:remove', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1029, '字典导出', 105, 5, '#', '', '', '', 1, 0, 'F', '0', '0', 'system:dict:export', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1030, '参数查询', 106, 1, '#', '', '', '', 1, 0, 'F', '0', '0', 'system:config:query', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1031, '参数新增', 106, 2, '#', '', '', '', 1, 0, 'F', '0', '0', 'system:config:add', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1032, '参数修改', 106, 3, '#', '', '', '', 1, 0, 'F', '0', '0', 'system:config:edit', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1033, '参数删除', 106, 4, '#', '', '', '', 1, 0, 'F', '0', '0', 'system:config:remove', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1034, '参数导出', 106, 5, '#', '', '', '', 1, 0, 'F', '0', '0', 'system:config:export', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1035, '公告查询', 107, 1, '#', '', '', '', 1, 0, 'F', '0', '0', 'system:notice:query', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1036, '公告新增', 107, 2, '#', '', '', '', 1, 0, 'F', '0', '0', 'system:notice:add', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1037, '公告修改', 107, 3, '#', '', '', '', 1, 0, 'F', '0', '0', 'system:notice:edit', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1038, '公告删除', 107, 4, '#', '', '', '', 1, 0, 'F', '0', '0', 'system:notice:remove', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1039, '操作查询', 500, 1, '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:operlog:query', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1040, '操作删除', 500, 2, '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:operlog:remove', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1041, '日志导出', 500, 3, '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:operlog:export', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1042, '登录查询', 501, 1, '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:logininfor:query', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1043, '登录删除', 501, 2, '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:logininfor:remove', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1044, '日志导出', 501, 3, '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:logininfor:export', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1045, '账户解锁', 501, 4, '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:logininfor:unlock', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1046, '在线查询', 109, 1, '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:online:query', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1047, '批量强退', 109, 2, '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:online:batchLogout', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1048, '单条强退', 109, 3, '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:online:forceLogout', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1049, '任务查询', 110, 1, '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:job:query', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1050, '任务新增', 110, 2, '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:job:add', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1051, '任务修改', 110, 3, '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:job:edit', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1052, '任务删除', 110, 4, '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:job:remove', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1053, '状态修改', 110, 5, '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:job:changeStatus', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1054, '任务导出', 110, 6, '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:job:export', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1055, '生成查询', 116, 1, '#', '', '', '', 1, 0, 'F', '0', '0', 'tool:gen:query', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1056, '生成修改', 116, 2, '#', '', '', '', 1, 0, 'F', '0', '0', 'tool:gen:edit', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1057, '生成删除', 116, 3, '#', '', '', '', 1, 0, 'F', '0', '0', 'tool:gen:remove', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1058, '导入代码', 116, 4, '#', '', '', '', 1, 0, 'F', '0', '0', 'tool:gen:import', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1059, '预览代码', 116, 5, '#', '', '', '', 1, 0, 'F', '0', '0', 'tool:gen:preview', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1060, '生成代码', 116, 6, '#', '', '', '', 1, 0, 'F', '0', '0', 'tool:gen:code', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, '');
 
-INSERT INTO `dict_type` (`dict_id`, `dict_name`, `dict_type`, `status`, `create_time`,
-                         `update_time`, `remark`)
-VALUES (1, '用户性别', 'sys_user_sex', '0', '2024-08-16 06:41:56', '', '用户性别列表'),
-       (2, '菜单状态', 'sys_show_hide', '0', '2024-08-16 06:41:56', '', '菜单状态列表'),
-       (3, '系统开关', 'sys_normal_disable', '0', '2024-08-16 06:41:56', '', '系统开关列表'),
-       (4, '任务状态', 'sys_job_status', '0', '2024-08-16 06:41:56', '', '任务状态列表'),
-       (5, '任务分组', 'sys_job_group', '0', '2024-08-16 06:41:56', '', '任务分组列表'),
-       (6, '系统是否', 'sys_yes_no', '0', '2024-08-16 06:41:56', '', '系统是否列表'),
-       (7, '通知类型', 'sys_notice_type', '0', '2024-08-16 06:41:56', '', '通知类型列表'),
-       (8, '通知状态', 'sys_notice_status', '0', '2024-08-16 06:41:56', '', '通知状态列表'),
-       (9, '操作类型', 'sys_oper_type', '0', '2024-08-16 06:41:56', '', '操作类型列表'),
-       (10, '系统状态', 'sys_common_status', '0', '2024-08-16 06:41:56', '', '登录状态列表'),
-       (100, '用户类型', 'sys_user_type', '0', '2024-08-22 15:56:17', '',
-        '用户类型，00 系统用户，01 会员客户');
+INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (1, '系统管理', 0, 1, '/system', null, '', '', '1', '0', 'M', '0', '0', '', '/system', 'admin', '2024-08-16 06:41:56', '', null, '系统管理目录');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2, '系统监控', 0, 9, 'monitor', null, '', '', '1', '0', 'M', '1', '1', '', 'monitor', 'admin', '2024-08-16 06:41:56', 'admin', '2024-12-07T11:33:16.780350800+08:00', '系统监控目录');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (3, '系统工具', 0, 12, 'tool', null, '', '', '1', '0', 'M', '1', '1', '', 'tool', 'admin', '2024-08-16 06:41:56', 'admin', '2024-12-07T11:33:28.219474100+08:00', '系统工具目录');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (100, '会员管理', 0, 5, 'user', 'system/user/index', '', '', '1', '1', 'C', '0', '0', '', 'user', 'admin', '2024-08-16 06:41:56', 'admin', '2024-12-06T11:20:38.294438400+08:00', '用户管理菜单');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (101, '角色管理', 1, 2, 'role', 'system/role/index', '', '', '1', '0', 'C', '1', '1', 'system:role:list', 'peoples', 'admin', '2024-08-16 06:41:56', '', '2024-12-07T11:31:00.561549500+08:00', '角色管理菜单');
+INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (102, '菜单管理', 1, 3, 'menu', 'system/menu/index', '', '', '1', '0', 'C', '0', '0', 'system:menu:list', 'tree-table', 'admin', '2024-08-16 06:41:56', '', null, '菜单管理菜单');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (103, '组织管理', 1, 4, 'dept', 'system/dept/index', '', '', '1', '0', 'C', '1', '1', 'system:dept:list', 'tree', 'admin', '2024-08-16 06:41:56', 'admin', '2024-12-07T11:31:14.087201+08:00', '部门管理菜单');
+INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (104, '等级管理', 1, 5, 'post', 'system/post/index', '', '', '1', '0', 'C', '0', '0', 'system:post:list', 'post', 'admin', '2024-08-16 06:41:56', 'admin', '2024-08-22 15:31:54', '岗位管理菜单');
+INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (105, '字典管理', 1, 6, 'dict', 'system/dict/index', '', '', '1', '0', 'C', '0', '0', 'system:dict:list', 'dict', 'admin', '2024-08-16 06:41:56', '', null, '字典管理菜单');
+INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (106, '参数设置', 1, 7, 'config', 'system/config/index', '', '', '1', '0', 'C', '0', '0', 'system:config:list', 'edit', 'admin', '2024-08-16 06:41:56', '', null, '参数设置菜单');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (107, '通知公告', 1, 8, 'notice', 'system/notice/index', '', '', '1', '0', 'C', '1', '1', 'system:notice:list', 'message', 'admin', '2024-08-16 06:41:56', '', '2024-12-07T11:32:47.141147+08:00', '通知公告菜单');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (1012, '菜单查询', 102, 1, '', '', '', '', '1', '0', 'F', '0', '0', 'system:menu:query', '#', 'admin', '2024-08-16 06:41:56', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (1013, '菜单新增', 102, 2, '', '', '', '', '1', '0', 'F', '0', '0', 'system:menu:add', '#', 'admin', '2024-08-16 06:41:56', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (1014, '菜单修改', 102, 3, '', '', '', '', '1', '0', 'F', '0', '0', 'system:menu:edit', '#', 'admin', '2024-08-16 06:41:56', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (1015, '菜单删除', 102, 4, '', '', '', '', '1', '0', 'F', '0', '0', 'system:menu:remove', '#', 'admin', '2024-08-16 06:41:56', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (1016, '部门查询', 103, 1, '', '', '', '', '1', '0', 'F', '0', '0', 'system:dept:query', '#', 'admin', '2024-08-16 06:41:56', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (1017, '部门新增', 103, 2, '', '', '', '', '1', '0', 'F', '0', '0', 'system:dept:add', '#', 'admin', '2024-08-16 06:41:56', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (1018, '部门修改', 103, 3, '', '', '', '', '1', '0', 'F', '0', '0', 'system:dept:edit', '#', 'admin', '2024-08-16 06:41:56', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (1019, '部门删除', 103, 4, '', '', '', '', '1', '0', 'F', '0', '0', 'system:dept:remove', '#', 'admin', '2024-08-16 06:41:56', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (1020, '岗位查询', 104, 1, '', '', '', '', '1', '0', 'F', '0', '0', 'system:post:query', '#', 'admin', '2024-08-16 06:41:56', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (1021, '岗位新增', 104, 2, '', '', '', '', '1', '0', 'F', '0', '0', 'system:post:add', '#', 'admin', '2024-08-16 06:41:56', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (1022, '岗位修改', 104, 3, '', '', '', '', '1', '0', 'F', '0', '0', 'system:post:edit', '#', 'admin', '2024-08-16 06:41:56', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (1023, '岗位删除', 104, 4, '', '', '', '', '1', '0', 'F', '0', '0', 'system:post:remove', '#', 'admin', '2024-08-16 06:41:56', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (1024, '岗位导出', 104, 5, '', '', '', '', '1', '0', 'F', '0', '0', 'system:post:export', '#', 'admin', '2024-08-16 06:41:56', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (1025, '字典查询', 105, 1, '#', '', '', '', '1', '0', 'F', '0', '0', 'system:dict:query', '#', 'admin', '2024-08-16 06:41:56', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (1026, '字典新增', 105, 2, '#', '', '', '', '1', '0', 'F', '0', '0', 'system:dict:add', '#', 'admin', '2024-08-16 06:41:56', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (1027, '字典修改', 105, 3, '#', '', '', '', '1', '0', 'F', '0', '0', 'system:dict:edit', '#', 'admin', '2024-08-16 06:41:56', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (1028, '字典删除', 105, 4, '#', '', '', '', '1', '0', 'F', '0', '0', 'system:dict:remove', '#', 'admin', '2024-08-16 06:41:56', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (1029, '字典导出', 105, 5, '#', '', '', '', '1', '0', 'F', '0', '0', 'system:dict:export', '#', 'admin', '2024-08-16 06:41:56', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (1030, '参数查询', 106, 1, '#', '', '', '', '1', '0', 'F', '0', '0', 'system:config:query', '#', 'admin', '2024-08-16 06:41:56', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (1031, '参数新增', 106, 2, '#', '', '', '', '1', '0', 'F', '0', '0', 'system:config:add', '#', 'admin', '2024-08-16 06:41:56', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (1032, '参数修改', 106, 3, '#', '', '', '', '1', '0', 'F', '0', '0', 'system:config:edit', '#', 'admin', '2024-08-16 06:41:56', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (1033, '参数删除', 106, 4, '#', '', '', '', '1', '0', 'F', '0', '0', 'system:config:remove', '#', 'admin', '2024-08-16 06:41:56', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (1034, '参数导出', 106, 5, '#', '', '', '', '1', '0', 'F', '0', '0', 'system:config:export', '#', 'admin', '2024-08-16 06:41:56', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (1035, '公告查询', 107, 1, '#', '', '', '', '1', '0', 'F', '0', '0', 'system:notice:query', '#', 'admin', '2024-08-16 06:41:56', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (1036, '公告新增', 107, 2, '#', '', '', '', '1', '0', 'F', '0', '0', 'system:notice:add', '#', 'admin', '2024-08-16 06:41:56', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (1037, '公告修改', 107, 3, '#', '', '', '', '1', '0', 'F', '0', '0', 'system:notice:edit', '#', 'admin', '2024-08-16 06:41:56', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (1038, '公告删除', 107, 4, '#', '', '', '', '1', '0', 'F', '0', '0', 'system:notice:remove', '#', 'admin', '2024-08-16 06:41:56', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (1039, '操作查询', 500, 1, '#', '', '', '', '1', '0', 'F', '0', '0', 'monitor:operlog:query', '#', 'admin', '2024-08-16 06:41:56', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (1040, '操作删除', 500, 2, '#', '', '', '', '1', '0', 'F', '0', '0', 'monitor:operlog:remove', '#', 'admin', '2024-08-16 06:41:56', '', null, '');
+INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2000, '用户地址', 3, 1, 'address', 'system/address/index', null, '', '1', '0', 'C', '0', '0', 'system:address:list', '#', 'admin', '2024-08-29 00:50:02', '', null, '用户地址菜单');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2001, '用户地址查询', 2000, 1, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:address:query', '#', 'admin', '2024-08-29 00:50:02', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2002, '用户地址新增', 2000, 2, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:address:add', '#', 'admin', '2024-08-29 00:50:03', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2003, '用户地址修改', 2000, 3, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:address:edit', '#', 'admin', '2024-08-29 00:50:03', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2004, '用户地址删除', 2000, 4, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:address:remove', '#', 'admin', '2024-08-29 00:50:03', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2005, '用户地址导出', 2000, 5, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:address:export', '#', 'admin', '2024-08-29 00:50:03', '', null, '');
+INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2006, '衣物管理', 1, 1, 'clothing', 'system/clothing/index', null, '', '1', '0', 'C', '0', '0', 'system:clothing:list', 'theme', 'admin', '2024-08-29 00:50:03', 'admin', '2025-02-15T22:19:20.840106400+08:00', '衣物信息菜单');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2007, '衣物信息查询', 2006, 1, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:clothing:query', '#', 'admin', '2024-08-29 00:50:03', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2008, '衣物信息新增', 2006, 2, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:clothing:add', '#', 'admin', '2024-08-29 00:50:03', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2009, '衣物信息修改', 2006, 3, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:clothing:edit', '#', 'admin', '2024-08-29 00:50:03', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2010, '衣物信息删除', 2006, 4, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:clothing:remove', '#', 'admin', '2024-08-29 00:50:03', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2011, '衣物信息导出', 2006, 5, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:clothing:export', '#', 'admin', '2024-08-29 00:50:03', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2012, '预约订单', 3, 1, 'reservation', 'system/reservation/index', null, '', '1', '0', 'C', '0', '0', 'system:reservation:list', '#', 'admin', '2024-08-29 00:50:03', '', null, '预约订单菜单');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2013, '预约订单查询', 2012, 1, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:reservation:query', '#', 'admin', '2024-08-29 00:50:03', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2014, '预约订单新增', 2012, 2, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:reservation:add', '#', 'admin', '2024-08-29 00:50:03', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2015, '预约订单修改', 2012, 3, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:reservation:edit', '#', 'admin', '2024-08-29 00:50:03', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2016, '预约订单删除', 2012, 4, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:reservation:remove', '#', 'admin', '2024-08-29 00:50:03', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2017, '预约订单导出', 2012, 5, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:reservation:export', '#', 'admin', '2024-08-29 00:50:03', '', null, '');
+INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2030, '标签管理', 1, 1, 'tags', 'system/tags/index', null, '', '1', '0', 'C', '0', '0', 'system:tags:list', 'checkbox', 'admin', '2024-09-02 06:32:39', 'admin', '2025-02-15T22:19:48.939528900+08:00', '用于配置系统中用到的所有标准化的数据，包括衣物类型、衣物颜色、洗前瑕疵、以后预估等菜单');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2031, '搜索', 2030, 1, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:tags:query', '#', 'admin', '2024-09-02 06:32:39', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2032, '新增', 2030, 2, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:tags:add', '#', 'admin', '2024-09-02 06:32:39', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2033, '修改', 2030, 3, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:tags:edit', '#', 'admin', '2024-09-02 06:32:39', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2034, '删除', 2030, 4, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:tags:remove', '#', 'admin', '2024-09-02 06:32:39', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2035, '导出', 2030, 5, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:tags:export', '#', 'admin', '2024-09-02 06:32:39', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2037, '卡券查询', 2036, 1, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:coupon:query', '#', 'admin', '2024-09-03 06:44:02', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2038, '卡券新增', 2036, 2, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:coupon:add', '#', 'admin', '2024-09-03 06:44:02', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2039, '卡券修改', 2036, 3, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:coupon:edit', '#', 'admin', '2024-09-03 06:44:03', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2040, '卡券删除', 2036, 4, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:coupon:remove', '#', 'admin', '2024-09-03 06:44:03', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2041, '卡券导出', 2036, 5, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:coupon:export', '#', 'admin', '2024-09-03 06:44:03', '', null, '');
+INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2042, '通知模板', 1, 1, 'template', 'system/template/index', null, '', '1', '0', 'C', '0', '0', 'system:template:list', 'email', 'admin', '2024-09-04 14:26:01', 'admin', '2025-02-15T22:19:57.149302500+08:00', '通知模板管理菜单');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2043, '通知模板管理查询', 2042, 1, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:template:query', '#', 'admin', '2024-09-04 14:26:01', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2044, '通知模板管理新增', 2042, 2, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:template:add', '#', 'admin', '2024-09-04 14:26:01', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2045, '通知模板管理修改', 2042, 3, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:template:edit', '#', 'admin', '2024-09-04 14:26:01', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2046, '通知模板管理删除', 2042, 4, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:template:remove', '#', 'admin', '2024-09-04 14:26:01', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2047, '通知模板管理导出', 2042, 5, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:template:export', '#', 'admin', '2024-09-04 14:26:01', '', null, '');
+INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2048, '通知记录', 1, 1, 'notice_record', 'system/notice_record/index', null, '', '1', '0', 'C', '0', '0', 'system:noticeRecord:list', 'documentation', 'admin', '2024-09-05 02:42:29', 'admin', '2025-02-15T22:20:02.971941200+08:00', '通知记录管理菜单');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2049, '通知记录管理查询', 2048, 1, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:record:query', '#', 'admin', '2024-09-05 02:42:29', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2050, '通知记录管理新增', 2048, 2, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:record:add', '#', 'admin', '2024-09-05 02:42:29', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2051, '通知记录管理修改', 2048, 3, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:record:edit', '#', 'admin', '2024-09-05 02:42:29', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2052, '通知记录管理删除', 2048, 4, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:record:remove', '#', 'admin', '2024-09-05 02:42:29', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2053, '通知记录管理导出', 2048, 5, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:record:export', '#', 'admin', '2024-09-05 02:42:29', '', null, '');
+INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2054, '价格管理', 1, 1, 'price', 'system/price/index', null, '', '1', '0', 'C', '0', '0', 'system:price:list', 'money', 'admin', '2024-09-06 13:39:17', 'admin', '2025-02-15T22:20:19.476233+08:00', '价格管理菜单');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2055, '价格管理查询', 2054, 1, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:price:query', '#', 'admin', '2024-09-06 13:39:17', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2056, '价格管理新增', 2054, 2, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:price:add', '#', 'admin', '2024-09-06 13:39:17', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2057, '价格管理修改', 2054, 3, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:price:edit', '#', 'admin', '2024-09-06 13:39:17', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2058, '价格管理删除', 2054, 4, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:price:remove', '#', 'admin', '2024-09-06 13:39:17', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2059, '价格管理导出', 2054, 5, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:price:export', '#', 'admin', '2024-09-06 13:39:17', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2060, '订单管理', 0, 4, 'orders', 'system/orders/index', null, '', '1', '1', 'C', '0', '0', '', 'clipboard', 'admin', '2024-09-07 01:41:40', 'admin', '2024-12-07T11:33:55.991381800+08:00', '洗护服务订单菜单');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2061, '洗护服务订单查询', 2060, 1, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:orders:query', '#', 'admin', '2024-09-07 01:41:40', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2062, '洗护服务订单新增', 2060, 2, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:orders:add', '#', 'admin', '2024-09-07 01:41:40', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2063, '洗护服务订单修改', 2060, 3, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:orders:edit', '#', 'admin', '2024-09-07 01:41:40', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2064, '洗护服务订单删除', 2060, 4, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:orders:remove', '#', 'admin', '2024-09-07 01:41:40', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2065, '洗护服务订单导出', 2060, 5, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:orders:export', '#', 'admin', '2024-09-07 01:41:40', '', null, '');
+INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2066, '支出管理', 2078, 1, 'expenditure', 'system/expenditure/index', null, '', '1', '0', 'C', '0', '0', 'system:expenditure:list', 'edit', 'admin', '2024-09-11 01:26:21', 'admin', '2025-02-15T22:20:47.895946300+08:00', '支出菜单');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2067, '支出查询', 2066, 1, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:expenditure:query', '#', 'admin', '2024-09-11 01:26:21', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2068, '支出新增', 2066, 2, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:expenditure:add', '#', 'admin', '2024-09-11 01:26:21', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2069, '支出修改', 2066, 3, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:expenditure:edit', '#', 'admin', '2024-09-11 01:26:21', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2070, '支出删除', 2066, 4, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:expenditure:remove', '#', 'admin', '2024-09-11 01:26:21', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2071, '支出导出', 2066, 5, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:expenditure:export', '#', 'admin', '2024-09-11 01:26:21', '', null, '');
+INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2072, '衣挂管理', 1, 1, 'rack', 'system/rack/index', null, '', '1', '0', 'C', '0', '0', 'system:rack:list', 'list', 'admin', '2024-09-14 06:13:30', 'admin', '2025-02-15T22:20:29.505985200+08:00', '晾衣架菜单');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2073, '晾衣架查询', 2072, 1, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:rack:query', '#', 'admin', '2024-09-14 06:13:30', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2074, '晾衣架新增', 2072, 2, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:rack:add', '#', 'admin', '2024-09-14 06:13:30', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2075, '晾衣架修改', 2072, 3, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:rack:edit', '#', 'admin', '2024-09-14 06:13:30', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2076, '晾衣架删除', 2072, 4, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:rack:remove', '#', 'admin', '2024-09-14 06:13:30', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2077, '晾衣架导出', 2072, 5, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:rack:export', '#', 'admin', '2024-09-14 06:13:30', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2078, '综合管理', 0, 3, 'integrated', null, null, '', '1', '0', 'M', '0', '0', '', 'log', 'admin', '2024-09-21 03:42:57', 'admin', '2024-12-07T11:34:35.608330500+08:00', '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2079, '统计报表', 0, 2, 'analysis', null, null, '', '1', '0', 'M', '0', '0', null, 'education', 'admin', '2024-09-21 03:47:00', '', '2024-12-07T11:34:06.599426100+08:00', '');
+INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2080, '推广模板', 1, 1, 'promote-template', 'system/promote_template/index', null, '', '1', '0', 'C', '1', '1', 'system:promote-template:list', '#', 'admin', '2024-10-13 11:25:55', 'admin', '2024-12-07T11:33:04.524330900+08:00', '推广模板菜单');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2081, '推广模板查询', 2080, 1, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:template:query', '#', 'admin', '2024-10-13 11:25:55', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2082, '推广模板新增', 2080, 2, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:template:add', '#', 'admin', '2024-10-13 11:25:55', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2083, '推广模板修改', 2080, 3, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:template:edit', '#', 'admin', '2024-10-13 11:25:55', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2084, '推广模板删除', 2080, 4, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:template:remove', '#', 'admin', '2024-10-13 11:25:55', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2085, '推广模板导出', 2080, 5, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:template:export', '#', 'admin', '2024-10-13 11:25:55', '', null, '');
+INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2086, '推广记录', 1, 1, 'promote-record', 'system/promote_record/index', null, '', '1', '0', 'C', '1', '1', 'system:promote-record:list', '#', 'admin', '2024-10-13 11:29:08', 'admin', '2024-12-07T11:33:09.946013+08:00', '推广记录菜单');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2087, '推广记录查询', 2086, 1, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:record:query', '#', 'admin', '2024-10-13 11:29:08', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2088, '推广记录新增', 2086, 2, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:record:add', '#', 'admin', '2024-10-13 11:29:08', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2089, '推广记录修改', 2086, 3, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:record:edit', '#', 'admin', '2024-10-13 11:29:08', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2090, '推广记录删除', 2086, 4, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:record:remove', '#', 'admin', '2024-10-13 11:29:08', '', null, '');
+-- INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2091, '推广记录导出', 2086, 5, '#', '', null, '', '1', '0', 'F', '0', '0', 'system:record:export', '#', 'admin', '2024-10-13 11:29:08', '', null, '');
 
-INSERT INTO `dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`,
-                         `list_class`, `is_default`, `status`, `create_time`,
-                         `update_time`, `remark`)
-VALUES (1, 1, '男', '0', 'sys_user_sex', '', '', 'Y', '0', '2024-08-16 06:41:56', '', '性别男'),
-       (2, 2, '女', '1', 'sys_user_sex', '', '', 'N', '0', '2024-08-16 06:41:56', '', '性别女'),
-       (3, 3, '未知', '2', 'sys_user_sex', '', '', 'N', '0', '2024-08-16 06:41:56', '', '性别未知'),
-       (4, 1, '显示', '0', 'sys_show_hide', '', 'primary', 'Y', '0', '2024-08-16 06:41:56', '',
-        '显示菜单'),
-       (5, 2, '隐藏', '1', 'sys_show_hide', '', 'danger', 'N', '0', '2024-08-16 06:41:56', '',
-        '隐藏菜单'),
-       (6, 1, '正常', '0', 'sys_normal_disable', '', 'primary', 'Y', '0', '2024-08-16 06:41:56', '',
-        '正常状态'),
-       (7, 2, '停用', '1', 'sys_normal_disable', '', 'danger', 'N', '0', '2024-08-16 06:41:56', '',
-        '停用状态'),
-       (8, 1, '正常', '0', 'sys_job_status', '', 'primary', 'Y', '0', '2024-08-16 06:41:56', '',
-        '正常状态'),
-       (9, 2, '暂停', '1', 'sys_job_status', '', 'danger', 'N', '0', '2024-08-16 06:41:56', '',
-        '停用状态'),
-       (10, 1, '默认', 'DEFAULT', 'sys_job_group', '', '', 'Y', '0', '2024-08-16 06:41:56', '',
-        '默认分组'),
-       (11, 2, '系统', 'SYSTEM', 'sys_job_group', '', '', 'N', '0', '2024-08-16 06:41:56', '',
-        '系统分组'),
-       (12, 1, '是', 'Y', 'sys_yes_no', '', 'primary', 'Y', '0', '2024-08-16 06:41:56', '',
-        '系统默认是'),
-       (13, 2, '否', 'N', 'sys_yes_no', '', 'danger', 'N', '0', '2024-08-16 06:41:56', '', '系统默认否'),
-       (14, 1, '通知', '1', 'sys_notice_type', '', 'warning', 'Y', '0', '2024-08-16 06:41:56', '',
-        '通知'),
-       (15, 2, '公告', '2', 'sys_notice_type', '', 'success', 'N', '0', '2024-08-16 06:41:56', '',
-        '公告'),
-       (16, 1, '正常', '0', 'sys_notice_status', '', 'primary', 'Y', '0', '2024-08-16 06:41:56', '',
-        '正常状态'),
-       (17, 2, '关闭', '1', 'sys_notice_status', '', 'danger', 'N', '0', '2024-08-16 06:41:56', '',
-        '关闭状态'),
-       (18, 99, '其他', '0', 'sys_oper_type', '', 'info', 'N', '0', '2024-08-16 06:41:56', '',
-        '其他操作'),
-       (19, 1, '新增', '1', 'sys_oper_type', '', 'info', 'N', '0', '2024-08-16 06:41:56', '',
-        '新增操作'),
-       (20, 2, '修改', '2', 'sys_oper_type', '', 'info', 'N', '0', '2024-08-16 06:41:56', '',
-        '修改操作'),
-       (21, 3, '删除', '3', 'sys_oper_type', '', 'danger', 'N', '0', '2024-08-16 06:41:56', '',
-        '删除操作'),
-       (22, 4, '授权', '4', 'sys_oper_type', '', 'primary', 'N', '0', '2024-08-16 06:41:56', '',
-        '授权操作'),
-       (23, 5, '导出', '5', 'sys_oper_type', '', 'warning', 'N', '0', '2024-08-16 06:41:56', '',
-        '导出操作'),
-       (24, 6, '导入', '6', 'sys_oper_type', '', 'warning', 'N', '0', '2024-08-16 06:41:56', '',
-        '导入操作'),
-       (25, 7, '强退', '7', 'sys_oper_type', '', 'danger', 'N', '0', '2024-08-16 06:41:56', '',
-        '强退操作'),
-       (26, 8, '生成代码', '8', 'sys_oper_type', '', 'warning', 'N', '0', '2024-08-16 06:41:56', '',
-        '生成操作'),
-       (27, 9, '清空数据', '9', 'sys_oper_type', '', 'danger', 'N', '0', '2024-08-16 06:41:56', '',
-        '清空操作'),
-       (28, 1, '成功', '0', 'sys_common_status', '', 'primary', 'N', '0', '2024-08-16 06:41:56', '',
-        '正常状态'),
-       (29, 2, '失败', '1', 'sys_common_status', '', 'danger', 'N', '0', '2024-08-16 06:41:56', '',
-        '停用状态'),
-       (100, 1, '系统用户', '00', 'sys_user_type', NULL, 'primary', 'N', '0', '2024-08-22 15:57:50', '',
-        NULL),
-       (101, 2, '会员客户', '01', 'sys_user_type', NULL, 'success', 'N', '0', '2024-08-22 15:58:09', '',
-        NULL);
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (1, '用户性别', 'sys_user_sex', '0', '2024-08-16 06:41:56', null, '用户性别列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (2, '菜单状态', 'sys_show_hide', '0', '2024-08-16 06:41:56', '', '菜单状态列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (3, '系统开关', 'sys_normal_disable', '0', '2024-08-16 06:41:56', '', '系统开关列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (4, '任务状态', 'sys_job_status', '0', '2024-08-16 06:41:56', '', '任务状态列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (5, '任务分组', 'sys_job_group', '0', '2024-08-16 06:41:56', '', '任务分组列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (6, '系统是否', 'sys_yes_no', '0', '2024-08-16 06:41:56', '', '系统是否列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (7, '通知类型', 'sys_notice_type', '0', '2024-08-16 06:41:56', '', '通知类型列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (8, '通知状态', 'sys_notice_status', '0', '2024-08-16 06:41:56', '', '通知状态列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (9, '操作类型', 'sys_oper_type', '0', '2024-08-16 06:41:56', '', '操作类型列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (10, '系统状态', 'sys_common_status', '0', '2024-08-16 06:41:56', '', '登录状态列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (100, '用户类型', 'sys_user_type', '0', '2024-08-22 15:56:17', '', '用户类型，00 系统用户，01 会员客户');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (101, '衣物类别', 'sys_cloth_cate', '0', '2024-08-29 12:31:19', '2024-08-29 12:49:05', '000服装洗护 001家居洗护 002皮具养护 003鞋靴洗护 004奢侈品洗护 005轻奢洗护');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (102, '衣物种类', 'sys_cloth_style', '0', '2024-08-29 12:48:56', '', '000上衣 001鞋 002裤子等');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (103, '会员画像', 'sys_user_tags', '0', '2024-09-01 02:46:06', '', '00 优质客户
+01 不友好客户
+02 事多客户');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (104, '黑灰名单', 'sys_user_identify', '0', '2024-09-01 13:49:57', '', '用户黑灰名单');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (105, '标签类别', 'sys_tag_order', '0', '2024-09-02 06:52:15', '', '001 洗前瑕疵 002 洗后预估 003 衣物颜色……');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (106, '删除状态', 'sys_del_status', '0', '2024-09-03 06:50:19', '', '删除状态列表：0 正常 2 删除');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (107, '卡券状态', 'sys_coupon_status', '0', '2024-09-03 06:56:54', '', '卡券状态列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (108, '卡券类别', 'sys_coupon_type', '0', '2024-09-03 06:59:02', '', '卡券类别列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (109, '客户可见', 'sys_coupon_customer_invalid', '0', '2024-09-03 07:32:00', '', '客户可见列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (110, '自动延期', 'sys_coupon_auto_delay', '0', '2024-09-03 07:32:21', '', '自动延期列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (111, '通知方式', 'sys_notice_method', '0', '2024-09-04 14:33:43', '', '通知方式列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (112, '通知模板类型', 'sys_temp_type', '0', '2024-09-04 14:35:50', '', '通知模板类型列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (113, '通知结果', 'sys_notice_result', '0', '2024-09-04 14:36:34', '', '通知结果列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (114, '支付方式', 'sys_payment_method', '0', '2024-09-06 00:37:19', '', '支付方式列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (115, '用户卡券状态', 'sys_uc_status', '0', '2024-09-06 00:58:54', '', '用户卡券状态列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (116, '订单类型', 'sys_price_order_type', '0', '2024-09-06 13:47:14', '', '订单类型列表，用于价格管理模块');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (117, '支付状态', 'sys_payment_status', '0', '2024-09-07 01:48:58', '', '支付状态列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (118, '时效预警', 'sys_cost_time_alarm', '0', '2024-09-07 01:50:09', '', '时效预警列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (119, '衣物颜色', 'sys_color_list', '0', '2024-09-07 11:57:38', '', '衣物颜色列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (120, '服务类型', 'sys_service_type', '0', '2024-09-08 01:12:01', '', '服务类型列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (121, '服务要求', 'sys_service_requirement', '0', '2024-09-08 01:12:26', '', '服务要求列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (122, '衣物状态', 'sys_clothing_status', '0', '2024-09-08 01:13:11', '', '衣物状态列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (123, '业务类型', 'sys_business_type', '0', '2024-09-08 13:21:42', '', '业务类型列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (124, '取回方式', 'sys_delivery_mode', '0', '2024-09-08 13:23:07', '', '取回方式列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (125, '订单状态', 'sys_order_status', '0', '2024-09-09 01:46:56', '', '订单状态列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (126, '订单类型', 'sys_order_type', '0', '2024-09-09 01:49:56', '', '订单类型列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (127, '支出类型', 'sys_exp_type', '0', '2024-09-11 01:18:58', '', '支出类型列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (128, '卡券支付方式', 'sys_coupon_payment_method', '0', '2024-09-23 12:03:24', '', null);
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (129, '服装洗护分类', 'sys_cloth_style000', '0', '2024-09-26 02:56:57', '', '服装洗护分类列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (130, '推广方式', 'sys_promote_method', '0', '2024-10-14 01:49:57', '', '推广方式列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (131, '推广类型', 'sys_promote_type', '0', '2024-10-14 02:15:43', '', null);
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (132, '支付方式-展示', 'sys_payment_method_show', '0', '2024-10-16 04:50:20', '', null);
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (133, '推广状态', 'sys_promote_result', '0', '2024-10-20 05:53:02', '2024-10-20 05:53:22', null);
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (134, '家具洗护分类', 'sys_cloth_style001', '0', '2024-12-11T18:16:55.937813900+08:00', null, null);
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (135, '皮具养护', 'sys_cloth_style002', '0', '2025-02-17T19:50:47.943800200+08:00', null, null);
+
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (1, 4, '男', '0', 'sys_user_sex', '', '', 'Y', '0', '2024-08-16 06:41:56', null, '性别男');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (2, 2, '女', '1', 'sys_user_sex', '', '', 'N', '0', '2024-08-16 06:41:56', '', '性别女');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (3, 3, '未知', '2', 'sys_user_sex', '', '', 'N', '0', '2024-08-16 06:41:56', '', '性别未知');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (4, 1, '显示', '0', 'sys_show_hide', '', 'primary', 'Y', '0', '2024-08-16 06:41:56', '', '显示菜单');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (5, 2, '隐藏', '1', 'sys_show_hide', '', 'danger', 'N', '0', '2024-08-16 06:41:56', '', '隐藏菜单');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (6, 1, '正常', '0', 'sys_normal_disable', '', 'primary', 'Y', '0', '2024-08-16 06:41:56', '', '正常状态');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (7, 2, '停用', '1', 'sys_normal_disable', '', 'danger', 'N', '0', '2024-08-16 06:41:56', '', '停用状态');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (8, 1, '正常', '0', 'sys_job_status', '', 'primary', 'Y', '0', '2024-08-16 06:41:56', '', '正常状态');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (9, 2, '暂停', '1', 'sys_job_status', '', 'danger', 'N', '0', '2024-08-16 06:41:56', '', '停用状态');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (10, 1, '默认', 'DEFAULT', 'sys_job_group', '', '', 'Y', '0', '2024-08-16 06:41:56', '', '默认分组');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (11, 2, '系统', 'SYSTEM', 'sys_job_group', '', '', 'N', '0', '2024-08-16 06:41:56', '', '系统分组');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (12, 1, '是', 'Y', 'sys_yes_no', '', 'primary', 'Y', '0', '2024-08-16 06:41:56', '', '系统默认是');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (13, 2, '否', 'N', 'sys_yes_no', '', 'danger', 'N', '0', '2024-08-16 06:41:56', '', '系统默认否');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (14, 1, '通知', '1', 'sys_notice_type', '', 'warning', 'Y', '0', '2024-08-16 06:41:56', '', '通知');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (15, 2, '公告', '2', 'sys_notice_type', '', 'success', 'N', '0', '2024-08-16 06:41:56', '', '公告');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (16, 1, '正常', '0', 'sys_notice_status', '', 'primary', 'Y', '0', '2024-08-16 06:41:56', '', '正常状态');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (17, 2, '关闭', '1', 'sys_notice_status', '', 'danger', 'N', '0', '2024-08-16 06:41:56', '', '关闭状态');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (18, 99, '其他', '0', 'sys_oper_type', '', 'info', 'N', '0', '2024-08-16 06:41:56', '', '其他操作');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (19, 1, '新增', '1', 'sys_oper_type', '', 'info', 'N', '0', '2024-08-16 06:41:56', '', '新增操作');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (20, 2, '修改', '2', 'sys_oper_type', '', 'info', 'N', '0', '2024-08-16 06:41:56', '', '修改操作');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (21, 3, '删除', '3', 'sys_oper_type', '', 'danger', 'N', '0', '2024-08-16 06:41:56', '', '删除操作');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (22, 4, '授权', '4', 'sys_oper_type', '', 'primary', 'N', '0', '2024-08-16 06:41:56', '', '授权操作');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (23, 5, '导出', '5', 'sys_oper_type', '', 'warning', 'N', '0', '2024-08-16 06:41:56', '', '导出操作');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (24, 6, '导入', '6', 'sys_oper_type', '', 'warning', 'N', '0', '2024-08-16 06:41:56', '', '导入操作');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (25, 7, '强退', '7', 'sys_oper_type', '', 'danger', 'N', '0', '2024-08-16 06:41:56', '', '强退操作');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (26, 8, '生成代码', '8', 'sys_oper_type', '', 'warning', 'N', '0', '2024-08-16 06:41:56', '', '生成操作');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (27, 9, '清空数据', '9', 'sys_oper_type', '', 'danger', 'N', '0', '2024-08-16 06:41:56', '', '清空操作');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (28, 1, '成功', '0', 'sys_common_status', '', 'primary', 'N', '0', '2024-08-16 06:41:56', '', '正常状态');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (29, 2, '失败', '1', 'sys_common_status', '', 'danger', 'N', '0', '2024-08-16 06:41:56', '', '停用状态');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (100, 1, '系统用户', '00', 'sys_user_type', null, 'primary', 'N', '0', '2024-08-22 15:57:50', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (101, 2, '会员客户', '01', 'sys_user_type', null, 'success', 'N', '0', '2024-08-22 15:58:09', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (102, 0, '服装洗护', '000', 'sys_cloth_cate', null, 'success', 'N', '0', '2024-08-29 12:33:39', '2024-08-29 12:46:07', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (103, 1, '家居洗护', '001', 'sys_cloth_cate', null, 'default', 'N', '0', '2024-08-29 12:34:04', '2024-08-29 12:34:19', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (104, 2, '皮具养护', '002', 'sys_cloth_cate', null, 'default', 'N', '0', '2024-08-29 12:34:46', '2024-08-29 12:34:53', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (105, 3, '鞋靴洗护', '003', 'sys_cloth_cate', null, 'default', 'N', '0', '2024-08-29 12:35:10', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (106, 4, '奢侈品洗护', '004', 'sys_cloth_cate', null, 'default', 'N', '0', '2024-08-29 12:35:23', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (107, 5, '轻奢洗护', '005', 'sys_cloth_cate', null, 'default', 'N', '0', '2024-08-29 12:35:38', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (108, 0, '上衣', '000', 'sys_cloth_style', null, 'default', 'N', '0', '2024-08-29 12:49:24', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (109, 1, '鞋', '001', 'sys_cloth_style', null, 'default', 'N', '0', '2024-08-29 12:49:39', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (110, 2, '裤子', '002', 'sys_cloth_style', null, 'default', 'N', '0', '2024-08-29 12:49:52', '2024-09-03 01:40:15', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (111, 0, '优质客户', '00', 'sys_user_tags', null, 'success', 'N', '0', '2024-09-01 02:46:49', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (112, 1, '不友好客户', '01', 'sys_user_tags', null, 'danger', 'N', '0', '2024-09-01 02:47:16', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (113, 2, '事多客户', '02', 'sys_user_tags', null, 'warning', 'N', '0', '2024-09-01 02:47:37', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (114, 3, '其他', '03', 'sys_user_tags', null, 'primary', 'N', '0', '2024-09-01 02:47:53', '2024-09-01 03:50:09', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (115, 0, '正常', '00', 'sys_user_identify', null, 'success', 'N', '0', '2024-09-01 13:50:28', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (116, 1, '黑名单', '01', 'sys_user_identify', null, 'danger', 'N', '0', '2024-09-01 13:51:05', '', '黑名单，不允许消费');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (117, 2, '灰名单', '02', 'sys_user_identify', null, 'warning', 'N', '0', '2024-09-01 13:51:46', '', '灰名单只能到店消费，不能小程序自助下单');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (118, 0, '洗前瑕疵', '001', 'sys_tag_order', null, 'warning', 'N', '0', '2024-09-02 06:52:48', '', '001 洗前瑕疵');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (119, 1, '洗后预估', '002', 'sys_tag_order', null, 'primary', 'N', '0', '2024-09-02 06:53:09', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (120, 2, '衣物颜色', '003', 'sys_tag_order', null, 'success', 'N', '0', '2024-09-02 06:53:50', '2024-09-07 13:37:06', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (121, 0, '正常', '0', 'sys_del_status', null, 'success', 'N', '0', '2024-09-03 06:50:36', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (122, 1, '已删除', '2', 'sys_del_status', null, 'danger', 'N', '0', '2024-09-03 06:50:52', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (123, 0, '正常销售', '0', 'sys_coupon_status', null, 'success', 'N', '0', '2024-09-03 06:57:33', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (124, 1, '不可销售', '1', 'sys_coupon_status', null, 'danger', 'N', '0', '2024-09-03 06:58:01', '2024-09-03 06:58:32', '代表由于编辑生成新的卡券后，此卡券变为不可销售，且不可编辑修改');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (125, 2, '暂不销售', '2', 'sys_coupon_status', null, 'warning', 'N', '0', '2024-09-03 06:58:24', '', '代表店家提前创建好了卡券，但是暂时不对外售卖');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (126, 0, '储值卡', '000', 'sys_coupon_type', null, 'primary', 'N', '0', '2024-09-03 06:59:26', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (127, 1, '福利卡', '001', 'sys_coupon_type', null, 'primary', 'N', '1', '2024-09-03 06:59:49', '2024-09-24 03:12:48', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (128, 2, '次卡', '002', 'sys_coupon_type', null, 'primary', 'N', '0', '2024-09-03 07:00:06', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (129, 3, '折扣券', '003', 'sys_coupon_type', null, 'primary', 'N', '0', '2024-09-03 07:00:23', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (130, 4, '满减券', '004', 'sys_coupon_type', null, 'primary', 'N', '0', '2024-09-03 07:00:37', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (131, 0, '是', '0', 'sys_coupon_auto_delay', null, 'success', 'N', '0', '2024-09-03 07:33:22', '', '自动延期');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (132, 1, '否', '2', 'sys_coupon_auto_delay', null, 'danger', 'N', '0', '2024-09-03 07:33:38', '', '不自动延期');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (133, 0, '可见', '0', 'sys_coupon_customer_invalid', null, 'success', 'N', '0', '2024-09-03 07:33:58', '', '客户可见');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (134, 1, '不可见', '2', 'sys_coupon_customer_invalid', null, 'danger', 'N', '0', '2024-09-03 07:34:12', '', '客户不可见');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (135, 0, '短信', '0', 'sys_notice_method', null, 'primary', 'N', '0', '2024-09-04 14:37:13', '', '短信通知');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (136, 1, '小程序', '1', 'sys_notice_method', null, 'success', 'N', '0', '2024-09-04 14:37:31', '', '小程序通知');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (137, 0, '取衣通知', '0', 'sys_temp_type', null, 'success', 'N', '0', '2024-09-04 14:37:56', '2024-09-28 06:42:58', '取衣通知');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (138, 1, '推广', '1', 'sys_temp_type', null, 'primary', 'N', '0', '2024-09-04 14:38:13', '2024-09-28 06:43:14', '推广');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (139, 0, '发送成功', '0', 'sys_notice_result', null, 'success', 'N', '0', '2024-09-04 14:38:31', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (140, 1, '发送失败', '1', 'sys_notice_result', null, 'danger', 'N', '0', '2024-09-04 14:38:44', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (141, 0, '支付宝', '01', 'sys_payment_method', null, 'success', 'N', '0', '2024-09-06 00:37:41', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (142, 1, '微信', '02', 'sys_payment_method', null, 'success', 'N', '0', '2024-09-06 00:37:55', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (143, 2, '美团转结', '03', 'sys_payment_method', null, 'success', 'N', '0', '2024-09-06 00:38:17', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (144, 3, '抖音结转', '04', 'sys_payment_method', null, 'success', 'N', '0', '2024-09-06 00:38:36', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (145, 4, '现金支付', '05', 'sys_payment_method', null, 'success', 'N', '0', '2024-09-06 00:39:22', '2024-10-05 02:00:00', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (146, 5, '储值卡', '06', 'sys_payment_method', null, 'primary', 'N', '0', '2024-09-06 00:39:39', '2024-10-05 02:00:14', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (147, 0, '正常', '00', 'sys_uc_status', null, 'primary', 'N', '0', '2024-09-06 00:59:43', '', '卡券未退款');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (148, 1, '已退款', '01', 'sys_uc_status', null, 'danger', 'N', '0', '2024-09-06 01:00:02', '', '已经退款');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (149, 0, '小程序', '00', 'sys_price_order_type', null, 'success', 'N', '0', '2024-09-06 13:47:44', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (150, 1, '美团', '01', 'sys_price_order_type', null, 'primary', 'N', '0', '2024-09-06 13:48:03', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (151, 2, '抖音', '02', 'sys_price_order_type', null, 'info', 'N', '0', '2024-09-06 13:48:19', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (152, 3, '到店', '03', 'sys_price_order_type', null, 'success', 'N', '0', '2024-09-06 13:48:35', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (153, 4, '其他', '04', 'sys_price_order_type', null, 'warning', 'N', '0', '2024-09-06 13:48:52', '2024-09-06 13:49:02', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (154, 0, '已支付', '00', 'sys_payment_status', null, 'success', 'N', '0', '2024-09-07 01:49:15', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (155, 1, '未支付', '01', 'sys_payment_status', null, 'danger', 'N', '0', '2024-09-07 01:49:26', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (156, 0, '正常', '00', 'sys_cost_time_alarm', null, 'success', 'N', '0', '2024-09-07 01:50:24', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (157, 1, '即将超时', '01', 'sys_cost_time_alarm', null, 'warning', 'N', '0', '2024-09-07 01:50:43', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (158, 2, '已超时', '02', 'sys_cost_time_alarm', null, 'danger', 'N', '0', '2024-09-07 01:50:58', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (159, 0, '红色', '001', 'sys_color_list', null, 'default', 'N', '0', '2024-09-07 11:58:08', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (160, 1, '黄色', '002', 'sys_color_list', null, 'default', 'N', '0', '2024-09-07 11:58:21', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (161, 2, '蓝色', '003', 'sys_color_list', null, 'default', 'N', '0', '2024-09-07 11:58:34', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (162, 3, '绿色', '004', 'sys_color_list', null, 'default', 'N', '0', '2024-09-07 11:58:51', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (163, 0, '其他', '000', 'sys_color_list', null, 'default', 'N', '0', '2024-09-07 11:59:06', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (164, 3, '品牌', '004', 'sys_tag_order', null, 'info', 'N', '0', '2024-09-07 13:36:59', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (165, 0, '已取走', '00', 'sys_clothing_status', null, 'success', 'N', '0', '2024-09-08 01:13:33', '2024-09-13 13:20:25', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (166, 1, '洗护中', '01', 'sys_clothing_status', null, 'primary', 'N', '0', '2024-09-08 01:13:46', '2024-09-13 13:20:20', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (167, 2, '已上挂', '02', 'sys_clothing_status', null, 'success', 'N', '0', '2024-09-08 01:14:02', '2024-09-13 13:20:15', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (168, 0, '常规', '000', 'sys_service_requirement', null, 'success', 'N', '0', '2024-09-08 01:14:23', '2024-09-08 01:15:15', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (169, 1, '加急', '001', 'sys_service_requirement', null, 'danger', 'N', '0', '2024-09-08 01:14:46', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (170, 2, '单洗', '002', 'sys_service_requirement', null, 'primary', 'N', '0', '2024-09-08 01:15:08', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (171, 3, '其他', '003', 'sys_service_requirement', null, 'info', 'N', '0', '2024-09-08 01:15:40', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (172, 0, '洗护', '000', 'sys_service_type', null, 'primary', 'N', '0', '2024-09-08 01:16:03', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (173, 1, '熨烫', '001', 'sys_service_type', null, 'primary', 'N', '0', '2024-09-08 01:16:20', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (174, 2, '扦裤脚', '002', 'sys_service_type', null, 'primary', 'N', '0', '2024-09-08 01:16:37', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (175, 3, '其他', '003', 'sys_service_type', null, 'info', 'N', '0', '2024-09-08 01:16:55', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (176, 0, '主营业务', '00', 'sys_business_type', null, 'success', 'N', '0', '2024-09-08 13:22:02', '2024-09-09 01:29:12', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (177, 1, '增值业务', '01', 'sys_business_type', null, 'primary', 'N', '0', '2024-09-08 13:22:17', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (178, 0, '客户自取', '00', 'sys_delivery_mode', null, 'primary', 'N', '0', '2024-09-08 13:23:23', '2024-09-08 13:24:04', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (179, 1, '上门派送', '01', 'sys_delivery_mode', null, 'warning', 'N', '0', '2024-09-08 13:23:37', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (180, 2, '快递邮寄', '02', 'sys_delivery_mode', null, 'danger', 'N', '0', '2024-09-08 13:23:55', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (181, 2, '其他', '02', 'sys_business_type', null, 'info', 'N', '0', '2024-09-09 01:29:26', '2024-09-09 01:29:34', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (182, 0, '正在洗护', '01', 'sys_order_status', null, 'primary', 'N', '0', '2024-09-09 01:47:20', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (183, 1, '上挂待取', '02', 'sys_order_status', null, 'success', 'N', '0', '2024-09-09 01:47:35', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (184, 2, '上挂待送', '03', 'sys_order_status', null, 'primary', 'N', '0', '2024-09-09 01:48:02', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (185, 3, '已完成', '04', 'sys_order_status', null, 'success', 'N', '0', '2024-09-09 01:48:17', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (186, 4, '已退单', '05', 'sys_order_status', null, 'danger', 'N', '0', '2024-09-09 01:48:29', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (187, 5, '退单退款', '06', 'sys_order_status', null, 'danger', 'N', '0', '2024-09-09 01:49:04', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (188, 0, '正常订单', '00', 'sys_order_type', null, 'primary', 'N', '0', '2024-09-09 01:50:10', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (189, 1, '售后质保', '02', 'sys_order_type', null, 'warning', 'N', '0', '2024-09-09 01:50:31', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (190, 0, '订单退款', '00', 'sys_exp_type', null, 'default', 'N', '0', '2024-09-11 01:19:48', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (191, 1, '事故赔偿', '01', 'sys_exp_type', null, 'default', 'N', '0', '2024-09-11 01:19:58', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (192, 2, '经营支出', '02', 'sys_exp_type', null, 'default', 'N', '0', '2024-09-11 01:20:16', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (193, 3, '卡券退款', '03', 'sys_exp_type', null, 'default', 'N', '0', '2024-09-11 01:20:39', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (194, 4, '水电支出', '04', 'sys_exp_type', null, 'default', 'N', '0', '2024-09-11 01:20:58', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (195, 3, '已退单', '03', 'sys_clothing_status', null, 'danger', 'N', '0', '2024-09-13 13:20:00', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (196, 0, '支付宝', '01', 'sys_coupon_payment_method', null, 'success', 'N', '0', '2024-09-23 12:04:55', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (197, 1, '微信', '02', 'sys_coupon_payment_method', null, 'success', 'N', '0', '2024-09-23 12:05:08', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (198, 2, '现金', '05', 'sys_coupon_payment_method', null, 'success', 'N', '0', '2024-09-23 12:05:27', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (199, 3, '其他', '06', 'sys_coupon_payment_method', null, 'success', 'N', '0', '2024-09-23 12:05:41', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (200, 0, '上衣', '0', 'sys_cloth_style000', null, 'default', 'N', '0', '2024-09-26 02:57:37', '2025-02-17T19:46:16.271405600+08:00', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (201, 1, '裤子', '1', 'sys_cloth_style000', null, 'default', 'N', '0', '2024-09-26 02:57:45', '2025-02-17T19:46:24.781881500+08:00', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (202, 2, '卫衣', '2', 'sys_cloth_style000', null, 'default', 'N', '0', '2024-09-26 02:57:57', '2025-02-17T19:46:31.678427400+08:00', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (203, 2, '其他', '2', 'sys_temp_type', null, 'warning', 'N', '0', '2024-09-28 06:43:36', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (204, 2, '发送中...', '2', 'sys_notice_result', null, 'primary', 'N', '0', '2024-09-28 07:00:45', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (205, 7, '其他', '09', 'sys_payment_method', null, 'info', 'N', '0', '2024-10-05 02:00:57', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (206, 6, '次卡', '07', 'sys_payment_method', null, 'success', 'N', '0', '2024-10-05 02:05:20', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (207, 0, '小程序', '00', 'sys_promote_method', null, 'primary', 'N', '0', '2024-10-14 01:51:20', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (208, 1, '短信', '01', 'sys_promote_method', null, 'success', 'N', '0', '2024-10-14 01:51:32', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (209, 2, '其他', '02', 'sys_promote_method', null, 'default', 'N', '0', '2024-10-14 01:51:44', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (210, 0, '赠券', '00', 'sys_promote_type', null, 'primary', 'N', '0', '2024-10-14 02:16:06', '2024-10-16 13:28:56', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (211, 0, '支付宝', '01', 'sys_payment_method_show', null, 'primary', 'N', '0', '2024-10-16 04:50:36', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (212, 1, '微信', '02', 'sys_payment_method_show', null, 'success', 'N', '0', '2024-10-16 04:50:48', '2024-10-16 04:58:15', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (213, 2, '美团结转', '03', 'sys_payment_method_show', null, 'info', 'N', '0', '2024-10-16 04:51:05', '2024-10-16 04:58:10', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (214, 3, '抖音结转', '04', 'sys_payment_method_show', null, 'info', 'N', '0', '2024-10-16 04:51:17', '2024-10-16 04:57:57', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (215, 4, '现金支付', '05', 'sys_payment_method_show', null, 'warning', 'N', '0', '2024-10-16 04:51:33', '2024-10-16 04:57:50', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (216, 5, '储值卡', '06', 'sys_payment_method_show', null, 'danger', 'N', '0', '2024-10-16 04:51:48', '2024-10-16 04:57:20', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (217, 6, '次卡', '07', 'sys_payment_method_show', null, 'danger', 'N', '0', '2024-10-16 04:52:00', '2024-10-16 04:57:32', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (218, 7, '其他', '09', 'sys_payment_method_show', null, 'info', 'N', '0', '2024-10-16 04:52:14', '2024-10-16 04:56:55', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (219, 8, '支付宝+储值卡', '16', 'sys_payment_method_show', null, 'primary', 'N', '0', '2024-10-16 04:52:48', '2024-10-16 04:53:06', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (220, 9, '支付宝+次卡', '17', 'sys_payment_method_show', null, 'primary', 'N', '0', '2024-10-16 04:53:29', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (221, 10, '支付宝+折扣券', '18', 'sys_payment_method_show', null, 'primary', 'N', '0', '2024-10-16 04:53:47', '2024-10-16 06:37:26', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (222, 12, '微信+储值卡', '26', 'sys_payment_method_show', null, 'success', 'N', '0', '2024-10-16 04:54:36', '2024-10-16 06:42:38', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (223, 13, '微信+次卡', '27', 'sys_payment_method_show', null, 'success', 'N', '0', '2024-10-16 04:54:54', '2024-10-16 06:42:46', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (224, 14, '微信+折扣券', '28', 'sys_payment_method_show', null, 'success', 'N', '0', '2024-10-16 04:55:11', '2024-10-16 06:43:39', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (225, 16, '现金+储值卡', '56', 'sys_payment_method_show', null, 'warning', 'N', '0', '2024-10-16 04:55:39', '2024-10-16 06:43:45', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (226, 17, '现金+次卡', '57', 'sys_payment_method_show', null, 'warning', 'N', '0', '2024-10-16 04:55:59', '2024-10-16 06:43:49', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (227, 18, '现金+折扣券', '58', 'sys_payment_method_show', null, 'warning', 'N', '0', '2024-10-16 04:56:20', '2024-10-16 06:44:24', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (228, 11, '支付宝+满减券', '19', 'sys_payment_method_show', null, 'primary', 'N', '0', '2024-10-16 06:42:17', '2024-10-16 06:42:31', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (229, 15, '微信+满减券', '29', 'sys_payment_method_show', null, 'success', 'N', '0', '2024-10-16 06:43:28', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (230, 19, '现金+满减券', '59', 'sys_payment_method_show', null, 'warning', 'N', '0', '2024-10-16 06:44:16', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (231, 0, '成功', '0', 'sys_promote_result', null, 'success', 'N', '0', '2024-10-20 05:53:34', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (232, 1, '失败', '1', 'sys_promote_result', null, 'danger', 'N', '0', '2024-10-20 05:53:44', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (233, 2, '部分成功', '2', 'sys_promote_result', null, 'warning', 'N', '0', '2024-10-20 05:53:56', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (234, 0, '喇叭库', '004', 'sys_cloth_style', null, 'default', null, '0', '2024-12-09T14:33:34.460359186+08:00', null, null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (235, 0, '沙发垫', '0', 'sys_cloth_style001', null, 'primary', null, '0', '2024-12-11T18:17:18.591259100+08:00', '2025-02-17T19:46:05.221694800+08:00', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (236, 2, '已退单', '05', 'sys_payment_status', null, 'warning', null, '0', '2024-12-15T10:57:59.500259700+08:00', null, null);
 
 INSERT INTO membership_level (level_id, level_code, level_name, level_sort, status, create_time, update_time, remark)
 VALUES (1, 'dpyy', '店铺经营', 1, '0', '2024-08-16 06:41:56', '2024-08-22 15:24:56', '实际最终店铺的辅助经营人员');

@@ -20,7 +20,6 @@ import useUserStore from '@/store/modules/user';
 
 const userStore = useUserStore();
 const tagsViewStore = useTagsViewStore()
-console.log('tagsViewStore', tagsViewStore)
 const showWarning = ref(false);
 const defaultTimeoutLength = 300; // 5 minutes
 const timeOut = ref(defaultTimeoutLength);

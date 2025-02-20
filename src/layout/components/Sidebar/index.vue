@@ -1,12 +1,15 @@
 <template>
   <div :class="{ 'has-logo': showLogo }"
-    :style="{ backgroundColor: sideTheme === 'theme-dark' ? variables.menuBackground : variables.menuLightBackground }">
+    :style="{ backgroundColor: variables.menuLightBackground }">
     <logo v-if="showLogo" :collapse="isCollapse" />
     <el-scrollbar :class="sideTheme" wrap-class="scrollbar-wrapper">
       <el-menu :default-active="activeMenu" :collapse="isCollapse"
-        :background-color="sideTheme === 'theme-dark' ? variables.menuBackground : variables.menuLightBackground"
-        :text-color="sideTheme === 'theme-dark' ? variables.menuColor : variables.menuLightColor" :unique-opened="true"
-        :active-text-color="theme" :collapse-transition="false" mode="vertical">
+        :background-color="variables.menuLightBackground"
+        :text-color="variables.menuLightColor"
+        :unique-opened="true"
+        :active-text-color="theme"
+        :collapse-transition="false"
+        mode="vertical">
         <sidebar-item v-for="(route, index) in sidebarRouters" :key="route.path + index" :item="route"
           :base-path="route.path" />
       </el-menu>
@@ -36,7 +39,6 @@ const permissionStore = usePermissionStore()
 const sidebarRouters = computed(() => permissionStore.sidebarRouters);
 console.log(sidebarRouters)
 const showLogo = computed(() => settingsStore.sidebarLogo);
-const sideTheme = computed(() => settingsStore.sideTheme);
 const theme = computed(() => settingsStore.theme);
 const isCollapse = computed(() => !appStore.sidebar.opened);
 
@@ -48,5 +50,8 @@ const activeMenu = computed(() => {
   }
   return path;
 })
+
+// 确保 sideTheme 始终为 'theme-light'
+const sideTheme = computed(() => 'theme-light');
 
 </script>

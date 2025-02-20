@@ -1,14 +1,9 @@
 <template>
-  <!-- <div :class="classObj" class="app-wrapper" :style="{ '--current-color': theme }"> -->
-  <!-- <div v-if="device === 'mobile' && sidebar.opened" class="drawer-bg" @click="handleClickOutside"/> -->
-  <!-- <sidebar v-if="!sidebar.hide" class="sidebar-container" /> -->
   <SidebarNew class="sidebar-container" />
   <div :class="{ hasTagsView: needTagsView, sidebarHide: sidebar.hide }" class="main-container">
     <CloseBar />
     <app-main />
-    <settings ref="settingRef" />
   </div>
-  <!-- </div> -->
 </template>
 
 <script setup>
@@ -59,6 +54,7 @@ function handleClickOutside() {
 
 const settingRef = ref(null);
 function setLayout() {
+  console.log('setLayout')
   settingRef.value.openSetting();
 }
 </script>

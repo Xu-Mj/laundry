@@ -1,5 +1,5 @@
 use crate::db::{AppState, Validator};
-use crate::error::{Error, Result};
+use crate::error::{Error, ErrorKind, Result};
 use crate::{captcha, utils};
 use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use base64::prelude::*;
@@ -139,7 +139,7 @@ impl LoginReq {
                 .fetch_optional(pool)
                 .await?;
 
-        let mut user = user.ok_or(Error::not_found("User not found"))?;
+        let mut user = user.ok_or(Error::with_kind(ErrorKind::InvalidPassword))?;
         if user.password.is_none() {
             return Err(Error::internal("USER DATA ERROR"));
         }

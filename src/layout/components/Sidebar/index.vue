@@ -40,7 +40,7 @@ const sidebarRouters = computed(() => permissionStore.sidebarRouters);
 console.log(sidebarRouters)
 const showLogo = computed(() => settingsStore.sidebarLogo);
 const theme = computed(() => settingsStore.theme);
-const isCollapse = computed(() => !appStore.sidebar.opened);
+const isCollapse = computed(() => appStore.sidebar.opened);
 
 const activeMenu = computed(() => {
   const { meta, path } = route;

@@ -62,7 +62,8 @@ import { ElMessageBox } from 'element-plus'
 import useUserStore from '@/store/modules/user'
 import useSettingsStore from '@/store/modules/settings'
 import Setting from '@/views/setting/index.vue';
-import { updatePwd } from '@/api/system/user'
+import { updatePwd } from '@/api/system/user';
+import { Window } from '@tauri-apps/api/window';
 
 const props = defineProps({
   switch: Function,
@@ -71,8 +72,8 @@ const props = defineProps({
 
 const { proxy } = getCurrentInstance();
 
+const appWindow = new Window('main')
 const userStore = useUserStore()
-const settingsStore = useSettingsStore()
 const showSetting = ref(false);
 const showChangePwd = ref(false);
 const form = ref({
@@ -176,7 +177,8 @@ function logout() {
     cancelButtonText: '取消',
     type: 'warning'
   }).then(() => {
-    userStore.logOut().then(() => {
+    userStore.logOut().then(async () => {
+      await appWindow.hide();
       location.href = '/index';
     })
   }).catch(() => { });

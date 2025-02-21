@@ -1,9 +1,50 @@
+use std::fs;
+use std::path::Path;
+
 use sqlx::migrate::MigrateDatabase;
 use sqlx::sqlite::SqlitePoolOptions;
 use sqlx::Sqlite;
-use std::fs;
-use std::path::Path;
-use tracing::{info, debug};
+use tauri_plugin_updater::UpdaterExt;
+use tracing::{debug, info};
+
+pub async fn update<R: tauri::Runtime>(
+    app: tauri::AppHandle<R>,
+) -> tauri_plugin_updater::Result<()> {
+    // 打印当前应用版本
+    let current_version = app.package_info().version.to_string();
+    tracing::info!("Current app version: {}", current_version);
+
+    match app.updater()?.check().await {
+        Ok(Some(update)) => {
+            let mut downloaded = 0;
+
+            // 下载并安装更新
+            update
+                .download_and_install(
+                    |chunk_length, content_length| {
+                        downloaded += chunk_length;
+                        tracing::info!("Downloaded {} from {:?}", downloaded, content_length);
+                    },
+                    || {
+                        tracing::info!("Download finished");
+                    },
+                )
+                .await?;
+
+            tracing::info!("Update installed");
+            app.restart();
+        }
+        Ok(None) => {
+            tracing::info!("No updates found");
+        }
+        Err(err) => {
+            // 打印详细的错误信息
+            tracing::error!("Failed to check for updates: {:?}", err);
+        }
+    }
+
+    Ok(())
+}
 
 pub async fn migrate() -> Result<(), sqlx::Error> {
     let db_path = "database.db";

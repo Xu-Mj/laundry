@@ -15,13 +15,36 @@ pub mod utils;
 use tauri::ipc::Invoke;
 use tauri::Runtime;
 use tauri_plugin_fs::FsExt;
-use tauri_plugin_updater::UpdaterExt;
 
 use crate::db::{
     cloth_price, clothing, configs, coupons, dict_data, dict_type, drying_rack, expenditure,
     local_users, membership_level, menu, notice_temp, order_clothes, orders, payments, tags, user,
     user_coupons,
 };
+
+pub fn create_app<R: tauri::Runtime, T: Send + Sync + 'static>(
+    builder: tauri::Builder<R>,
+    state: T,
+) -> tauri::App<R> {
+    builder
+        .manage(state)
+        .setup(|app| {
+            // allowed the given directory
+            let scope = app.fs_scope();
+            scope
+                .allow_directory("/path/to/directory", false)
+                .expect("msg");
+
+            let handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                update::update(handle).await.unwrap();
+            });
+            Ok(())
+        })
+        .invoke_handler(handle_command)
+        .build(tauri::generate_context!())
+        .expect("error while building Tauri application")
+}
 
 fn handle_command<R: Runtime>(invoke: Invoke<R>) -> bool {
     // 获取 StateManager
@@ -207,84 +230,4 @@ fn handle_command<R: Runtime>(invoke: Invoke<R>) -> bool {
     handler(invoke);
 
     true
-}
-
-pub fn create_app<R: tauri::Runtime, T: Send + Sync + 'static>(
-    builder: tauri::Builder<R>,
-    state: T,
-) -> tauri::App<R> {
-    builder
-        .manage(state)
-        .setup(|app| {
-            // allowed the given directory
-            let scope = app.fs_scope();
-            scope
-                .allow_directory("/path/to/directory", false)
-                .expect("msg");
-
-            let handle = app.handle().clone();
-            tauri::async_runtime::spawn(async move {
-                update(handle).await.unwrap();
-            });
-            Ok(())
-        })
-        .invoke_handler(handle_command)
-        .build(tauri::generate_context!())
-        .expect("error while building Tauri application")
-}
-
-async fn update<R: tauri::Runtime>(app: tauri::AppHandle<R>) -> tauri_plugin_updater::Result<()> {
-    // 打印当前应用版本
-    let current_version = app.package_info().version.to_string();
-    tracing::info!("Current app version: {}", current_version);
-
-    match app.updater()?.check().await {
-        Ok(Some(update)) => {
-            let mut downloaded = 0;
-
-            // 下载并安装更新
-            update
-                .download_and_install(
-                    |chunk_length, content_length| {
-                        downloaded += chunk_length;
-                        tracing::info!("Downloaded {} from {:?}", downloaded, content_length);
-                    },
-                    || {
-                        tracing::info!("Download finished");
-                    },
-                )
-                .await?;
-
-            tracing::info!("Update installed");
-            app.restart();
-        },
-        Ok(None) => {
-            tracing::info!("No updates found");
-        },
-        Err(err) => {
-            // 打印详细的错误信息
-            tracing::error!("Failed to check for updates: {:?}", err);
-        },
-    }
-    // if let Some(update) = app.updater()?.check().await? {
-    //     let mut downloaded = 0;
-
-    //     // alternatively we could also call update.download() and update.install() separately
-    //     update
-    //         .download_and_install(
-    //             |chunk_length, content_length| {
-    //                 downloaded += chunk_length;
-    //                 tracing::info!("downloaded {downloaded} from {content_length:?}");
-    //             },
-    //             || {
-    //                 tracing::info!("download finished");
-    //             },
-    //         )
-    //         .await?;
-
-    //     tracing::info!("update installed");
-    //     app.restart();
-    // }
-
-    Ok(())
 }

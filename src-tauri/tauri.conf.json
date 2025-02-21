@@ -13,11 +13,12 @@
     "windows": [
       {
         "title": "laundry",
-        "width": 2160,
-        "height": 1080,
+        "width": 1000,
+        "height": 650,
         "resizable": true,
         "fullscreen": false,
-        "decorations": false
+        "decorations": false,
+        "center": true
       }
     ],
     "security": {

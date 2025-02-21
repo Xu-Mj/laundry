@@ -35,6 +35,7 @@
     "core:window:allow-destroy",
     "core:window:allow-hide",
     "core:window:allow-show",
+    "core:window:allow-set-size",
     "dialog:default",
     "dialog:allow-ask",
     "dialog:allow-message",

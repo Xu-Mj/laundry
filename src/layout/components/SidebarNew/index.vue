@@ -112,7 +112,8 @@ onMounted(() => {
 
 .btn {
   height: 4rem;
-  border: 1px solid rgb(0, 166, 255);
+  /* border: 1px solid rgb(0, 166, 255); */
+  border: none;
   border-radius: 0.4rem;
   cursor: pointer;
   color: rgb(0, 166, 255);

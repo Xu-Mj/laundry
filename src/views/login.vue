@@ -1,8 +1,11 @@
 <template>
-  <CloseBar position="absolute" />
-  <div class="login">
+  <div class="close-btn" style="padding: .3rem;">
+    <el-button link icon="Close" size="large" style="color: #000;" @click="closeWindow" />
+  </div>
+  <WaveBackground />
+  <div class="login" data-tauri-drag-region >
     <el-form ref="loginRef" :model="loginForm" :rules="loginRules" class="login-form">
-      <h3 class="title">洗衣店</h3>
+      <h3 class="title">LAUNDRY</h3>
       <el-form-item prop="username">
         <el-input v-model="loginForm.username" type="text" size="large" auto-complete="off" placeholder="账号">
           <template #prefix><svg-icon icon-class="user" class="el-input__icon input-icon" /></template>
@@ -40,7 +43,7 @@
     </div>
   </div>
   <el-dialog v-model="pwdDialogVisible" title="首次登录修改密码" :close-on-click-modal="false" :show-close="false"
-    width="500px">
+    width="400px">
     <el-form ref="pwdFormRef" :model="pwdForm" :rules="pwdRules" label-width="80px">
       <el-form-item label="新密码" prop="newPassword">
         <el-input v-model="pwdForm.newPassword" type="password" show-password placeholder="请输入新密码" />
@@ -56,11 +59,14 @@
 </template>
 
 <script setup>
+import WaveBackground from '@/layout/components/WaveBackground.vue';
 import { getCodeImg } from "@/api/login";
 import Cookies from "js-cookie";
 import { encrypt, decrypt } from "@/utils/jsencrypt";
 import useUserStore from '@/store/modules/user';
-import CloseBar from '@/components/close_bar';
+import {LogicalSize, Window } from "@tauri-apps/api/window";
+import { onMounted } from 'vue';
+const appWindow = new Window('main');
 
 const userStore = useUserStore()
 const route = useRoute();
@@ -92,6 +98,11 @@ const redirect = ref(undefined);
 watch(route, (newRoute) => {
   redirect.value = newRoute.query && newRoute.query.redirect;
 }, { immediate: true });
+
+// 关闭窗口
+const closeWindow = () => {
+  appWindow.close()
+};
 
 const pwdDialogVisible = ref(false);
 const pwdForm = ref({
@@ -169,7 +180,6 @@ function handleLogin() {
         if (res.user.isFirstLogin) { // 根据实际响应字段判断
           pwdDialogVisible.value = true; // 显示修改密码弹窗
         } else {
-          proxy.$modal.msgSuccess("登录成功!")
           routeJump();
         }
       }).catch(() => {
@@ -183,7 +193,7 @@ function handleLogin() {
   });
 }
 
-function routeJump() {
+async function routeJump() {
   // 原有跳转逻辑
   const query = route.query;
   const otherQueryParams = Object.keys(query).reduce((acc, cur) => {
@@ -193,6 +203,14 @@ function routeJump() {
     return acc;
   }, {});
   router.push({ path: redirect.value || "/", query: otherQueryParams });
+  // 应用过渡动画
+  document.body.classList.add('window-resize-animation');
+  appWindow.hide();
+  setTimeout(() => {
+    appWindow.setSize(new LogicalSize(2160, 1080));
+    appWindow.show();
+    document.body.classList.remove('window-resize-animation');
+  }, 500); // 动画持续时间为500ms
 }
 
 function getCode() {
@@ -215,9 +233,12 @@ function getCookie() {
     rememberMe: rememberMe === undefined ? false : Boolean(rememberMe)
   };
 }
-
-getCode();
-getCookie();
+onMounted(async () => {
+  await appWindow.setSize(new LogicalSize(1000, 650))
+  appWindow.show();
+  getCode();
+  getCookie();
+})
 </script>
 
 <style lang='scss' scoped>
@@ -226,10 +247,16 @@ getCookie();
   justify-content: center;
   align-items: center;
   height: 100%;
-  background-image: url("../assets/images/login-background.jpg");
-  background-size: cover;
+  background-color: transparent;
 }
 
+.close-btn {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 10;
+  color: black;
+}
 .title {
   margin: 0px auto 30px auto;
   text-align: center;
@@ -238,7 +265,7 @@ getCookie();
 
 .login-form {
   border-radius: 6px;
-  background: #ffffff;
+  // background: #ffffff;
   width: 400px;
   padding: 25px 25px 5px 25px;
 
@@ -291,5 +318,9 @@ getCookie();
 .login-code-img {
   height: 40px;
   padding-left: 12px;
+}
+/* 添加窗口大小变化动画 */
+.window-resize-animation {
+  transition: width 0.5s ease, height 0.5s ease;
 }
 </style>

@@ -209,20 +209,6 @@ fn handle_command<R: Runtime>(invoke: Invoke<R>) -> bool {
     true
 }
 
-// async fn start_coupon_check_scheduler(pool: Arc<Pool<Sqlite>>) {
-//     let mut interval = interval(Duration::from_secs(24 * 60 * 60)); // Check once per day
-
-//     tokio::spawn(async move {
-//         loop {
-//             interval.tick().await;
-//             match db::coupons::Coupon::check_expiring_coupons(&pool).await {
-//                 Ok(_) => tracing::info!("Successfully checked expiring coupons"),
-//                 Err(e) => tracing::error!("Failed to check expiring coupons: {}", e),
-//             }
-//         }
-//     });
-// }
-
 pub fn create_app<R: tauri::Runtime, T: Send + Sync + 'static>(
     builder: tauri::Builder<R>,
     state: T,
@@ -248,25 +234,57 @@ pub fn create_app<R: tauri::Runtime, T: Send + Sync + 'static>(
 }
 
 async fn update<R: tauri::Runtime>(app: tauri::AppHandle<R>) -> tauri_plugin_updater::Result<()> {
-    if let Some(update) = app.updater()?.check().await? {
-        let mut downloaded = 0;
+    // 打印当前应用版本
+    let current_version = app.package_info().version.to_string();
+    tracing::info!("Current app version: {}", current_version);
 
-        // alternatively we could also call update.download() and update.install() separately
-        update
-            .download_and_install(
-                |chunk_length, content_length| {
-                    downloaded += chunk_length;
-                    tracing::info!("downloaded {downloaded} from {content_length:?}");
-                },
-                || {
-                    tracing::info!("download finished");
-                },
-            )
-            .await?;
+    match app.updater()?.check().await {
+        Ok(Some(update)) => {
+            let mut downloaded = 0;
 
-        tracing::info!("update installed");
-        app.restart();
+            // 下载并安装更新
+            update
+                .download_and_install(
+                    |chunk_length, content_length| {
+                        downloaded += chunk_length;
+                        tracing::info!("Downloaded {} from {:?}", downloaded, content_length);
+                    },
+                    || {
+                        tracing::info!("Download finished");
+                    },
+                )
+                .await?;
+
+            tracing::info!("Update installed");
+            app.restart();
+        },
+        Ok(None) => {
+            tracing::info!("No updates found");
+        },
+        Err(err) => {
+            // 打印详细的错误信息
+            tracing::error!("Failed to check for updates: {:?}", err);
+        },
     }
+    // if let Some(update) = app.updater()?.check().await? {
+    //     let mut downloaded = 0;
+
+    //     // alternatively we could also call update.download() and update.install() separately
+    //     update
+    //         .download_and_install(
+    //             |chunk_length, content_length| {
+    //                 downloaded += chunk_length;
+    //                 tracing::info!("downloaded {downloaded} from {content_length:?}");
+    //             },
+    //             || {
+    //                 tracing::info!("download finished");
+    //             },
+    //         )
+    //         .await?;
+
+    //     tracing::info!("update installed");
+    //     app.restart();
+    // }
 
     Ok(())
 }

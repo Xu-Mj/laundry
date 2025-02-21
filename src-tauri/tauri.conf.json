@@ -57,10 +57,18 @@
   },
   "plugins": {
     "updater": {
+      "active": true,
+      "dialog": true,
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDY1MENBMEIwOEUzM0Q1RApSV1JkUGVNSUM4cFFCcWNDSTFKZm9pMFdOc1k1WXZSLzBkUlJZL3lDY0xrRHk5K3h0R2w4THJuLwo=",
       "endpoints": [
-        "https://github.com/Xu-Mj/laundry/releases/download/${current_version}/latest.json"
+        "https://github.com/Xu-Mj/laundry/releases/latest/download/latest.json"
       ],
+      "requestConfig": {
+        "headers": {
+          "Authorization": "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",
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
+      },
       "windows": {
         "installMode": "passive"
       }

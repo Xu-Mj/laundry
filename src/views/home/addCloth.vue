@@ -65,7 +65,7 @@
                         @click="nextStep">下一步</el-button>
                 </el-row>
             </div>
-            <div style="height: 100%;" v-if="step == 1" key="step1">
+            <div class="step-wrapper" v-if="step == 1" key="step1">
                 <el-row>
                     <el-col :span="24">
                         <el-form-item label="衣物名称">
@@ -120,7 +120,7 @@
                     <el-button type="danger" @click="reset">重新录入</el-button>
                 </el-row>
             </div>
-            <div style="height: 100%;" v-if="step == 2" key="step2">
+            <div class="step-wrapper" v-if="step == 2" key="step2">
                 <el-row>
                     <el-col :span="24">
                         <el-form-item label="颜色名称">
@@ -154,7 +154,7 @@
                     <el-button type="primary" @click="jump2last">跳过后续步骤</el-button>
                 </el-row>
             </div>
-            <div style="height: 100%;" v-if="step == 3" key="step3">
+            <div style="" v-if="step == 3" key="step3">
                 <el-row>
                     <el-col :span="24">
                         <el-form-item label="瑕疵名称">
@@ -185,7 +185,7 @@
                     <el-button type="primary" @click="jump2last">跳过后续步骤</el-button>
                 </el-row>
             </div>
-            <div style="height: 100%;" v-if="step == 4" key="step4">
+            <div class="step-wrapper" v-if="step == 4" key="step4">
                 <el-row>
                     <el-col :span="24">
                         <el-form-item label="洗后预估">
@@ -216,7 +216,7 @@
                     <el-button type="primary" @click="jump2last">跳过后续步骤</el-button>
                 </el-row>
             </div>
-            <div style="height: 100%;" v-if="step == 5" key="step5">
+            <div class="step-wrapper" v-if="step == 5" key="step5">
                 <el-row>
                     <el-col :span="24">
                         <el-form-item label="品牌名称">
@@ -247,7 +247,7 @@
                     <el-button type="primary" @click="jump2last">跳过后续步骤</el-button>
                 </el-row>
             </div>
-            <div style="height: 100%;" v-if="step == 6" class="step6" key="step6">
+            <div v-if="step == 6" class="step6 step-wrapper" key="step6">
                 <el-row class="row-item">
                     <label>服务类型:</label>
                     <el-radio-group v-model="form.serviceType">
@@ -309,11 +309,6 @@
         <el-dialog title="拍照留档" v-model="showCameraModal" width="800px" append-to-body>
             <video ref="video" class="video" autoplay></video>
             <canvas ref="canvas" class="canvas"></canvas>
-            <div class="camera-controls">
-                <el-button type="primary" @click="capturePhoto" :disabled="capturedImages.length >= 16">拍照</el-button>
-                <el-button type="primary" @click="savePhotos" :disabled="capturedImages.length === 0">保存</el-button>
-                <el-button @click="closeCamera">关闭</el-button>
-            </div>
             <div class="image-list">
                 <div v-for="(image, index) in capturedImages" :key="index" class="image-item">
                     <img :src="image.url" alt="Captured Image" class="image-preview" />
@@ -321,12 +316,18 @@
                         class="delete-button" />
                 </div>
             </div>
+            <div class="camera-controls">
+                <el-button type="primary" @click="capturePhoto" :disabled="capturedImages.length >= 16">拍照</el-button>
+                <el-button type="primary" @click="savePhotos" :disabled="capturedImages.length === 0">保存</el-button>
+                <el-button @click="closeCamera">关闭</el-button>
+            </div>
+
         </el-dialog>
     </div>
 </template>
 
 <script setup name="AddCloth">
-import { delCloths, addCloths, updateCloths, getCloths } from "@/api/system/cloths";
+import { addCloths, updateCloths} from "@/api/system/cloths";
 import { CoffeeCup, CollectionTag, CopyDocument, PictureRounded, User, WarningFilled } from "@element-plus/icons-vue";
 import { listClothingWithNoLimit, addClothing } from "@/api/system/clothing";
 import { getDicts } from '@/api/system/dict/data'
@@ -489,15 +490,15 @@ const openCamera = async () => {
     } catch (error) {
         ElMessage.error('无法访问摄像头: ' + error);
         console.error('无法访问摄像头:', error);
-        // try {
-        //     const stream = await navigator.mediaDevices.getDisplayMedia({
-        //         video: true
-        //     });
-        //     video.value.srcObject = stream;
-        // } catch (error) {
-        //     ElMessage.error('无法访问桌面: ' + error);
-        //     console.error('无法访问桌面:', error);
-        // }
+        try {
+            const stream = await navigator.mediaDevices.getDisplayMedia({
+                video: true
+            });
+            video.value.srcObject = stream;
+        } catch (error) {
+            ElMessage.error('无法访问桌面: ' + error);
+            console.error('无法访问桌面:', error);
+        }
     }
 };
 
@@ -1058,7 +1059,7 @@ onMounted(async () => {
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    padding: 0 1rem;
+    padding: 1rem 0 0 0;
 }
 
 .el-steps--simple {
@@ -1072,14 +1073,18 @@ onMounted(async () => {
 .form-container {
     height: 100%;
     /* width: 201%; */
-    padding-bottom: 1rem;
+    /* padding-bottom: 1rem; */
     /* display: flex; */
 }
 
 .wrapper {
     height: 100%;
-
     display: flex;
+    position: relative;
+}
+
+.step-wrapper {
+    height: 100%;
     position: relative;
 }
 
@@ -1173,7 +1178,7 @@ onMounted(async () => {
     position: absolute;
     bottom: 0;
     left: 0;
-    padding: 1rem;
+    padding: 0 0 0;
     /* 鼠标穿透 */
     pointer-events: none;
 
@@ -1245,7 +1250,9 @@ onMounted(async () => {
         gap: .25rem;
     }
 }
-
+label {
+    font-weight: normal;
+}
 .item-list-area {
     width: 100%;
     height: 100%;

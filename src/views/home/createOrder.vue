@@ -1,8 +1,8 @@
 <template>
     <div>
         <!-- 添加或修改洗护服务订单对话框 -->
-        <el-row class="container" v-if="showDialog">
-            <el-col class="left" :span="10">
+        <div class="container" v-if="showDialog">
+            <div class="left" :span="10">
                 <el-form ref="ordersRef" :model="form" :rules="rules" label-width="80px">
                     <el-row>
                         <el-col :span="10">
@@ -26,14 +26,14 @@
                     </el-col> -->
                     </el-row>
                     <el-row v-if="form.userId">
-                        <el-col :span="9">
+                        <el-col :span="10">
                             <el-form-item label="余额：">
-                                {{ currentUser.balance }}元
+                                {{ currentUser.balance ? currentUser.balance : 0 + '\t'}}元
                             </el-form-item>
                         </el-col>
                         <el-col :span="10">
                             <el-form-item label="积分：">
-                                {{ currentUser.integral }}分
+                                {{ currentUser.integral ? currentUser.integral : 0 + '\t' }}分
                             </el-form-item>
                         </el-col>
                         <el-col :span="1">
@@ -88,18 +88,18 @@
                     </el-row>
                 </el-form>
                 <div class="btn-container">
-                    <el-button type="warning" plain @click="cancelSelf">{{ form.orderId ? '关 闭' : '取 消'
-                        }}</el-button>
-                    <el-button type="primary" plain @click="submitForm"
+                    <el-button  @click="cancelSelf">{{ form.orderId ? '关 闭' : '取 消'
+                    }}</el-button>
+                    <el-button type="primary"  @click="submitForm"
                         :disabled="notEditable && !(form.source === '03') && (form.priceId || form.source === '02' || form.source === '01')">取衣收款</el-button>
-                    <el-button type="success" plain @click="createAndPay" :disabled="notEditable">收衣收款</el-button>
+                    <el-button type="primary"  @click="createAndPay" :disabled="notEditable">收衣收款</el-button>
                 </div>
-            </el-col>
-            <el-col class="right" :span="14">
+            </div>
+            <div class="right" :span="14">
                 <AddCloth :userId="form.userId" :orderId="form.orderId" :submit="submitClothes" :disabled="notEditable"
                     :key="form.userId" />
-            </el-col>
-        </el-row>
+            </div>
+        </div>
 
         <Pay :visible="showPaymentDialog" :key="showPaymentDialog" :order="form" :refresh="getList"
             :toggle="() => { showPaymentDialog = !showPaymentDialog }" />
@@ -1208,8 +1208,10 @@ defineExpose({
     position: absolute;
     left: 0;
     top: 0;
-    background-color: white;
-    padding: 2rem 1rem 0 1rem;
+    background-color: rgb(228, 227, 227);
+    padding: .5rem .5rem .5rem;
+    display: flex;
+    gap: .5rem;
 }
 
 .left,
@@ -1221,7 +1223,10 @@ defineExpose({
     overflow: hidden;
     width: 100%;
     height: 100%;
+    background-color: #fff;
+    padding: .5rem;
 }
+
 
 /* .left::before {
     content: "";
@@ -1266,7 +1271,7 @@ defineExpose({
 }
 
 .btn-container {
-    padding: 1rem;
+    padding: .5rem;
     display: flex;
     /* grid-template-columns: repeat(2, 1fr); */
     /* grid-template-rows: repeat(2, 1fr); */

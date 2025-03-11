@@ -1,13 +1,14 @@
 <template>
     <el-dialog title="选择打印机" v-model="open" width="400px" :show-close="false" append-to-body
         @closed="closeHangUpDialog">
-        <el-select v-model="printer" placeholder="请选择打印机" @change="setPrinter">
+        <el-select v-model="printer" placeholder="请选择打印机" @change="set">
             <el-option v-for="item in printers" :key="item.name" :label="item.name" :value="item.name"> </el-option>
         </el-select>
     </el-dialog>
 </template>
 <script setup name="Setting">
-import { invoke } from '@tauri-apps/api/core';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { setPrinter, getSettledPrinter, getPrinters } from '../../api/system/printer';
 
 const props = defineProps({
     visible: {
@@ -32,16 +33,22 @@ function closeHangUpDialog() {
 }
 
 /* 关闭上挂弹窗 */
-async function setPrinter() {
+async function set() {
     settledPrinter.value = printers.value.find(item => item.name === printer.value);
-    await invoke('set_printer', { printer: settledPrinter.value });
+    try {
+        await setPrinter(settledPrinter.value);
+        ElMessage.success("设置成功");
+    } catch (error) {
+        console.error(error);
+        ElMessage.error("设置失败");
+    }
 }
 
 onMounted(async () => {
     if (props.visible) {
-        settledPrinter.value = await invoke('get_settled_printer');
-        printers.value = await invoke('get_printers');
-        if(settledPrinter.value) {
+        settledPrinter.value = await getSettledPrinter();
+        printers.value = await getPrinters();
+        if (settledPrinter.value) {
             printer.value = settledPrinter.value.name;
         }
         open.value = true;

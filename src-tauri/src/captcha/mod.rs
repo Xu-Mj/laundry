@@ -1,3 +1,8 @@
+use std::collections::HashMap;
+use std::sync::Mutex;
+use std::thread;
+use std::time::Duration as StdDuration;
+
 use base64::prelude::*;
 use chrono::{Duration, Utc};
 use image::{ImageBuffer, Luma};
@@ -6,14 +11,10 @@ use rand::Rng;
 use rusttype::{point, Font, Scale};
 use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Sqlite};
-use std::collections::HashMap;
-use std::sync::Mutex;
-use std::thread;
-use std::time::Duration as StdDuration;
 use uuid::Uuid;
 
 use crate::db::configs::Config;
-use crate::db::AppState;
+use crate::state::AppState;
 use crate::error::{Error, Result};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

@@ -5,9 +5,11 @@ use sqlx::{FromRow, Pool, QueryBuilder, Row, Sqlite, Transaction};
 use tauri::State;
 use tracing::debug;
 
-use super::{AppState, Curd, PageParams, PageResult, Validator};
 use crate::error::{Error, Result};
 use crate::utils;
+use crate::state::AppState;
+
+use super::{Curd, PageParams, PageResult, Validator};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]

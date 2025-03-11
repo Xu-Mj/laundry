@@ -1,6 +1,7 @@
-use crate::db::menu::Menu;
-use crate::db::AppState;
 use serde::{Deserialize, Serialize};
+
+use crate::db::menu::Menu;
+use crate::state::AppState;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

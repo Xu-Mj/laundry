@@ -2,16 +2,17 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use sqlx::sqlite::SqliteRow;
 use sqlx::{
-    types::chrono::{DateTime, FixedOffset},
     FromRow, Pool, QueryBuilder, Row, Sqlite, Transaction,
+    types::chrono::{DateTime, FixedOffset},
 };
 use tauri::State;
 
 use crate::db::coupon_orders::CouponOrder;
 use crate::db::payments::Payment;
 use crate::db::user_coupons::UserCoupon;
-use crate::db::{AppState, Curd, PageParams, PageResult, Validator};
+use crate::db::{Curd, PageParams, PageResult, Validator};
 use crate::error::{Error, ErrorKind, Result};
+use crate::state::AppState;
 use crate::utils;
 use crate::utils::chrono_serde::{deserialize_date, serialize_date};
 

@@ -1,5 +1,6 @@
 <template>
   <div class="navbar">
+    <el-button @click="toggleDarkMode" class="right-menu-item" icon="Moon" type="text" />
     <el-dropdown @command="handleCommand" class="right-menu-item hover-effect" trigger="click">
       <el-button class="right-menu-item" icon="Setting" type="text" />
       <!-- <div class="avatar-wrapper"> -->
@@ -9,7 +10,7 @@
         <el-dropdown-menu>
           <el-dropdown-item @click="showSetting = true">选择打印机</el-dropdown-item>
           <el-dropdown-item command="goAdmin">
-            <span>{{props.isAdmin? '后台管理': '返回'}}</span>
+            <span>{{ props.isAdmin ? '后台管理' : '返回' }}</span>
           </el-dropdown-item>
         </el-dropdown-menu>
       </template>
@@ -34,7 +35,6 @@
         </template>
       </el-dropdown>
     </div>
-
     <Setting :visible="showSetting" :key="showSetting" :taggle="() => { showSetting = !showSetting }" />
 
     <el-dialog v-model="showChangePwd" title="修改密码" :show-close="false" width="300px">
@@ -82,6 +82,14 @@ const form = ref({
   confirmPassword: ''
 });
 const formRef = ref();
+
+const isDarkMode = ref(localStorage.getItem('darkMode') === 'true');
+
+function toggleDarkMode() {
+  isDarkMode.value = !isDarkMode.value;
+  document.documentElement.classList.toggle('dark', isDarkMode.value);
+  localStorage.setItem('darkMode', isDarkMode.value);
+}
 
 function reset() {
   form.value = {
@@ -189,6 +197,12 @@ function setLayout() {
   emits('setLayout');
 }
 
+onMounted(() => {
+  if (isDarkMode.value) {
+    document.documentElement.classList.add('dark');
+  }
+});
+
 </script>
 
 <style lang='scss' scoped>
@@ -199,8 +213,6 @@ function setLayout() {
   position: absolute;
   bottom: 0;
   left: 0;
-  background: #fff;
-  // box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
   padding-bottom: 1rem;
   display: flex;
   align-items: end;

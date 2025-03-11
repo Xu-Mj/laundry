@@ -12,8 +12,9 @@ use crate::db::notice_temp::{NoticeRecord, NoticeTemp};
 use crate::db::order_pictures::OrderPicture;
 use crate::db::orders::Order;
 use crate::db::tags::Tag;
-use crate::db::{AppState, Curd, PageParams, PageResult, Validator};
+use crate::db::{Curd, PageParams, PageResult, Validator};
 use crate::error::{Error, ErrorKind, Result};
+use crate::state::AppState;
 use crate::utils;
 
 const CLOTH_STATUS_HANGED: &str = "02";
@@ -915,7 +916,8 @@ impl OrderCloth {
     //
     //     Ok(())
     // }
-    pub async fn hang_cloth(pool: &Pool<Sqlite>, hang_req: HangReq) -> Result<()> {
+    pub async fn hang_cloth(state: &State<'_, AppState>, hang_req: HangReq) -> Result<()> {
+        let pool = &state.pool;
         let mut tr = pool.begin().await?;
 
         // query cloth information by id
@@ -964,7 +966,7 @@ impl OrderCloth {
             order.status = Some(CLOTH_STATUS_HANGED.to_string());
         }
 
-        Self::update_order_and_notify(&mut tr, pool, &mut order, is_all_hanged).await?;
+        Self::update_order_and_notify(&mut tr, state, &mut order, is_all_hanged).await?;
 
         tr.commit().await?;
         Ok(())
@@ -985,7 +987,7 @@ impl OrderCloth {
     /// Updates the order status and sends a notification if necessary.
     async fn update_order_and_notify(
         tr: &mut Transaction<'_, Sqlite>,
-        pool: &Pool<Sqlite>,
+        state: &State<'_, AppState>,
         order: &mut Order,
         is_all_hanged: bool,
     ) -> Result<()> {
@@ -1001,7 +1003,7 @@ impl OrderCloth {
                 if let Some(code) = &order.pickup_code {
                     Self::send_pickup_msg(
                         tr,
-                        pool,
+                        state,
                         code,
                         tel,
                         &order.order_number.as_ref().unwrap_or(&String::new()),
@@ -1017,35 +1019,66 @@ impl OrderCloth {
 
     async fn send_pickup_msg(
         tx: &mut Transaction<'_, Sqlite>,
-        pool: &Pool<Sqlite>,
+        state: &State<'_, AppState>,
         code: &str,
         tel: &str,
         order_num: &str,
         user_id: i64,
     ) -> Result<()> {
         // select template
-        let temp = NoticeTemp::default()
-            .get_list(pool, PageParams::default())
+        let mut rows = NoticeTemp::default()
+            .get_list(&state.pool, PageParams::default())
             .await?
-            .rows
+            .rows;
+
+        let token = state
+            .token
+            .lock()
+            .await
+            .clone()
+            .ok_or(Error::account_or_pwd())?;
+        let token_str = token.token.clone();
+        let store_id = token.user.id.unwrap();
+
+        // release mutex
+        drop(token);
+        if rows.is_empty() {
+            // get temp list from server
+            rows = state
+                .http_client
+                .get("/msg_temps/all", Some(&token_str))
+                .await?;
+            tracing::debug!("{:?}", rows);
+            for ele in rows.iter() {
+                ele.create(tx).await?;
+            }
+        }
+        let temp = rows
             .into_iter()
             .next()
             .ok_or(Error::not_found("通知模板不存在"))?;
+        // let temp = NoticeTemp::default()
+        //     .get_list(&state.pool, PageParams::default())
+        //     .await?
+        //     .rows
+        //     .into_iter()
+        //     .next()
+        //     .ok_or(Error::not_found("通知模板不存在"))?;
         let content = temp.content.clone().map(|c| c.replace("《取件码》", code));
-        let mut record = NoticeRecord {
-            notice_id: None,
-            user_id,
-            order_number: Some(order_num.to_string()),
-            notice_method: Some("0".to_string()),
-            notice_type: Some("0".to_string()),
-            title: Some("取衣通知".to_string()),
-            content,
-            // result: Some("2".to_string()),
-            ..Default::default()
-        };
 
         let param = HashMap::from([("code".to_string(), code.to_string())]);
-        let result = match utils::send_sms(tel, Some(param)) {
+
+        let body = SendSmsRequest {
+            temp_id: temp.temp_id.unwrap_or_default(),
+            store_id,
+            phone: tel.to_string(),
+            args: Some(param),
+        };
+        // send message through sms server
+
+        tracing::info!("send sms request: {:?}", body);
+        
+        let result = match state.http_client.post("/sms", body, Some(&token_str)).await {
             Ok(res) => {
                 if res {
                     String::from("0")
@@ -1058,8 +1091,17 @@ impl OrderCloth {
                 String::from("1")
             }
         };
-
-        record.result = Some(result);
+        let mut record = NoticeRecord {
+            notice_id: None,
+            user_id,
+            order_number: Some(order_num.to_string()),
+            notice_method: Some("0".to_string()),
+            notice_type: Some("0".to_string()),
+            title: Some("取衣通知".to_string()),
+            content,
+            result: Some(result),
+            ..Default::default()
+        };
         record.create(tx).await?;
         Ok(())
     }
@@ -1132,6 +1174,14 @@ impl OrderCloth {
     }
 }
 
+#[derive(Debug, Serialize)]
+pub struct SendSmsRequest {
+    pub temp_id: i64,
+    pub store_id: i64,
+    pub phone: String,
+    pub args: Option<HashMap<String, String>>,
+}
+
 #[tauri::command]
 pub async fn list_order_clothes_history(
     state: State<'_, AppState>,
@@ -1200,7 +1250,7 @@ pub async fn pickup_order_cloth(state: State<'_, AppState>, clothes_id: Vec<i64>
 
 #[tauri::command]
 pub async fn hang_order_cloth(state: State<'_, AppState>, hang_req: HangReq) -> Result<()> {
-    OrderCloth::hang_cloth(&state.pool, hang_req).await
+    OrderCloth::hang_cloth(&state, hang_req).await
 }
 
 #[tauri::command]

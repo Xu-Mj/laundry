@@ -17,8 +17,9 @@ use crate::db::order_clothes::OrderCloth;
 use crate::db::payments::Payment;
 use crate::db::user::User;
 use crate::db::user_coupons::UserCoupon;
-use crate::db::{AppState, Curd, PageParams, PageResult};
+use crate::db::{Curd, PageParams, PageResult};
 use crate::error::{Error, ErrorKind, Result};
+use crate::state::AppState;
 use crate::utils;
 use crate::utils::chrono_serde::deserialize_date;
 

@@ -20,7 +20,7 @@
         <div class="cell">
           <dict-tag :options="sys_service_requirement" :value="item.serviceRequirement" />
         </div> <!-- 洗护要求留空 -->
-        <div class="cell">{{ calculateTotalPrice(item.priceValue, item.processMarkup) }} 元</div>
+        <div class="cell">{{ calculateTotalPrice(item) }} 元</div>
         <div class="cell action-cell">
           <el-button type="danger" icon="Delete" @click="handleDelete(item.clothId)" />
         </div>
@@ -70,34 +70,20 @@ const estimateList = ref([]);
 const brandList = ref([]);
 
 // 计算小计
-const calculateTotalPrice = (priceValue, processMarkup) => {
-  return (parseFloat(priceValue) || 0) + (parseFloat(processMarkup) || 0);
+const calculateTotalPrice = (cloth) => {
+  let priceValue = cloth.priceValue || 0;
+  if (cloth.serviceRequirement == '001') {
+    priceValue *= 2;
+  } else if (cloth.serviceRequirement == '002') {
+    priceValue *= 1.5;
+  }
+  return parseFloat(priceValue);
 };
 
 // 删除操作
 const handleDelete = (id) => {
   emit('delete', id);
 };
-
-// 获取颜色名称
-function findColorName() {
-  if (form.value.clothingColor) {
-    const color = colorList.value.find(item => item.tagId == form.value.clothingColor);
-    return color ? color.tagName : '未选择颜色';
-  } else {
-    return '未选择颜色';
-  }
-}
-
-// 获取衣物名称
-function findClothingName() {
-  if (form.value.clothingId) {
-    const color = clothingList.value.find(item => item.clothingId == form.value.clothingId);
-    return color ? color.clothingName : '未选择衣物';
-  } else {
-    return '未选择衣物';
-  }
-}
 
 /* 初始化列表数据 */
 async function initList() {
@@ -158,7 +144,6 @@ const handleRowClick = (row) => {
   border: 1px solid #ebeef5;
   border-radius: 8px;
   overflow: hidden;
-  /* box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1); */
   text-align: center;
 }
 
@@ -167,8 +152,7 @@ const handleRowClick = (row) => {
   grid-template-columns: 1fr 1fr 1fr 1fr 1fr 80px;
   /* 6 列，操作列固定宽度 */
   gap: 1px;
-  /* background: linear-gradient(135deg, #f5f7fa, #e9ecef); 渐变色背景 */
-  border-bottom: 2px solid #ddd;
+  border-bottom: 1px solid #ddd;
   /* 底部边框 */
   padding: .4rem;
 }
@@ -177,7 +161,7 @@ const handleRowClick = (row) => {
   padding: 16px;
   font-size: 14px;
   font-weight: bold;
-  color: #333;
+  /* color: #333; */
   text-align: center;
   border-right: 1px solid #ddd;
   /* 单元格右边框 */
@@ -188,22 +172,16 @@ const handleRowClick = (row) => {
   /* 去掉最后一列的右边框 */
 }
 
-.body {
-  background-color: #fff;
-}
-
 .row {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr 1fr 1fr 80px;
   gap: 1px;
-  background-color: #f5f7fa;
   cursor: pointer;
   /* 添加鼠标指针样式 */
 }
 
 .row:hover {
-  background-color: #e0e0e0;
-  /* 添加鼠标悬停时的背景颜色变化 */
+  background-color: #c5c5c5;
 }
 
 .cell {

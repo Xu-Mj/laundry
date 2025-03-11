@@ -7,6 +7,7 @@ use crate::error::Result;
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Config {
     pub log: LogConfig,
+    pub base_url: String,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

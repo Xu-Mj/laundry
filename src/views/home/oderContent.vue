@@ -1230,7 +1230,7 @@ onMounted(async () => {
     position: absolute;
     left: 0;
     top: 0;
-    background-color: white;
+    /* background-color: white; */
     overflow: auto;
     padding: 1rem;
 }
@@ -1241,7 +1241,8 @@ onMounted(async () => {
     bottom: .5rem;
     right: .5rem;
     z-index: 999;
-    background-color: rgba(255, 255, 255, 0.9);
+    opacity: .8;
+    background-color: var(--el-bg-color);
 }
 
 .payment-status {

@@ -2,10 +2,10 @@ import request from '@/utils/request'
 import invoke from '@/utils/invoke'
 
 // 登录方法
-export function login(username, pwd, code, uuid) {
+export function login(account, pwd, code, uuid) {
   const password = btoa(pwd).replace(/=+$/, '');
   const data = {
-    username,
+    account,
     password,
     code,
     uuid

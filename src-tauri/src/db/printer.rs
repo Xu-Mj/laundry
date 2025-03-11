@@ -1,9 +1,8 @@
 use serde::{Deserialize, Serialize};
 use tauri::State;
 
-use super::AppState;
-
 use crate::error::Result;
+use crate::state::AppState;
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 pub struct PrinterConfiguration {

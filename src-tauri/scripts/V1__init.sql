@@ -15,13 +15,22 @@ CREATE TABLE IF NOT EXISTS printers
 CREATE TABLE IF NOT EXISTS local_users
 (
     id  INTEGER PRIMARY KEY AUTOINCREMENT,
-    username    TEXT    NOT NULL,
-    avatar      TEXT    NOT NULL,
-    account     TEXT    NOT NULL,
-    password    TEXT    NOT NULL,
-    role        TEXT    NOT NULL,
-    remark   TEXT,
-    is_first_login   INTEGER
+    owner_name      TEXT    NOT NULL,
+    avatar          TEXT    NOT NULL,
+    owner_phone     TEXT    NOT NULL,
+    password        TEXT    NOT NULL,
+    role            TEXT    NOT NULL,
+    first_login     INTEGER,
+    store_name      TEXT NOT NULL,
+    store_location  TEXT NOT NULL,
+    owner_gender    TEXT,
+    store_status    TEXT NOT NULL,
+    created_at      INTEGER,
+    updated_at      INTEGER,
+    remark          TEXT,
+    email           TEXT,
+    deleted         TEXT,
+    user_id         INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS membership_level (
@@ -303,7 +312,7 @@ CREATE TABLE notice_temp
     temp_name     TEXT NOT NULL,
     notice_method TEXT NOT NULL,
     content       TEXT NOT NULL,
-    create_time   TIMESTAMP,
+    create_time   INTEGER,
     temp_type     TEXT NOT NULL,
     remark        TEXT
 );
@@ -531,7 +540,7 @@ CREATE TABLE promote_record
     status          TEXT DEFAULT '0'
 );
 
-INSERT INTO local_users (id, username, avatar, account, password, role, remark, is_first_login) VALUES (1, 'admin', 'images/avatars/avatar1.png', 'admin', '$argon2id$v=19$m=19456,t=2,p=1$xmj1234xmj1234xmj1234xmj1234xmj1234$xcjB3Mxf+IbNnfZMiHNE+XrGRv+bWdmyiM6uTbZ1Mxs', 'admin', null, 1);
+-- INSERT INTO local_users (id, username, avatar, account, password, role, remark, first_login) VALUES (1, 'admin', 'images/avatars/avatar1.png', 'admin', '$argon2id$v=19$m=19456,t=2,p=1$xmj1234xmj1234xmj1234xmj1234xmj1234$xcjB3Mxf+IbNnfZMiHNE+XrGRv+bWdmyiM6uTbZ1Mxs', 'admin', null, 1);
 
 INSERT INTO configs (config_id, config_name, config_key, config_value, config_type, create_by, create_time, update_by, update_time, remark) VALUES (1, '账号自助-验证码开关', 'sys.account.captchaEnabled', 'false', 'Y', 'admin', null, '', null, '是否开启验证码功能（true开启，false关闭）');
 INSERT INTO configs (config_id, config_name, config_key, config_value, config_type, create_by, create_time, update_by, update_time, remark) VALUES (2, '预计取衣事件', 'desire_complete_time', '17', 'Y', null, '2025-02-15T10:22:13.032273400+08:00', null, '2025-02-15T10:23:31.618923900+08:00', '默认七天后取衣');

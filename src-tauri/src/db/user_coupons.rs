@@ -1,13 +1,15 @@
-use crate::db::coupons::Coupon;
-use crate::db::{AppState, Validator};
-use crate::error::{Error, ErrorKind, Result};
 use serde::{Deserialize, Serialize};
 use sqlx::sqlite::SqliteRow;
 use sqlx::{
-    types::chrono::{DateTime, FixedOffset},
     FromRow, Pool, QueryBuilder, Row, Sqlite, Transaction,
+    types::chrono::{DateTime, FixedOffset},
 };
 use tauri::State;
+
+use crate::db::Validator;
+use crate::db::coupons::Coupon;
+use crate::error::{Error, ErrorKind, Result};
+use crate::state::AppState;
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

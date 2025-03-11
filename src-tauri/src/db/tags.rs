@@ -2,8 +2,9 @@ use serde::{Deserialize, Serialize};
 use sqlx::{Acquire, Executor, FromRow, Pool, QueryBuilder, Sqlite, SqlitePool, Transaction};
 use tauri::State;
 
-use super::{AppState, Curd, PageParams, PageResult};
+use super::{Curd, PageParams, PageResult};
 use crate::error::{Error, ErrorKind, Result};
+use crate::state::AppState;
 use crate::utils;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default, FromRow)]

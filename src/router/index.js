@@ -125,6 +125,17 @@ export const constantRoutes = [
     ]
   },
   {
+    path: '/blogs',
+    component: Layout,
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/system/posts/index.vue'),
+        // meta: { title: '知识天地', icon: 'education' }
+      }
+    ]
+  },
+  {
     path: '/redirect',
     component: Layout,
     hidden: true,
@@ -167,7 +178,20 @@ export const constantRoutes = [
         meta: { title: '首页', icon: 'dashboard', affix: true }
       }
     ]
-  }
+  },
+  {
+    path: '/system/dict-data',
+    component: Layout,
+    hidden: true,
+    children: [
+      {
+        path: 'index/:dictId(\\d+)',
+        component: () => import('@/views/system/dict/data'),
+        name: 'Data',
+        meta: { title: '字典数据', activeMenu: '/system/dict' }
+      }
+    ]
+  },
 ]
 
 // 动态路由，基于用户权限动态去加载

@@ -15,11 +15,7 @@
     <CouponGift :visible="showCouponGift" :key="showCouponGift" :taggle="() => { showCouponGift = !showCouponGift }" />
     <HangUp :visible="showHangUp" :key="showHangUp" :taggle="() => { showHangUp = !showHangUp }" />
     <Expenditure :visible="showExp" :key="showExp" :taggle="() => { showExp = !showExp }" />
-
-    <!-- <div class="taggle-icon" @click="toggleLayout"></div> -->
   </div>
-
-  <!-- 卡券售卖弹窗 -->
 </template>
 
 <script setup name="SidebarNew">
@@ -80,7 +76,8 @@ const menus = ref([
   { 'name': '收支报表', 'type': 'success', show: true, path: '/expenditures', onClick: () => router.push('/expenditures') },
   { 'name': '经营对账', 'type': 'success', show: false },
   { 'name': '新增支出', 'type': 'success', show: false },
-  { 'name': '营销推送', 'type': 'success', show: false, color: '#626aef', dark: false }
+  { 'name': '营销推送', 'type': 'success', show: false, color: '#626aef', dark: false },
+  { 'name': '知识天地', 'type': 'primary', path: '/blogs', show: true, onClick: () => { router.push('/blogs') } },
 ]);
 
 watch(isAdmin, (newValue) => {

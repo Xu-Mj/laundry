@@ -3,9 +3,11 @@ use sqlx::sqlite::SqliteRow;
 use sqlx::{Executor, FromRow, Pool, QueryBuilder, Row, Sqlite, SqlitePool, Transaction};
 use tauri::State;
 
-use super::{AppState, Curd, PageParams, PageResult};
 use crate::error::{Error, ErrorKind, Result};
 use crate::utils;
+use crate::state::AppState;
+
+use super::{ Curd, PageParams, PageResult};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]

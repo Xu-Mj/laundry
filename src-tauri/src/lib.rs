@@ -11,6 +11,7 @@ pub mod routers;
 pub mod tray;
 pub mod update;
 pub mod utils;
+pub mod state;
 
 use tauri::ipc::Invoke;
 use tauri::Runtime;
@@ -201,7 +202,6 @@ fn handle_command<R: Runtime>(invoke: Invoke<R>) -> bool {
         local_users::get_info,
         local_users::login,
         local_users::logout,
-        local_users::register,
         local_users::update_pwd,
         // expenditure
         expenditure::get_exp_pagination,

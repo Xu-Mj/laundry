@@ -90,7 +90,7 @@ import { selectListHistory, getCountByUserId } from "@/api/system/orders";
 import { getTotalAmountAndAvgConsume } from "@/api/system/payment";
 import { listCloths } from "@/api/system/cloths";
 import { listTagsNoLimit } from "@/api/system/tags";
-import { onMounted, ref } from 'vue';
+import { getPrice } from "@/api/system/price";
 
 const props = defineProps({
 

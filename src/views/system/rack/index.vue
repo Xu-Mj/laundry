@@ -113,7 +113,7 @@ function reset() {
     id: null,
     name: null,
     rackType: '1',
-    capacity: null,
+    capacity: 100,
     remainingCapacity: null,
     position: null
   };

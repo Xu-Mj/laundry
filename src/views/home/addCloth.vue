@@ -454,7 +454,8 @@ const capturedImages = ref([]);
 watch(selectedCloth, (newVal) => {
     if (newVal) {
         Object.assign(form.value, newVal);
-        step.value = 0; // 直接跳到最后一步进行编辑
+        step.value = 0;
+        cateChange(newVal.clothingCategory);
     } else {
         reset(); // 如果没有选中任何衣物，则重置表单
     }

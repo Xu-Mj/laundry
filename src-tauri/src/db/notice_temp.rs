@@ -1,8 +1,3 @@
-use crate::db::orders::Order;
-use crate::db::user::User;
-use crate::db::{AppState, Curd, PageParams, PageResult};
-use crate::error::{Error, Result};
-use crate::utils;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use sqlx::sqlite::SqliteRow;
@@ -10,17 +5,24 @@ use sqlx::types::chrono::{DateTime, FixedOffset};
 use sqlx::{FromRow, Pool, QueryBuilder, Row, Sqlite, Transaction};
 use tauri::State;
 
+use crate::db::orders::Order;
+use crate::db::user::User;
+use crate::db::{Curd, PageParams, PageResult};
+use crate::error::{Error, Result};
+use crate::state::AppState;
+use crate::utils;
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[serde(default)]
 pub struct NoticeTemp {
-    pub temp_id: Option<i64>,                       // 自增主键，可以为 None
-    pub temp_name: Option<String>,                  // 模板名称
-    pub notice_method: Option<String>,              // 通知方式
-    pub content: Option<String>,                    // 通知内容
-    pub create_time: Option<DateTime<FixedOffset>>, // 创建时间，可以为 None
-    pub temp_type: Option<String>,                  // 模板类型
-    pub remark: Option<String>,                     // 备注，可以为 None
+    pub temp_id: Option<i64>,          // 自增主键，可以为 None
+    pub temp_name: Option<String>,     // 模板名称
+    pub notice_method: Option<String>, // 通知方式
+    pub content: Option<String>,       // 通知内容
+    pub create_time: Option<i64>,      // 创建时间，可以为 None
+    pub temp_type: Option<String>,     // 模板类型
+    pub remark: Option<String>,        // 备注，可以为 None
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -170,14 +172,14 @@ impl Curd for NoticeRecord {
 
 impl NoticeTemp {
     // insert
-    pub async fn create(self, pool: &Pool<Sqlite>) -> Result<Self> {
-        let result = sqlx::query_as("INSERT INTO notice_temp (temp_name, notice_method, content, temp_type, remark) VALUES (?, ?, ?, ?, ?)")
-            .bind(self.temp_name)
-            .bind(self.notice_method)
-            .bind(self.content)
-            .bind(self.temp_type)
-            .bind(self.remark)
-            .fetch_one(pool)
+    pub async fn create(&self, tx: &mut Transaction<'_, Sqlite>) -> Result<Self> {
+        let result = sqlx::query_as("INSERT INTO notice_temp (temp_name, notice_method, content, temp_type, remark) VALUES (?, ?, ?, ?, ?) RETURNING *")
+            .bind(&self.temp_name)
+            .bind(&self.notice_method)
+            .bind(&self.content)
+            .bind(&self.temp_type)
+            .bind(&self.remark)
+            .fetch_one(&mut **tx)
             .await?;
         Ok(result)
     }
@@ -415,7 +417,10 @@ pub async fn get_temp_by_id(state: State<'_, AppState>, id: i64) -> Result<Optio
 
 #[tauri::command]
 pub async fn create_temp(state: State<'_, AppState>, temp: NoticeTemp) -> Result<NoticeTemp> {
-    temp.create(&state.pool).await
+    let mut tx = state.pool.begin().await?;
+    let res = temp.create(&mut tx).await?;
+    tx.commit().await?;
+    Ok(res)
 }
 
 #[tauri::command]

@@ -7,7 +7,7 @@ use tracing_subscriber::fmt::format::Writer;
 use tracing_subscriber::fmt::time::FormatTime;
 
 use app_lib::captcha::start_cleanup_thread;
-use app_lib::{config::Config, create_app, db::AppState};
+use app_lib::{config::Config, create_app, state::AppState};
 
 const DEFAULT_CONFIG_PATH: &str = "./config.yml";
 struct LocalTimer;
@@ -84,7 +84,7 @@ async fn main() {
             .plugin(tauri_plugin_dialog::init())
             .plugin(tauri_plugin_process::init())
             .plugin(tauri_plugin_fs::init()),
-        AppState::new(pool),
+        AppState::new(pool, config.base_url),
     )
     .run(|_app_handle, event| match event {
         tauri::RunEvent::ExitRequested { api, .. } => {

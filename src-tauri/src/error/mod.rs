@@ -1,11 +1,11 @@
 use argon2::password_hash;
 use printpdf::image_crate;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::{error::Error as StdError, fmt};
 
 pub type Result<T> = std::result::Result<T, Error>;
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum ErrorKind {
     UnknownError,
     DbError,
@@ -21,10 +21,12 @@ pub enum ErrorKind {
     PrinterNotSet,
     PrinterNotFound,
     InvalidPassword,
-    Unauthenticated,
+    AccountOrPassword,
+    AccountNotRegister,
+    UnAuthorized,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Error {
     kind: ErrorKind,
     details: Option<String>,
@@ -103,6 +105,12 @@ impl Error {
             details: Some(details.into()),
         }
     }
+    
+    #[inline]
+    pub fn account_or_pwd() -> Self {
+        Self::with_kind(ErrorKind::AccountOrPassword)
+    }
+
 }
 
 impl fmt::Display for Error {
@@ -173,5 +181,11 @@ impl From<password_hash::Error> for Error {
 impl From<jsonwebtoken::errors::Error> for Error {
     fn from(value: jsonwebtoken::errors::Error) -> Self {
         Self::new(ErrorKind::InternalServer, value.to_string(), value)
+    }
+}
+
+impl From<reqwest::Error> for Error {
+    fn from(value: reqwest::Error) -> Self {
+        Self::new(ErrorKind::ReqwestError, value.to_string(), value)
     }
 }

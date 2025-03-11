@@ -210,7 +210,6 @@ const showCompensationDialog = ref(false);
 const showClothesDialog = ref(false);
 const loading = ref(true);
 const showHangUp = ref(false);
-const title = ref("");
 const colorList = ref([]);
 const flawList = ref([]);
 const estimateList = ref([]);
@@ -383,7 +382,7 @@ function compensate() {
 function handleCompensate() {
     getUser(props.userId).then(res => {
         showCompensationDialog.value = true;
-        const title = selectionList.value[0].clothInfo.clothingName;
+        let title = selectionList.value[0].clothInfo.clothingName;
         if (selectionList.value.length > 1) {
             title += '...';
         }
@@ -404,18 +403,20 @@ function handleCompensate() {
 function hangUp() {
     if (currentCloth.value) {
         //校验上挂表单内容
-        proxy.$refs["hangUpRef"].validate(valid => {
+        proxy.$refs["hangUpRef"].validate(async valid => {
             if (valid) {
                 console.log(currentCloth.value)
                 console.log(hangForm.value)
-                hangup(hangForm.value).then(res => {
+                proxy.$modal.loading("上挂中...");
+                await hangup(hangForm.value).then(res => {
                     proxy.$modal.msgSuccess("上挂成功");
                     showHangUp.value = false;
                     getList();
                     props.flashList();
                 }).catch(res => {
                     proxy.$modal.msgError(res.msg);
-                })
+                });
+                proxy.$modal.closeLoading();
             }
         });
     }

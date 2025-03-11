@@ -1,8 +1,6 @@
 pub(crate) mod chrono_serde;
+pub(crate) mod request;
 
-use std::collections::HashMap;
-
-use alibaba_cloud_sdk_rust::services::dysmsapi;
 use argon2::password_hash::SaltString;
 use argon2::{Argon2, PasswordHasher};
 use pinyin::ToPinyin;
@@ -105,39 +103,10 @@ pub fn hash_password(password: &[u8], salt: &str) -> Result<String> {
         .to_string())
 }
 
-const ALIYUN_SMS_SERVER_REGION: &str = "cn-hangzhou";
-const ALIYUN_SMS_ACCESS_KEY_ID: &str = "LTAI5tGbR8DaKsV7ivxH1gGm";
-const ALIYUN_SMS_ACCESS_KEY_SECRET: &str = "bCWn3BBRE2YRAWPhZr471cWou73zJi";
-const ALIYUN_SMS_REPORT_TEMPLATE_CODE: &str = " SMS_474905744"; // 通知模版
-const ALIYUN_SMS_SIGN_NAME: &str = "沈阳市浑南区印洗世家洗护 "; // 短信署名
-
-pub fn send_sms(phone_number: &str, parameters: Option<HashMap<String, String>>) -> Result<bool> {
-    let mut client = dysmsapi::Client::NewClientWithAccessKey(
-        ALIYUN_SMS_SERVER_REGION,
-        ALIYUN_SMS_ACCESS_KEY_ID,
-        ALIYUN_SMS_ACCESS_KEY_SECRET,
-    )?;
-    let mut request = dysmsapi::CreateSendSmsRequest();
-    request.PhoneNumbers = phone_number.replace("+86", "");
-    request.SignName = ALIYUN_SMS_SIGN_NAME.to_owned();
-    request.TemplateCode = ALIYUN_SMS_REPORT_TEMPLATE_CODE.to_owned();
-    if let Some(parameters) = parameters {
-        request.TemplateParam = serde_json::to_string(&parameters)?;
-    }
-
-    let response = client.SendSms(&mut request)?;
-    if response.Code.contains("OK") {
-        return Ok(true);
-    }
-
-    Ok(false)
-}
-
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
 
-    use crate::utils::{gen_code, is_chinese, send_sms};
+    use crate::utils::{gen_code, is_chinese};
 
     #[test]
     fn test_get_initial() {
@@ -151,10 +120,5 @@ mod tests {
         let input = 'h';
         let initials = is_chinese(input);
         assert!(initials);
-    }
-    #[test]
-    fn send_sms_test() {
-        let params = HashMap::from([("code".to_string(), "123456".to_string())]);
-        send_sms("+8617863935638", Some(params)).unwrap();
     }
 }

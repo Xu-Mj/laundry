@@ -9,9 +9,9 @@ use serde::{Deserialize, Serialize};
 use tauri::State;
 
 use crate::db::printer::get_settled_printer;
-use crate::db::AppState;
 use crate::error::Result;
 use crate::error::{Error, ErrorKind};
+use crate::state::AppState;
 
 const FONT_SIZE: f32 = 10.0;
 const VERTICAL_LINE_POSITION: f32 = 90.0;

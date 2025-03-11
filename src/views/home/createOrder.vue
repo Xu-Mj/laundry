@@ -9,8 +9,8 @@
                             <el-form-item label="会员：" prop="userId">
                                 <el-select v-model="form.userId" :disabled="notEditable" filterable :clearable="true"
                                     remote reserve-keyword placeholder="请输入手机号码搜索" allow-create @blur="handleBlur"
-                                    remote-show-suffix :remote-method="searchUserByTel" @change="selectUser"
-                                    value-key="userId" style="width: 240px">
+                                    remote-show-suffix :remote-method="searchUserByTel"
+                                    @visible-change="handleVisibleChange" value-key="userId" style="width: 240px">
                                     <el-option v-for="item in userListRes" :key="item.userId"
                                         :label="item.nickName + '\t' + item.phonenumber" :value="item.userId" />
                                 </el-select>
@@ -28,7 +28,7 @@
                     <el-row v-if="form.userId">
                         <el-col :span="10">
                             <el-form-item label="余额：">
-                                {{ currentUser.balance ? currentUser.balance : 0 + '\t'}}元
+                                {{ currentUser.balance ? currentUser.balance : 0 + '\t' }}元
                             </el-form-item>
                         </el-col>
                         <el-col :span="10">
@@ -88,11 +88,11 @@
                     </el-row>
                 </el-form>
                 <div class="btn-container">
-                    <el-button  @click="cancelSelf">{{ form.orderId ? '关 闭' : '取 消'
-                    }}</el-button>
-                    <el-button type="primary"  @click="submitForm"
+                    <el-button @click="cancelSelf">{{ form.orderId ? '关 闭' : '取 消'
+                        }}</el-button>
+                    <el-button type="primary" @click="submitForm"
                         :disabled="notEditable && !(form.source === '03') && (form.priceId || form.source === '02' || form.source === '01')">取衣收款</el-button>
-                    <el-button type="primary"  @click="createAndPay" :disabled="notEditable">收衣收款</el-button>
+                    <el-button type="primary" @click="createAndPay" :disabled="notEditable">收衣收款</el-button>
                 </div>
             </div>
             <div class="right" :span="14">
@@ -111,7 +111,6 @@
 </template>
 
 <script setup name="CreateOrders">
-
 import { ElMessageBox } from 'element-plus'
 import { getOrders, addOrders, updateOrders, pay, updateAdjust } from "@/api/system/orders";
 import { listPrice } from "@/api/system/price";
@@ -123,7 +122,7 @@ import { isCurrentTimeWithinRange, getFutureDate } from "@/utils";
 import { getConfigKey } from '@/api/system/config';
 import AddCloth from "./addCloth.vue";
 import History from "@/views/home/history.vue";
-import { invoke } from "@tauri-apps/api/core";
+import { print } from "@/api/system/printer";
 import Information from "@/views/system/user/information.vue";
 import CustomTable from '@/components/CustomTable';
 import Pay from '@/views/home/pay.vue';
@@ -244,21 +243,9 @@ const selectedCloth = ref(null);
 // 提供共享的状态和方法
 provide('selectedCloth', selectedCloth);
 provide('setSelectedCloth', (cloth) => {
+    console.log(cloth)
     selectedCloth.value = cloth;
 });
-
-function calculateTotalPrice(base, markup, serviceType) {
-    switch (serviceType) {
-        case "000":
-            return base + markup;
-        case "001":
-            return base * 2 + markup;
-        case "002":
-            return base * 1.5 + markup;
-        default:
-            return base;
-    }
-}
 
 function printAllItems() {
     form.value.cloths.forEach((item, index) => {
@@ -309,7 +296,7 @@ function generatePrintContent(item) {
     </div>`
 }
 
-function print() {
+function printTest() {
     console.log(form.value.cloths)
     const items = form.value.cloths;
     printAllItems(items);
@@ -1015,7 +1002,13 @@ function searchUserByTel(tel) {
         showCreateUser.value = false;
     }
 }
-
+function handleVisibleChange(visible) {
+    if (visible && userListRes.value.length === 1) {
+        form.value.userId = userListRes.value[0].userId;
+        form.value.nickName = userListRes.value[0].nickName;
+        selectUser(form.value.userId);
+    }
+}
 /* 选择会员信息 */
 async function selectUser(userId) {
     if (!userId || userId.length == 0) {
@@ -1028,7 +1021,7 @@ async function selectUser(userId) {
 
     form.value.nickName = item.nickName;
     // 查询会员卡券信息
-    listUserCouponWithValidTime(userId).then(response => {
+    await listUserCouponWithValidTime(userId).then(response => {
         userCouponList.value = response;
         userCouponList.value.filter(item => item.coupon.couponType == '002').map(item => {
             item.selected = false;
@@ -1114,10 +1107,7 @@ async function printCloth() {
         }
     }));
     proxy.$modal.loading('正在打印衣物信息...')
-    await invoke('print', { items: result }).catch(err => {
-        console.error(" print file error: ", err);
-        proxy.$modal.msgError(err.kind)
-    })
+    await print(result);
     proxy.$modal.closeLoading();
 }
 
@@ -1191,10 +1181,6 @@ onMounted(async () => {
     }
 });
 
-
-onBeforeUnmount(() => {
-    // router.beforeEach(() => { });
-});
 defineExpose({
     cancel,
 });
@@ -1208,7 +1194,8 @@ defineExpose({
     position: absolute;
     left: 0;
     top: 0;
-    background-color: rgb(228, 227, 227);
+    opacity: 0.8;
+    background-color: inherit;
     padding: .5rem .5rem .5rem;
     display: flex;
     gap: .5rem;
@@ -1216,47 +1203,17 @@ defineExpose({
 
 .left,
 .right {
-    /* padding: 1rem; */
     border: none;
-    border-radius: .4rem;
     position: relative;
     overflow: hidden;
     width: 100%;
     height: 100%;
-    background-color: #fff;
     padding: .5rem;
 }
 
-
-/* .left::before {
-    content: "";
-    width: calc(100% - .5rem);
-    height: 100%;
-    position: absolute;
-    border-radius: .4rem;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    backdrop-filter: blur(40px);
-    background-color: rgba(255, 255, 255, 0.2);
-    transition: background-color 0.3s ease;
+.left{
+    border-right: 1px solid #ebeef5;
 }
-
-.right::before {
-    content: "";
-    width: calc(100% - .5rem);
-    height: 100%;
-    position: absolute;
-
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: .5rem;
-    backdrop-filter: blur(40px);
-    background-color: rgba(255, 255, 255, 0.2);
-    transition: background-color 0.3s ease;
-} */
 
 .adjust-price-group {
     width: 100%;
@@ -1273,11 +1230,8 @@ defineExpose({
 .btn-container {
     padding: .5rem;
     display: flex;
-    /* grid-template-columns: repeat(2, 1fr); */
-    /* grid-template-rows: repeat(2, 1fr); */
     justify-content: flex-end;
     align-items: center;
-    /* 创建两行，每行等高 */
     gap: 1rem;
     position: absolute;
     bottom: 0;

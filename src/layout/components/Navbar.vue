@@ -1,35 +1,38 @@
 <template>
   <div class="navbar">
-    <el-button @click="toggleDarkMode" class="right-menu-item" icon="Moon" type="text" />
-    <el-dropdown @command="handleCommand" class="right-menu-item hover-effect" trigger="click">
-      <el-button class="right-menu-item" icon="Setting" type="text" />
-      <!-- <div class="avatar-wrapper"> -->
-      <!-- <img :src="userStore.avatar" class="user-avatar" />
-        </div> -->
-      <template #dropdown>
-        <el-dropdown-menu>
-          <el-dropdown-item @click="showSetting = true">选择打印机</el-dropdown-item>
-          <el-dropdown-item command="goAdmin">
-            <span>{{ props.isAdmin ? '后台管理' : '返回' }}</span>
-          </el-dropdown-item>
-        </el-dropdown-menu>
-      </template>
-    </el-dropdown>
-    <div class="avatar-container">
+    <div class="avatar-row">
+      <div class="avatar-container">
+        <el-dropdown @command="handleCommand" class="right-menu-item hover-effect" trigger="click">
+          <div class="avatar-wrapper">
+            <img :src="userStore.avatar" class="user-avatar" />
+          </div>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item @click="showChangePwd = true">修改密码</el-dropdown-item>
+              <router-link to="/profile">
+                <el-dropdown-item>个人中心</el-dropdown-item>
+              </router-link>
+              <el-dropdown-item divided command="logout">
+                <span>退出登录</span>
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+      </div>
+    </div>
+    <div class="controls-row">
+      <ThemeSwitch />
       <el-dropdown @command="handleCommand" class="right-menu-item hover-effect" trigger="click">
-        <div class="avatar-wrapper">
-          <img :src="userStore.avatar" class="user-avatar" />
-        </div>
+        <span class="setting-icon">
+          <el-icon size="20">
+            <component is="Setting" />
+          </el-icon>
+        </span>
         <template #dropdown>
           <el-dropdown-menu>
-            <!-- <router-link to="/user/profile"> -->
-            <el-dropdown-item @click="showChangePwd = true">修改密码</el-dropdown-item>
-            <!-- </router-link> -->
-            <!-- <el-dropdown-item command="setLayout" v-if="settingsStore.showSettings">
-              <span>布局设置</span> -->
-            <!-- </el-dropdown-item> -->
-            <el-dropdown-item divided command="logout">
-              <span>退出登录</span>
+            <el-dropdown-item @click="showSetting = true">选择打印机</el-dropdown-item>
+            <el-dropdown-item command="goAdmin">
+              <span>{{ props.isAdmin ? '后台管理' : '返回' }}</span>
             </el-dropdown-item>
           </el-dropdown-menu>
         </template>
@@ -58,9 +61,9 @@
 </template>
 
 <script setup>
+import ThemeSwitch from '@/components/ThemeSwitch.vue';
 import { ElMessageBox } from 'element-plus'
 import useUserStore from '@/store/modules/user'
-import useSettingsStore from '@/store/modules/settings'
 import Setting from '@/views/setting/index.vue';
 import { updatePwd } from '@/api/system/user';
 import { Window } from '@tauri-apps/api/window';
@@ -82,14 +85,6 @@ const form = ref({
   confirmPassword: ''
 });
 const formRef = ref();
-
-const isDarkMode = ref(localStorage.getItem('darkMode') === 'true');
-
-function toggleDarkMode() {
-  isDarkMode.value = !isDarkMode.value;
-  document.documentElement.classList.toggle('dark', isDarkMode.value);
-  localStorage.setItem('darkMode', isDarkMode.value);
-}
 
 function reset() {
   form.value = {
@@ -197,54 +192,51 @@ function setLayout() {
   emits('setLayout');
 }
 
-onMounted(() => {
-  if (isDarkMode.value) {
-    document.documentElement.classList.add('dark');
-  }
-});
-
 </script>
 
 <style lang='scss' scoped>
 .navbar {
-  // height: 80px;
   width: 100%;
   overflow: hidden;
   position: absolute;
   bottom: 0;
   left: 0;
-  padding-bottom: 1rem;
+  padding: 1rem;
   display: flex;
-  align-items: end;
-  justify-content: space-around;
-  // gap: 1rem;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
 
+  .avatar-row {
+    width: 100%;
+    display: flex;
+    justify-content: flex-start;
+  }
 
-  .hamburger-container {
-    line-height: 46px;
-    height: 100%;
-    float: left;
+  .controls-row {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .setting-icon {
     cursor: pointer;
-    transition: background 0.3s;
-    -webkit-tap-highlight-color: transparent;
-
-    &:hover {
-      background: rgba(0, 0, 0, 0.025);
-    }
+    border-radius: 4px;
+    transition: background-color 0.3s;
+    color: var(--el-color-primary);
   }
 
-  .breadcrumb-container {
-    float: left;
+  .setting-icon:hover {
+    background-color: var(--el-fill-color-light);
   }
 
-  .topmenu-container {
-    position: absolute;
-    left: 50px;
+  :deep(.el-icon) {
+    transition: transform 0.3s;
   }
 
-  .errLog-container {
-    display: inline-block;
-    vertical-align: top;
+  .setting-icon:hover :deep(.el-icon) {
+    transform: scale(1.2);
   }
 
   .avatar-container {
@@ -266,37 +258,6 @@ onMounted(() => {
         font-size: 12px;
       }
     }
-  }
-
-  .right-menu {
-    float: right;
-    height: 100%;
-    line-height: 50px;
-    display: flex;
-
-    &:focus {
-      outline: none;
-    }
-
-    .right-menu-item {
-      display: inline-block;
-      padding: 0 8px;
-      height: 100%;
-      font-size: 18px;
-      color: #5a5e66;
-      vertical-align: text-bottom;
-
-      &.hover-effect {
-        cursor: pointer;
-        transition: background 0.3s;
-
-        &:hover {
-          background: rgba(0, 0, 0, 0.025);
-        }
-      }
-    }
-
-
   }
 }
 </style>

@@ -1,5 +1,112 @@
 <template>
   <div class="home">
+    <div class="statistic">
+      <el-row :gutter="16">
+        <el-col :span="6">
+          <div class="statistic-card">
+            <el-statistic :value="paymentData.today?.income || 0">
+              <template #title>
+                <div style="display: inline-flex; align-items: center">
+                  收入（本日）
+                  <el-tooltip effect="dark" content="今日收入总额" placement="top">
+                    <el-icon style="margin-left: 4px" :size="12">
+                      <Warning />
+                    </el-icon>
+                  </el-tooltip>
+                </div>
+              </template>
+            </el-statistic>
+            <div class="statistic-footer">
+              <div class="footer-item">
+                <span>较昨日</span>
+                <span :class="paymentData.today?.incomeRate >= 0 ? 'green' : 'red'">
+                  {{ Math.abs(paymentData.today?.incomeRate || 0) }}%
+                  <el-icon>
+                    <component :is="paymentData.today?.incomeRate >= 0 ? 'CaretTop' : 'CaretBottom'" />
+                  </el-icon>
+                </span>
+              </div>
+            </div>
+          </div>
+        </el-col>
+        <el-col :span="6">
+          <div class="statistic-card">
+            <el-statistic :value="paymentData.week?.income || 0">
+              <template #title>
+                <div style="display: inline-flex; align-items: center">
+                  收入（本周）
+                  <el-tooltip effect="dark" content="本周收入总额" placement="top">
+                    <el-icon style="margin-left: 4px" :size="12">
+                      <Warning />
+                    </el-icon>
+                  </el-tooltip>
+                </div>
+              </template>
+            </el-statistic>
+            <div class="statistic-footer">
+              <div class="footer-item">
+                <span>较上周</span>
+                <span :class="paymentData.week?.incomeRate >= 0 ? 'green' : 'red'">
+                  {{ Math.abs(paymentData.week?.incomeRate || 0) }}%
+                  <el-icon>
+                    <component :is="paymentData.week?.incomeRate >= 0 ? 'CaretTop' : 'CaretBottom'" />
+                  </el-icon>
+                </span>
+              </div>
+            </div>
+          </div>
+        </el-col>
+        <el-col :span="6">
+          <div class="statistic-card">
+            <el-statistic :value="paymentData.today?.expense || 0">
+              <template #title>
+                <div style="display: inline-flex; align-items: center">
+                  本日支出
+                  <el-tooltip effect="dark" content="今日支出总额" placement="top">
+                    <el-icon style="margin-left: 4px" :size="12">
+                      <Warning />
+                    </el-icon>
+                  </el-tooltip>
+                </div>
+              </template>
+            </el-statistic>
+            <div class="statistic-footer">
+              <div class="footer-item">
+                <span>较昨日</span>
+                <span :class="paymentData.today?.expenseRate >= 0 ? 'red' : 'green'">
+                  {{ Math.abs(paymentData.today?.expenseRate || 0) }}%
+                  <el-icon>
+                    <component :is="paymentData.today?.expenseRate >= 0 ? 'CaretTop' : 'CaretBottom'" />
+                  </el-icon>
+                </span>
+              </div>
+            </div>
+          </div>
+        </el-col>
+        <el-col :span="6">
+          <div class="statistic-card">
+            <el-statistic :value="paymentData.week?.expense || 0">
+              <template #title>
+                <div style="display: inline-flex; align-items: center">
+                  本周支出
+                </div>
+              </template>
+            </el-statistic>
+            <div class="statistic-footer">
+              <div class="footer-item">
+                <span>较上周</span>
+                <span :class="paymentData.week?.expenseRate >= 0 ? 'red' : 'green'">
+                  {{ Math.abs(paymentData.week?.expenseRate || 0) }}%
+                  <el-icon>
+                    <component :is="paymentData.week?.expenseRate >= 0 ? 'CaretTop' : 'CaretBottom'" />
+                  </el-icon>
+                </span>
+              </div>
+            </div>
+          </div>
+        </el-col>
+      </el-row>
+    </div>
     <div class="bottom">
       <GaugeChart :total="orderTotalCount" :value="item.count" :title="item.title" v-for="item in countList"
         :key="item.title" class="chart" />
@@ -10,11 +117,11 @@
       </div>
       <v-chart v-for="(item, index) in chartList" :key="index" class="chart" :option="item"
         :ref="(el) => setChartRef(el, index)" />
-      <v-chart class="chart" :option="barChartOptions" ref="barChartRef" />
     </div>
   </div>
 </template>
 <script setup name="Index">
+import ThemeSwitch from '../components/ThemeSwitch.vue';
 import VChart from 'vue-echarts';
 import { use } from 'echarts/core';
 import { PieChart } from 'echarts/charts';
@@ -34,8 +141,7 @@ const orderTotalCount = ref(0);
 const chart = ref();
 const lineChart = ref({});
 const lineChartRef = ref();
-const barChartRef = ref();
-const barChartOptions = ref({});
+const paymentData = ref({});
 const chartData = ref([]);
 const pieChartOptions = ref({});
 const chartList = ref([]);
@@ -122,35 +228,9 @@ const handleDateChange = (date) => {
   initLineChart(year, month);
 };
 
-const initBarChart = async () => {
-  const data = await fetchPaymentSummary();
-  const labels = data.map(item => item.label);
-  const incomes = data.map(item => item.income);
-  const expenses = data.map(item => item.expense);
-
-  barChartOptions.value = {
-    title: { text: '收入与支出', left: 'center' },
-    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: '{a} <br/>{b}: {c} 元' },
-    legend: { data: ['收入', '支出'], bottom: 0 },
-    xAxis: { type: 'category', data: labels },
-    yAxis: {
-      type: 'value',
-      name: '金额 (元)',
-    },
-    series: [
-      { name: '收入', type: 'bar', data: incomes, itemStyle: { color: '#4caf50' } },
-      { name: '支出', type: 'bar', data: expenses, itemStyle: { color: '#f44336' } },
-    ],
-  };
-};
-
 const resizeCharts = () => {
-  // debugger
   if (lineChartRef.value && lineChartRef.value.resize) {
     lineChartRef.value.resize();
-  }
-  if (barChartRef.value && barChartRef.value.resize) {
-    barChartRef.value.resize();
   }
   chartListRefs.value.forEach(chart => {
     if (chart.resize) {
@@ -163,6 +243,17 @@ const initCharts = async () => {
   await fetchCodeToLabelData();
   await getCountData();
   await getChartData();
+  const data = await fetchPaymentSummary();
+  paymentData.value = data.reduce((acc, item) => {
+    acc[item.label.toLowerCase()] = {
+      income: item.income,
+      expense: item.expense,
+      incomeRate: item.incomeRate,
+      expenseRate: item.expenseRate
+    };
+    return acc;
+  }, {});
+  
   orderTotalCount.value = await getOrderTotalCount();
   chartData.value = countList.value.map(item => ({ value: item.count, name: item.title }));
   const parsedData = parseData(chart.value);
@@ -170,7 +261,6 @@ const initCharts = async () => {
   const year = selectedDate.value.getFullYear();
   const month = selectedDate.value.getMonth() + 1;
   await initLineChart(year, month);
-  await initBarChart();
   pieChartOptions.value = {
     title: { text: '订单状态占比图', left: 'center' },
     tooltip: { trigger: 'item', formatter: '{a} <br/>{b}: {c} ({d}%)' },
@@ -210,6 +300,56 @@ watch([width, height], () => {
   gap: 2rem;
 }
 
+.header {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 1;
+}
+
+.statistic{
+  width: 100%;
+}
+
+.el-statistic {
+  --el-statistic-content-font-size: 28px;
+}
+
+.statistic-card {
+  height: 100%;
+  padding: 20px;
+  border-radius: 4px;
+  background-color: var(--statistic-card-bg-color);
+}
+
+.statistic-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--el-text-color-regular);
+  margin-top: 16px;
+}
+
+.statistic-footer .footer-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.statistic-footer .footer-item span:last-child {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+}
+
+.green {
+  color: var(--el-color-success);
+}
+.red {
+  color: var(--el-color-error);
+}
 .bottom {
   width: 100%;
   height: 100%;

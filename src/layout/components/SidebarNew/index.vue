@@ -53,8 +53,8 @@ const menus = ref([
   { 'name': '首页', 'type': 'primary', show: true, path: '/index', onClick: () => router.push('/') },
   // { 'name': '图片识别', 'type': 'primary', show: true, path: '/image-test', onClick: () => router.push('/image-test') },
   { 'name': '收衣收鞋', 'type': 'primary', show: true, path: '/create-order', onClick: () => router.push('/create-order') },
-  { 'name': '订单管理', 'type': 'primary', show: true, path: '/order-list', onClick: () => router.push('/order-list') },
   { 'name': '取衣取鞋', 'type': 'primary', show: true, path: '/pick-up', onClick: () => router.push('/pick-up') },
+  { 'name': '订单管理', 'type': 'primary', show: true, path: '/order-list', onClick: () => router.push('/order-list') },
   { 'name': '衣物上挂', 'type': 'primary', show: true, path: '/hang-up', onClick: () => { showHangUp.value = true } },
   { 'name': '交期预警', 'type': 'warning', show: false },
   { 'name': '派送提醒', 'type': 'primary', show: false },
@@ -117,15 +117,16 @@ onMounted(() => {
   position: relative;
   background-color: transparent;
   overflow: hidden;
-  transition: color 0.3s ease;
+  transition: all 0.3s ease;
   outline: none;
 }
 
 .btn:hover {
   color: #fff;
+  background-color: rgba(0, 166, 255, 0.7);
 }
 
-.btn::before {
+/* .btn::before {
   content: '';
   width: 100%;
   height: 100%;
@@ -138,7 +139,7 @@ onMounted(() => {
   background-color: rgba(255, 255, 255, 0.2);
   z-index: -1;
   transition: background-color 0.3s ease;
-}
+} */
 
 .btn:hover::before {
   background-color: rgba(0, 166, 255, 0.7);

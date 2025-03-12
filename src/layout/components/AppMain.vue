@@ -98,7 +98,6 @@ onBeforeUnmount(() => {
   width: 100%;
   height: 100%;
   position: relative;
-  padding: 2rem 1rem;
 }
 
 .fixed-header+.app-main {

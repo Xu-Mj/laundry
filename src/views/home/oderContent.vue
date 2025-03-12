@@ -1,6 +1,6 @@
 <template>
     <div class="result-container">
-        <el-form :model="queryParams" ref="queryRef" :inline="true" label-width="68px">
+        <el-form :model="queryParams" class="top-bar" ref="queryRef" :inline="true" label-width="68px">
             <el-form-item label="取件码" prop="pickupCode">
                 <el-input v-model="queryParams.pickupCode" placeholder="请输入取件码" clearable @keyup.enter="handleQuery" />
             </el-form-item>
@@ -20,7 +20,8 @@
         <!-- 渲染订单抖索结果列表 -->
         <div class="search-result-list">
             <div v-if="ordersList.length === 0" class="no-result">
-                <h1 style="color: #ccc;">暂无数据</h1>
+                <!-- <h1 style="color: #ccc;">暂无数据</h1> -->
+                <el-empty description="暂无数据" />
             </div>
             <div v-else class="result-item" v-for="order in ordersList" :key="order.orderId">
                 <div class="result-item-order-num">
@@ -1226,13 +1227,14 @@ onMounted(async () => {
 .result-container {
     height: 100%;
     width: 100%;
-    margin: 0;
+    position: relative;
+    padding-top: 3rem;
+}
+
+.top-bar {
     position: absolute;
-    left: 0;
-    top: 0;
-    /* background-color: white; */
-    overflow: auto;
-    padding: 1rem;
+    top: 1rem;
+    left: 1rem;
 }
 
 .footer {
@@ -1241,7 +1243,6 @@ onMounted(async () => {
     bottom: .5rem;
     right: .5rem;
     z-index: 999;
-    opacity: .8;
     background-color: var(--el-bg-color);
 }
 
@@ -1270,14 +1271,17 @@ onMounted(async () => {
 }
 
 .search-result-list {
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    margin-bottom: 3rem;
+    padding-bottom: 3rem;
 }
 
 .no-result {
-    height: 20rem;
+    height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;

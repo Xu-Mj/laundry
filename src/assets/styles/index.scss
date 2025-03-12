@@ -5,7 +5,12 @@
 @import './sidebar.scss';
 @import './btn.scss';
 @import './ruoyi.scss';
-
+:root{
+  --statistic-card-bg-color: #f5f7fa;
+}
+:root.dark{
+  --statistic-card-bg-color: #1d1e1f;
+}
 body {
   height: 100%;
   margin: 0;
@@ -27,6 +32,7 @@ html {
 #app {
   height: 100%;
   position: relative;
+  overflow-x: hidden;
 }
 
 *,
@@ -123,9 +129,9 @@ aside {
 }
 
 //main-container全局样式
-// .app-container {
-//   padding: 20px;
-// }
+.app-container {
+  padding: 2rem 1rem 1rem 1rem;
+}
 
 .components-container {
   margin: 30px 50px;

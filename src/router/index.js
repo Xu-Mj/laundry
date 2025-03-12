@@ -136,6 +136,17 @@ export const constantRoutes = [
     ]
   },
   {
+    path: '/profile',
+    component: Layout,
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/system/profile/index.vue'),
+        // meta: { title: '知识天地', icon: 'education' }
+      }
+    ]
+  },
+  {
     path: '/redirect',
     component: Layout,
     hidden: true,

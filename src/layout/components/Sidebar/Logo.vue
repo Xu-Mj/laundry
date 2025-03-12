@@ -19,7 +19,7 @@
 
 <script setup>
 import variables from '@/assets/styles/variables.module.scss'
-import logo from '@/assets/logo/logo.jpg'
+import logo from '@/assets/logo/logo.svg'
 import useSettingsStore from '@/store/modules/settings'
 
 defineProps({

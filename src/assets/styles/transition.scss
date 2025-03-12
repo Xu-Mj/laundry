@@ -15,7 +15,7 @@
 .fade-transform--move,
 .fade-transform-leave-active,
 .fade-transform-enter-active {
-  transition: all .3s;
+  transition: transform .3s;
 }
 
 .fade-transform-enter {

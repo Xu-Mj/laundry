@@ -1,5 +1,5 @@
 import { invoke as invokeCommand } from '@tauri-apps/api/core'
-import { ElMessage } from 'element-plus';
+import Notification from '@/utils/notification';
 
 const errorMessages = {
     UnknownError: "未知错误",
@@ -32,7 +32,8 @@ async function invoke(command, params = {}) {
             details = error.details ? `: ${error.details}` : '';
         }
 
-        ElMessage({ message: `${errorMsg}${details}`, type: 'error', duration: 5000 });
+        // ElMessage({ message: `${errorMsg}${details}`, type: 'error', duration: 5000 });
+        Notification.error(`${errorMsg}${details}`);
         throw error; // 继续向上抛出错误，供调用者处理
     }
 }

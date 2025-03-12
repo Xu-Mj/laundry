@@ -27,6 +27,7 @@ import './permission' // permission control
 
 import { useDict } from '@/utils/dict'
 import { parseTime, formatTime, resetForm, addDateRange, handleTree, selectDictLabel, selectDictLabels } from '@/utils/ruoyi'
+import Notification  from '@/utils/notification'
 
 // 分页组件
 import Pagination from '@/components/Pagination'
@@ -57,6 +58,7 @@ app.config.globalProperties.handleTree = handleTree
 app.config.globalProperties.addDateRange = addDateRange
 app.config.globalProperties.selectDictLabel = selectDictLabel
 app.config.globalProperties.selectDictLabels = selectDictLabels
+app.config.globalProperties.notify = Notification
 
 // 全局组件挂载
 app.component('DictTag', DictTag)

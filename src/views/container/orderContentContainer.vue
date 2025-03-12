@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div style="height: 100%;">
     <OrderContent :taggle="() => { router.push('/') }" />
     <el-dialog v-model="showWarning" :show-close="false" width="300px" center="true">
       <p style="text-align: center;">您将在 {{ countdown }} 秒后自动跳转至首页。</p>

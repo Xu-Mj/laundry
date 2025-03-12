@@ -1,8 +1,8 @@
 <template>
-    <div>
+    <div style="width: 100%; height: 100%;">
         <!-- 添加或修改洗护服务订单对话框 -->
-        <div class="container" v-if="showDialog">
-            <div class="left" :span="10">
+        <div class="container" v-if="props.visible">
+            <div class="left">
                 <el-form ref="ordersRef" :model="form" :rules="rules" label-width="80px">
                     <el-row>
                         <el-col :span="10">
@@ -151,14 +151,7 @@ const props = defineProps({
     }
 });
 const { proxy } = getCurrentInstance();
-const {
-    sys_price_order_type,
-    sys_payment_method,
-} =
-    proxy.useDict(
-        "sys_price_order_type",
-        "sys_payment_method",
-    );
+const { sys_price_order_type } = proxy.useDict("sys_price_order_type");
 
 const router = useRouter();
 const route = useRoute();
@@ -1211,7 +1204,7 @@ defineExpose({
     padding: .5rem;
 }
 
-.left{
+.left {
     border-right: 1px solid #ebeef5;
 }
 

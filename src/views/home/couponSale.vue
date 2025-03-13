@@ -334,7 +334,7 @@ function buy() {
         if (valid) {
             const coupons = selectedList.value.filter(item => item.count > 0).map(({ couponId, count }) => ({ couponId, count }));
             if (coupons.length === 0) {
-                proxy.$modal.msgWarning("请选择购买卡券");
+                proxy.notify.warning("请选择购买卡券");
                 return;
             }
 

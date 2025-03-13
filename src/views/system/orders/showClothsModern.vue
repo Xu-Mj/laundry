@@ -725,7 +725,7 @@ function compensate() {
 // 售后处理
 function afterSale() {
   // 实现售后处理逻辑
-  proxy.$modal.msgInfo("售后功能开发中");
+  proxy.notify.info("售后功能开发中");
 }
 
 // 加载图片

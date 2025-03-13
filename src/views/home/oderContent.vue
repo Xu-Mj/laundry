@@ -583,7 +583,7 @@ function changeCouponCount() {
 
 async function handlePay() {
     if (ordersList.value.length == 0) {
-        proxy.$modal.msgWarning("没有可支付的订单或可取走的衣物");
+        proxy.notify.warning("没有可支付的订单或可取走的衣物");
         return;
     }
     initPaymentForm();
@@ -612,7 +612,7 @@ async function handlePay() {
         clothsList.value = selectedCloths.value.filter(item => ids.includes(item.orderClothId)).sort((a, b) => b.priceValue - a.priceValue);
     }
     if (paymentForm.value.orders.length == 0) {
-        proxy.$modal.msgWarning("没有选中未支付的订单");
+        proxy.notify.warning("没有选中未支付的订单");
         return;
     }
 
@@ -936,7 +936,7 @@ async function pickup(cloth) {
     console.log(selectedCloths.value)
     const cloths = selectedCloths.value.filter(item => item.clothingStatus !== '00');
     if (cloths.length == 0) {
-        proxy.$modal.msgWarning("没有选中符合条件的衣物");
+        proxy.notify.warning("没有选中符合条件的衣物");
         return;
     }
 
@@ -988,7 +988,7 @@ async function pickup(cloth) {
 function handleDelivery() {
     const ids = selectedCloths.value.filter(item => item.clothingStatus === '02').map(item => item.clothId);
     if (ids.length == 0) {
-        proxy.$modal.msgWarning("没有选中符合条件的衣物");
+        proxy.notify.warning("没有选中符合条件的衣物");
         return;
     }
 
@@ -1173,7 +1173,7 @@ async function getList() {
     ordersList.value = await selectListExceptCompleted(queryParams.value);
 
     if (ordersList.value.length === 0) {
-        proxy.$modal.msgWarning('没有找到相关订单');
+        proxy.notify.warning('没有找到相关订单');
         return;
     }
 

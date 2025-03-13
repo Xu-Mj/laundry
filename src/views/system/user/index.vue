@@ -397,12 +397,12 @@ function resetQuery() {
 /** 删除按钮操作 */
 function handleDelete(row) {
    if (row && row.balance > 0) {
-      proxy.$modal.msgWarning("会员余额大于0，无法删除！");
+      proxy.notify.warning("会员余额大于0，无法删除！");
       return;
    } else if (!row && ids.value.length > 0) {
       // query user list by ids
       if (userList.value.filter(item => ids.value.contains(item.userId)).filter(item => item.balance > 0).length > 0) {
-         proxy.$modal.msgWarning("存在会员余额大于0的用户，无法删除！");
+         proxy.notify.warning("存在会员余额大于0的用户，无法删除！");
          return;
       }
    }

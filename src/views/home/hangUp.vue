@@ -238,7 +238,7 @@ function getClothInfo() {
             hangForm.value.hangRemark = null;
             hangupBtnDisabled.value = true;
         } else if (currentCloth.value.clothingStatus === '02') {
-            proxy.$modal.msgWarning("衣物编码关联的衣物已上挂");
+            proxy.notify.warning("衣物编码关联的衣物已上挂");
             hangupBtnDisabled.value = true;
             hangForm.value = {
                 clothingNumber: currentCloth.value.hangClothCode,

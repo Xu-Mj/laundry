@@ -2,20 +2,15 @@
     <div class="overlay" v-if="!props.userId">请先选择会员</div>
     <div class="app-container" v-else>
         <!-- 添加或修改订单包含的衣物清单对话框 -->
-        <el-steps :active="step" finish-status="success" simple>
-            <el-step class="step-item" title="选择品类" :icon="CopyDocument" v-if="step !== maxStepNum"
-                @click="jumpToStep(0)" />
-            <el-step class="step-item" title="选择衣物" :icon="User" v-if="step !== maxStepNum" @click="jumpToStep(1)" />
-            <el-step class="step-item" title="选择颜色" :icon="PictureRounded" v-if="step !== maxStepNum"
-                @click="jumpToStep(2)" />
-            <el-step class="step-item" title="洗前瑕疵" :icon="WarningFilled" v-if="step !== maxStepNum"
-                @click="jumpToStep(3)" />
-            <el-step class="step-item" title="洗后预估" :icon="CoffeeCup" v-if="step !== maxStepNum"
-                @click="jumpToStep(4)" />
-            <el-step class="step-item" title="选择品牌" :icon="CollectionTag" v-if="step !== maxStepNum"
-                @click="jumpToStep(5)" />
+        <el-steps :active="step" finish-status="success" align-center="true" simple>
+            <el-step class="step-item" title="选择品类" :icon="CopyDocument" @click="jumpToStep(0)" />
+            <el-step class="step-item" title="选择衣物" :icon="User" @click="jumpToStep(1)" />
+            <el-step class="step-item" title="选择颜色" :icon="PictureRounded" @click="jumpToStep(2)" />
+            <el-step class="step-item" title="洗前瑕疵" :icon="WarningFilled" @click="jumpToStep(3)" />
+            <el-step class="step-item" title="洗后预估" :icon="CoffeeCup" @click="jumpToStep(4)" />
+            <el-step class="step-item" title="选择品牌" :icon="CollectionTag" @click="jumpToStep(5)" />
 
-            <el-step class="step-item" :title="sys_cloth_cate.find(item => item.value == form.clothingCategory).label"
+            <!-- <el-step class="step-item" :title="sys_cloth_cate.find(item => item.value == form.clothingCategory).label"
                 :icon="CopyDocument" v-if="step == maxStepNum" @click="jumpToStep(0)" />
             <el-step class="step-item" :title="findClothingName()" :icon="User" v-if="step == maxStepNum"
                 @click="jumpToStep(1)" />
@@ -27,149 +22,149 @@
                 @click="jumpToStep(4)" />
             <el-step class="step-item"
                 :title="form.clothingBrand ? brandList.find(item => { return item.tagId == form.clothingBrand }).tagName : '未选择品牌'"
-                :icon="CollectionTag" v-if="step == maxStepNum" @click="jumpToStep(5)" />
+                :icon="CollectionTag" v-if="step == maxStepNum" @click="jumpToStep(5)" /> -->
 
         </el-steps>
         <el-form ref="clothsRef" :model="form" :rules="rules" class="form-container">
 
-            <div class="wrapper" v-if="step == 0" key="step0">
-                <el-col :span="3">
-                    <el-scrollbar class="scrollbar-wrapper">
-                        <CustomRadioButtonGroup class="radio-group-column" v-model="form.clothingCategory"
-                            @change="cateChange">
-                            <CustomRadioButton class="radio-button-column" v-for="dict in sys_cloth_cate"
-                                :key="dict.value" :value="dict.value">
-                                {{ dict.label }}
-                            </CustomRadioButton>
-                        </CustomRadioButtonGroup>
-                    </el-scrollbar>
-                </el-col>
-                <el-col :span="21">
-                    <el-form-item label="">
-                        <div class="input-btn-row">
-                            <el-input v-model="cateName" placeholder="请输入分类名称" />
-                            <el-button type="primary" @click="handleAddCate">新增</el-button>
-                        </div>
-                    </el-form-item>
-                    <el-scrollbar>
-                        <CustomRadioButtonGroup class="items-break" v-model="form.clothingStyle" @change="nextStep">
-                            <CustomRadioButton v-for="dict in clothStyleList" :key="dict.dictValue"
-                                :value="dict.dictValue">
-                                {{ dict.dictLabel }}
-                            </CustomRadioButton>
-                        </CustomRadioButtonGroup>
-                    </el-scrollbar>
-                </el-col>
-                <el-row class="footer-btn">
-                    <el-button type="primary" :disabled="!props.userId || !form.clothingCategory || !form.clothingStyle"
-                        @click="nextStep">下一步</el-button>
-                </el-row>
-            </div>
-            <div class="step-wrapper" v-if="step == 1" key="step1">
-                <el-row>
-                    <el-col :span="24">
-                        <el-form-item label="衣物名称">
-                            <div class="input-btn-row">
-                                <el-input v-model="clothNameInput" ref="clothNameRef" @input="searchCloth"
-                                    placeholder="请输衣物名称首字母或衣物名称" />
-                                <el-button v-if="showAddClothBtn" type="primary" @click="handleAddCloth">新增</el-button>
-                            </div>
-                        </el-form-item>
-                    </el-col>
-                </el-row>
-                <div v-if="showAddClothBtn && showPriceContent">
-                    <el-form-item label="洗护价格" v-if="showAddClothBtn && showPriceContent">
-                        <div class="price-content">
-                            <div class="price-wrapper">
-                                <el-input-number v-model="form.clothInfo.clothingBasePrice" :min="0" :controls="false"
-                                    placeholder="请输入基准价格" />
-                                <el-input-number v-model="form.clothInfo.clothingMinPrice" :min="0" :controls="false"
-                                    placeholder="请输入最低价格" />
-                                <el-input-number v-model="form.clothInfo.clothingMetuanPrice" :min="0" :controls="false"
-                                    placeholder="请输入美团价格" />
-                                <el-input-number v-model="form.clothInfo.clothingDouyinPrice" :min="0" :controls="false"
-                                    placeholder="请输入抖音价格" />
-                                <el-input-number v-model="form.clothInfo.clothingXiaochenxuPrice" :min="0"
-                                    :controls="false" placeholder="请输入小程序价格" />
-                                <el-button type="primary" @click="createCloth">确定添加</el-button>
-                            </div>
-                        </div>
-                    </el-form-item>
-                    <el-form-item label="衣挂方式">
-                        <el-radio-group v-model="form.clothInfo.hangType">
-                            <el-radio :value="'1'">输送线</el-radio>
-                            <el-radio :value="'2'">其他</el-radio>
-                        </el-radio-group>
-                    </el-form-item>
+            <div class="steps-container">
+                <div class="step" :class="{ active: step === 0 }" key="step0">
+                    <el-row class="step0" key="step0">
+                        <el-col :span="3" style="height: 100%;">
+                            <el-scrollbar>
+                                <div class="radio-group-column">
+                                    <RadioButton class="radio-button-column" v-model="form.clothingCategory"
+                                        v-for="dict in sys_cloth_cate" :key="dict.value" :value="dict.value"
+                                        @change="cateChange">
+                                        {{ dict.label }}
+                                    </RadioButton>
+                                </div>
+                            </el-scrollbar>
+                        </el-col>
+                        <el-col :span="21" style="height: 100%;">
+                            <el-form-item label="">
+                                <div class="input-btn-row">
+                                    <el-input v-model="cateName" placeholder="请输入分类名称" />
+                                    <el-button type="primary" @click="handleAddCate">新增</el-button>
+                                </div>
+                            </el-form-item>
+                            <el-scrollbar class="scrollbar-height">
+                                <div class="items-break">
+                                    <RadioButton v-for="dict in clothStyleList" :key="dict.dictValue"
+                                        v-model="form.clothingStyle" :value="dict.dictValue" :label="dict.dictLabel"
+                                        @change="nextStep()" />
+                                </div>
+                            </el-scrollbar>
+                        </el-col>
+                        <el-row class="footer-btn">
+                            <el-button type="primary"
+                                :disabled="!props.userId || !form.clothingCategory || !form.clothingStyle"
+                                @click="nextStep">下一步</el-button>
+                        </el-row>
+                    </el-row>
                 </div>
-                <!-- 展示衣物标签 -->
-                <el-row class="item-list-area">
-                    <el-scrollbar>
-                        <CustomRadioButtonGroup class="color-radio-group" v-model="form.clothingId"
-                            @change="step2ClothChange">
-                            <CustomRadioButton v-for="cloth in clothingListFilterResult" :key="cloth.clothingId"
-                                :value="cloth.clothingId">
-                                {{ cloth.clothingName }}
-                            </CustomRadioButton>
-                        </CustomRadioButtonGroup>
-                    </el-scrollbar>
-                </el-row>
-                <el-row class="footer-btn">
-                    <el-button type="primary" @click="preStep">上一步</el-button>
-                    <el-button type="primary" @click="nextStep" :disabled="!form.clothingId">下一步</el-button>
-                    <el-button type="danger" @click="reset">重新录入</el-button>
-                </el-row>
-            </div>
-            <div class="step-wrapper" v-if="step == 2" key="step2">
-                <el-row>
-                    <el-col :span="24">
-                        <el-form-item label="颜色名称">
-                            <div class="input-btn-row">
-                                <el-input v-model="clothColorInput" @input="searchColor"
-                                    placeholder="请输颜色名称首字母或者颜色名称" />
-                                <el-button v-if="showAddColorBtn" type="primary"
-                                    @click="addTag('003', clothColorInput)">新增</el-button>
+                <div class="step" :class="{ active: step === 1 }" key="step1">
+                    <el-row>
+                        <el-col :span="24">
+                            <el-form-item label="衣物名称">
+                                <div class="input-btn-row">
+                                    <el-input v-model="clothNameInput" ref="clothNameRef" @input="searchCloth"
+                                        placeholder="请输衣物名称首字母或衣物名称" />
+                                    <el-button v-if="showAddClothBtn" type="primary"
+                                        @click="handleAddCloth">新增</el-button>
+                                </div>
+                            </el-form-item>
+                        </el-col>
+                    </el-row>
+                    <div v-if="showAddClothBtn && showPriceContent">
+                        <el-form-item label="洗护价格" v-if="showAddClothBtn && showPriceContent">
+                            <div class="price-content">
+                                <div class="price-wrapper">
+                                    <el-input-number v-model="form.clothInfo.clothingBasePrice" :min="0"
+                                        :controls="false" placeholder="请输入基准价格" />
+                                    <el-input-number v-model="form.clothInfo.clothingMinPrice" :min="0"
+                                        :controls="false" placeholder="请输入最低价格" />
+                                    <el-input-number v-model="form.clothInfo.clothingMetuanPrice" :min="0"
+                                        :controls="false" placeholder="请输入美团价格" />
+                                    <el-input-number v-model="form.clothInfo.clothingDouyinPrice" :min="0"
+                                        :controls="false" placeholder="请输入抖音价格" />
+                                    <el-input-number v-model="form.clothInfo.clothingXiaochenxuPrice" :min="0"
+                                        :controls="false" placeholder="请输入小程序价格" />
+                                    <el-button type="primary" @click="createCloth">确定添加</el-button>
+                                </div>
                             </div>
                         </el-form-item>
-                    </el-col>
-                </el-row>
-                <!-- 展示颜色 -->
-                <el-row class="item-list-area">
-                    <el-scrollbar>
-                        <CustomRadioButtonGroup class="color-radio-group" v-model="form.clothingColor"
-                            @change="step2ClothChange">
-                            <CustomRadioButton v-for="color in colorList" :key="color.tagId" :value="color.tagId"
-                                :label="color.tagName">
-                                <el-tooltip :content="color.tagNumber">
-                                    {{ color.tagName }}
-                                </el-tooltip>
-                            </CustomRadioButton>
-                        </CustomRadioButtonGroup>
-                    </el-scrollbar>
-                </el-row>
-                <el-row class="footer-btn">
-                    <el-button type="primary" @click="preStep">上一步</el-button>
-                    <el-button type="primary" @click="nextStep">下一步</el-button>
-                    <el-button type="danger" @click="reset">重新录入</el-button>
-                    <el-button type="primary" @click="jump2last">跳过后续步骤</el-button>
-                </el-row>
-            </div>
-            <div style="" v-if="step == 3" key="step3">
-                <el-row>
-                    <el-col :span="24">
-                        <el-form-item label="瑕疵名称">
-                            <div class="input-btn-row">
-                                <el-input v-model="flawInput" @input="searchColor" placeholder="请输名称首字母或者名称" />
-                                <el-button v-if="showAddFlawBtn" type="primary"
-                                    @click="addTag('001', flawInput)">新增</el-button>
-                            </div>
+                        <el-form-item label="衣挂方式">
+                            <el-radio-group v-model="form.clothInfo.hangType">
+                                <el-radio :value="'1'">输送线</el-radio>
+                                <el-radio :value="'2'">其他</el-radio>
+                            </el-radio-group>
                         </el-form-item>
-                    </el-col>
-                </el-row>
-                <!-- 展示瑕疵 -->
-                <el-row class="item-list-area">
-                    <el-scrollbar>
-                        <CheckboxGroup class="color-radio-group" v-model="form.clothingFlawArr">
+                    </div>
+                    <!-- 展示衣物标签 -->
+                    <el-scrollbar class="scrollbar-height">
+                        <div class="items-break">
+
+                            <RadioButton v-for="cloth in clothingListFilterResult" v-model="form.clothingId"
+                                :key="cloth.clothingId" @change="step2ClothChange" :value="cloth.clothingId"
+                                :label="cloth.clothingName" />
+
+                        </div>
+                    </el-scrollbar>
+                    <el-row class="footer-btn">
+                        <el-button type="primary" @click="preStep">上一步</el-button>
+                        <el-button type="primary" @click="nextStep" :disabled="!form.clothingId">下一步</el-button>
+                        <el-button type="danger" @click="reset">重新录入</el-button>
+                    </el-row>
+                </div>
+                <div class="step" :class="{ active: step === 2 }" key="step2">
+                    <el-row>
+                        <el-col :span="24">
+                            <el-form-item label="颜色名称">
+                                <div class="input-btn-row">
+                                    <el-input v-model="clothColorInput" @input="searchColor"
+                                        placeholder="请输颜色名称首字母或者颜色名称" />
+                                    <el-button v-if="showAddColorBtn" type="primary"
+                                        @click="addTag('003', clothColorInput)">新增</el-button>
+                                </div>
+                            </el-form-item>
+                        </el-col>
+                    </el-row>
+                    <!-- 展示颜色 -->
+                    <el-row class="item-list-area">
+                        <el-scrollbar class="scrollbar-height">
+                            <div class="items-break">
+                                <RadioButton v-for="color in colorList" :key="color.tagId" :value="color.tagId"
+                                    v-model="form.clothingColor" @change="nextStep">
+                                    <el-tooltip :content="color.tagNumber">
+                                        {{ color.tagName }}
+                                    </el-tooltip>
+                                </RadioButton>
+                            </div>
+                        </el-scrollbar>
+                    </el-row>
+                    <el-row class="footer-btn">
+                        <el-button type="primary" @click="preStep">上一步</el-button>
+                        <el-button type="primary" @click="nextStep">下一步</el-button>
+                        <el-button type="danger" @click="reset">重新录入</el-button>
+                        <el-button type="primary" @click="jump2last">跳过后续步骤</el-button>
+                    </el-row>
+                </div>
+                <div class="step" :class="{ active: step === 3 }" key="step3">
+                    <el-row>
+                        <el-col :span="24">
+                            <el-form-item label="瑕疵名称">
+                                <div class="input-btn-row">
+                                    <el-input v-model="flawInput" @input="searchColor" placeholder="请输名称首字母或者名称" />
+                                    <el-button v-if="showAddFlawBtn" type="primary"
+                                        @click="addTag('001', flawInput)">新增</el-button>
+                                </div>
+                            </el-form-item>
+                        </el-col>
+                    </el-row>
+                    <!-- 展示瑕疵 -->
+                    <el-scrollbar class="scrollbar-height">
+                        <CheckboxGroup class="items-break" v-model="form.clothingFlawArr">
                             <CheckboxButton v-for="item in flawList" :key="item.tagId" :value="item.tagId">
                                 <el-tooltip :content="item.tagNumber">
                                     {{ item.tagName }}
@@ -177,30 +172,28 @@
                             </CheckboxButton>
                         </CheckboxGroup>
                     </el-scrollbar>
-                </el-row>
-                <el-row class="footer-btn">
-                    <el-button type="primary" @click="preStep">上一步</el-button>
-                    <el-button type="primary" @click="nextStep">下一步</el-button>
-                    <el-button type="danger" @click="reset">重新录入</el-button>
-                    <el-button type="primary" @click="jump2last">跳过后续步骤</el-button>
-                </el-row>
-            </div>
-            <div class="step-wrapper" v-if="step == 4" key="step4">
-                <el-row>
-                    <el-col :span="24">
-                        <el-form-item label="洗后预估">
-                            <div class="input-btn-row">
-                                <el-input v-model="estimateInput" @input="searchColor" placeholder="请输名称首字母或者名称" />
-                                <el-button v-if="showAddEstimateBtn" type="primary"
-                                    @click="addTag('002', estimateInput)">新增</el-button>
-                            </div>
-                        </el-form-item>
-                    </el-col>
-                </el-row>
-                <!-- 展示洗后预估标签 -->
-                <el-row class="item-list-area">
-                    <el-scrollbar>
-                        <CheckboxGroup class="color-radio-group" v-model="form.estimateArr">
+                    <el-row class="footer-btn">
+                        <el-button type="primary" @click="preStep">上一步</el-button>
+                        <el-button type="primary" @click="nextStep">下一步</el-button>
+                        <el-button type="danger" @click="reset">重新录入</el-button>
+                        <el-button type="primary" @click="jump2last">跳过后续步骤</el-button>
+                    </el-row>
+                </div>
+                <div class="step" :class="{ active: step === 4 }" key="step4">
+                    <el-row>
+                        <el-col :span="24">
+                            <el-form-item label="洗后预估">
+                                <div class="input-btn-row">
+                                    <el-input v-model="estimateInput" @input="searchColor" placeholder="请输名称首字母或者名称" />
+                                    <el-button v-if="showAddEstimateBtn" type="primary"
+                                        @click="addTag('002', estimateInput)">新增</el-button>
+                                </div>
+                            </el-form-item>
+                        </el-col>
+                    </el-row>
+                    <!-- 展示洗后预估标签 -->
+                    <el-scrollbar class="scrollbar-height">
+                        <CheckboxGroup class="items-break" v-model="form.estimateArr">
                             <CheckboxButton v-for="item in estimateList" :key="item.tagId" :value="item.tagId">
                                 <el-tooltip :content="item.tagNumber">
                                     {{ item.tagName }}
@@ -208,101 +201,101 @@
                             </CheckboxButton>
                         </CheckboxGroup>
                     </el-scrollbar>
-                </el-row>
-                <el-row class="footer-btn">
-                    <el-button type="primary" @click="preStep">上一步</el-button>
-                    <el-button type="primary" @click="nextStep">下一步</el-button>
-                    <el-button type="danger" @click="reset">重新录入</el-button>
-                    <el-button type="primary" @click="jump2last">跳过后续步骤</el-button>
-                </el-row>
-            </div>
-            <div class="step-wrapper" v-if="step == 5" key="step5">
-                <el-row>
-                    <el-col :span="24">
-                        <el-form-item label="品牌名称">
-                            <div class="input-btn-row">
-                                <el-input v-model="brandInput" @input="searchColor" placeholder="请输品牌名称首字母或者品牌名称" />
-                                <el-button v-if="showAddBrandBtn" type="primary"
-                                    @click="addTag('004', brandInput)">新增</el-button>
-                            </div>
-                        </el-form-item>
-                    </el-col>
-                </el-row>
-                <!-- 展示品牌 -->
-                <el-row class="item-list-area">
+                    <el-row class="footer-btn">
+                        <el-button type="primary" @click="preStep">上一步</el-button>
+                        <el-button type="primary" @click="nextStep">下一步</el-button>
+                        <el-button type="danger" @click="reset">重新录入</el-button>
+                        <el-button type="primary" @click="jump2last">跳过后续步骤</el-button>
+                    </el-row>
+                </div>
+                <div class="step" :class="{ active: step === 5 }" key="step5">
+                    <el-row>
+                        <el-col :span="24">
+                            <el-form-item label="品牌名称">
+                                <div class="input-btn-row">
+                                    <el-input v-model="brandInput" @input="searchColor" placeholder="请输品牌名称首字母或者品牌名称" />
+                                    <el-button v-if="showAddBrandBtn" type="primary"
+                                        @click="addTag('004', brandInput)">新增</el-button>
+                                </div>
+                            </el-form-item>
+                        </el-col>
+                    </el-row>
+                    <!-- 展示品牌 -->
                     <el-scrollbar>
-                        <CustomRadioButtonGroup class="color-radio-group" v-model="form.clothingBrand">
-                            <CustomRadioButton v-for="color in brandList" :key="color.tagId" :value="color.tagId">
-                                <el-tooltip :content="color.tagNumber">
-                                    {{ color.tagName }}
+                        <div class="items-break">
+                            <RadioButton v-for="brand in brandList" v-model="form.clothingBrand" :key="brand.tagId"
+                                :value="brand.tagId" @change="nextStep">
+                                <el-tooltip :content="brand.tagNumber">
+                                    {{ brand.tagName }}
                                 </el-tooltip>
-                            </CustomRadioButton>
-                        </CustomRadioButtonGroup>
+                            </RadioButton>
+                        </div>
                     </el-scrollbar>
-                </el-row>
-                <el-row class="footer-btn">
-                    <el-button type="primary" @click="preStep">上一步</el-button>
-                    <el-button type="primary" @click="nextStep">下一步</el-button>
-                    <el-button type="danger" @click="reset">重新录入</el-button>
-                    <el-button type="primary" @click="jump2last">跳过后续步骤</el-button>
-                </el-row>
-            </div>
-            <div v-if="step == 6" class="step6 step-wrapper" key="step6">
-                <el-row class="row-item">
-                    <label>服务类型:</label>
-                    <el-radio-group v-model="form.serviceType">
-                        <el-radio v-for="type_ in sys_service_type" :key="type_.value" :value="type_.value"
-                            :label="type_.label">{{ type_.label }}</el-radio>
-                    </el-radio-group>
-                </el-row>
-                <el-row class="row-item">
-                    <label>服务要求:</label>
-                    <el-radio-group v-model="form.serviceRequirement">
-                        <el-radio v-for="type_ in sys_service_requirement" :key="type_.value" :value="type_.value"
-                            :label="type_.label">{{ type_.label }}</el-radio>
-                    </el-radio-group>
-                </el-row>
-                <el-row class="row-item">
-                    <label>
-                        工艺加价:
-                    </label>
-                    <el-input-number v-model="form.processMarkup" :min="0" controls-position="right" />元
-                </el-row>
-                <el-row class="row-remark">
-                    <label>
-                        备注信息:
-                    </label>
-                    <textarea v-model="form.remark"
-                        style="flex-grow: 1; outline: none; border: 1px solid #d1d1d1; padding: .5rem; font-size: large; border-radius: .4rem;"
-                        rows="5" placeholder="点击输入备注信息"></textarea>
-                </el-row>
-                <div class="pictures">
-                    <div class="pictures-title">
-                        <label>洗前图片:</label>
-                        <el-upload action="#" :auto-upload="false" :on-change="handleFileChange"
-                            :show-file-list="false">
-                            <template #trigger>
-                                <el-button type="primary">选择图片</el-button>
-                            </template>
-                        </el-upload>
-                    </div>
-                    <!-- 展示刚才上传的图片，并且支持删除 -->
-                    <div class="image-list">
-                        <div v-for="(image, index) in images" :key="index" class="image-item">
-                            <img :src="image.url" alt="Uploaded Image" class="image-preview" />
-                            <el-button type="danger" :icon="Close" size="small" circle @click="removeImage(index)"
-                                class="delete-button" />
+                    <el-row class="footer-btn">
+                        <el-button type="primary" @click="preStep">上一步</el-button>
+                        <el-button type="primary" @click="nextStep">下一步</el-button>
+                        <el-button type="danger" @click="reset">重新录入</el-button>
+                        <el-button type="primary" @click="jump2last">跳过后续步骤</el-button>
+                    </el-row>
+                </div>
+                <div class="step step6" :class="{ active: step === 6 }" key="step6">
+                    <el-row class="row-item">
+                        <label>服务类型:</label>
+                        <el-radio-group v-model="form.serviceType">
+                            <el-radio v-for="type_ in sys_service_type" :key="type_.value" :value="type_.value"
+                                :label="type_.label">{{ type_.label }}</el-radio>
+                        </el-radio-group>
+                    </el-row>
+                    <el-row class="row-item">
+                        <label>服务要求:</label>
+                        <el-radio-group v-model="form.serviceRequirement">
+                            <el-radio v-for="type_ in sys_service_requirement" :key="type_.value" :value="type_.value"
+                                :label="type_.label">{{ type_.label }}</el-radio>
+                        </el-radio-group>
+                    </el-row>
+                    <el-row class="row-item">
+                        <label>
+                            工艺加价:
+                        </label>
+                        <el-input-number v-model="form.processMarkup" :min="0" controls-position="right" />元
+                    </el-row>
+                    <el-row class="row-remark">
+                        <label>
+                            备注信息:
+                        </label>
+                        <textarea v-model="form.remark"
+                            style="flex-grow: 1; outline: none; border: 1px solid #d1d1d1; padding: .5rem; font-size: large; border-radius: .4rem;"
+                            rows="5" placeholder="点击输入备注信息"></textarea>
+                    </el-row>
+                    <div class="pictures">
+                        <div class="pictures-title">
+                            <label>洗前图片:</label>
+                            <el-upload action="#" :auto-upload="false" :on-change="handleFileChange"
+                                :show-file-list="false">
+                                <template #trigger>
+                                    <el-button type="primary">选择图片</el-button>
+                                </template>
+                            </el-upload>
+                        </div>
+                        <!-- 展示刚才上传的图片，并且支持删除 -->
+                        <div class="image-list">
+                            <div v-for="(image, index) in images" :key="index" class="image-item">
+                                <img :src="image.url" alt="Uploaded Image" class="image-preview" />
+                                <el-button type="danger" :icon="Close" size="small" circle @click="removeImage(index)"
+                                    class="delete-button" />
+                            </div>
                         </div>
                     </div>
+
+                    <el-row class="footer-btn">
+                        <el-button @click="reset">取消</el-button>
+                        <el-button type="primary" @click="openCamera">拍照留档</el-button>
+                        <el-button type="primary" @click="submitForm">
+                            {{ form.clothId ? '确认修改' : '确认' }}
+                        </el-button>
+                    </el-row>
                 </div>
 
-                <el-row class="footer-btn">
-                    <el-button @click="reset">取消</el-button>
-                    <el-button type="primary" @click="openCamera">拍照留档</el-button>
-                    <el-button type="primary" @click="submitForm">
-                        {{ form.clothId ? '确认修改' : '确认' }}
-                    </el-button>
-                </el-row>
             </div>
         </el-form>
         <!-- Camera Modal -->
@@ -327,15 +320,13 @@
 </template>
 
 <script setup name="AddCloth">
-import { addCloths, updateCloths} from "@/api/system/cloths";
+import { addCloths, updateCloths } from "@/api/system/cloths";
 import { CoffeeCup, CollectionTag, CopyDocument, PictureRounded, User, WarningFilled } from "@element-plus/icons-vue";
 import { listClothingWithNoLimit, addClothing } from "@/api/system/clothing";
 import { getDicts } from '@/api/system/dict/data'
 import { listTagsNoLimit, addTags } from "@/api/system/tags";
 import pinyin from 'pinyin';
 import { ref, reactive, toRefs } from "vue";
-import CustomRadioButton from "@/components/CustomRadioButton";
-import CustomRadioButtonGroup from "@/components/CustomRadioButtonGroup";
 import CheckboxGroup from "../../components/CheckBoxGroup.vue";
 import CheckboxButton from '../../components/CheckboxButton.vue';
 import { ElMessage } from 'element-plus';
@@ -343,6 +334,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { Close } from '@element-plus/icons-vue';
 import { getTypeByType, addType } from "@/api/system/dict/type";
 import { addDataAuto } from "@/api/system/dict/data";
+import RadioButton from '@/components/RadioButton.vue'
 
 const props = defineProps({
     userId: {
@@ -455,7 +447,7 @@ watch(selectedCloth, (newVal) => {
     if (newVal) {
         Object.assign(form.value, newVal);
         step.value = 0;
-        cateChange(newVal.clothingCategory);
+        cateChange();
     } else {
         reset(); // 如果没有选中任何衣物，则重置表单
     }
@@ -628,7 +620,7 @@ async function handleAddCate() {
     };
     addDataAuto(style).then(() => {
         proxy.$modal.msgSuccess("添加成功");
-        cateChange(form.value.clothingCategory);
+        cateChange();
         cateName.value = "";
     });
 }
@@ -653,8 +645,8 @@ function findClothingName() {
 }
 
 // 当品类发生变化时动态查询子分类列表
-function cateChange(value) {
-    getDicts("sys_cloth_style" + value).then(res => {
+function cateChange() {
+    getDicts("sys_cloth_style" + form.value.clothingCategory).then(res => {
         clothStyleList.value = res;
     })
 }
@@ -691,6 +683,8 @@ function reset() {
     showAddEstimateBtn.value = false;
     showAddClothBtn.value = false;
     showHistory.value = false;
+    prePictureList2.value.clear();
+    images.value = [];
     proxy.resetForm("clothsRef");
 }
 
@@ -745,7 +739,7 @@ async function initList() {
 /** 新增按钮操作 */
 function handleAdd() {
     reset();
-    cateChange(form.value.clothingCategory);
+    cateChange();
 }
 
 /** 提交按钮 */
@@ -758,6 +752,12 @@ function submitForm() {
             }
             if (form.value.clothingBrand) {
                 form.value.clothingBrand = Number(form.value.clothingBrand);
+            }
+            if (form.value.clothingFlawArr) {
+                form.value.clothingFlawArr = form.value.clothingFlawArr.map(item => Number(item));
+            }
+            if (form.value.estimateArr) {
+                form.value.estimateArr = form.value.estimateArr.map(item => Number(item));
             }
             const submitData = { ...form.value };
             if (submitData.estimateArr) {
@@ -773,7 +773,7 @@ function submitForm() {
             }
             if (form.value.clothId != null) {
                 console.log(clothList.value, form.value)
-                updateCloths(submitData).then(response => {
+                updateCloths(submitData).then(() => {
                     proxy.$modal.msgSuccess("修改成功");
                     // 更新衣物列表
                     const clothIndex = clothList.value.findIndex(item => item.clothId == form.value.clothId);
@@ -842,7 +842,11 @@ function nextStep() {
     }
 
     if (step.value === 1) {
-        clothingListFilterResult.value = clothingList.value.filter(item => item.clothingCategory === form.value.clothingCategory && item.clothingStyle === form.value.clothingStyle);
+        clothingListFilterResult.value = clothingList.value.filter(item =>
+            item.clothingCategory === form.value.clothingCategory
+            && item.clothingStyle === form.value.clothingStyle);
+        console.log(form.value)
+        console.log(clothingListFilterResult.value)
     }
     if (step.value === 1 && clothNameRef.value) {
         clothNameRef.value.focus();
@@ -1053,6 +1057,7 @@ onMounted(async () => {
     handleAdd();
 });
 </script>
+<style></style>
 <style scoped>
 .app-container {
     width: 100%;
@@ -1060,7 +1065,7 @@ onMounted(async () => {
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    padding: 1rem 0 0 0;
+    padding: 1rem;
 }
 
 .el-steps--simple {
@@ -1073,24 +1078,55 @@ onMounted(async () => {
 
 .form-container {
     height: 100%;
-    /* width: 201%; */
-    /* padding-bottom: 1rem; */
-    /* display: flex; */
 }
 
-.wrapper {
+.steps-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+}
+
+.step {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(-100%);
+    transition: all 0.3s ease-in-out;
+}
+
+.step.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(0);
+}
+
+.step0 {
+    display: flex;
+    height: 100%;
+}
+
+.step6 {
+    display: flex;
+    color: var(--el-text-color-regular);
+}
+
+.scrollbar-height {
+    height: calc(100% - 5.5rem);
+}
+
+.items-break {
+    width: 100%;
     height: 100%;
     display: flex;
-    position: relative;
-}
-
-.step-wrapper {
-    height: 100%;
-    position: relative;
-}
-
-.scrollbar-wrapper {
-    height: 100%;
+    justify-content: flex-start;
+    align-items: flex-start;
+    gap: 1rem;
+    flex-wrap: wrap;
 }
 
 .radio-group-column {
@@ -1101,20 +1137,11 @@ onMounted(async () => {
     gap: 1rem;
     overflow-y: auto;
 
-    .radio-button-column {
-        width: 6rem;
-        height: 6rem;
-    }
 }
 
-.items-break {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    justify-content: flex-start;
-    align-items: center;
-    gap: 1rem;
-    flex-wrap: wrap;
+.radio-button-column {
+    width: 6rem;
+    height: 6rem;
 }
 
 .row-item {
@@ -1151,10 +1178,7 @@ onMounted(async () => {
 
 .image-item {
     position: relative;
-    border: 1px solid #ddd;
     border-radius: 4px;
-    padding: 5px;
-    background-color: #f9f9f9;
 }
 
 .image-preview {
@@ -1203,16 +1227,6 @@ onMounted(async () => {
     }
 }
 
-.color-radio-group {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    justify-content: flex-start;
-    align-items: center;
-    flex-flow: row wrap;
-    gap: 1rem;
-}
-
 .input-btn-row {
     width: 100%;
     display: grid;
@@ -1251,15 +1265,16 @@ onMounted(async () => {
         gap: .25rem;
     }
 }
+
 label {
     font-weight: normal;
 }
+
 .item-list-area {
     width: 100%;
     height: 100%;
     overflow-y: auto;
 }
-
 
 .img-container {
     display: flex;

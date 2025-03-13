@@ -2,19 +2,19 @@
   <div>
     <template v-for="(item, index) in options">
       <template v-if="values.includes(item.value)">
-        <span
+        <!-- <span
           v-if="(item.elTagType == 'default' || item.elTagType == '') && (item.elTagClass == '' || item.elTagClass == null)"
           :key="item.value"
           :index="index"
           :class="item.elTagClass"
-        >{{ item.label + " " }}</span>
+        >{{ item.label + " " }}</span> -->
         <el-tag
-          v-else
           :disable-transitions="true"
           :key="item.value + ''"
           :index="index"
-          :type="item.elTagType === 'primary' ? '' : item.elTagType"
-          :class="item.elTagClass"
+          :type="item.elTagType"
+          :class="item.elTagClass" 
+          :effect="item.elTagType == 'primary'? 'plain':''"
         >{{ item.label + " " }}</el-tag>
       </template>
     </template>
@@ -74,9 +74,3 @@ function handleArray(array) {
   });
 }
 </script>
-
-<style scoped>
-.el-tag + .el-tag {
-  margin-left: 10px;
-}
-</style>

@@ -81,9 +81,11 @@
                     </el-row>
                     <el-row>
                         <el-col :span="24">
-                            <h2 style="width: 100%; display: flex; justify-content: flex-end; padding-right: 1rem;">
-                                总价: {{ totalPrice }}元
-                            </h2>
+                            <div class="total-price">
+                                <span style="font-size: 16px; margin-right: 10px; color: #606266;">总价:</span>
+                                <span style="font-size: 24px; font-weight: bold; color: #409EFF;">{{ totalPrice
+                                    }}元</span>
+                            </div>
                         </el-col>
                     </el-row>
                 </el-form>
@@ -828,7 +830,6 @@ async function handleUpdate() {
 
 /** 提交按钮 */
 async function submitForm() {
-    console.log(form.value)
     proxy.$refs["ordersRef"].validate(async valid => {
         if (valid) {
             if (!form.value.cloths || form.value.cloths.length == 0) {
@@ -1099,9 +1100,13 @@ async function printCloth() {
             position: item.hangerNumber,
         }
     }));
-    proxy.$modal.loading('正在打印衣物信息...')
-    await print(result);
-    proxy.$modal.closeLoading();
+    try {
+
+        proxy.$modal.loading('正在打印衣物信息...')
+        await print(result);
+    } finally {
+        proxy.$modal.closeLoading();
+    }
 }
 
 function handleDelete(clothId) {
@@ -1187,25 +1192,25 @@ defineExpose({
     position: absolute;
     left: 0;
     top: 0;
-    opacity: 0.8;
-    background-color: inherit;
-    padding: .5rem .5rem .5rem;
+    background-color: var(--el-bg-color-page);
+    padding: 1rem;
     display: flex;
-    gap: .5rem;
+    gap: 1rem;
 }
 
 .left,
 .right {
-    border: none;
+    background-color: var(--el-bg-color);
+    border-radius: 8px;
+    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
     position: relative;
     overflow: hidden;
     width: 100%;
     height: 100%;
-    padding: .5rem;
 }
 
 .left {
-    border-right: 1px solid #ebeef5;
+    padding: 1rem;
 }
 
 .adjust-price-group {
@@ -1214,14 +1219,26 @@ defineExpose({
     justify-content: space-around;
     align-items: center;
     gap: 1rem;
+    margin: 1rem 0;
 }
 
 .footer {
+    padding: 1.5rem 1rem;
+    border-radius: 6px;
+    margin-top: 1rem;
+}
+
+.total-price {
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
     padding: 1rem;
+    background-color: var(--el-fill-color-light);
+    border-radius: 8px;
 }
 
 .btn-container {
-    padding: .5rem;
+    padding: 1rem;
     display: flex;
     justify-content: flex-end;
     align-items: center;
@@ -1229,12 +1246,16 @@ defineExpose({
     position: absolute;
     bottom: 0;
     right: 0;
+    width: 100%;
+    border-top: 1px solid #f0f0f0;
 
     button {
         width: 7rem;
         height: 3rem;
         margin: 0;
-        font-size: large;
+        font-size: 16px;
+        border-radius: 6px;
+        transition: all 0.3s;
     }
 }
 
@@ -1269,16 +1290,48 @@ defineExpose({
 }
 
 .payment-amount {
-    color: red;
-    font-size: large;
+    color: #f56c6c;
+    font-size: 20px;
     font-weight: bold;
 }
 
 .coupon-list-container {
     overflow: hidden;
+    border-radius: 6px;
+    margin: 1rem 0;
 }
 
 .el-form-item__label {
-    color: black;
+    color: #303133;
+    font-weight: 500;
+}
+
+/* 添加响应式设计 */
+@media screen and (max-width: 1200px) {
+    .container {
+        flex-direction: column;
+    }
+
+    .left,
+    .right {
+        height: auto;
+    }
+}
+
+/* 美化表单元素 */
+:deep(.el-input__inner),
+:deep(.el-select),
+:deep(.el-input-number) {
+    border-radius: 6px;
+}
+
+:deep(.el-radio) {
+    margin-right: 16px;
+}
+
+h3 {
+    font-size: 18px;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #ebeef5;
 }
 </style>

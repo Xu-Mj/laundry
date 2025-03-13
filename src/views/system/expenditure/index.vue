@@ -1,81 +1,87 @@
 <template>
   <div class="app-container">
-    <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="68px">
-      <el-form-item label="支出账目" prop="expTitle">
-        <el-input v-model="queryParams.expTitle" placeholder="请输入支出账目" clearable @keyup.enter="handleQuery" />
-      </el-form-item>
-      <el-form-item label="账户名称" prop="recvAccountTitle">
-        <el-input v-model="queryParams.recvAccountTitle" placeholder="请输入收款账户名称" clearable @keyup.enter="handleQuery" />
-      </el-form-item>
-      <el-form-item label="支出类型" prop="expType">
-        <el-select v-model="queryParams.expType" placeholder="请选择支出类型" clearable style="width: 150px"
-          @change="handleQuery">
-          <el-option v-for="dict in sys_exp_type" :key="dict.value" :label="dict.label" :value="dict.value"></el-option>
-        </el-select>
-      </el-form-item>
-      <el-form-item label="支出时间" style="width: 308px">
-        <el-date-picker v-model="dateRange" value-format="YYYY-MM-DD" type="daterange" range-separator="-"
-          start-placeholder="开始日期" end-placeholder="结束日期" @change="handleQuery"></el-date-picker>
-      </el-form-item>
-      <el-form-item>
-        <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
-        <el-button icon="Refresh" @click="resetQuery">重置</el-button>
-      </el-form-item>
-    </el-form>
-
-    <el-row :gutter="10" class="mb8">
-      <el-col :span="1.5">
-        <el-button type="primary" plain icon="Plus" @click="handleAdd"
-          v-hasPermi="['system:expenditure:add']">新增</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleDelete"
-          v-hasPermi="['system:expenditure:remove']">删除</el-button>
-      </el-col>
-      <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
-    </el-row>
-
-    <el-table v-loading="loading" :data="expenditureList" @selection-change="handleSelectionChange">
-      <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="支出账目" align="center" prop="expTitle">
-        <template #default="scope">
-          <el-button v-if="scope.row.expType == '00' || scope.row.expType == '03'" link type="primary"
-            @click="showOrderInfo(scope.row)">{{ scope.row.expTitle }}</el-button>
-          <span v-else>{{ scope.row.expTitle }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column label="收款账户名称" align="center" prop="recvAccountTitle">
-        <template #default="scope">
-          <el-button v-if="scope.row.expType == '00' || scope.row.expType == '01' || scope.row.expType == '03'" link
-            type="primary" @click="showUserInfo(scope.row)">{{ scope.row.recvAccountTitle }}</el-button>
-          <span v-else>{{ scope.row.recvAccountTitle }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column label="支出类型" align="center" prop="expType">
-        <template #default="scope">
-          <dict-tag :options="sys_exp_type" :value="scope.row.expType" />
-        </template>
-      </el-table-column>
-      <el-table-column label="支出金额" align="center" prop="expAmount" />
-      <el-table-column label="支出时间" align="center" prop="createTime">
-        <template #default="scope">
-          <span>{{ formatTime(scope.row.createTime, '{y}-{m}-{d} {hh}:{mm}:{ss}') }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column label="备注信息" align="center" prop="remark" />
-      <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
-        <template #default="scope">
-          <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)"
-            v-hasPermi="['system:expenditure:edit']">修改</el-button>
-          <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)"
+    <!-- 搜索区域 -->
+    <el-card class="search-card" v-show="showSearch">
+      <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="68px">
+        <el-form-item label="支出账目" prop="expTitle">
+          <el-input v-model="queryParams.expTitle" placeholder="请输入支出账目" clearable @keyup.enter="handleQuery" />
+        </el-form-item>
+        <el-form-item label="账户名称" prop="recvAccountTitle">
+          <el-input v-model="queryParams.recvAccountTitle" placeholder="请输入收款账户名称" clearable
+            @keyup.enter="handleQuery" />
+        </el-form-item>
+        <el-form-item label="支出类型" prop="expType">
+          <el-select v-model="queryParams.expType" placeholder="请选择支出类型" clearable style="width: 150px"
+            @change="handleQuery">
+            <el-option v-for="dict in sys_exp_type" :key="dict.value" :label="dict.label"
+              :value="dict.value"></el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="支出时间" style="width: 308px">
+          <el-date-picker v-model="dateRange" value-format="YYYY-MM-DD" type="daterange" range-separator="-"
+            start-placeholder="开始日期" end-placeholder="结束日期" @change="handleQuery"></el-date-picker>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
+          <el-button icon="Refresh" @click="resetQuery">重置</el-button>
+        </el-form-item>
+      </el-form>
+    </el-card>
+    <el-card class="table-card">
+      <el-row :gutter="10" class="mb8">
+        <el-col :span="1.5">
+          <el-button type="primary" plain icon="Plus" @click="handleAdd"
+            v-hasPermi="['system:expenditure:add']">新增</el-button>
+        </el-col>
+        <el-col :span="1.5">
+          <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleDelete"
             v-hasPermi="['system:expenditure:remove']">删除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+        </el-col>
+        <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
+      </el-row>
 
-    <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum"
-      v-model:limit="queryParams.pageSize" @pagination="getList" />
+      <el-table v-loading="loading" :data="expenditureList" @selection-change="handleSelectionChange"
+        class="modern-table" border stripe>
+        <el-table-column type="selection" width="55" align="center" />
+        <el-table-column label="支出账目" align="center" prop="expTitle">
+          <template #default="scope">
+            <el-button v-if="scope.row.expType == '00' || scope.row.expType == '03'" link type="primary"
+              @click="showOrderInfo(scope.row)">{{ scope.row.expTitle }}</el-button>
+            <span v-else>{{ scope.row.expTitle }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="收款账户名称" align="center" prop="recvAccountTitle">
+          <template #default="scope">
+            <el-button v-if="scope.row.expType == '00' || scope.row.expType == '01' || scope.row.expType == '03'" link
+              type="primary" @click="showUserInfo(scope.row)">{{ scope.row.recvAccountTitle }}</el-button>
+            <span v-else>{{ scope.row.recvAccountTitle }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="支出类型" align="center" prop="expType">
+          <template #default="scope">
+            <dict-tag :options="sys_exp_type" :value="scope.row.expType" />
+          </template>
+        </el-table-column>
+        <el-table-column label="支出金额" align="center" prop="expAmount" />
+        <el-table-column label="支出时间" align="center" prop="createTime">
+          <template #default="scope">
+            <span>{{ formatTime(scope.row.createTime, '{y}-{m}-{d} {hh}:{mm}:{ss}') }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="备注信息" align="center" prop="remark" />
+        <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
+          <template #default="scope">
+            <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)"
+              v-hasPermi="['system:expenditure:edit']">修改</el-button>
+            <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)"
+              v-hasPermi="['system:expenditure:remove']">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
 
+      <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum"
+        v-model:limit="queryParams.pageSize" @pagination="getList" />
+    </el-card>
     <!-- 添加或修改支出对话框 -->
     <el-dialog :show-close="false" v-model="open" width="500px" append-to-body>
       <el-form ref="expenditureRef" :model="form" :rules="rules" label-width="80px">
@@ -323,7 +329,7 @@ async function handleUpdate(row) {
   // console.log(userList.value)
   getExpenditure(_expId).then(response => {
     form.value = response;
-    if(!form.value.recvAccount){
+    if (!form.value.recvAccount) {
       form.value.recvAccount = form.value.recvAccountTitle;
     }
     open.value = true;
@@ -378,3 +384,26 @@ function handleExport() {
 
 getList();
 </script>
+
+<style>
+/* 搜索区域样式 */
+.search-card {
+  margin-bottom: 20px;
+  border-radius: 8px;
+
+  .el-form-item {
+    margin-bottom: 0 !important;
+  }
+}
+
+.table-card {
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.modern-table {
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+}
+</style>

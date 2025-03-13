@@ -1,190 +1,198 @@
 <template>
   <div class="app-container">
-    <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="68px">
-      <el-form-item label="订单编码" prop="orderNumber">
-        <el-input v-model="queryParams.orderNumber" placeholder="请输入订单编码" clearable @keyup.enter="handleQuery" />
-      </el-form-item>
-      <el-form-item label="手机号" prop="phonenumber">
-        <el-input v-model="queryParams.phonenumber" placeholder="请输入会员手机号" clearable @keyup.enter="handleQuery" />
-      </el-form-item>
-      <el-form-item label="时效预警" prop="costTimeAlarm">
-        <el-select v-model="queryParams.costTimeAlarm" @change="handleQuery" clearable style="width: 150px;"
-          placeholder="请选择">
-          <el-option v-for="dict in sys_cost_time_alarm" :key="dict.value" :label="dict.label" :value="dict.value" />
-        </el-select>
-      </el-form-item>
-      <el-form-item label="取件码" prop="pickupCode">
-        <el-input v-model="queryParams.pickupCode" placeholder="请输入取件码" clearable @keyup.enter="handleQuery" />
-      </el-form-item>
-      <el-form-item label="支付状态" prop="paymentStatus">
-        <el-select v-model="queryParams.paymentStatus" @change="handleQuery" clearable style="width: 150px;"
-          placeholder="请选择支付状态">
-          <el-option v-for="dict in sys_payment_status" :key="dict.value" :label="dict.label" :value="dict.value" />
-        </el-select>
-      </el-form-item>
-      <el-form-item label="洗护状态" prop="paymentStatus">
-        <el-select v-model="queryParams.status" @change="handleQuery" clearable style="width: 150px;"
-          placeholder="请选择洗护状态">
-          <el-option v-for="dict in sys_order_status" :key="dict.value" :label="dict.label" :value="dict.value" />
-        </el-select>
-      </el-form-item>
-      <el-form-item>
-        <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
-        <el-button icon="Refresh" @click="resetQuery">重置</el-button>
-      </el-form-item>
-    </el-form>
+    <!-- 搜索区域 -->
+    <el-card class="search-card" v-show="showSearch">
+      <el-form :model="queryParams" ref="queryRef" :inline="true" label-width="68px">
+        <el-form-item label="订单编码" prop="orderNumber" size="large">
+          <el-input size="large" v-model="queryParams.orderNumber" placeholder="请输入订单编码" clearable
+            @keyup.enter="handleQuery" />
+        </el-form-item>
+        <el-form-item label="手机号" prop="phonenumber" size="large">
+          <el-input size="large" v-model="queryParams.phonenumber" placeholder="请输入会员手机号" clearable
+            @keyup.enter="handleQuery" />
+        </el-form-item>
+        <el-form-item label="取件码" prop="pickupCode" size="large">
+          <el-input size="large" v-model="queryParams.pickupCode" placeholder="请输入取件码" clearable
+            @keyup.enter="handleQuery" />
+        </el-form-item>
+        <el-form-item label="时效预警" prop="costTimeAlarm" size="large">
+          <el-select size="large" v-model="queryParams.costTimeAlarm" @change="handleQuery" clearable
+            style="width: 100px;" placeholder="请选择">
+            <el-option v-for="dict in sys_cost_time_alarm" :key="dict.value" :label="dict.label" :value="dict.value" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="支付状态" prop="paymentStatus" size="large">
+          <el-select size="large" v-model="queryParams.paymentStatus" @change="handleQuery" clearable
+            style="width: 100px;" placeholder="请选择">
+            <el-option v-for="dict in sys_payment_status" :key="dict.value" :label="dict.label" :value="dict.value" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="洗护状态" prop="status" size="large">
+          <el-select size="large" v-model="queryParams.status" @change="handleQuery" clearable style="width: 100px;"
+            placeholder="请选择">
+            <el-option v-for="dict in sys_order_status" :key="dict.value" :label="dict.label" :value="dict.value" />
+          </el-select>
+        </el-form-item>
+        <el-button type="primary" icon="Search" @click="handleQuery" size="large">搜索</el-button>
+        <el-button icon="Refresh" @click="resetQuery" size="large">重置</el-button>
+      </el-form>
+    </el-card>
 
-    <el-row :gutter="10" class="mb8">
-      <!-- <el-col :span="1.5">
-        <el-button type="primary" plain icon="Plus" @click="handleAdd" v-hasPermi="['system:orders:add']">新增</el-button>
-      </el-col> -->
-      <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" :columns="columns"></right-toolbar>
-    </el-row>
 
-    <el-table v-loading="loading" :data="ordersList">
-      <!-- <el-table-column type="selection" width="55" align="center" /> -->
-      <el-table-column label="订单编码" align="center" width="180" prop="orderNumber" v-if="columns[0].visible" />
-      <el-table-column label="所属会员" align="center" width="180" v-if="columns[1].visible">
-        <template #default="scope">
-          {{ scope.row.nickName + ' - ' + scope.row.phonenumber }}
-        </template>
-      </el-table-column>
+    <!-- 表格区域 -->
+    <el-card class="table-card">
+      <div class="table-operations">
+        <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" :columns="columns"></right-toolbar>
+      </div>
+      <el-table v-loading="loading" :data="ordersList" class="modern-table" border stripe>
+        <el-table-column label="订单编码" align="center" width="180" prop="orderNumber" v-if="columns[0].visible" />
+        <el-table-column label="所属会员" align="center" width="180" v-if="columns[1].visible">
+          <template #default="scope">
+            <div class="member-info">
+              <span class="member-name">{{ scope.row.nickName }}</span>
+              <span class="member-phone">{{ scope.row.phonenumber }}</span>
+            </div>
+          </template>
+        </el-table-column>
 
-      <el-table-column label="订单金额" align="center" prop="paymentAmount" v-if="columns[2].visible">
-        <template #default="scope">
-          <span style="color: red">
-            {{ scope.row.paymentAmount }}元
-          </span>
-        </template>
-      </el-table-column>
-      <el-table-column label="支付方式" align="center" prop="paymentBonusType" v-if="columns[3].visible">
-        <template #default="scope">
-          <dict-tag :options="sys_payment_method_show" :value="scope.row.paymentBonusType" />
-        </template>
-      </el-table-column>
-      <el-table-column label="卡券优惠" align="center" prop="paymentBonusCount" v-if="columns[4].visible">
-        <template #default="scope">
-          <span v-if="scope.row.paymentBonusCount == 0">-</span>
-          <span v-else-if="paymentTimeBasedSet.has(scope.row.paymentBonusType)">
-            {{ scope.row.paymentBonusCount }}张
-          </span>
-          <span v-else>
-            {{ scope.row.paymentBonusCount }}元
-          </span>
+        <el-table-column label="订单金额" align="center" prop="paymentAmount" v-if="columns[2].visible">
+          <template #default="scope">
+            <span class="price-tag">
+              {{ scope.row.paymentAmount }}元
+            </span>
+          </template>
+        </el-table-column>
+        <el-table-column label="支付方式" align="center" prop="paymentBonusType" v-if="columns[3].visible">
+          <template #default="scope">
+            <dict-tag :options="sys_payment_method_show" :value="scope.row.paymentBonusType" />
+          </template>
+        </el-table-column>
+        <el-table-column label="卡券优惠" align="center" prop="paymentBonusCount" v-if="columns[4].visible">
+          <template #default="scope">
+            <span v-if="!scope.row.paymentBonusCount || scope.row.paymentBonusCount == 0">-</span>
+            <span v-else-if="paymentTimeBasedSet.has(scope.row.paymentBonusType)" class="bonus-count">
+              {{ scope.row.paymentBonusCount }}张
+            </span>
+            <span v-else class="bonus-count">
+              {{ scope.row.paymentBonusCount }}元
+            </span>
+          </template>
+        </el-table-column>
+        <el-table-column label="实际支付" align="center" v-if="columns[5].visible">
+          <template #default="scope">
+            <span v-if="scope.row.diffPrice > 0" class="actual-price">
+              {{ scope.row.diffPrice }}元
+            </span>
+          </template>
+        </el-table-column>
+        <el-table-column label="衣物编码" align="center" v-if="columns[6].visible">
+          <template #default="scope">
+            <div class="cloth-code-container">
+              <el-tag v-for="item in scope.row.clothCodes" :key="item" size="small" effect="plain">{{ item }}</el-tag>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column label="取件码" align="center" prop="pickupCode" v-if="columns[7].visible">
+          <template #default="scope">
+            <span class="pickup-code">{{ scope.row.pickupCode }}</span>
+          </template>
+        </el-table-column>
 
-        </template>
-      </el-table-column>
-      <el-table-column label="实际支付" align="center" v-if="columns[5].visible">
-        <template #default="scope">
-          <span v-if="scope.row.diffPrice > 0" style="color: red;">
-            {{ scope.row.diffPrice }}元
-          </span>
-        </template>
-      </el-table-column>
-      <el-table-column label="衣物编码" align="center" v-if="columns[6].visible">
-        <template #default="scope">
-          <div class="cloth-code-container">
-            <el-tag v-for="item in scope.row.clothCodes" :key="item">{{ item }}</el-tag>
-          </div>
-        </template>
-      </el-table-column>
-      <el-table-column label="取件码" align="center" prop="pickupCode" v-if="columns[7].visible" />
+        <el-table-column label="业务类型" align="center" prop="businessType" v-if="columns[8].visible">
+          <template #default="scope">
+            <dict-tag :options="sys_business_type" :value="scope.row.businessType" />
+          </template>
+        </el-table-column>
+        <el-table-column label="收衣时间" align="center" prop="createTime" width="160" v-if="columns[9].visible">
+          <template #default="scope">
+            <span class="time-info">{{ formatTime(scope.row.createTime) }}</span>
+          </template>
+        </el-table-column>
 
-      <el-table-column label="业务类型" align="center" prop="businessType" v-if="columns[8].visible">
-        <template #default="scope">
-          <dict-tag :options="sys_business_type" :value="scope.row.businessType" />
-        </template>
-      </el-table-column>
-      <el-table-column label="收衣时间" align="center" prop="createTime" width="160" v-if="columns[9].visible">
-        <template #default="scope">
-          <span>{{ formatTime(scope.row.createTime) }}</span>
-        </template>
-      </el-table-column>
+        <el-table-column label="时效预警" align="center" prop="costTimeAlarm" v-if="columns[10].visible">
+          <template #default="scope">
+            <dict-tag :options="sys_cost_time_alarm" :value="scope.row.costTimeAlarm" />
+          </template>
+        </el-table-column>
+        <el-table-column label="订单完成时间" align="center" prop="completeTime" width="160" v-if="columns[11].visible">
+          <template #default="scope">
+            <span class="time-info">{{ scope.row.completeTime }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="订单来源" align="center" prop="source" v-if="columns[12].visible">
+          <template #default="scope">
+            <dict-tag :options="sys_price_order_type" :value="scope.row.source" />
+          </template>
+        </el-table-column>
+        <el-table-column label="洗护状态" align="center" prop="status" v-if="columns[13].visible">
+          <template #default="scope">
+            <dict-tag :options="sys_order_status" :value="scope.row.status" />
+          </template>
+        </el-table-column>
+        <el-table-column label="订单类型" align="center" prop="orderType" v-if="columns[14].visible">
+          <template #default="scope">
+            <dict-tag :options="sys_order_type" :value="scope.row.orderType" />
+          </template>
+        </el-table-column>
+        <el-table-column label="支付状态" align="center" prop="paymentStatus" v-if="columns[15].visible">
+          <template #default="scope">
+            <dict-tag v-if="scope.row.paymentStatus === '01'" style="cursor: pointer;" @click="go2pay(scope.row)"
+              :options="sys_payment_status" :value="scope.row.paymentStatus" />
+            <dict-tag v-else :options="sys_payment_status" :value="scope.row.paymentStatus" />
+          </template>
+        </el-table-column>
+        <el-table-column label="取回方式" align="center" prop="deliveryMode" v-if="columns[16].visible">
+          <template #default="scope">
+            <dict-tag :options="sys_delivery_mode" :value="scope.row.deliveryMode"
+              @click="handleDeliveryMode(scope.row)" />
+          </template>
+        </el-table-column>
+        <el-table-column label="预计完成时间" align="center" prop="desireCompleteTime" width="160" v-if="columns[17].visible">
+          <template #default="scope">
+            <span>{{ parseTime(scope.row.desireCompleteTime, '{y}-{m}-{d}') }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="备注" align="center" prop="remark" show-overflow-tooltip v-if="columns[18].visible" />
+        <el-table-column label="操作" fixed="right" align="center" class-name="small-padding fixed-width">
+          <template #default="scope">
+            <el-button link type="primary" @click="showClothList(scope.row)"
+              v-hasPermi="['system:orders:list']">衣物</el-button>
+            <el-dropdown>
+              <el-icon class="el-icon--right">
+                <arrow-down />
+              </el-icon>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item>
+                    <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)">编辑</el-button>
+                  </el-dropdown-item>
+                  <el-dropdown-item>
+                    <el-button link type="primary" icon="Edit" :disabled="scope.row.status == '05'"
+                      @click="handleRefund(scope.row)">退单</el-button>
+                  </el-dropdown-item>
+                  <el-dropdown-item>
+                    <el-button link type="primary" icon="Edit"
+                      :disabled="scope.row.status !== '02' && scope.row.status !== '03'"
+                      @click="handleNotify(scope.row)">通知</el-button>
+                  </el-dropdown-item>
+                  <el-dropdown-item>
+                    <el-button link type="danger" icon="Delete" @click="handleDelete(scope.row)">删除</el-button>
+                  </el-dropdown-item>
+                  <el-dropdown-item disabled>
+                    <el-button link type="primary" icon="Edit"
+                      :disabled="scope.row.paymentStatus !== '01' || scope.row.status == '05'"
+                      @click="go2pay(scope.row)">收款</el-button>
+                  </el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+          </template>
+        </el-table-column>
+      </el-table>
 
-      <el-table-column label="时效预警" align="center" prop="costTimeAlarm" v-if="columns[10].visible">
-        <template #default="scope">
-          <dict-tag :options="sys_cost_time_alarm" :value="scope.row.costTimeAlarm" />
-        </template>
-      </el-table-column>
-      <el-table-column label="订单完成时间" align="center" prop="completeTime" width="160" v-if="columns[11].visible">
-        <template #default="scope">
-          <span>{{ scope.row.completeTime }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column label="订单来源" align="center" prop="source" v-if="columns[12].visible">
-        <template #default="scope">
-          <dict-tag :options="sys_price_order_type" :value="scope.row.source" />
-        </template>
-      </el-table-column>
-      <el-table-column label="洗护状态" align="center" prop="status" v-if="columns[13].visible">
-        <template #default="scope">
-          <dict-tag :options="sys_order_status" :value="scope.row.status" />
-        </template>
-      </el-table-column>
-      <el-table-column label="订单类型" align="center" prop="orderType" v-if="columns[14].visible">
-        <template #default="scope">
-          <dict-tag :options="sys_order_type" :value="scope.row.orderType" />
-        </template>
-      </el-table-column>
-      <el-table-column label="支付状态" align="center" prop="paymentStatus" v-if="columns[15].visible">
-        <template #default="scope">
-          <dict-tag v-if="scope.row.paymentStatus === '01'" style="cursor: pointer;" @click="go2pay(scope.row)"
-            :options="sys_payment_status" :value="scope.row.paymentStatus" />
-          <dict-tag v-else :options="sys_payment_status" :value="scope.row.paymentStatus" />
-        </template>
-      </el-table-column>
-      <el-table-column label="取回方式" align="center" prop="deliveryMode" v-if="columns[16].visible">
-        <template #default="scope">
-          <dict-tag :options="sys_delivery_mode" :value="scope.row.deliveryMode"
-            @click="handleDeliveryMode(scope.row)" />
-        </template>
-      </el-table-column>
-      <el-table-column label="预计完成时间" align="center" prop="desireCompleteTime" width="160" v-if="columns[17].visible">
-        <template #default="scope">
-          <span>{{ parseTime(scope.row.desireCompleteTime, '{y}-{m}-{d}') }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column label="备注" align="center" prop="remark" show-overflow-tooltip v-if="columns[18].visible" />
-      <el-table-column label="操作" fixed="right" align="center" class-name="small-padding fixed-width">
-        <template #default="scope">
-          <el-button link type="primary" @click="showClothList(scope.row)"
-            v-hasPermi="['system:orders:list']">衣物</el-button>
-          <el-dropdown>
-            <el-icon class="el-icon--right">
-              <arrow-down />
-            </el-icon>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item>
-                  <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)">编辑</el-button>
-                </el-dropdown-item>
-                <el-dropdown-item>
-                  <el-button link type="primary" icon="Edit" :disabled="scope.row.status == '05'"
-                    @click="handleRefund(scope.row)">退单</el-button>
-                </el-dropdown-item>
-                <el-dropdown-item>
-                  <el-button link type="primary" icon="Edit"
-                    :disabled="scope.row.status !== '02' && scope.row.status !== '03'"
-                    @click="handleNotify(scope.row)">通知</el-button>
-                </el-dropdown-item>
-                <el-dropdown-item>
-                  <el-button link type="danger" icon="Delete" @click="handleDelete(scope.row)">删除</el-button>
-                </el-dropdown-item>
-                <el-dropdown-item disabled>
-                  <el-button link type="primary" icon="Edit"
-                    :disabled="scope.row.paymentStatus !== '01' || scope.row.status == '05'"
-                    @click="go2pay(scope.row)">收款</el-button>
-                </el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
-        </template>
-      </el-table-column>
-    </el-table>
-
-    <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum"
-      v-model:limit="queryParams.pageSize" @pagination="getList" />
-
+      <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum"
+        v-model:limit="queryParams.pageSize" @pagination="getList" />
+    </el-card>
     <!-- 通知弹窗 -->
     <el-dialog v-model="showNoticeDialog" width="400px" append-to-body>
       <el-form ref="notifyFormRef" :model="notifyForm" :rules="notifyRules" label-width="80px">
@@ -211,7 +219,7 @@
     </el-dialog>
 
     <!-- 退单弹窗 -->
-    <el-dialog v-model="showRefundDialog" width="400px" append-to-body>
+    <el-dialog v-model="showRefundDialog" width="400px" :show-close="false">
       <el-form ref="refundFormRef" :model="refundForm" :rules="refundRules" label-width="80px">
         <el-form-item label="支出账目" prop="expTitle">
           <el-input v-model="refundForm.expTitle" placeholder="请输入支出账目" />
@@ -273,11 +281,11 @@
         </el-form-item>
       </el-form>
     </el-dialog>
-    <!-- 衣物列表弹窗 -->
-    <ShowCloths :orderId="currentOrderId" :visible="showClothListDialog" :flashList="getList" :userId="currentUserId"
-      :key="showClothListDialog" :toggle="() => { showClothListDialog = !showClothListDialog }" />
-    <el-dialog :show-close="false" v-model="open" fullscreen width="1366px" append-to-body lock-scroll modal
-      :before-close="cancel" :close-on-click-modal="false">
+    <ShowClothsModern :orderId="currentOrderId" :visible="showClothListDialog" :flashList="getList"
+      :userId="currentUserId" :key="showClothListDialog"
+      :toggle="() => { showClothListDialog = !showClothListDialog }" />
+    <el-dialog :show-close="false" v-model="open" fullscreen lock-scroll :before-close="cancel"
+      :close-on-click-modal="false">
       <CreateOrder ref="createOrderRef" :visible="true" :orderId="currentOrderId" :userId="currentUserId"
         :toggle="() => { open = !open; getList(); }" :refresh="getList" :key="open" />
     </el-dialog>
@@ -293,10 +301,11 @@ import { listDispatch } from '@/api/system/dispatch';
 import { refund } from '@/api/system/orders';
 import { addRecord } from '@/api/system/notice_record';
 import { listTemplate } from '@/api/system/template';
-import ShowCloths from './showCloths.vue';
+import ShowClothsModern from './showClothsModern.vue';
 import CreateOrder from "@/views/home/createOrder.vue";
 import Pay from "@/views/home/pay.vue";
 import { listCloths } from "@/api/system/cloths";
+import { ArrowDown } from '@element-plus/icons-vue';
 
 const { proxy } = getCurrentInstance();
 const {
@@ -358,6 +367,7 @@ const data = reactive({
     costTimeAlarm: null,
     pickupCode: null,
     paymentStatus: null,
+    status: null,
   },
   rules: {
     businessType: [
@@ -639,6 +649,99 @@ getList();
 </script>
 
 <style scoped>
+/* 搜索区域样式 */
+.search-card {
+  margin-bottom: 20px;
+  border-radius: 8px;
+
+  .el-form-item {
+    margin-bottom: 0 !important;
+  }
+}
+
+/* 表格区域样式 */
+.table-operations {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 15px;
+}
+
+.table-card {
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.modern-table {
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* 表格内容样式 */
+.member-info {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.member-name {
+  font-weight: bold;
+}
+
+.member-phone {
+  color: #909399;
+  font-size: 12px;
+}
+
+.price-tag {
+  color: #F56C6C;
+  font-weight: bold;
+}
+
+.bonus-count {
+  color: #67C23A;
+  font-weight: bold;
+}
+
+.actual-price {
+  color: #F56C6C;
+  font-weight: bold;
+}
+
+.cloth-code-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  justify-content: center;
+}
+
+.pickup-code {
+  font-weight: bold;
+  color: #67C23A;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.time-info {
+  color: #606266;
+  font-size: 13px;
+}
+
+.status-tag :deep(.el-tag) {
+  font-weight: bold;
+}
+
+.payment-tag :deep(.el-tag) {
+  font-weight: bold;
+}
+
+.operation-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+/* 弹窗样式 */
 .payment-footer {
   text-align: center;
 }

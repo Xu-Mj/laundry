@@ -1,299 +1,131 @@
 <template>
   <div class="app-container">
-    <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="68px">
-      <el-form-item label="卡券编码" prop="couponNumber">
-        <el-input v-model="queryParams.couponNumber" placeholder="请输入卡券编码" clearable @keyup.enter="handleQuery" />
-      </el-form-item>
-      <el-form-item label="卡券名称" prop="couponTitle">
-        <el-input v-model="queryParams.couponTitle" placeholder="请输入卡券名称" clearable @keyup.enter="handleQuery" />
-      </el-form-item>
-      <el-form-item label="卡券类型" prop="couponType">
-        <el-select v-model="queryParams.couponType" @change="selectChange" placeholder="卡券类型" clearable
-          style="width: 120px">
-          <el-option v-for="dict in sys_coupon_type" :key="dict.value" :label="dict.label" :value="dict.value" />
-        </el-select>
-      </el-form-item>
-      <el-form-item label="卡券状态" prop="status">
-        <el-select v-model="queryParams.status" @change="selectChange" placeholder="卡券状态" clearable
-          style="width: 120px">
-          <el-option v-for="dict in sys_coupon_status" :key="dict.value" :label="dict.label" :value="dict.value" />
-        </el-select>
-      </el-form-item>
-      <!-- <el-form-item label="删除状态" prop="status">
+    <!-- 搜索区域 -->
+    <el-card class="search-card" v-show="showSearch">
+      <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="68px">
+        <el-form-item label="卡券编码" prop="couponNumber" size="large">
+          <el-input size="large" v-model="queryParams.couponNumber" placeholder="请输入卡券编码" clearable @keyup.enter="handleQuery" />
+        </el-form-item>
+        <el-form-item label="卡券名称" prop="couponTitle" size="large">
+          <el-input size="large" v-model="queryParams.couponTitle" placeholder="请输入卡券名称" clearable @keyup.enter="handleQuery" />
+        </el-form-item>
+        <el-form-item label="卡券类型" prop="couponType" size="large">
+          <el-select size="large" v-model="queryParams.couponType" @change="selectChange" placeholder="卡券类型" clearable
+            style="width: 120px">
+            <el-option v-for="dict in sys_coupon_type" :key="dict.value" :label="dict.label" :value="dict.value" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="卡券状态" prop="status" size="large">
+          <el-select size="large" v-model="queryParams.status" @change="selectChange" placeholder="卡券状态" clearable
+            style="width: 120px">
+            <el-option v-for="dict in sys_coupon_status" :key="dict.value" :label="dict.label" :value="dict.value" />
+          </el-select>
+        </el-form-item>
+        <!-- <el-form-item label="删除状态" prop="status">
         <el-select v-model="queryParams.delFlag" @change="selectChange" placeholder="删除状态" clearable
           style="width: 120px">
           <el-option v-for="dict in sys_del_status" :key="dict.value" :label="dict.label" :value="dict.value" />
         </el-select>
       </el-form-item> -->
-      <el-form-item>
-        <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
-        <el-button icon="Refresh" @click="resetQuery">重置</el-button>
-      </el-form-item>
-    </el-form>
-
-    <el-row :gutter="10" class="mb8">
-      <el-col :span="1.5">
-        <el-button type="primary" plain icon="Plus" @click="handleAdd" v-hasPermi="['system:coupon:add']">新增</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button type="success" :disabled="selectedList.length == 0" plain icon="Sell"
-          @click="handleShowSell">卡券销售</el-button>
-      </el-col>
-      <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" :columns="columns"/>
-    </el-row>
-
-    <el-table v-loading="loading" :data="couponList" ref="table" @selection-change="handleSelectionChange">
-      <el-table-column type="selection" width="55" align="center" />
-      <!-- <el-table-column label="卡券唯一标识ID" align="center" prop="couponId" /> -->
-      <el-table-column label="卡券名称" align="center" prop="couponTitle" v-if="columns[0].visible" />
-      <el-table-column label="卡券编码" align="center" prop="couponNumber" v-if="columns[1].visible" width="180" />
-      <el-table-column label="卡券类型" align="center" prop="couponType" v-if="columns[2].visible">
-        <template #default="scope">
-          <dict-tag :options="sys_coupon_type" :value="scope.row.couponType" />
-        </template>
-      </el-table-column>
-      <el-table-column label="售卖价格(元)" align="center" prop="couponValue" v-if="columns[3].visible" />
-      <el-table-column label="最低消费金额(元)" align="center" prop="minSpend" width="140" v-if="columns[4].visible" />
-      <el-table-column label="客户可见" align="center" prop="customerInvalid" v-if="columns[5].visible">
-        <template #default="scope">
-          <dict-tag :options="sys_coupon_customer_invalid" :value="scope.row.customerInvalid" />
-        </template>
-      </el-table-column>
-      <el-table-column label="总量限制" align="center" prop="customerSaleTotal" v-if="columns[6].visible">
-        <template #default="scope">
-          {{ scope.row.customerSaleTotal == -1 ? '无限制' : scope.row.customerSaleTotal }}
-        </template>
-      </el-table-column>
-      <el-table-column label="单用户数量限制" align="center" prop="customerSaleCount" width="120" v-if="columns[7].visible">
-        <template #default="scope">
-          {{ scope.row.customerSaleCount == -1 ? '无限制' : scope.row.customerSaleCount }}
-        </template>
-      </el-table-column>
-      <el-table-column label="有效时间-起" align="center" prop="validFrom" v-if="columns[8].visible">
-        <template #default="scope">
-          <span>{{ parseTime(scope.row.validFrom, '{y}-{m}-{d}') }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column label="有效时间-止" align="center" prop="validTo" v-if="columns[9].visible">
-        <template #default="scope">
-          <span>{{ parseTime(scope.row.validTo, '{y}-{m}-{d}') }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column label="自动延期" align="center" prop="autoDelay" v-if="columns[10].visible">
-        <template #default="scope">
-          <dict-tag :options="sys_coupon_auto_delay" :value="scope.row.autoDelay" />
-        </template>
-      </el-table-column>
-      <el-table-column label="卡券价值" align="center" prop="usageValue" v-if="columns[11].visible">
-        <template #default="scope">
-          {{ scope.row.couponType === '003' ? scope.row.usageValue / 10 + '折' : scope.row.usageValue + '元' }}
-        </template>
-      </el-table-column>
-      <el-table-column label="限制条件" align="center" prop="usageLimit" v-if="columns[12].visible">
-        <template #default="scope">
-          {{ scope.row.couponType === '003' ? '最高消费金额限制' + scope.row.usageLimit + '元' :
-            scope.row.usageLimit == 0 ? '无限制' : scope.row.usageLimit }}
-        </template>
-      </el-table-column>
-      <el-table-column label="卡券状态" align="center" prop="status" v-if="columns[13].visible">
-        <template #default="scope">
-          <dict-tag :options="sys_coupon_status" :value="scope.row.status" />
-        </template>
-      </el-table-column>
-      <el-table-column label="卡券描述" align="center" prop=" desc" v-if="columns[14].visible" show-overflow-tooltip />
-      <el-table-column label="备注" align="center" prop="remark" v-if="columns[15].visible" show-overflow-tooltip />
-      <el-table-column label="操作" align="center" class-name="small-padding" width="140">
-        <template #default="scope">
-          <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)"
-            v-hasPermi="['system:coupon:edit']">修改</el-button>
-          <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)"
-            v-hasPermi="['system:coupon:remove']">删除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
-
-    <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum"
-      v-model:limit="queryParams.pageSize" @pagination="getList" />
-
-    <!-- 添加或修改卡券对话框 -->
-    <el-dialog v-model="open" width="650px" :show-close="false" lock-scroll modal :close-on-click-modal="false"
-      append-to-body>
-      <el-form ref="couponRef" :model="form" :rules="rules" label-width="90px">
-        <el-row>
-          <el-col :span="12">
-            <el-form-item label="卡券名称" prop="couponTitle">
-              <el-input v-model="form.couponTitle" placeholder="请输入卡券名称" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="卡券类别">
-              <el-select v-model="form.couponType" placeholder="卡券类别" clearable>
-                <el-option v-for="dict in sys_coupon_type" :key="dict.value" :label="dict.label" :value="dict.value" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row v-if="form.couponType == '000'">
-          <el-col :span="12">
-            <el-tooltip content="售价" placement="top">
-              <el-form-item label="储值金额" prop="couponValue">
-                <el-input-number v-model="form.couponValue" controls-position="right" placeholder="请输入储值金额" />
-              </el-form-item>
-            </el-tooltip>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="赠送金额" prop="usageValue">
-              <el-input-number v-model="form.usageValue" controls-position="right" placeholder="请输入赠送金额" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row v-if="form.couponType == '001'">
-          <el-col :span="12">
-            <el-tooltip content="售价" placement="top">
-              <el-form-item label="售卖价格" prop="couponValue">
-                <el-input-number v-model="form.couponValue" controls-position="right" placeholder="请输入售卖价格" />
-              </el-form-item>
-            </el-tooltip>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="卡券价值" prop="usageValue">
-              <el-input-number v-model="form.usageValue" controls-position="right" placeholder="请输入卡券价值" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row v-if="form.couponType == '002'">
-          <el-col :span="12">
-            <el-tooltip content="售价" placement="top">
-              <el-form-item label="售卖价格" prop="couponValue">
-                <el-input-number v-model="form.couponValue" controls-position="right" placeholder="请输入售卖价格" />
-              </el-form-item>
-            </el-tooltip>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="卡券次数" prop="usageValue">
-              <el-input-number v-model="form.usageValue" controls-position="right" placeholder="请输入卡券次数" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row v-if="form.couponType == '003'">
-          <el-col :span="12">
-            <el-tooltip content="售价" placement="top">
-              <el-form-item label="售卖价格" prop="couponValue">
-                <el-input-number v-model="form.couponValue" controls-position="right" placeholder="请输入售卖价格" />
-              </el-form-item>
-            </el-tooltip>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="折扣比例" prop="usageValue">
-              <el-input-number v-model="form.usageValue" :min="0" :max="100" controls-position="right"
-                placeholder="请输入折扣比例" />
-            </el-form-item>
-          </el-col>
-          <el-row>
-            <el-form-item label="至多优惠" prop="usageLimit">
-              <el-input-number v-model="form.usageLimit" controls-position="right" placeholder="折扣券的上限优惠金额" />
-            </el-form-item>
-          </el-row>
-        </el-row>
-        <el-row v-if="form.couponType == '004'">
-          <el-col :span="12">
-            <el-tooltip content="售价" placement="top">
-              <el-form-item label="售卖价格" prop="couponValue">
-                <el-input-number v-model="form.couponValue" @change="form.usageValue = form.couponValue"
-                  controls-position="right" placeholder="售卖价格" />
-              </el-form-item>
-            </el-tooltip>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="满减金额" prop="usageValue">
-              <el-input-number v-model="form.usageValue" :min="form.couponValue" controls-position="right"
-                placeholder="请输入满减金额" />
-            </el-form-item>
-          </el-col>
-          <el-row>
-            <el-form-item label="最低消费金额" prop="minSpend">
-              <el-input-number v-model="form.minSpend" controls-position="right" placeholder="请输入最低消费金额" />
-            </el-form-item>
-          </el-row>
-        </el-row>
-        <el-row>
-          <el-col :span="12">
-            <el-form-item label="客户可见" prop="customerInvalid">
-              <el-radio-group v-model="form.customerInvalid">
-                <el-radio v-for="dict in sys_coupon_customer_invalid" :key="dict.value" :label="dict.label"
-                  :value="dict.value">{{ dict.label }}</el-radio>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="自动延期" prop="autoDelay">
-              <el-radio-group v-model="form.autoDelay">
-                <el-radio v-for="dict in sys_coupon_auto_delay" :key="dict.value" :label="dict.label"
-                  :value="dict.value">{{
-                    dict.label }}</el-radio>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row>
-          <el-col :span="12">
-            <el-tooltip content="卡券可出售总量限制，'-1'为不限制">
-              <el-form-item label="总量限制" prop="customerSaleTotal">
-                <el-input-number min="-1" v-model="form.customerSaleTotal" controls-position="right"
-                  placeholder="-1为不限制" />
-              </el-form-item>
-            </el-tooltip>
-          </el-col>
-          <el-col :span="12">
-            <el-tooltip content="单用户可购买数量限制，'-1'为不限制">
-              <el-form-item label="单用户数量限制" prop="customerSaleCount" label-width="110px">
-                <el-input-number :min="-1" v-model="form.customerSaleCount" controls-position="right"
-                  placeholder="-1为不限制" />
-              </el-form-item>
-            </el-tooltip>
-          </el-col>
-        </el-row>
-        <el-row>
-          <el-col :span="12">
-            <el-form-item label="有效期-起" prop="validFrom">
-              <el-date-picker clearable v-model="form.validFrom" type="date" value-format="YYYY-MM-DD "
-                placeholder="请选择有效期-起">
-              </el-date-picker>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="有效期-止" prop="validTo">
-              <el-date-picker clearable v-model="form.validTo" type="date" value-format="YYYY-MM-DD"
-                placeholder="请选择有效期-止">
-              </el-date-picker>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row>
-          <el-col :span="12">
-            <el-form-item label="卡券状态">
-              <el-select v-model="form.status" placeholder="卡券状态" clearable>
-                <el-option v-for="dict in sys_coupon_status" :key="dict.value" :label="dict.label"
-                  :value="dict.value" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="卡券描述" prop="desc">
-              <el-input v-model="form.desc" type="textarea" placeholder="请输入内容" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-form-item label="备注" prop="remark">
-          <el-input v-model="form.remark" type="textarea" placeholder="请输入内容" />
+        <el-form-item>
+          <el-button size="large" type="primary" icon="Search" @click="handleQuery">搜索</el-button>
+          <el-button size="large" icon="Refresh" @click="resetQuery">重置</el-button>
         </el-form-item>
       </el-form>
-      <template #footer>
-        <div class="dialog-footer">
-          <el-button type="primary" @click="submitForm">确 定</el-button>
-          <el-button @click="cancel">取 消</el-button>
-        </div>
-      </template>
+    </el-card>
+
+    <!-- 表格区域 -->
+    <el-card class="table-card">
+      <el-row :gutter="10" class="mb8">
+        <el-col :span="1.5">
+          <el-button type="primary" plain icon="Plus" @click="handleAdd"
+            v-hasPermi="['system:coupon:add']">新增</el-button>
+        </el-col>
+        <el-col :span="1.5">
+          <el-button type="success" :disabled="selectedList.length == 0" plain icon="Sell"
+            @click="handleShowSell">卡券销售</el-button>
+        </el-col>
+        <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" :columns="columns" />
+      </el-row>
+
+      <el-table v-loading="loading" :data="couponList" ref="table" @selection-change="handleSelectionChange">
+        <el-table-column type="selection" width="55" align="center" />
+        <!-- <el-table-column label="卡券唯一标识ID" align="center" prop="couponId" /> -->
+        <el-table-column label="卡券名称" align="center" prop="couponTitle" v-if="columns[0].visible" />
+        <el-table-column label="卡券编码" align="center" prop="couponNumber" v-if="columns[1].visible" width="180" />
+        <el-table-column label="卡券类型" align="center" prop="couponType" v-if="columns[2].visible">
+          <template #default="scope">
+            <dict-tag :options="sys_coupon_type" :value="scope.row.couponType" />
+          </template>
+        </el-table-column>
+        <el-table-column label="售卖价格(元)" align="center" prop="couponValue" v-if="columns[3].visible" />
+        <el-table-column label="最低消费金额(元)" align="center" prop="minSpend" width="140" v-if="columns[4].visible" />
+        <el-table-column label="客户可见" align="center" prop="customerInvalid" v-if="columns[5].visible">
+          <template #default="scope">
+            <dict-tag :options="sys_coupon_customer_invalid" :value="scope.row.customerInvalid" />
+          </template>
+        </el-table-column>
+        <el-table-column label="总量限制" align="center" prop="customerSaleTotal" v-if="columns[6].visible">
+          <template #default="scope">
+            {{ scope.row.customerSaleTotal == -1 ? '无限制' : scope.row.customerSaleTotal }}
+          </template>
+        </el-table-column>
+        <el-table-column label="单用户数量限制" align="center" prop="customerSaleCount" width="120" v-if="columns[7].visible">
+          <template #default="scope">
+            {{ scope.row.customerSaleCount == -1 ? '无限制' : scope.row.customerSaleCount }}
+          </template>
+        </el-table-column>
+        <el-table-column label="有效时间-起" align="center" prop="validFrom" v-if="columns[8].visible">
+          <template #default="scope">
+            <span>{{ parseTime(scope.row.validFrom, '{y}-{m}-{d}') }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="有效时间-止" align="center" prop="validTo" v-if="columns[9].visible">
+          <template #default="scope">
+            <span>{{ parseTime(scope.row.validTo, '{y}-{m}-{d}') }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="自动延期" align="center" prop="autoDelay" v-if="columns[10].visible">
+          <template #default="scope">
+            <dict-tag :options="sys_coupon_auto_delay" :value="scope.row.autoDelay" />
+          </template>
+        </el-table-column>
+        <el-table-column label="卡券价值" align="center" prop="usageValue" v-if="columns[11].visible">
+          <template #default="scope">
+            {{ scope.row.couponType === '003' ? scope.row.usageValue / 10 + '折' : scope.row.usageValue + '元' }}
+          </template>
+        </el-table-column>
+        <el-table-column label="限制条件" align="center" prop="usageLimit" v-if="columns[12].visible">
+          <template #default="scope">
+            {{ scope.row.couponType === '003' ? '最高消费金额限制' + scope.row.usageLimit + '元' :
+              scope.row.usageLimit == 0 ? '无限制' : scope.row.usageLimit }}
+          </template>
+        </el-table-column>
+        <el-table-column label="卡券状态" align="center" prop="status" v-if="columns[13].visible">
+          <template #default="scope">
+            <dict-tag :options="sys_coupon_status" :value="scope.row.status" />
+          </template>
+        </el-table-column>
+        <el-table-column label="卡券描述" align="center" prop=" desc" v-if="columns[14].visible" show-overflow-tooltip />
+        <el-table-column label="备注" align="center" prop="remark" v-if="columns[15].visible" show-overflow-tooltip />
+        <el-table-column label="操作" align="center" class-name="small-padding" width="140">
+          <template #default="scope">
+            <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)"
+              v-hasPermi="['system:coupon:edit']">修改</el-button>
+            <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)"
+              v-hasPermi="['system:coupon:remove']">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum"
+        v-model:limit="queryParams.pageSize" @pagination="getList" />
+    </el-card>
+    <!-- 添加或修改卡券对话框 -->
+    <el-dialog v-model="open" width="700px" :show-close="false" lock-scroll modal :close-on-click-modal="false"
+      append-to-body>
+      <coupon-form :value="form" :coupon-types="sys_coupon_type" :status-options="sys_coupon_status"
+        @submit="submitForm" @cancel="cancel" />
     </el-dialog>
 
     <!-- show sell coupon -->
@@ -379,6 +211,7 @@
 <script setup name="Coupon">
 import { listCoupon, getCoupon, delCoupon, addCoupon, updateCoupon, buyCoupon } from "@/api/system/coupon";
 import { listUserWithNoLimit, addUser } from "@/api/system/user";
+import CouponForm from "./components/CouponForm.vue";
 import { ref, computed, onMounted } from "vue";
 
 const { proxy } = getCurrentInstance();
@@ -761,6 +594,35 @@ getList();
 </script>
 
 <style scoped>
+/* 搜索区域样式 */
+.search-card {
+  margin-bottom: 20px;
+  border-radius: 8px;
+
+  .el-form-item {
+    margin-bottom: 0 !important;
+  }
+}
+
+/* 表格区域样式 */
+.table-operations {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 15px;
+}
+
+.table-card {
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.modern-table {
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+
 .title {
   border-bottom: 1px solid gray;
 }

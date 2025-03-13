@@ -364,7 +364,6 @@ function buy() {
     });
 }
 onMounted(async () => {
-    console.log(props);
     if (props.visible) {
         resetSellForm();
         getList();

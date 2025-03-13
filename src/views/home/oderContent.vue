@@ -1,20 +1,39 @@
 <template>
     <div class="result-container">
         <el-form :model="queryParams" class="top-bar" ref="queryRef" :inline="true" label-width="68px">
-            <el-form-item label="取件码" prop="pickupCode">
-                <el-input v-model="queryParams.pickupCode" placeholder="请输入取件码" clearable @keyup.enter="handleQuery" />
+            <el-form-item label="取件码" prop="pickupCode" size="large">
+                <el-input v-model="queryParams.pickupCode" placeholder="请输入取件码" clearable @keyup.enter="handleQuery"
+                    size="large">
+                    <template #prefix>
+                        <el-icon>
+                            <Ticket />
+                        </el-icon>
+                    </template>
+                </el-input>
             </el-form-item>
-            <el-form-item label="手机号" prop="phonenumber">
+            <el-form-item label="手机号" prop="phonenumber" size="large">
                 <el-input ref="phonenumber" v-model="queryParams.phonenumber" placeholder="请输入会员手机号" clearable
-                    @keyup.enter="handleQuery" />
+                    @keyup.enter="handleQuery" size="large">
+                    <template #prefix>
+                        <el-icon>
+                            <Phone />
+                        </el-icon>
+                    </template>
+                </el-input>
             </el-form-item>
-            <el-form-item label="订单编码" prop="orderNumber">
-                <el-input v-model="queryParams.orderNumber" placeholder="请输入订单编码" clearable
-                    @keyup.enter="handleQuery" />
+            <el-form-item label="订单编码" prop="orderNumber" size="large">
+                <el-input v-model="queryParams.orderNumber" placeholder="请输入订单编码" clearable @keyup.enter="handleQuery"
+                    size="large">
+                    <template #prefix>
+                        <el-icon>
+                            <Document />
+                        </el-icon>
+                    </template>
+                </el-input>
             </el-form-item>
             <el-form-item>
-                <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
-                <el-button icon="Refresh" @click="resetQuery">重置</el-button>
+                <el-button type="primary" icon="Search" @click="handleQuery" size="large" round>搜索</el-button>
+                <el-button icon="Refresh" @click="resetQuery" size="large" round>重置</el-button>
             </el-form-item>
         </el-form>
         <!-- 渲染订单抖索结果列表 -->
@@ -31,107 +50,167 @@
                     <el-button type="primary" size="small">补打小票</el-button>
                 </div>
                 <div class="result-item-info">
-                    <span>会员身份: {{ order.nickName + '-' + order.phonenumber }}</span>
-                    <span style="display: flex; align-items: center; gap: .5rem;">支付状态:
+                    <div class="info-item">
+                        <el-icon>
+                            <User />
+                        </el-icon>
+                        <span>会员身份: <strong>{{ order.nickName }}</strong> ({{ order.phonenumber }})</span>
+                    </div>
+                    <div class="info-item">
+                        <el-icon>
+                            <Wallet />
+                        </el-icon>
+                        <span>支付状态:</span>
                         <dict-tag v-if="order.paymentStatus === '01'" style="cursor: pointer;" @click="go2pay(order)"
                             :options="sys_payment_status" :value="order.paymentStatus" />
                         <dict-tag v-else :options="sys_payment_status" :value="order.paymentStatus" />
-                    </span>
-                    <span style="display: flex; align-items: center; gap: .5rem;">
-                        {{ order.paymentStatus === '00' ? '实际支付金额:' : '应支付金额:' }}
-                        <span style="color: red;font-weight: bold; align-items: center;">
-                            {{ order.mount }}
+                    </div>
+                    <div class="info-item">
+                        <el-icon>
+                            <Money />
+                        </el-icon>
+                        <span>{{ order.paymentStatus === '00' ? '实际支付金额:' : '应支付金额:' }}</span>
+                        <span class="payment-amount">
+                            {{ order.mount }}元
                         </span>
-                    </span>
-                    <span>取件码: {{ order.pickupCode }}</span>
-                    <span style="display: flex; align-items: center; gap: .5rem;">订单状态:
+                    </div>
+                    <div class="info-item">
+                        <el-icon>
+                            <Ticket />
+                        </el-icon>
+                        <span>取件码: <strong>{{ order.pickupCode }}</strong></span>
+                    </div>
+                    <div class="info-item">
+                        <el-icon>
+                            <InfoFilled />
+                        </el-icon>
+                        <span>订单状态:</span>
                         <dict-tag :options="sys_order_status" :value="order.status" />
-                    </span>
+                    </div>
                 </div>
                 <!-- 订单包含的衣物列表 -->
                 <el-table v-if="order.clothList && order.clothList.length > 0" :data="order.clothList"
                     :loading="order.loading" row-key="clothingId"
                     @selection-change="selectedItems => handleClothSelectionChange(selectedItems, order)"
-                    ref="clothsTableRef">
-                    <el-table-column type="selection" width="55" align="center" />
-                    <el-table-column label="衣物" align="center">
+                    ref="clothsTableRef" class="modern-table" :border="false" :stripe="true">
+                    <el-table-column type="selection" width="50" align="center" />
+                    <el-table-column label="衣物" align="center" min-width="120">
                         <template #default="scope">
-                            {{ scope.row.clothInfo.clothingName }}
-                            {{scope.row.clothingColor ? '-' + colorList.find(item => item.tagId ==
-                                scope.row.clothingColor).tagName : ''}}
+                            <div class="cloth-name">
+                                {{ scope.row.clothInfo.clothingName }}
+                                <span v-if="scope.row.clothingColor" class="cloth-color">
+                                    {{colorList.find(item => item.tagId == scope.row.clothingColor).tagName}}
+                                </span>
+                            </div>
                         </template>
                     </el-table-column>
                     <el-table-column label="衣物编码" align="center" prop="clothingColor" width="110">
                         <template #default="scope">
-                            {{ scope.row.hangClothCode }}
+                            <span class="code-badge">{{ scope.row.hangClothCode }}</span>
                         </template>
                     </el-table-column>
-                    <el-table-column label="服务类型" align="center">
+                    <el-table-column label="服务类型" align="center" width="150">
                         <template #default="scope">
                             <span class="service-type">
                                 <dict-tag :options="sys_service_type" :value="scope.row.serviceType" />
-                                -
+                                <el-divider direction="vertical" class="vertical-divider" />
                                 <dict-tag :options="sys_service_requirement" :value="scope.row.serviceRequirement" />
                             </span>
                         </template>
                     </el-table-column>
-                    <el-table-column label="洗护价格" align="center" prop="priceValue" />
-                    <el-table-column label="工艺加价" align="center" prop="processMarkup" />
-                    <el-table-column label="衣物瑕疵" align="center" prop="clothingFlaw">
+                    <el-table-column label="洗护价格" align="center" prop="priceValue" width="90">
                         <template #default="scope">
-                            <el-tag v-for="tagId in scope.row.clothingFlaw ? scope.row.clothingFlaw.split(',') : []"
-                                :key="tagId" type="danger">
-                                {{flawList.find(item => item.tagId == tagId).tagName}}
-                            </el-tag>
+                            <span class="price-value">¥{{ scope.row.priceValue }}</span>
                         </template>
                     </el-table-column>
-                    <el-table-column label="洗后预估" align="center" prop="estimate">
+                    <el-table-column label="工艺加价" align="center" prop="processMarkup" width="90">
                         <template #default="scope">
-                            <el-tag v-for="tagId in scope.row.estimate ? scope.row.estimate.split(',') : []"
-                                :key="tagId" type="primary">
-                                {{estimateList.find(item => item.tagId == tagId).tagName}}
-                            </el-tag>
+                            <span v-if="scope.row.processMarkup && scope.row.processMarkup > 0" class="markup-value">+{{
+                                scope.row.processMarkup }}</span>
+                            <span v-else>-</span>
                         </template>
                     </el-table-column>
-                    <el-table-column label="衣物品牌" align="center" prop="clothingBrand">
+                    <el-table-column label="衣物瑕疵" align="center" prop="clothingFlaw" min-width="120">
                         <template #default="scope">
-                            <el-tag v-if="scope.row.clothingBrand" type="primary">
+                            <div class="tag-container">
+                                <el-tag v-for="tagId in scope.row.clothingFlaw ? scope.row.clothingFlaw.split(',') : []"
+                                    :key="tagId" type="danger" size="small" effect="light">
+                                    {{flawList.find(item => item.tagId == tagId).tagName}}
+                                </el-tag>
+                                <span v-if="!scope.row.clothingFlaw">-</span>
+                            </div>
+                        </template>
+                    </el-table-column>
+                    <el-table-column label="洗后预估" align="center" prop="estimate" min-width="120">
+                        <template #default="scope">
+                            <div class="tag-container">
+                                <el-tag v-for="tagId in scope.row.estimate ? scope.row.estimate.split(',') : []"
+                                    :key="tagId" type="info" size="small" effect="light">
+                                    {{estimateList.find(item => item.tagId == tagId).tagName}}
+                                </el-tag>
+                                <span v-if="!scope.row.estimate">-</span>
+                            </div>
+                        </template>
+                    </el-table-column>
+                    <el-table-column label="衣物品牌" align="center" prop="clothingBrand" width="100">
+                        <template #default="scope">
+                            <el-tag v-if="scope.row.clothingBrand" type="success" size="small" effect="light">
                                 {{brandList.find(item => item.tagId == scope.row.clothingBrand).tagName}}
                             </el-tag>
+                            <span v-else>-</span>
                         </template>
                     </el-table-column>
-                    <el-table-column label="图片" align="center" class-name="small-padding fixed-width">
+                    <el-table-column label="图片" align="center" width="120">
                         <template #default="scope">
-                            <el-button link type="primary"
-                                :disabled="scope.row.beforePics == null || scope.row.beforePics.length == 0"
-                                @click="handleShowPicture(scope.row, true)"
-                                v-hasPermi="['system:cloths:edit']">洗前</el-button>
-                            <el-button link type="primary"
-                                :disabled="scope.row.afterPics == null || scope.row.afterPics.length == 0"
-                                @click="handleShowPicture(scope.row, false)"
-                                v-hasPermi="['system:cloths:edit']">洗后</el-button>
+                            <div class="image-buttons">
+                                <el-button link type="primary" size="small"
+                                    :disabled="scope.row.beforePics == null || scope.row.beforePics.length == 0"
+                                    @click="handleShowPicture(scope.row, true)" v-hasPermi="['system:cloths:edit']">
+                                    <el-icon>
+                                        <Picture />
+                                    </el-icon> 洗前
+                                </el-button>
+                                <el-button link type="primary" size="small"
+                                    :disabled="scope.row.afterPics == null || scope.row.afterPics.length == 0"
+                                    @click="handleShowPicture(scope.row, false)" v-hasPermi="['system:cloths:edit']">
+                                    <el-icon>
+                                        <Picture />
+                                    </el-icon> 洗后
+                                </el-button>
+                            </div>
                         </template>
                     </el-table-column>
-                    <el-table-column label="洗护状态" align="center" prop="clothingStatus">
+                    <el-table-column label="洗护状态" align="center" prop="clothingStatus" width="100">
                         <template #default="scope">
                             <dict-tag :options="sys_clothing_status" :value="scope.row.clothingStatus" />
                         </template>
                     </el-table-column>
-                    <el-table-column label="上挂位置" align="center">
+                    <el-table-column label="上挂位置" align="center" width="120">
                         <template #default="scope">
-                            {{
-                                scope.row.hangLocationCode ?
-                                    scope.row.hangerName + '-' + scope.row.hangerNumber : ''
-                            }}
+                            <el-tag v-if="scope.row.hangLocationCode" type="info">{{ scope.row.hangerName + '-' +
+                                scope.row.hangerNumber }}
+                            </el-tag>
+                            <!-- <span v-if="scope.row.hangLocationCode" class="location-badge">
+                                {{ scope.row.hangerName + '-' + scope.row.hangerNumber }}
+                            </span>-->
+                            <span v-else>-</span>
                         </template>
                     </el-table-column>
-                    <el-table-column label="上挂备注" align="center" prop="hangRemark" />
-                    <el-table-column label="操作" align="center">
+                    <el-table-column label="操作" align="center" width="120" fixed="right">
                         <template #default="scope">
-                            <div v-if="scope.row.clothingStatus == '02'">
-                                <el-button type="text" @click="pickup(scope.row)">取衣</el-button>
-                                <el-button type="text" @click="handleReWash(scope.row)">复洗</el-button>
+                            <div v-if="scope.row.clothingStatus == '02'" class="action-buttons">
+                                <el-button type="primary" size="small" plain round @click="pickup(scope.row)">
+                                    <el-icon>
+                                        <TakeawayBox />
+                                    </el-icon> 取衣
+                                </el-button>
+                                <el-button type="warning" size="small" plain round @click="handleReWash(scope.row)">
+                                    <el-icon>
+                                        <Refresh />
+                                    </el-icon> 复洗
+                                </el-button>
                             </div>
+                            <span v-else>-</span>
                         </template>
                     </el-table-column>
                 </el-table>
@@ -140,22 +219,22 @@
         </div>
 
         <div class="footer">
-            <el-button @click="props.taggle()">关闭</el-button>
-            <el-button type="primary" @click="pickup()">取衣</el-button>
-            <el-button @click="handlePay">取衣收款</el-button>
-            <el-button @click="handleDelivery">上门派送</el-button>
-            <el-button @click="() => { }">补打小票</el-button>
+            <el-button @click="props.taggle()" plain icon="Close" round>关闭</el-button>
+            <el-button type="primary" @click="pickup()" icon="TakeawayBox" round>取衣</el-button>
+            <el-button type="success" @click="handlePay" icon="Wallet" round>取衣收款</el-button>
+            <el-button type="warning" @click="handleDelivery" icon="Van" round>上门派送</el-button>
+            <el-button type="info" @click="() => { }" icon="Printer" round>补打小票</el-button>
         </div>
     </div>
 
     <!-- 展示照片 -->
     <el-dialog title="照片" v-model="showPicture" width="400px" append-to-body>
         <div class="img-container">
-            <el-image class="img-item" :preview-src-list="pictureList" :src="item" v-for="(item, index) in pictureList"
-                :key="index" fit="contain" />
+            <el-image class="img-item" show-progress :zoom-rate="1.2" :max-scale="7" :min-scale="0.2"
+                :preview-src-list="pictureList" :src="item" v-for="(item, index) in pictureList" :key="index"
+                fit="cover" />
         </div>
     </el-dialog>
-
     <!-- 派送对话框 -->
     <el-dialog v-model="showDeliveryDialog" width="500px" :show-close="false" append-to-body>
         <el-form ref="pickupRef" :model="deliveryForm" :rules="pickupRules" label-width="80px">
@@ -299,7 +378,7 @@
 
 <script setup name="OderContent">
 import { pay } from "@/api/system/orders";
-import { listCloths, getCloths } from "@/api/system/cloths";
+import { listCloths } from "@/api/system/cloths";
 import { listTagsNoLimit } from "@/api/system/tags";
 import { onMounted } from "vue";
 import { delivery, pickUp } from "@/api/system/cloths";
@@ -311,6 +390,8 @@ import { getPrice } from "@/api/system/price";
 import ReWash from "./rewash.vue";
 import { ElMessageBox } from 'element-plus';
 import { gsap } from 'gsap'
+import { invoke } from '@tauri-apps/api/core';
+
 
 const props = defineProps({
     taggle: {
@@ -364,8 +445,6 @@ const couponTypeList = ref();
 
 const showPicture = ref(false);
 const showDeliveryDialog = ref(false);
-const baseUrl = import.meta.env.VITE_APP_BASE_API;
-const pictureUrl = ref(baseUrl + "/system/cloths/download/");
 // 总价格
 const totalPrice = ref(0);
 
@@ -1161,19 +1240,42 @@ async function calculatePrice(item) {
         }, 0);
     }
 }
+const loadImage = async (id) => {
+    try {
+        // 调用 Tauri 后端命令获取图片二进制数据
+        const imageData = await invoke('get_image', { id });
 
+        // 将二进制数据转换为 Blob
+        const blob = new Blob([new Uint8Array(imageData)], { type: 'image/png' });
+
+        // 生成图片 URL
+        return URL.createObjectURL(blob);
+
+        // 提示加载成功
+    } catch (error) {
+        // 提示加载失败
+    }
+};
 /* 获取图片列表id */
-function handleShowPicture(row, flag) {
+async function handleShowPicture(row, flag) {
     showPicture.value = true;
-    getCloths(row.clothId).then(response => {
-        if (flag) {
-            pictureList.value = response.data.beforePics ?
-                response.data.beforePics.split(',').map(item => pictureUrl.value + item) : [];
+    try {
+        // 获取图片 ID 列表
+        const picIds = flag ? row.beforePics?.split(',') : row.afterPics?.split(',');
+
+        if (picIds && picIds.length > 0) {
+            // 使用 Promise.all 等待所有图片加载完成
+            const imageUrls = await Promise.all(picIds.map(id => loadImage(Number(id))));
+
+            // 过滤掉加载失败的图片（null）
+            pictureList.value = imageUrls.filter(url => url !== null);
         } else {
-            pictureList.value = response.data.afterPics ?
-                response.data.afterPics.split(',').map(item => pictureUrl.value + item) : [];
+            pictureList.value = []; // 如果没有图片 ID，清空列表
         }
-    });
+    } catch (error) {
+        console.error(`处理图片列表失败: ${error}`);
+        pictureList.value = []; // 出错时清空列表
+    }
 }
 /** 搜索按钮操作 */
 function handleQuery() {
@@ -1208,11 +1310,9 @@ function resetQuery() {
 function isEmpty(value) {
     return value === null || value === undefined || value === '';
 }
-console.log('phonenumber.value')
 
 // 如果初始化时visible是true，则直接加载数据
 onMounted(async () => {
-    console.log('phonenumber.value')
     phonenumber.value.focus();
     await initList();
     if (isEmpty(queryParams.value.pickupCode) &&
@@ -1228,22 +1328,37 @@ onMounted(async () => {
     height: 100%;
     width: 100%;
     position: relative;
-    padding-top: 3rem;
+    padding-top: 3.5rem;
+    background-color: var(--el-bg-color-page);
 }
 
 .top-bar {
     position: absolute;
-    top: 1rem;
+    top: 1.7rem;
     left: 1rem;
+    right: 1rem;
+    padding: 0.75rem;
+    background-color: var(--el-bg-color);
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+    z-index: 10;
+
+    .el-form-item {
+        margin-bottom: 0 !important;
+    }
 }
 
 .footer {
     position: fixed;
-    padding: .5rem;
-    bottom: .5rem;
-    right: .5rem;
+    padding: 0.75rem 1rem;
+    bottom: 0.75rem;
+    right: 1rem;
     z-index: 999;
     background-color: var(--el-bg-color);
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+    display: flex;
+    gap: 0.75rem;
 }
 
 .payment-status {
@@ -1253,31 +1368,43 @@ onMounted(async () => {
 }
 
 .img-container {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-start;
-    align-items: center;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
     gap: 1rem;
+    padding: 0.5rem;
 }
 
 .img-item {
-    flex: 1 1 calc(33.333% - 1rem);
-    /* 每行 3 个元素 */
-    box-sizing: border-box;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s;
+}
+
+.img-item:hover {
+    transform: scale(1.05);
 }
 
 .payment-footer {
     text-align: center;
+    padding: 1rem 0;
 }
 
 .search-result-list {
     width: 100%;
-    height: 100%;
-    overflow-y: auto;
+    height: calc(100% - 3rem);
+    overflow-y: overlay;
     display: flex;
     flex-direction: column;
-    gap: 1rem;
-    padding-bottom: 3rem;
+    gap: 1.25rem;
+    margin-top: 3rem;
+    padding: 0rem 1rem 4.5rem 1rem;
+    scrollbar-gutter: stable;
+}
+
+/* 取消滚动条显示，因为tauri中无论如何设置都会挤压内部元素 */
+.search-result-list::-webkit-scrollbar {
+    width: 0;
 }
 
 .no-result {
@@ -1291,29 +1418,37 @@ onMounted(async () => {
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    border: 1px solid #ccc;
-    border-radius: .5rem;
-    padding: .5rem;
-    /* background-color: aquamarine; */
+    border: none;
+    border-radius: 0.75rem;
+    padding: 1rem;
+    background-color: var(--el-bg-color);
+    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.result-item:hover {
+    box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.1);
 }
 
 .result-item-order-num {
     display: flex;
-    justify-content: flex-start;
+    justify-content: space-between;
     align-items: center;
-    gap: 1rem;
-    color: #007bff;
-
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #f0f0f0;
+    color: #409EFF;
+    font-weight: 500;
+    font-size: 1.1rem;
 }
 
 .result-item-info {
     width: 100%;
-    display: flex;
-    justify-content: flex-start;
-    align-items: center;
-    gap: 3rem;
-    font-size: small;
-    color: #6c6c6c;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    font-size: 0.9rem;
+    color: var(--el-text-color-regular);
+    padding: 0.5rem 0;
 
     :last-child {
         display: flex;
@@ -1322,39 +1457,139 @@ onMounted(async () => {
 }
 
 .service-type {
-    display: flex;
+    display: inline-flex;
     justify-content: center;
     align-items: center;
     gap: .5rem;
+    /* background-color: #f8f9fa; */
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+
+    .vertical-divider::after {
+        content: "" !important;
+    }
 }
 
 .address {
     display: flex;
     gap: 2rem;
+    align-items: center;
 }
 
 .coupon-times {
     display: flex;
     flex-direction: column;
-    gap: .5rem;
+    gap: .75rem;
+    padding: 0.5rem;
+    background-color: #f8f9fa;
+    border-radius: 0.5rem;
 
     .coupon-times-item {
         display: flex;
-        gap: .5rem;
+        gap: .75rem;
+        align-items: center;
     }
 }
 
 .payment-amount {
-    color: red;
-    font-size: large;
+    color: #F56C6C;
+    font-size: 1.2rem;
     font-weight: bold;
 }
-</style>
-<style>
+
 .row-class-name {
-    background-color: rgb(5, 252, 169) !important;
+    background-color: rgba(64, 158, 255, 0.1) !important;
     cursor: pointer;
-    /* border: 1px dashed !important; */
-    /* border-radius: .4rem !important; */
+}
+
+.modern-table {
+    --el-table-border-color: transparent;
+    /* --el-table-header-bg-color: #f5f7fa; */
+    /* --el-table-row-hover-bg-color: #f5f7fa; */
+    border-radius: 0.5rem;
+    overflow: hidden;
+    margin-top: 0.5rem;
+    box-shadow: 0 1px 8px rgba(0, 0, 0, 0.05);
+}
+
+.cloth-name {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.cloth-color {
+    font-size: 0.8rem;
+    color: #909399;
+}
+
+.code-badge {
+    color: #67c23a;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+}
+
+.price-value {
+    font-weight: 500;
+    color: #606266;
+}
+
+.markup-value {
+    color: #F56C6C;
+    font-weight: 500;
+}
+
+.tag-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    justify-content: center;
+}
+
+.location-badge {
+    background-color: #f4f4f5;
+    color: #909399;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+}
+
+.image-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+
+    .el-button {
+        margin-left: 0 !important;
+    }
+}
+
+.action-buttons {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+
+    .el-button {
+        margin-left: 0 !important;
+    }
+}
+
+.info-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    transition: background-color 0.2s;
+}
+
+.info-item:hover {
+    background-color: var(--el-fill-color-light);
+}
+
+.info-item .el-icon {
+    color: #909399;
 }
 </style>

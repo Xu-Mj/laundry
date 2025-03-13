@@ -127,7 +127,8 @@
         </el-form>
         <template #footer>
             <div class="payment-footer">
-                <el-button type="primary" @click="submitPaymentForm">确认收款</el-button>
+                <el-button size="large" @click="close">取消</el-button>
+                <el-button size="large" type="primary" @click="submitPaymentForm">确认收款</el-button>
             </div>
         </template>
     </el-dialog>
@@ -190,7 +191,7 @@ const showCouponSale = ref(false);
 // 组合支付：16 支付宝+储值卡，26 微信支付+储值卡， 27 微信支付+次卡，17 支付宝+次卡，18 支付宝+优惠券， 28 微信支付+优惠券
 // 56 现金支付+储值卡，57 现金支付+次卡，58 现金支付+优惠券
 function close() {
-    initPaymentForm();
+    // initPaymentForm();
     props.toggle();
 }
 

@@ -122,7 +122,7 @@ async function initList() {
     // 获取颜色列表
     if (colorList.value.length === 0) {
         const colorPromise = listTagsNoLimit({ tagOrder: '003', status: "0" }).then(response => {
-            colorList.value = response.rows;
+            colorList.value = response;
         });
         promises.push(colorPromise);
     }
@@ -130,7 +130,7 @@ async function initList() {
     // 获取瑕疵列表
     if (flawList.value.length === 0) {
         const flawPromise = listTagsNoLimit({ tagOrder: '001', status: "0" }).then(response => {
-            flawList.value = response.rows;
+            flawList.value = response;
         });
         promises.push(flawPromise);
     }
@@ -138,7 +138,7 @@ async function initList() {
     // 获取预估列表
     if (estimateList.value.length === 0) {
         const estimatePromise = listTagsNoLimit({ tagOrder: '002', status: "0" }).then(response => {
-            estimateList.value = response.rows;
+            estimateList.value = response;
         });
         promises.push(estimatePromise);
     }
@@ -146,7 +146,7 @@ async function initList() {
     // 获取品牌列表
     if (brandList.value.length === 0) {
         const brandPromise = listTagsNoLimit({ tagOrder: '004', status: "0" }).then(response => {
-            brandList.value = response.rows;
+            brandList.value = response;
         });
         promises.push(brandPromise);
     }

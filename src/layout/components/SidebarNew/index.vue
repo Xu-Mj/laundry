@@ -146,7 +146,7 @@ onMounted(() => {
 }
 
 .menu-list .menu.active {
-  background-color: var(--el-color-primary-light-9);
+  background-color: var(--el-fill-color);
   border-color: var(--el-color-primary);
   color: var(--el-color-primary);
 }

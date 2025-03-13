@@ -267,7 +267,7 @@ pub async fn get_daily_payment_summary(pool: &Pool<Sqlite>) -> Result<BarChartDa
     .await?;
 
     Ok(BarChartData {
-        label: "今日".to_string(),
+        label: "day".to_string(),
         income,
         expense: -expense as f64,
     })
@@ -314,7 +314,7 @@ pub async fn get_weekly_payment_summary(pool: &Pool<Sqlite>) -> Result<BarChartD
     .await?;
 
     Ok(BarChartData {
-        label: "本周".to_string(),
+        label: "week".to_string(),
         income,
         expense: -expense as f64,
     })

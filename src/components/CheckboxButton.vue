@@ -50,7 +50,7 @@ const handleChange = (event) => {
     cursor: pointer;
     transition: all 0.3s ease;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    margin: .5rem;
+    /* margin: .5rem; */
 }
 
 .custom-checkbox-button.is-checked {

@@ -1,139 +1,115 @@
 <template>
-  <div class="home">
-    <div class="statistic">
-      <el-row :gutter="16">
-        <el-col :span="6">
-          <div class="statistic-card">
-            <el-statistic :value="paymentData.today?.income || 0">
-              <template #title>
-                <div style="display: inline-flex; align-items: center">
-                  收入（本日）
-                  <el-tooltip effect="dark" content="今日收入总额" placement="top">
-                    <el-icon style="margin-left: 4px" :size="12">
-                      <Warning />
-                    </el-icon>
-                  </el-tooltip>
-                </div>
-              </template>
-            </el-statistic>
-            <div class="statistic-footer">
-              <div class="footer-item">
-                <span>较昨日</span>
-                <span :class="paymentData.today?.incomeRate >= 0 ? 'green' : 'red'">
-                  {{ Math.abs(paymentData.today?.incomeRate || 0) }}%
-                  <el-icon>
-                    <component :is="paymentData.today?.incomeRate >= 0 ? 'CaretTop' : 'CaretBottom'" />
-                  </el-icon>
-                </span>
-              </div>
+  <div class="dashboard">
+    <!-- 顶部统计卡片区域 -->
+    <div class="dashboard-header">
+      <h2 class="dashboard-title">数据概览</h2>
+      <div class="dashboard-date">{{ formatDate(new Date()) }}</div>
+    </div>
+    
+    <!-- 数据卡片区域 -->
+    <div class="card-section">
+      <el-row :gutter="20">
+        <el-col :xs="24" :sm="12" :md="6" :lg="6" v-for="(card, index) in statisticCards" :key="index">
+          <div class="data-card" :class="`data-card-${index+1}`">
+            <div class="card-icon">
+              <el-icon><component :is="card.icon" /></el-icon>
             </div>
-          </div>
-        </el-col>
-        <el-col :span="6">
-          <div class="statistic-card">
-            <el-statistic :value="paymentData.week?.income || 0">
-              <template #title>
-                <div style="display: inline-flex; align-items: center">
-                  收入（本周）
-                  <el-tooltip effect="dark" content="本周收入总额" placement="top">
-                    <el-icon style="margin-left: 4px" :size="12">
-                      <Warning />
-                    </el-icon>
-                  </el-tooltip>
-                </div>
-              </template>
-            </el-statistic>
-            <div class="statistic-footer">
-              <div class="footer-item">
-                <span>较上周</span>
-                <span :class="paymentData.week?.incomeRate >= 0 ? 'green' : 'red'">
-                  {{ Math.abs(paymentData.week?.incomeRate || 0) }}%
-                  <el-icon>
-                    <component :is="paymentData.week?.incomeRate >= 0 ? 'CaretTop' : 'CaretBottom'" />
-                  </el-icon>
-                </span>
-              </div>
-            </div>
-          </div>
-        </el-col>
-        <el-col :span="6">
-          <div class="statistic-card">
-            <el-statistic :value="paymentData.today?.expense || 0">
-              <template #title>
-                <div style="display: inline-flex; align-items: center">
-                  本日支出
-                  <el-tooltip effect="dark" content="今日支出总额" placement="top">
-                    <el-icon style="margin-left: 4px" :size="12">
-                      <Warning />
-                    </el-icon>
-                  </el-tooltip>
-                </div>
-              </template>
-            </el-statistic>
-            <div class="statistic-footer">
-              <div class="footer-item">
-                <span>较昨日</span>
-                <span :class="paymentData.today?.expenseRate >= 0 ? 'red' : 'green'">
-                  {{ Math.abs(paymentData.today?.expenseRate || 0) }}%
-                  <el-icon>
-                    <component :is="paymentData.today?.expenseRate >= 0 ? 'CaretTop' : 'CaretBottom'" />
-                  </el-icon>
-                </span>
-              </div>
-            </div>
-          </div>
-        </el-col>
-        <el-col :span="6">
-          <div class="statistic-card">
-            <el-statistic :value="paymentData.week?.expense || 0">
-              <template #title>
-                <div style="display: inline-flex; align-items: center">
-                  本周支出
-                </div>
-              </template>
-            </el-statistic>
-            <div class="statistic-footer">
-              <div class="footer-item">
-                <span>较上周</span>
-                <span :class="paymentData.week?.expenseRate >= 0 ? 'red' : 'green'">
-                  {{ Math.abs(paymentData.week?.expenseRate || 0) }}%
-                  <el-icon>
-                    <component :is="paymentData.week?.expenseRate >= 0 ? 'CaretTop' : 'CaretBottom'" />
-                  </el-icon>
-                </span>
+            <div class="card-content">
+              <div class="card-title">{{ card.title }}</div>
+              <div class="card-value">{{ card.value }}</div>
+              <div class="card-trend" :class="card.trendClass">
+                <span>{{ card.trend }}</span>
+                <el-icon>
+                  <component :is="card.trendIcon" />
+                </el-icon>
               </div>
             </div>
           </div>
         </el-col>
       </el-row>
     </div>
-    <div class="bottom">
-      <GaugeChart :total="orderTotalCount" :value="item.count" :title="item.title" v-for="item in countList"
-        :key="item.title" class="chart" />
-      <div class="line-chart-wrapper">
-        <el-date-picker class="date-picker" v-model="selectedDate" type="month" placeholder="选择年月"
-          @change="handleDateChange" />
-        <v-chart class="chart" ref="lineChartRef" :option="lineChart" />
+    
+    <!-- 图表区域 -->
+    <div class="chart-section">
+      <el-row :gutter="20">
+        <!-- 左侧图表 -->
+        <el-col :xs="24" :sm="24" :md="16" :lg="16">
+          <div class="chart-card">
+            <div class="chart-header">
+              <h3>本月收支情况</h3>
+              <el-date-picker class="date-picker" v-model="selectedDate" type="month" placeholder="选择年月"
+                @change="handleDateChange" size="small" />
+            </div>
+            <v-chart class="chart" ref="lineChartRef" :option="lineChart" />
+          </div>
+        </el-col>
+        
+        <!-- 右侧图表 -->
+        <el-col :xs="24" :sm="24" :md="8" :lg="8">
+          <div class="chart-card">
+            <div class="chart-header">
+              <h3>订单状态占比</h3>
+            </div>
+            <v-chart class="chart" :option="pieChartOptions" />
+          </div>
+        </el-col>
+      </el-row>
+      
+      <!-- 底部图表 -->
+      <el-row :gutter="20" class="bottom-charts">
+        <el-col :xs="24" :sm="12" :md="6" :lg="6" v-for="(item, index) in countList" :key="item.title">
+          <div class="chart-card gauge-card">
+            <div class="chart-header">
+              <h3>{{ item.title }}</h3>
+            </div>
+            <GaugeChart :total="orderTotalCount" :value="item.count" class="gauge-chart" />
+          </div>
+        </el-col>
+      </el-row>
+      
+      <!-- 第二行底部图表 -->
+      <el-row :gutter="20" class="bottom-charts second-row">
+        <el-col :xs="24" :sm="12" :md="8" :lg="8" v-for="(item, index) in chartList" :key="index">
+          <div class="chart-card">
+            <div class="chart-header">
+              <h3>订单来源分布</h3>
+            </div>
+            <v-chart class="chart" :option="item" :ref="(el) => setChartRef(el, index)" />
+          </div>
+        </el-col>
+      </el-row>
+    </div>
+    
+    <!-- 广告展示位 -->
+    <div class="ad-container">
+      <div class="ad-content">
+        <div class="ad-header">
+          <h4>推广活动</h4>
+          <el-icon class="close-icon"><Close /></el-icon>
+        </div>
+        <div class="ad-body">
+          <img src="https://placeholder.pics/svg/200x120/DEDEDE/555555/广告展示" alt="广告" />
+          <div class="ad-text">最新优惠活动，立即查看</div>
+          <el-button type="primary" size="small" class="ad-button">了解详情</el-button>
+        </div>
       </div>
-      <v-chart v-for="(item, index) in chartList" :key="index" class="chart" :option="item"
-        :ref="(el) => setChartRef(el, index)" />
     </div>
   </div>
 </template>
 <script setup name="Index">
-import ThemeSwitch from '../components/ThemeSwitch.vue';
 import VChart from 'vue-echarts';
 import { use } from 'echarts/core';
-import { PieChart } from 'echarts/charts';
+import { PieChart, LineChart } from 'echarts/charts';
+import { Close } from '@element-plus/icons-vue';
 import { useWindowSize } from '@vueuse/core';
 import { getDicts } from '../api/system/dict/data';
 import { CanvasRenderer } from 'echarts/renderers';
 import GaugeChart from '../components/GaugeChart.vue';
-import { ref, onMounted, nextTick, watch, onUpdated } from 'vue';
-import { TitleComponent, TooltipComponent, LegendComponent } from 'echarts/components';
+import { ref, onMounted, nextTick, watch, computed } from 'vue';
+import { TitleComponent, TooltipComponent, LegendComponent, GridComponent } from 'echarts/components';
 import { getCountList, getChartList, getOrderTotalCount, fetchPaymentSummary, fetchMonthlyPaymentSummary } from '../api/home';
 
-use([CanvasRenderer, PieChart, TitleComponent, TooltipComponent, LegendComponent]);
+use([CanvasRenderer, PieChart, LineChart, TitleComponent, TooltipComponent, LegendComponent, GridComponent]);
 
 const selectedDate = ref(new Date());
 const countList = ref([]);
@@ -148,6 +124,50 @@ const chartList = ref([]);
 const chartListRefs = ref([]);
 const codeToLabel = ref({});
 const { width, height } = useWindowSize();
+
+// 格式化日期显示
+const formatDate = (date) => {
+  const year = date.getFullYear();
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  return `${year}年${month}月${day}日`;
+};
+
+// 统计卡片数据
+const statisticCards = computed(() => [
+  {
+    title: '本日收入',
+    value: paymentData.value.today?.income || 0,
+    trend: `较昨日 ${Math.abs(paymentData.value.today?.incomeRate || 0)}%`,
+    trendClass: paymentData.value.today?.incomeRate >= 0 ? 'trend-up' : 'trend-down',
+    trendIcon: paymentData.value.today?.incomeRate >= 0 ? 'CaretTop' : 'CaretBottom',
+    icon: 'Money'
+  },
+  {
+    title: '本周收入',
+    value: paymentData.value.week?.income || 0,
+    trend: `较上周 ${Math.abs(paymentData.value.week?.incomeRate || 0)}%`,
+    trendClass: paymentData.value.week?.incomeRate >= 0 ? 'trend-up' : 'trend-down',
+    trendIcon: paymentData.value.week?.incomeRate >= 0 ? 'CaretTop' : 'CaretBottom',
+    icon: 'TrendCharts'
+  },
+  {
+    title: '本日支出',
+    value: paymentData.value.today?.expense || 0,
+    trend: `较昨日 ${Math.abs(paymentData.value.today?.expenseRate || 0)}%`,
+    trendClass: paymentData.value.today?.expenseRate >= 0 ? 'trend-down' : 'trend-up',
+    trendIcon: paymentData.value.today?.expenseRate >= 0 ? 'CaretTop' : 'CaretBottom',
+    icon: 'Wallet'
+  },
+  {
+    title: '本周支出',
+    value: paymentData.value.week?.expense || 0,
+    trend: `较上周 ${Math.abs(paymentData.value.week?.expenseRate || 0)}%`,
+    trendClass: paymentData.value.week?.expenseRate >= 0 ? 'trend-down' : 'trend-up',
+    trendIcon: paymentData.value.week?.expenseRate >= 0 ? 'CaretTop' : 'CaretBottom',
+    icon: 'Postcard'
+  }
+]);
 
 function setChartRef(el, index) {
   if (el) {
@@ -175,7 +195,6 @@ const parseData = (data) => {
 
 const generateChartOptions = (data, type) => {
   return data.map(item => ({
-    title: { text: `订单来源数据分布`, left: 'center' },
     tooltip: { trigger: 'item' },
     legend: { orient: 'vertical', bottom: 0, left: 'left' },
     series: [{
@@ -253,6 +272,7 @@ const initCharts = async () => {
     };
     return acc;
   }, {});
+  console.log(paymentData.value)
   
   orderTotalCount.value = await getOrderTotalCount();
   chartData.value = countList.value.map(item => ({ value: item.count, name: item.title }));
@@ -262,7 +282,6 @@ const initCharts = async () => {
   const month = selectedDate.value.getMonth() + 1;
   await initLineChart(year, month);
   pieChartOptions.value = {
-    title: { text: '订单状态占比图', left: 'center' },
     tooltip: { trigger: 'item', formatter: '{a} <br/>{b}: {c} ({d}%)' },
     legend: { orient: 'vertical', bottom: 0, left: 'left' },
     series: [{
@@ -290,95 +309,271 @@ watch([width, height], () => {
 </script>
 
 <style scoped lang="scss">
-.home {
+.dashboard {
   width: 100%;
   height: 100%;
   display: flex;
   flex-direction: column;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  background-color: var(--el-bg-color-page, #f5f7fa);
+  overflow-y: auto;
+}
+
+/* 顶部标题区域 */
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.dashboard-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  margin: 0;
+}
+
+.dashboard-date {
+  font-size: 0.9rem;
+  color: var(--el-text-color-secondary);
+}
+
+/* 数据卡片区域 */
+.card-section {
+  margin-bottom: 1.5rem;
+}
+
+.data-card {
+  height: 100%;
+  padding: 1.25rem;
+  border-radius: 8px;
+  background-color: var(--el-bg-color);
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+  display: flex;
+  transition: all 0.3s ease;
+  overflow: hidden;
+  position: relative;
+  
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  }
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(to bottom, var(--el-color-primary), var(--el-color-primary-light-5));
+  }
+}
+
+.data-card-1::before { background: linear-gradient(to bottom, #67C23A, #95D475); }
+.data-card-2::before { background: linear-gradient(to bottom, #409EFF, #79BBFF); }
+.data-card-3::before { background: linear-gradient(to bottom, #F56C6C, #F89898); }
+.data-card-4::before { background: linear-gradient(to bottom, #E6A23C, #EEBE77); }
+
+.card-icon {
+  display: flex;
   align-items: center;
   justify-content: center;
-  gap: 2rem;
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  margin-right: 1rem;
+  background-color: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+  font-size: 1.5rem;
 }
 
-.header {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  z-index: 1;
+.data-card-1 .card-icon { background-color: rgba(103, 194, 58, 0.1); color: #67C23A; }
+.data-card-2 .card-icon { background-color: rgba(64, 158, 255, 0.1); color: #409EFF; }
+.data-card-3 .card-icon { background-color: rgba(245, 108, 108, 0.1); color: #F56C6C; }
+.data-card-4 .card-icon { background-color: rgba(230, 162, 60, 0.1); color: #E6A23C; }
+
+.card-content {
+  flex: 1;
 }
 
-.statistic{
-  width: 100%;
+.card-title {
+  font-size: 0.9rem;
+  color: var(--el-text-color-secondary);
+  margin-bottom: 0.5rem;
 }
 
-.el-statistic {
-  --el-statistic-content-font-size: 28px;
+.card-value {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  margin-bottom: 0.5rem;
 }
 
-.statistic-card {
-  height: 100%;
-  padding: 20px;
-  border-radius: 4px;
-  background-color: var(--statistic-card-bg-color);
-}
-
-.statistic-footer {
+.card-trend {
+  font-size: 0.8rem;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  font-size: 12px;
-  color: var(--el-text-color-regular);
-  margin-top: 16px;
-}
-
-.statistic-footer .footer-item {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
 }
 
-.statistic-footer .footer-item span:last-child {
-  display: inline-flex;
-  align-items: center;
-  margin-left: 4px;
-}
-
-.green {
+.trend-up {
   color: var(--el-color-success);
 }
-.red {
-  color: var(--el-color-error);
-}
-.bottom {
-  width: 100%;
-  height: 100%;
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  justify-content: center;
-  align-items: center;
-  gap: 2rem;
+
+.trend-down {
+  color: var(--el-color-danger);
 }
 
-.line-chart-wrapper {
+/* 图表区域 */
+.chart-section {
+  flex: 1;
+}
+
+.chart-card {
+  height: 100%;
+  background-color: var(--el-bg-color);
+  border-radius: 8px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+  padding: 1rem;
+  margin-bottom: 1.5rem;
   position: relative;
-  width: 100%;
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  
+  h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0;
+    color: var(--el-text-color-primary);
+  }
 }
 
 .chart {
   width: 100%;
-  height: 400px;
-  //border: 1px solid #ccc;
-  border-radius: .3rem;
+  height: 300px;
+}
+
+.gauge-chart {
+  height: 250px;
+}
+
+.bottom-charts {
+  margin-top: 1rem;
+}
+
+.bottom-charts.second-row {
+  margin-top: 1.5rem;
+}
+
+/* 广告展示位 */
+.ad-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 1000;
+  width: 250px;
+  max-width: 100%;
+}
+
+.ad-content {
+  background-color: var(--el-bg-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  transition: all 0.3s ease;
+  border: 1px solid var(--el-border-color-light);
+}
+
+.ad-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background-color: var(--el-color-primary-light-9);
+  border-bottom: 1px solid var(--el-border-color-light);
+  
+  h4 {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--el-color-primary);
+  }
+  
+  .close-icon {
+    cursor: pointer;
+    color: var(--el-text-color-secondary);
+    font-size: 0.9rem;
+    
+    &:hover {
+      color: var(--el-color-danger);
+    }
+  }
+}
+
+.ad-body {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  
+  img {
+    width: 100%;
+    border-radius: 4px;
+    margin-bottom: 10px;
+  }
+  
+  .ad-text {
+    font-size: 0.9rem;
+    color: var(--el-text-color-primary);
+    margin-bottom: 10px;
+    text-align: center;
+  }
+  
+  .ad-button {
+    width: 100%;
+  }
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .dashboard {
+    padding: 1rem;
+    gap: 1rem;
+  }
+  
+  .chart {
+    height: 250px;
+  }
+  
+  .gauge-chart {
+    height: 200px;
+  }
+  
+  .ad-container {
+    width: 200px;
+    bottom: 10px;
+    right: 10px;
+  }
 }
 </style>
 
 <style>
 .date-picker {
-  position: absolute;
-  width: 7rem !important;
-  top: 0;
-  right: 0;
-  z-index: 1;
+  width: auto !important;
+}
+
+/* 全局图表样式优化 */
+.echarts-tooltip-dilliver {
+  margin: 5px 0;
+}
+
+.echarts-tooltip-item-marker {
+  border-radius: 50%;
 }
 </style>

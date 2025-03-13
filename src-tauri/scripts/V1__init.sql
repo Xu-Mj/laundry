@@ -145,7 +145,7 @@ CREATE TABLE IF NOT EXISTS users
 -- 会员画像表
 CREATE TABLE user_tags
 (
-    user_id INTEGER NOT NULL,
+    user_id INTEGER PRIMARY KEY,
     tags    TEXT    NOT NULL,
     remark  TEXT
 );

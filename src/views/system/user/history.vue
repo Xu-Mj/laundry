@@ -281,7 +281,6 @@ onMounted(async () => {
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    margin-bottom: 1rem;
 }
 
 .result-item {

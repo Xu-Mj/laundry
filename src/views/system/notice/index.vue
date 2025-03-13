@@ -262,13 +262,13 @@ function submitForm() {
     if (valid) {
       if (form.value.noticeId != undefined) {
         updateNotice(form.value).then(response => {
-          proxy.$modal.msgSuccess("修改成功");
+          proxy.notify.success("修改成功");
           open.value = false;
           getList();
         });
       } else {
         addNotice(form.value).then(response => {
-          proxy.$modal.msgSuccess("新增成功");
+          proxy.notify.success("新增成功");
           open.value = false;
           getList();
         });
@@ -284,7 +284,7 @@ function handleDelete(row) {
     return delNotice(noticeIds);
   }).then(() => {
     getList();
-    proxy.$modal.msgSuccess("删除成功");
+    proxy.notify.success("删除成功");
   }).catch(() => {});
 }
 

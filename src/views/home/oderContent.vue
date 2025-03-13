@@ -785,7 +785,7 @@ async function submitPaymentForm(isPickup) {
     }
     paymentForm.value.totalAmount = Number(paymentForm.value.totalAmount);
     // pay(paymentForm.value).then(async res => {
-    //     proxy.$modal.msgSuccess('支付成功');
+    //     proxy.notify.success('支付成功');
     //     // 如果选中了衣物，那么同时需要取走
     //     if (selectedCloths.value.length !== 0 && isPickup) {
     //         await pickup();
@@ -798,7 +798,7 @@ async function submitPaymentForm(isPickup) {
         await pay(paymentForm.value);
 
         // 支付成功后提示
-        proxy.$modal.msgSuccess('支付成功');
+        proxy.notify.success('支付成功');
 
         // 修改订单支付状态
         paymentForm.value.orders.forEach(item => item.paymentStatus = '00')
@@ -967,7 +967,7 @@ async function pickup(cloth) {
         // 弹出询问是否确认取走
         proxy.$modal.confirm("当前选中衣物有未支付订单，是否确认取走？").then(async () => {
             await pickUp(ids).then(res => {
-                proxy.$modal.msgSuccess("取走成功");
+                proxy.notify.success("取走成功");
                 selectedCloths.value = [];
                 getList();
             }).catch(err => {
@@ -977,7 +977,7 @@ async function pickup(cloth) {
         return;
     }
     await pickUp(ids).then(res => {
-        proxy.$modal.msgSuccess("取走成功");
+        proxy.notify.success("取走成功");
         selectedCloths.value = [];
         getList();
     }).catch(err => {
@@ -1019,7 +1019,7 @@ function submitDelivery() {
     console.log(deliveryForm.value)
     delivery(deliveryForm.value).then(res => {
         showDeliveryDialog.value = false;
-        proxy.$modal.msgSuccess("操作成功");
+        proxy.notify.success("操作成功");
         getList();
     })
 }

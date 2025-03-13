@@ -263,7 +263,7 @@ function updateRefNum() {
   proxy.$refs["tagNumRef"].validate(valid => {
     if (valid) {
       updatePriceRefNum({ clothPriceIds: ids.value, refNum: tagNumForm.value.refNumber }).then(res => {
-        proxy.$modal.msgSuccess("修改成功");
+        proxy.notify.success("修改成功");
         showUpdateRefNum.value = false;
         tagNumForm.value.refNumber = null;
         getList();
@@ -307,7 +307,7 @@ function handleStatusChange(row) {
   proxy.$modal.confirm('确认要' + text + '"' + row.priceName + '"标签吗?').then(function () {
     return updatePriceStatus({ priceId: row.priceId, status: row.status });
   }).then(() => {
-    proxy.$modal.msgSuccess(text + "成功");
+    proxy.notify.success(text + "成功");
   }).catch(function () {
     row.status = row.status === "0" ? "1" : "0";
   });
@@ -374,13 +374,13 @@ function submitForm() {
       }
       if (form.value.priceId != null) {
         updatePrice(form.value).then(response => {
-          proxy.$modal.msgSuccess("修改成功");
+          proxy.notify.success("修改成功");
           open.value = false;
           getList();
         });
       } else {
         addPrice(form.value).then(response => {
-          proxy.$modal.msgSuccess("新增成功");
+          proxy.notify.success("新增成功");
           open.value = false;
           getList();
         });
@@ -396,7 +396,7 @@ function handleDelete(row) {
     return delPrice(_priceIds);
   }).then(() => {
     getList();
-    proxy.$modal.msgSuccess("删除成功");
+    proxy.notify.success("删除成功");
   }).catch(() => { });
 }
 

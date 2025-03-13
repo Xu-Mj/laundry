@@ -45,7 +45,7 @@ function submit() {
   proxy.$refs.userRef.validate(valid => {
     if (valid) {
       updateUserProfile(form.value).then(response => {
-        proxy.$modal.msgSuccess("修改成功");
+        proxy.notify.success("修改成功");
         props.user.phonenumber = form.value.phonenumber;
         props.user.email = form.value.email;
       });

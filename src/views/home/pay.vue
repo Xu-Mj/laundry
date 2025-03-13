@@ -336,7 +336,7 @@ function submitPaymentForm() {
     paymentForm.value.orders = [props.order]
     console.log(paymentForm.value)
     pay(paymentForm.value).then(res => {
-        proxy.$modal.msgSuccess('支付成功');
+        proxy.notify.success('支付成功');
         showPaymentDialog.value = false;
         // reset();
         props.refresh();

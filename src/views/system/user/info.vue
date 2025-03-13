@@ -160,7 +160,7 @@ const handleStatusChange = (row) => {
     proxy.$modal.confirm('确认要"' + text + '""' + row.userName + '"会员吗?').then(function () {
         return changeUserStatus(row.userId, row.status);
     }).then(() => {
-        proxy.$modal.msgSuccess(text + "成功");
+        proxy.notify.success(text + "成功");
     }).catch(function () {
         row.status = row.status === "0" ? "1" : "0";
     });

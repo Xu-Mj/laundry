@@ -532,7 +532,7 @@ function handleDelete(row) {
     return delOrders(_orderIds);
   }).then(() => {
     getList();
-    proxy.$modal.msgSuccess("删除成功");
+    proxy.notify.success("删除成功");
   }).catch(() => { });
 }
 
@@ -541,7 +541,7 @@ function submitRefundForm() {
   proxy.$refs["refundFormRef"].validate(valid => {
     if (valid) {
       refund(refundForm.value).then(res => {
-        proxy.$modal.msgSuccess('退款成功');
+        proxy.notify.success('退款成功');
         showRefundDialog.value = false;
         resetRefundForm();
         getList();
@@ -556,7 +556,7 @@ function submitNotifyForm() {
     if (valid) {
       addRecord(notifyForm.value).then(res => {
         if (res.code === 200) {
-          proxy.$modal.msgSuccess('通知成功');
+          proxy.notify.success('通知成功');
         }
         showNoticeDialog.value = false;
         resetNotify();

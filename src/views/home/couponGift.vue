@@ -235,7 +235,7 @@ function buy() {
 
             sellForm.value.coupons = coupons;
             gift(sellForm.value).then(res => {
-                proxy.$modal.msgSuccess("赠送成功");
+                proxy.notify.success("赠送成功");
                 resetSellForm();
                 selectedList.value = [];
                 getList();

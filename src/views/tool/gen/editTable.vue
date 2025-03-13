@@ -158,7 +158,7 @@ function submitForm() {
         parentMenuId: info.value.parentMenuId
       };
       updateGenTable(genTable).then(res => {
-        proxy.$modal.msgSuccess(res.msg);
+        proxy.notify.success(res.msg);
         if (res.code === 200) {
           close();
         }

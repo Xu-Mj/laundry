@@ -317,7 +317,7 @@ function hangUp() {
                 console.log(currentCloth.value)
                 console.log(hangForm.value)
                 hangup(hangForm.value).then(res => {
-                    proxy.$modal.msgSuccess("上挂成功");
+                    proxy.notify.success("上挂成功");
                     open.value = false;
                     props.taggle();
                 }).catch(res => {

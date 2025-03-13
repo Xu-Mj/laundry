@@ -295,13 +295,13 @@ function submitForm() {
     if (valid) {
       if (form.value.tempId != null) {
         updateTemplate(form.value).then(response => {
-          proxy.$modal.msgSuccess("修改成功");
+          proxy.notify.success("修改成功");
           open.value = false;
           getList();
         });
       } else {
         addTemplate(form.value).then(response => {
-          proxy.$modal.msgSuccess("新增成功");
+          proxy.notify.success("新增成功");
           open.value = false;
           getList();
         });
@@ -317,7 +317,7 @@ function handleDelete(row) {
     return delTemplate(_tempIds);
   }).then(() => {
     getList();
-    proxy.$modal.msgSuccess("删除成功");
+    proxy.notify.success("删除成功");
   }).catch(() => { });
 }
 
@@ -390,7 +390,7 @@ function send() {
   const tempId = currentNotice.value.tempId;
   if (sendAll.value) {
     sendNotice2All(tempId).then(response => {
-      proxy.$modal.msgSuccess("发送成功");
+      proxy.notify.success("发送成功");
       sendOpen.value = false;
     }).catch(() => {
 
@@ -403,7 +403,7 @@ function send() {
     }
     // 发送通知
     sendNotice({ userIds: ids, tempId: tempId }).then(response => {
-      proxy.$modal.msgSuccess("发送成功");
+      proxy.notify.success("发送成功");
       sendOpen.value = false;
       userList.value.forEach(user => user.selected = false);
     }).catch(() => {

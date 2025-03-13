@@ -259,7 +259,7 @@ function updateRefNum() {
   proxy.$refs["tagNumRef"].validate(valid => {
     if (valid) {
       updateTagsRefNum({ tagIds: ids.value, refNum: tagNumForm.value.refNumber }).then(res => {
-        proxy.$modal.msgSuccess("修改成功");
+        proxy.notify.success("修改成功");
         showUpdateRefNum.value = false;
         tagNumForm.value.refNumber = null;
         getList();
@@ -274,13 +274,13 @@ function submitForm() {
     if (valid) {
       if (form.value.tagId != null) {
         updateTags(form.value).then(response => {
-          proxy.$modal.msgSuccess("修改成功");
+          proxy.notify.success("修改成功");
           open.value = false;
           getList();
         });
       } else {
         addTags(form.value).then(response => {
-          proxy.$modal.msgSuccess("新增成功");
+          proxy.notify.success("新增成功");
           open.value = false;
           getList();
         });
@@ -296,7 +296,7 @@ function handleDelete(row) {
     return delTags(_tagIds);
   }).then(() => {
     getList();
-    proxy.$modal.msgSuccess("删除成功");
+    proxy.notify.success("删除成功");
   }).catch(() => { });
 }
 
@@ -306,7 +306,7 @@ function handleStatusChange(row) {
   proxy.$modal.confirm('确认要' + text + '"' + row.tagName + '"标签吗?').then(function () {
     return changeTagStatus(row.tagId, row.status);
   }).then(() => {
-    proxy.$modal.msgSuccess(text + "成功");
+    proxy.notify.success(text + "成功");
   }).catch(function () {
     row.status = row.status === "0" ? "1" : "0";
   });

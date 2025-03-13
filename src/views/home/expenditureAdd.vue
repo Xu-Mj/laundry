@@ -144,13 +144,13 @@ function submitForm() {
             }
             if (form.value.expId != null) {
                 updateExpenditure(form.value).then(response => {
-                    proxy.$modal.msgSuccess("修改成功");
+                    proxy.notify.success("修改成功");
                     open.value = false;
                     props.taggle();
                 });
             } else {
                 addExpenditure(form.value).then(response => {
-                    proxy.$modal.msgSuccess("新增成功");
+                    proxy.notify.success("新增成功");
                     open.value = false;
                     props.taggle();
                 });

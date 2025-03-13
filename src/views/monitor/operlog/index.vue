@@ -285,7 +285,7 @@ function handleDelete(row) {
     return delOperlog(operIds);
   }).then(() => {
     getList();
-    proxy.$modal.msgSuccess("删除成功");
+    proxy.notify.success("删除成功");
   }).catch(() => {});
 }
 
@@ -295,7 +295,7 @@ function handleClean() {
     return cleanOperlog();
   }).then(() => {
     getList();
-    proxy.$modal.msgSuccess("清空成功");
+    proxy.notify.success("清空成功");
   }).catch(() => {});
 }
 

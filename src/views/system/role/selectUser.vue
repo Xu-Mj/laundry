@@ -132,7 +132,7 @@ function handleSelectUser() {
     return;
   }
   authUserSelectAll({ roleId: roleId, userIds: uIds }).then(res => {
-    proxy.$modal.msgSuccess(res.msg);
+    proxy.notify.success(res.msg);
     visible.value = false;
     emit("ok");
   });

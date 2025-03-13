@@ -208,13 +208,13 @@ function submitForm() {
     if (valid) {
       if (form.value.noticeId != null) {
         updateRecord(form.value).then(response => {
-          proxy.$modal.msgSuccess("修改成功");
+          proxy.notify.success("修改成功");
           open.value = false;
           getList();
         });
       } else {
         addRecord(form.value).then(response => {
-          proxy.$modal.msgSuccess("新增成功");
+          proxy.notify.success("新增成功");
           open.value = false;
           getList();
         });
@@ -226,7 +226,7 @@ function submitForm() {
 /** 删除按钮操作 */
 function handleDelete() {
   delRecordsByDay(30).then(res => {
-    proxy.$modal.msgSuccess("删除成功");
+    proxy.notify.success("删除成功");
     getList();
   })
 
@@ -235,7 +235,7 @@ function handleDelete() {
 /** 清空所有按钮操作 */
 function handleDeleteAll() {
   delAllRecord().then(res => {
-    proxy.$modal.msgSuccess("删除成功");
+    proxy.notify.success("删除成功");
     getList();
   })
 }

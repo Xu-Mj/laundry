@@ -198,7 +198,7 @@ function handleDelete(row) {
     return delLogininfor(infoIds);
   }).then(() => {
     getList();
-    proxy.$modal.msgSuccess("删除成功");
+    proxy.notify.success("删除成功");
   }).catch(() => {});
 }
 
@@ -208,7 +208,7 @@ function handleClean() {
     return cleanLogininfor();
   }).then(() => {
     getList();
-    proxy.$modal.msgSuccess("清空成功");
+    proxy.notify.success("清空成功");
   }).catch(() => {});
 }
 
@@ -218,7 +218,7 @@ function handleUnlock() {
   proxy.$modal.confirm('是否确认解锁用户"' + username + '"数据项?').then(function () {
     return unlockLogininfor(username);
   }).then(() => {
-    proxy.$modal.msgSuccess("用户" + username + "解锁成功");
+    proxy.notify.success("用户" + username + "解锁成功");
   }).catch(() => {});
 }
 

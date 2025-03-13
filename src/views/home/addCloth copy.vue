@@ -531,7 +531,7 @@ const handleUploadSuccess = () => {
 
 function handleRemovePicture(event) {
     delClothPicture(currentCloth.value.clothId, event.response.id).then(res => {
-        proxy.$modal.msgSuccess("删除成功");
+        proxy.notify.success("删除成功");
         prePictureList.value = prePictureList.value.filter(item => item.id != event.response.id);
         afterPictureList.value = afterPictureList.value.filter(item => item.id != event.response.id);
     })
@@ -539,7 +539,7 @@ function handleRemovePicture(event) {
 
 function removePicByClick(id) {
     delClothPicture(currentCloth.value.clothId, id).then(res => {
-        proxy.$modal.msgSuccess("删除成功");
+        proxy.notify.success("删除成功");
         prePictureList.value = prePictureList.value.filter(item => item.id != id);
         afterPictureList.value = afterPictureList.value.filter(item => item.id != id);
     })
@@ -746,7 +746,7 @@ function submitForm() {
             if (form.value.clothId != null) {
                 console.log(clothList.value, form.value)
                 updateCloths(submitData).then(response => {
-                    proxy.$modal.msgSuccess("修改成功");
+                    proxy.notify.success("修改成功");
                     open.value = false;
                     // 更新衣物列表
                     const clothIndex = clothList.value.findIndex(item => item.clothId == form.value.clothId);
@@ -763,7 +763,7 @@ function submitForm() {
                     submitData.orderId = props.orderId;
                 }
                 addCloths(submitData).then(response => {
-                    proxy.$modal.msgSuccess("新增成功");
+                    proxy.notify.success("新增成功");
                     open.value = false;
                     const flaw = form.value.clothingFlawArr;
                     const estimate = form.value.estimateArr;
@@ -789,7 +789,7 @@ function handleDelete(row) {
         getList();
         const index = clothList.value.findIndex(item => item.clothId === _clothIds);
         clothList.value.splice(index, 1);
-        proxy.$modal.msgSuccess("删除成功");
+        proxy.notify.success("删除成功");
         props.submit(clothList.value);
     }).catch(() => { });
 }
@@ -1011,7 +1011,7 @@ function createCloth() {
     data.clothingName = clothNameInput.value;
 
     addClothing(data).then(async response => {
-        proxy.$modal.msgSuccess("新增衣物成功");
+        proxy.notify.success("新增衣物成功");
         data.clothingId = response.clothingId;
         // await getClothingList();
         showPriceContent.value = false;
@@ -1032,7 +1032,7 @@ function createCloth() {
 /* 新增标签 */
 function addTag(type, tagName) {
     addTags({ tagName: tagName, tagOrder: type }).then(res => {
-        proxy.$modal.msgSuccess("新增成功");
+        proxy.notify.success("新增成功");
         addItemToList(type, res);
         nextStep();
     });

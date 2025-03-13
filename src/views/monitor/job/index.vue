@@ -400,7 +400,7 @@ function handleStatusChange(row) {
   proxy.$modal.confirm('确认要"' + text + '""' + row.jobName + '"任务吗?').then(function () {
     return changeJobStatus(row.jobId, row.status);
   }).then(() => {
-    proxy.$modal.msgSuccess(text + "成功");
+    proxy.notify.success(text + "成功");
   }).catch(function () {
     row.status = row.status === "0" ? "1" : "0";
   });
@@ -411,7 +411,7 @@ function handleRun(row) {
   proxy.$modal.confirm('确认要立即执行一次"' + row.jobName + '"任务吗?').then(function () {
     return runJob(row.jobId, row.jobGroup);
   }).then(() => {
-    proxy.$modal.msgSuccess("执行成功");})
+    proxy.notify.success("执行成功");})
   .catch(() => {});
 }
 
@@ -464,13 +464,13 @@ function submitForm() {
     if (valid) {
       if (form.value.jobId != undefined) {
         updateJob(form.value).then(response => {
-          proxy.$modal.msgSuccess("修改成功");
+          proxy.notify.success("修改成功");
           open.value = false;
           getList();
         });
       } else {
         addJob(form.value).then(response => {
-          proxy.$modal.msgSuccess("新增成功");
+          proxy.notify.success("新增成功");
           open.value = false;
           getList();
         });
@@ -486,7 +486,7 @@ function handleDelete(row) {
     return delJob(jobIds);
   }).then(() => {
     getList();
-    proxy.$modal.msgSuccess("删除成功");
+    proxy.notify.success("删除成功");
   }).catch(() => {});
 }
 

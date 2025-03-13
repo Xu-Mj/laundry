@@ -152,7 +152,7 @@ function submitPwd() {
       form.value.account = userStore.account;
       updatePwd(form.value).then(() => {
         // 修改成功，正在跳转登录页面
-        proxy.$modal.msgSuccess('密码修改成功，正在退出登录');
+        proxy.notify.success('密码修改成功，正在退出登录');
         userStore.logOut().then(() => {
           location.href = '/index';
         })

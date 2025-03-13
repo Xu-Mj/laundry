@@ -605,7 +605,7 @@ async function handleAddCate() {
         console.log("add cate", sys_cloth_cate);
         const name = sys_cloth_cate.value.find(item => item.value == form.value.clothingCategory).label + "分类";
         addType({ dictName: name, dictType: t, status: "0" }).then(res => {
-            proxy.$modal.msgSuccess("添加成功");
+            proxy.notify.success("添加成功");
         });
     }
 
@@ -619,7 +619,7 @@ async function handleAddCate() {
         status: "0",
     };
     addDataAuto(style).then(() => {
-        proxy.$modal.msgSuccess("添加成功");
+        proxy.notify.success("添加成功");
         cateChange();
         cateName.value = "";
     });
@@ -774,7 +774,7 @@ function submitForm() {
             if (form.value.clothId != null) {
                 console.log(clothList.value, form.value)
                 updateCloths(submitData).then(() => {
-                    proxy.$modal.msgSuccess("修改成功");
+                    proxy.notify.success("修改成功");
                     // 更新衣物列表
                     const clothIndex = clothList.value.findIndex(item => item.clothId == form.value.clothId);
                     if (clothIndex !== -1) {
@@ -791,7 +791,7 @@ function submitForm() {
                     submitData.orderId = props.orderId;
                 }
                 addCloths(submitData).then(response => {
-                    proxy.$modal.msgSuccess("新增成功");
+                    proxy.notify.success("新增成功");
                     const flaw = form.value.clothingFlawArr;
                     const estimate = form.value.estimateArr;
                     form.value = response;
@@ -984,7 +984,7 @@ function createCloth() {
     data.clothingName = clothNameInput.value;
 
     addClothing(data).then(async response => {
-        proxy.$modal.msgSuccess("新增衣物成功");
+        proxy.notify.success("新增衣物成功");
         data.clothingId = response.clothingId;
         // await getClothingList();
         showPriceContent.value = false;
@@ -1005,7 +1005,7 @@ function createCloth() {
 /* 新增标签 */
 function addTag(type, tagName) {
     addTags({ tagName: tagName, tagOrder: type }).then(res => {
-        proxy.$modal.msgSuccess("新增成功");
+        proxy.notify.success("新增成功");
         addItemToList(type, res);
         nextStep();
     });

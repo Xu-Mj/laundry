@@ -144,7 +144,7 @@ const submitNewPwd = async () => {
       confirmPassword: pwdForm.value.confirmPassword,
     });
     pwdDialogVisible.value = false;
-    proxy.$modal.msgSuccess("密码修改成功，请重新登录");
+    proxy.notify.success("密码修改成功，请重新登录");
 
     pwdForm.value.newPassword = '';
     pwdForm.value.confirmPassword = '';

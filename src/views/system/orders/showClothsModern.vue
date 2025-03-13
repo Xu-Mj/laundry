@@ -661,7 +661,7 @@ function hangUp() {
       if (valid) {
         proxy.$modal.loading("上挂中...");
         await hangup(hangForm.value).then(res => {
-          proxy.$modal.msgSuccess("上挂成功");
+          proxy.notify.success("上挂成功");
           showHangUp.value = false;
           getList();
           props.flashList();
@@ -711,7 +711,7 @@ function compensate() {
   proxy.$refs["compensationRef"].validate(valid => {
     if (valid) {
       addExpenditure(compensationForm.value).then(res => {
-        proxy.$modal.msgSuccess("赔偿成功");
+        proxy.notify.success("赔偿成功");
         showCompensationDialog.value = false;
         getList();
         props.flashList();

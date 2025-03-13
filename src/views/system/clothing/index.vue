@@ -265,7 +265,7 @@ function updateRefNum() {
   proxy.$refs["tagNumRef"].validate(valid => {
     if (valid) {
       updateClothingRefNum({ clothingIds: ids.value, refNum: tagNumForm.value.refNumber }).then(res => {
-        proxy.$modal.msgSuccess("修改成功");
+        proxy.notify.success("修改成功");
         showUpdateRefNum.value = false;
         tagNumForm.value.refNumber = null;
         getList();
@@ -357,13 +357,13 @@ function submitForm() {
     if (valid) {
       if (form.value.clothingId != null) {
         updateClothing(form.value).then(response => {
-          proxy.$modal.msgSuccess("修改成功");
+          proxy.notify.success("修改成功");
           open.value = false;
           getList();
         });
       } else {
         addClothing(form.value).then(response => {
-          proxy.$modal.msgSuccess("新增成功");
+          proxy.notify.success("新增成功");
           open.value = false;
           getList();
         });
@@ -379,7 +379,7 @@ function handleDelete(row) {
     return delClothing(_clothingIds);
   }).then(() => {
     getList();
-    proxy.$modal.msgSuccess("删除成功");
+    proxy.notify.success("删除成功");
   }).catch(() => { });
 }
 

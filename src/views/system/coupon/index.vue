@@ -473,13 +473,13 @@ function submitForm() {
 
       if (form.value.couponId != null) {
         updateCoupon(form.value).then(response => {
-          proxy.$modal.msgSuccess("修改成功");
+          proxy.notify.success("修改成功");
           open.value = false;
           getList();
         });
       } else {
         addCoupon(form.value).then(response => {
-          proxy.$modal.msgSuccess("新增成功");
+          proxy.notify.success("新增成功");
           open.value = false;
           getList();
         });
@@ -495,7 +495,7 @@ function handleDelete(row) {
     return delCoupon(_couponIds);
   }).then(() => {
     getList();
-    proxy.$modal.msgSuccess("删除成功");
+    proxy.notify.success("删除成功");
   }).catch(() => { });
 }
 
@@ -581,7 +581,7 @@ async function buy() {
         }
       }
       buyCoupon(sellForm.value).then(res => {
-        proxy.$modal.msgSuccess("购买成功");
+        proxy.notify.success("购买成功");
         resetSellForm();
         showSell.value = false;
       }).catch();

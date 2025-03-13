@@ -72,7 +72,7 @@ const totalPrice = ref(null);
 async function genRewashOrder() {
     order.value.clothsIds = clothList.value.map(item => item.clothId);
     await addRewashOrder(order.value).then(res => {
-        proxy.$modal.msgSuccess("生成复洗订单成功！");
+        proxy.notify.success("生成复洗订单成功！");
     });
 
     // 修改原订单衣物为已取走

@@ -354,7 +354,7 @@ function buy() {
 
             sellForm.value.coupons = coupons;
             buyCoupon(sellForm.value).then(res => {
-                proxy.$modal.msgSuccess("购买成功");
+                proxy.notify.success("购买成功");
                 props.submit(sellForm.value);
                 resetSellForm();
                 selectedList.value = [];

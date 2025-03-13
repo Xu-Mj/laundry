@@ -208,13 +208,13 @@ function submitForm() {
       if (valid) {
          if (form.value.levelId != undefined) {
             updatePost(form.value).then(response => {
-               proxy.$modal.msgSuccess("修改成功");
+               proxy.notify.success("修改成功");
                open.value = false;
                getList();
             });
          } else {
             addPost(form.value).then(response => {
-               proxy.$modal.msgSuccess("新增成功");
+               proxy.notify.success("新增成功");
                open.value = false;
                getList();
             });
@@ -230,7 +230,7 @@ function handleDelete(row) {
       return delPost(levelIds);
    }).then(() => {
       getList();
-      proxy.$modal.msgSuccess("删除成功");
+      proxy.notify.success("删除成功");
    }).catch(() => { });
 }
 

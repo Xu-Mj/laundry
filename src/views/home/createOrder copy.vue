@@ -703,7 +703,7 @@ function submitPaymentForm() {
     paymentForm.value.orders = [form.value]
     console.log(paymentForm.value)
     pay(paymentForm.value).then(res => {
-        proxy.$modal.msgSuccess('支付成功');
+        proxy.notify.success('支付成功');
         showPaymentDialog.value = false;
         reset();
         props.toggle();
@@ -1027,13 +1027,13 @@ async function submitForm() {
             }
             if (form.value.orderId != null) {
                 updateOrders(form.value).then(response => {
-                    proxy.$modal.msgSuccess("修改成功");
+                    proxy.notify.success("修改成功");
                     props.refresh();
                     props.toggle();
                 });
             } else {
                 addOrders(form.value).then(async response => {
-                    proxy.$modal.msgSuccess("新增成功");
+                    proxy.notify.success("新增成功");
                     await printCloth();
                     props.refresh();
                     props.toggle();

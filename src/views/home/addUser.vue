@@ -244,7 +244,7 @@ function submitForm() {
                 }
 
                 addUser(form.value).then(response => {
-                    proxy.$modal.msgSuccess("新增成功");
+                    proxy.notify.success("新增成功");
                     props.taggle();
                 });
             }

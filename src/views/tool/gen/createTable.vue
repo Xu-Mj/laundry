@@ -28,7 +28,7 @@ function show() {
 /** 导入按钮操作 */
 function handleImportTable() {
   if (content.value === "") {
-    proxy.$modal.msgError("请输入建表语句");
+    proxy.notify.error("请输入建表语句");
     return;
   }
   createTable({ sql: content.value }).then(res => {

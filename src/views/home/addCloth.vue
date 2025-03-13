@@ -584,7 +584,7 @@ function jumpToStep(stepNum) {
         return;
     }
     if (stepNum != 1 && !form.value.clothingId) {
-        proxy.$modal.msgError("请先选择衣物");
+        proxy.notify.error("请先选择衣物");
         return;
     }
     step.value = stepNum;
@@ -593,7 +593,7 @@ function jumpToStep(stepNum) {
 
 async function handleAddCate() {
     if (!cateName.value || cateName.value == "") {
-        proxy.$modal.msgError("请输入分类名称");
+        proxy.notify.error("请输入分类名称");
         return;
     }
     const t = "sys_cloth_style" + form.value.clothingCategory;
@@ -970,12 +970,12 @@ function handleAddCloth() {
 
 function createCloth() {
     if (!clothNameInput.value || clothNameInput.value.length === 0) {
-        proxy.$modal.msgError("请输入衣物名称");
+        proxy.notify.error("请输入衣物名称");
         return;
     }
     const data = form.value.clothInfo;
     if (!data.clothingBasePrice) {
-        proxy.$modal.msgError("请输入衣物价格");
+        proxy.notify.error("请输入衣物价格");
         return;
     }
     data.clothingMinPrice = data.clothingMinPrice || data.clothingBasePrice;

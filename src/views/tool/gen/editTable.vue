@@ -164,7 +164,7 @@ function submitForm() {
         }
       });
     } else {
-      proxy.$modal.msgError("表单校验未通过，请重新检查提交内容");
+      proxy.notify.error("表单校验未通过，请重新检查提交内容");
     }
   });
 }

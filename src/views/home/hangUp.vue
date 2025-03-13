@@ -231,7 +231,7 @@ function getClothInfo() {
     getClothByCode(clothingNumber).then(res => {
         currentCloth.value = res;
         if (!currentCloth.value) {
-            proxy.$modal.msgError("衣物编码关联的衣物不存在");
+            proxy.notify.error("衣物编码关联的衣物不存在");
             hangForm.value.clothId = null;
             hangForm.value.hangLocationId = null;
             hangForm.value.hangerNumber = null;
@@ -321,7 +321,7 @@ function hangUp() {
                     open.value = false;
                     props.taggle();
                 }).catch(res => {
-                    proxy.$modal.msgError(res.msg);
+                    proxy.notify.error(res.msg);
                 })
             }
         });

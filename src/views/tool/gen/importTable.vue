@@ -108,7 +108,7 @@ function resetQuery() {
 function handleImportTable() {
   const tableNames = tables.value.join(",");
   if (tableNames == "") {
-    proxy.$modal.msgError("请选择要导入的表");
+    proxy.notify.error("请选择要导入的表");
     return;
   }
   importTable({ tables: tableNames }).then(res => {

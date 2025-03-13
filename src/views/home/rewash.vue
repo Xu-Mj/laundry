@@ -77,7 +77,7 @@ async function genRewashOrder() {
 
     // 修改原订单衣物为已取走
     await pickUp(props.clothes).catch(err => {
-        proxy.$modal.msgError(err.message);
+        proxy.notify.error(err.message);
     });
 
     showRewashDialog.value = false;
@@ -138,7 +138,7 @@ function cancel() {
 onMounted(async () => {
     if (props.visible) {
         if (props.clothes.length == 0) {
-            proxy.$modal.msgError('请选择需要复洗的衣物');
+            proxy.notify.error('请选择需要复洗的衣物');
             return
         }
         reset();

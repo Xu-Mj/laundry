@@ -147,6 +147,7 @@ import { ElMessage } from 'element-plus'
 import QuillEditor from '@/components/Editor/index.vue'
 import useUserStore from '@/store/modules/user'
 
+const { proxy } = getCurrentInstance();
 const userStore = useUserStore()
 const posts = ref([])
 const editorVisible = ref(false)
@@ -195,7 +196,7 @@ const handleMainCommentSubmit = async (post) => {
         console.log(post)
     } catch (err) {
         console.error(err);
-        ElMessage.error('评论失败')
+        proxy.notify.error('评论失败')
     } finally {
 
     }
@@ -263,7 +264,7 @@ const handleSubmit = async () => {
     editorVisible.value = false
     posts.value.unshift(post)
   } catch (err) {
-      ElMessage.error('发布失败')
+      proxy.notify.error('发布失败')
   }
 }
 
@@ -274,7 +275,7 @@ const handleLike = async (post) => {
         const index = posts.value.findIndex(p => p.post.id === post.post.id)
         if (index > -1) posts.value[index].post.likeCount++
     } catch (err) {
-        ElMessage.error('点赞失败')
+        proxy.notify.error('点赞失败')
     }
 }
 
@@ -294,14 +295,14 @@ const handleCommentLike = async (comment) => {
             posts.value[postIndex].comments[commentIndex].likeCount++
         }
     } catch (err) {
-        ElMessage.error('评论点赞失败')
+        proxy.notify.error('评论点赞失败')
     }
     try {
         await likePost(postId)
         const index = posts.value.findIndex(p => p.post.id === postId)
         if (index > -1) posts.value[index].post.likeCount++
     } catch (err) {
-        ElMessage.error('点赞失败')
+        proxy.notify.error('点赞失败')
     }
 }
 
@@ -323,7 +324,7 @@ const loadComments = async (post, page = 1) => {
         post.commentPage = page;
     } catch (err) {
         console.error(err)
-        ElMessage.error('加载评论失败');
+        proxy.notify.error('加载评论失败');
     } finally {
         post.loadingComments = false;
     }
@@ -342,7 +343,7 @@ const loadReplies = async (comment, page = 1) => {
         comment.children = [...comment.children, ...res.rows];
         comment.replyPage = page;
     } catch (err) {
-        ElMessage.error('加载回复失败');
+        proxy.notify.error('加载回复失败');
     } finally {
         comment.loadingReplies = false;
     }
@@ -365,7 +366,7 @@ const submitComment = async (comment) => {
         comment.replyCount++
         commentContent.value = ''
     } catch (err) {
-        ElMessage.error('评论失败')
+        proxy.notify.error('评论失败')
     }
 }
 
@@ -389,7 +390,7 @@ const loadPosts = async () => {
         posts.value = res.rows;
         total.value = res.total
     } catch (err) {
-        ElMessage.error('获取数据失败')
+        proxy.notify.error('获取数据失败')
     }
 }
 

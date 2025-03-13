@@ -159,7 +159,7 @@ const submitNewPwd = async () => {
     // 强制跳转登录页
     router.replace('/login');
   } catch (err) {
-    proxy.$modal.msgError(err.message || '密码修改失败');
+    proxy.notify.error(err.message || '密码修改失败');
   }
 };
 

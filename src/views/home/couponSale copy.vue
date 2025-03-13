@@ -277,7 +277,7 @@ function buy() {
 
                     sellForm.value.userId = res.data; // 设置返回的用户ID
                 } catch (err) {
-                    proxy.$modal.msgError(err);
+                    proxy.notify.error(err);
                     return; // 当 addUser 出错时，中断执行
                 }
             }

@@ -228,7 +228,7 @@ function handleQuery() {
 function handleGenTable(row) {
   const tbNames = row.tableName || tableNames.value;
   if (tbNames == "") {
-    proxy.$modal.msgError("请选择要生成的数据");
+    proxy.notify.error("请选择要生成的数据");
     return;
   }
   if (row.genType === "1") {

@@ -288,7 +288,7 @@ function handlePromote(row) {
   // promote(row).then(res => {
   //   proxy.notify.success('推广成功');
   // }).catch(res => {
-  //   proxy.$modal.msgError(res.message);
+  //   proxy.notify.error(res.message);
   // })
 }
 
@@ -313,13 +313,13 @@ async function modifyObjects() {
 function promoteImmediately(row) {
   // 判断是否有推广对象
   if (!row.promoteObjects) {
-    proxy.$modal.msgError('请选择推广对象');
+    proxy.notify.error('请选择推广对象');
     return;
   }
   promote(row).then(res => {
     proxy.notify.success('推广成功');
   }).catch(res => {
-    proxy.$modal.msgError(res.message);
+    proxy.notify.error(res.message);
   })
 }
 

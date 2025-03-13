@@ -971,7 +971,7 @@ async function pickup(cloth) {
                 selectedCloths.value = [];
                 getList();
             }).catch(err => {
-                proxy.$modal.msgError(err.message);
+                proxy.notify.error(err.message);
             })
         }).catch(() => { })
         return;
@@ -981,7 +981,7 @@ async function pickup(cloth) {
         selectedCloths.value = [];
         getList();
     }).catch(err => {
-        proxy.$modal.msgError(err.message);
+        proxy.notify.error(err.message);
     })
 }
 
@@ -1294,7 +1294,7 @@ function handleQuery() {
     // check tel surfix
     if (!isEmpty(queryParams.value.phonenumber)) {
         if (queryParams.value.phonenumber.length < 4) {
-            proxy.$modal.msgError('请输入正确的手机后四位,或完整的手机号');
+            proxy.notify.error('请输入正确的手机后四位,或完整的手机号');
             return;
         }
     }

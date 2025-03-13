@@ -666,7 +666,7 @@ function hangUp() {
           getList();
           props.flashList();
         }).catch(res => {
-          proxy.$modal.msgError(res.msg);
+          proxy.notify.error(res.msg);
         });
         proxy.$modal.closeLoading();
       }
@@ -716,7 +716,7 @@ function compensate() {
         getList();
         props.flashList();
       }).catch(err => {
-        proxy.$modal.msgError(err.msg || "赔偿失败");
+        proxy.notify.error(err.msg || "赔偿失败");
       });
     }
   });

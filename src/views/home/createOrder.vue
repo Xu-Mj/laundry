@@ -833,7 +833,7 @@ async function submitForm() {
     proxy.$refs["ordersRef"].validate(async valid => {
         if (valid) {
             if (!form.value.cloths || form.value.cloths.length == 0) {
-                proxy.$modal.msgError("衣物信息不能为空");
+                proxy.notify.error("衣物信息不能为空");
                 return;
             }
             form.value.clothIds = form.value.cloths.map(item => item.clothId);
@@ -849,7 +849,7 @@ async function submitForm() {
 
                     form.value.userId = res.userId; // 设置返回的用户ID
                 } catch (err) {
-                    proxy.$modal.msgError(err);
+                    proxy.notify.error(err);
                     return; // 当 addUser 出错时，中断执行
                 }
             }
@@ -878,13 +878,13 @@ function createAndPay() {
     proxy.$refs["ordersRef"].validate(async valid => {
         if (valid) {
             if (!form.value.cloths || form.value.cloths.length == 0) {
-                proxy.$modal.msgError("衣物信息不能为空");
+                proxy.notify.error("衣物信息不能为空");
                 return;
             }
             // 如果选择了美团或者抖音，那么需要选择价格标签
             if (form.value.source == '01' || form.value.source == '02') {
                 if (!form.value.priceId) {
-                    proxy.$modal.msgError("请选择价格标签");
+                    proxy.notify.error("请选择价格标签");
                     return;
                 }
             }
@@ -915,7 +915,7 @@ function createAndPay() {
                     });
 
                 } catch (err) {
-                    proxy.$modal.msgError(err);
+                    proxy.notify.error(err);
                     return; // 当 addUser 出错时，中断执行
                 }
             }
@@ -1034,7 +1034,7 @@ function adjustInputChange() {
     // 如果是修改操作，那么触发更新请求
     if (form.value.orderId && form.value.orderId !== 0) {
         updateAdjust(form.value).catch(res => {
-            proxy.$modal.msgError(res.msg);
+            proxy.notify.error(res.msg);
         })
     }
 }

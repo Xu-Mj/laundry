@@ -128,7 +128,7 @@ function handleSelectUser() {
   const roleId = queryParams.roleId;
   const uIds = userIds.value.join(",");
   if (uIds == "") {
-    proxy.$modal.msgError("请选择要分配的用户");
+    proxy.notify.error("请选择要分配的用户");
     return;
   }
   authUserSelectAll({ roleId: roleId, userIds: uIds }).then(res => {

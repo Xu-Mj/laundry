@@ -398,7 +398,7 @@ function send() {
   } else {
     const ids = userList.value.filter(item => item.selected).map(item => item.userId);
     if (ids.length == 0) {
-      proxy.$modal.msgError("请选择要发送的用户");
+      proxy.notify.error("请选择要发送的用户");
       return;
     }
     // 发送通知

@@ -365,7 +365,7 @@ function submitForm() {
   proxy.$refs["priceRef"].validate(valid => {
     if (valid) {
       if (!form.value.priceValue && !form.value.priceDiscount) {
-        proxy.$modal.msgError('价格和折扣至少填写一个');
+        proxy.notify.error('价格和折扣至少填写一个');
         return;
       }
       if (form.value.applicableClothsArr && form.value.applicableClothsArr.length > 0) {

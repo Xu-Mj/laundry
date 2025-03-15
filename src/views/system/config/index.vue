@@ -27,16 +27,14 @@
 
       <el-row :gutter="10" class="mb8">
          <el-col :span="1.5">
-            <el-button type="primary" plain icon="Plus" @click="handleAdd"
-               v-hasPermi="['system:config:add']">新增</el-button>
+            <el-button type="primary" plain icon="Plus" @click="handleAdd">新增</el-button>
          </el-col>
          <!-- <el-col :span="1.5">
             <el-button type="success" plain icon="Edit" :disabled="single" @click="handleUpdate"
                v-hasPermi="['system:config:edit']">修改</el-button>
          </el-col> -->
          <el-col :span="1.5">
-            <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleDelete"
-               v-hasPermi="['system:config:remove']">删除</el-button>
+            <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleDelete">删除</el-button>
          </el-col><!-- 
          <el-col :span="1.5">
             <el-button type="warning" plain icon="Download" @click="handleExport"
@@ -68,10 +66,8 @@
          </el-table-column>
          <el-table-column label="操作" align="center" width="150" class-name="small-padding fixed-width">
             <template #default="scope">
-               <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)"
-                  v-hasPermi="['system:config:edit']">修改</el-button>
-               <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)"
-                  v-hasPermi="['system:config:remove']">删除</el-button>
+               <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)">修改</el-button>
+               <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)">删除</el-button>
             </template>
          </el-table-column>
       </el-table>

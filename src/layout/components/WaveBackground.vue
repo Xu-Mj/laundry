@@ -32,25 +32,25 @@ onBeforeUnmount(() => {
     window.removeEventListener('resize', resizeCanvas);
 });
 const colorSet = [
-    'rgba(241, 251, 247, .5)',
-    'rgba(244, 247, 239, .6)',
-    'rgba(240, 249, 252, .7)',
-    'rgba(240, 249, 252, .8)',
+    'rgba(236, 242, 254, 0.4)',
+    'rgba(225, 236, 252, 0.5)',
+    'rgba(214, 230, 250, 0.6)',
+    'rgba(202, 223, 248, 0.7)',
 ];
 
 function initWaves() {
-  waves = [];
-  for (let i = 0; i < 4; i++) {
-    waves.push({
-      amplitude: Math.random() * 50 + 30,
-      wavelength: Math.random() * 100 + 50,
-      speed: Math.random()  - 0.05,
-      phase: Math.random() * Math.PI * 2 +i * Math.PI / 3,
-      color: colorSet[i]
-    //   color: `rgba(${Math.random() * 255}, ${Math.random() * 255}, ${Math.random() * 255}, ${0.5 + (i * 0.1)})` // 完全随机的颜色
-    //   color: `rgba(${Math.random() * 255}, ${Math.random() * 255}, ${Math.random() * 255}, ${0.5 + (i * 0.1)})` // 完全随机的颜色
-    });
-  }
+    waves = [];
+    for (let i = 0; i < 4; i++) {
+        waves.push({
+            amplitude: Math.random() * 50 + 30,
+            wavelength: Math.random() * 100 + 50,
+            speed: Math.random() - 0.05,
+            phase: Math.random() * Math.PI * 2 + i * Math.PI / 3,
+            color: colorSet[i]
+            //   color: `rgba(${Math.random() * 255}, ${Math.random() * 255}, ${Math.random() * 255}, ${0.5 + (i * 0.1)})` // 完全随机的颜色
+            //   color: `rgba(${Math.random() * 255}, ${Math.random() * 255}, ${Math.random() * 255}, ${0.5 + (i * 0.1)})` // 完全随机的颜色
+        });
+    }
 }
 
 function drawWave(wave, canvasWidth, canvasHeight) {
@@ -109,8 +109,6 @@ function resizeCanvas() {
     width: 100%;
     height: 100%;
     z-index: -1;
-    /* 确保背景在最底层 */
-    background-color: #08d3f3;
-    /* 设置背景颜色为黑色 */
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
 }
 </style>

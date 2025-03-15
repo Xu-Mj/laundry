@@ -4,26 +4,30 @@ const Notification = {
   success(message) {
     ElNotification({
       type: 'success',
+      offset: 10,
       message
     });
   },
   warning(message) {
     ElNotification({
       type: 'warning',
+      offset: 10,
       message
     });
   },
   info(message) {
     ElNotification({
       type: 'info',
-      message
+      message,
+      offset: 10,
     });
   },
   error(message) {
     console.error(message);
     ElNotification({
       type: 'error',
-      message
+      message,
+      offset: 10,
     });
   }
 };

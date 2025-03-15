@@ -4,10 +4,12 @@
     <el-card class="search-card" v-show="showSearch">
       <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="68px">
         <el-form-item label="卡券编码" prop="couponNumber" size="large">
-          <el-input size="large" v-model="queryParams.couponNumber" placeholder="请输入卡券编码" clearable @keyup.enter="handleQuery" />
+          <el-input size="large" v-model="queryParams.couponNumber" placeholder="请输入卡券编码" clearable
+            @keyup.enter="handleQuery" />
         </el-form-item>
         <el-form-item label="卡券名称" prop="couponTitle" size="large">
-          <el-input size="large" v-model="queryParams.couponTitle" placeholder="请输入卡券名称" clearable @keyup.enter="handleQuery" />
+          <el-input size="large" v-model="queryParams.couponTitle" placeholder="请输入卡券名称" clearable
+            @keyup.enter="handleQuery" />
         </el-form-item>
         <el-form-item label="卡券类型" prop="couponType" size="large">
           <el-select size="large" v-model="queryParams.couponType" @change="selectChange" placeholder="卡券类型" clearable
@@ -124,86 +126,187 @@
     <!-- 添加或修改卡券对话框 -->
     <el-dialog v-model="open" width="700px" :show-close="false" lock-scroll modal :close-on-click-modal="false"
       append-to-body>
-      <coupon-form :value="form" :coupon-types="sys_coupon_type" :status-options="sys_coupon_status"
+      <coupon-form :title="title" :value="form" :coupon-types="sys_coupon_type" :status-options="sys_coupon_status"
         @submit="submitForm" @cancel="cancel" />
     </el-dialog>
 
     <!-- show sell coupon -->
-    <el-dialog v-model="showSell" width="800px" @closed="closeSell">
-      <el-form ref="sellFormRef" :model="sellForm" label-width="90px" :rules="sellRules">
-        <el-row>
-          <el-col :span="12">
-            <el-form-item label="会员身份" prop="userId">
-              <el-select v-model="sellForm.userId" filterable :clearable="true" remote reserve-keyword
-                placeholder="请输入手机号码搜索" allow-create @blur="handleBlur" remote-show-suffix
-                :remote-method="searchUserByTel" @change="selectUser" value-key="userId" style="width: 240px">
-                <el-option v-for="item in userListRes" :key="item.userId"
-                  :label="item.nickName + '\t' + item.phonenumber" :value="item.userId" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12" v-show="needCreateUser">
-            <el-form-item label="会员姓名" prop="nickName">
-              <el-input v-model="sellForm.nickName" placeholder="请输入会员姓名" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <!-- <el-form-item label="会员身份" prop="userId">
-          <el-select v-model="sellForm.userId" filterable remote reserve-keyword placeholder="请输入手机号码搜索"
-            remote-show-suffix :remote-method="searchUserByTel" :loading="searchUserloading" style="width: 240px">
-            <el-option v-for="item in userList" :key="item.userId" :label="item.nickName + '\t' + item.phonenumber"
-              :value="item.userId" />
-          </el-select>
-        </el-form-item> -->
-        <el-row>
-          <h3 class="title">卡券信息</h3>
-        </el-row>
-        <el-table :data="selectedList" max-height="15rem" border>
-          <el-table-column label="序号" align="center" type="index" width="60" />
-          <el-table-column label="卡券名称" align="center" key="couponTitle" prop="couponTitle" />
-          <el-table-column label="有效期" align="center">
-            <template #default="scope">
-              {{ parseTime(scope.row.validFrom, '{y}-{m}-{d}') + ' ~ ' + parseTime(scope.row.validTo, '{y}-{m}-{d}') }}
+    <el-dialog v-model="showSell" width="800px" @closed="closeSell" class="coupon-sale-dialog" :show-close="false">
+      <template #header>
+        <div class="dialog-header">
+          <div class="dialog-title">
+            <el-icon>
+              <Ticket />
+            </el-icon>
+            <span>卡券销售</span>
+          </div>
+          <el-button circle @click="closeSell">
+            <el-icon>
+              <Close />
+            </el-icon>
+          </el-button>
+        </div>
+      </template>
+
+      <el-form ref="sellFormRef" :model="sellForm" label-width="90px" :rules="sellRules" class="coupon-sale-form">
+        <!-- 会员信息卡片 -->
+        <div class="form-section">
+          <div class="section-header">
+            <el-icon>
+              <User />
+            </el-icon>
+            <span>会员信息</span>
+          </div>
+          <div class="section-content">
+            <template v-if="sellForm.userId && !needCreateUser && !editingUser">
+              <div class="member-card">
+                <div class="member-avatar">
+                  <el-avatar :size="50" icon="UserFilled" />
+                </div>
+                <div class="member-details">
+                  <div class="member-name">{{ sellForm.nickName }}</div>
+                  <div class="member-phone">{{ sellForm.phonenumber }}</div>
+                </div>
+                <div class="member-actions">
+                  <el-button type="primary" text @click="editingUser = true">
+                    <el-icon>
+                      <Edit />
+                    </el-icon>
+                    修改
+                  </el-button>
+                </div>
+              </div>
             </template>
-          </el-table-column>
-          <el-table-column label="数量" align="center">
-            <template #default="scope">
-              <el-input-number v-model="scope.row.count" :min="0" :max="(scope.row.customerSaleCount != -1 && scope.row.customerSaleTotal != -1)
-                ? Math.min(scope.row.customerSaleCount, scope.row.customerSaleTotal)
-                : (scope.row.customerSaleTotal != -1 ? scope.row.customerSaleTotal
-                  : (scope.row.customerSaleCount != -1 ? scope.row.customerSaleCount : Infinity))"
-                controls-position="right" />
+            <template v-else>
+              <el-row :gutter="20">
+                <el-col :span="14">
+                  <el-form-item label="会员身份" prop="userId">
+                    <el-select v-model="sellForm.userId" filterable :clearable="true" remote reserve-keyword
+                      placeholder="请输入手机号码搜索" allow-create @blur="handleBlur" remote-show-suffix
+                      :remote-method="searchUserByTel" @change="selectUser" value-key="userId" class="w-full">
+                      <el-option v-for="item in userListRes" :key="item.userId"
+                        :label="item.nickName + '\t' + item.phonenumber" :value="item.userId" />
+                    </el-select>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="10" v-show="needCreateUser">
+                  <el-form-item label="会员姓名" prop="nickName">
+                    <el-input v-model="sellForm.nickName" placeholder="请输入会员姓名" />
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <div v-if="editingUser" class="edit-user-actions">
+                <el-button type="primary" @click="confirmUserEdit">确认</el-button>
+                <el-button @click="cancelUserEdit">取消</el-button>
+              </div>
             </template>
-          </el-table-column>
-        </el-table>
-        <el-row>
-          <h3 class="title">支付方式</h3>
-        </el-row>
-        <el-row>
-          <el-form-item>
-            <el-radio-group v-model="sellForm.paymentMethod">
-              <el-radio v-for="dict in sys_coupon_payment_method" :key="dict.value" :label="dict.label"
-                :value="dict.value" />
-            </el-radio-group>
-          </el-form-item>
-        </el-row>
-        <el-row>
-          <h3 class="title">备注信息</h3>
-        </el-row>
-        <el-row>
-          <el-form-item style="width: 100%;">
-            <el-input type="textarea" v-model="sellForm.remark" placeholder="备注信息" />
-          </el-form-item>
-        </el-row>
-        <el-row>
-          <el-col :span="21" class="cash">
-            总价：{{ totalPrice }}
-          </el-col>
-          <el-col :span="3" justify="center" align="right">
-            <el-button type="primary" @click="buy">立即购买</el-button>
-          </el-col>
-        </el-row>
+          </div>
+        </div>
+
+        <!-- 卡券信息卡片 -->
+        <div class="form-section">
+          <div class="section-header">
+            <el-icon>
+              <Tickets />
+            </el-icon>
+            <span>卡券信息</span>
+          </div>
+          <div class="section-content">
+            <el-table :data="selectedList" max-height="240px" border class="coupon-table">
+              <el-table-column label="序号" align="center" type="index" width="60" />
+              <el-table-column label="卡券名称" align="center" key="couponTitle" prop="couponTitle" />
+              <el-table-column label="有效期" align="center">
+                <template #default="scope">
+                  <div class="validity-period">
+                    <span>{{ parseTime(scope.row.validFrom, '{y}-{m}-{d}') }}</span>
+                    <el-divider direction="horizontal">至</el-divider>
+                    <span>{{ parseTime(scope.row.validTo, '{y}-{m}-{d}') }}</span>
+                  </div>
+                </template>
+              </el-table-column>
+              <el-table-column label="数量" align="center" width="180">
+                <template #default="scope">
+                  <el-input-number v-model="scope.row.count" :min="0" :max="(scope.row.customerSaleCount != -1 && scope.row.customerSaleTotal != -1)
+                    ? Math.min(scope.row.customerSaleCount, scope.row.customerSaleTotal)
+                    : (scope.row.customerSaleTotal != -1 ? scope.row.customerSaleTotal
+                      : (scope.row.customerSaleCount != -1 ? scope.row.customerSaleCount : Infinity))"
+                    controls-position="right" class="quantity-input" />
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
+        </div>
+
+        <!-- 支付方式卡片 -->
+        <div class="form-section">
+          <div class="section-header">
+            <el-icon>
+              <Wallet />
+            </el-icon>
+            <span>支付方式</span>
+          </div>
+          <div class="section-content">
+            <el-form-item class="payment-method-section">
+              <el-radio-group v-model="sellForm.paymentMethod" class="payment-method-group">
+                <el-radio v-for="dict in sys_coupon_payment_method" :key="dict.value" :value="dict.value"
+                  class="payment-method-radio">
+                  <div class="payment-method-card" :class="{ 'selected': sellForm.paymentMethod === dict.value }">
+                    <el-icon v-if="dict.value === '01'">
+                      <Money />
+                    </el-icon>
+                    <el-icon v-else-if="dict.value === '02'">
+                      <ChatDotRound />
+                    </el-icon>
+                    <el-icon v-else-if="dict.value === '05'">
+                      <Wallet />
+                    </el-icon>
+                    <el-icon v-else-if="dict.value === '06'">
+                      <CreditCard />
+                    </el-icon>
+                    <el-icon v-else-if="dict.value === '07'">
+                      <Ticket />
+                    </el-icon>
+                    <el-icon v-else>
+                      <More />
+                    </el-icon>
+                    <span>{{ dict.label }}</span>
+                  </div>
+                </el-radio>
+              </el-radio-group>
+            </el-form-item>
+          </div>
+        </div>
+
+        <!-- 备注信息卡片 -->
+        <div class="form-section">
+          <div class="section-header">
+            <el-icon>
+              <Document />
+            </el-icon>
+            <span>备注信息</span>
+          </div>
+          <div class="section-content">
+            <el-form-item style="width: 100%; margin-bottom: 0;">
+              <el-input type="textarea" v-model="sellForm.remark" placeholder="备注信息" rows="3" />
+            </el-form-item>
+          </div>
+        </div>
+
+        <!-- 价格信息区域 -->
+        <div class="price-summary-card">
+          <div class="price-row total">
+            <span class="price-label">总价</span>
+            <span class="price-value total-amount">¥ {{ totalPrice }}</span>
+          </div>
+        </div>
       </el-form>
+
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button size="large" @click="closeSell" plain>取消</el-button>
+          <el-button size="large" type="primary" @click="buy">立即购买</el-button>
+        </div>
+      </template>
     </el-dialog>
   </div>
 </template>
@@ -242,6 +345,7 @@ const searchUserloading = ref(false);
 const loading = ref(true);
 const showSearch = ref(true);
 const needCreateUser = ref(false);
+const editingUser = ref(false);
 const ids = ref([]);
 const total = ref(0);
 const title = ref("");
@@ -443,6 +547,7 @@ function handleAdd() {
   form.value.validFrom = validFrom;
   form.value.validTo = validTo;
   open.value = true;
+  title.value = "添加卡券";
 }
 
 /** 修改按钮操作 */
@@ -461,31 +566,8 @@ function handleUpdate(row) {
 
 /** 提交按钮 */
 function submitForm() {
-  proxy.$refs["couponRef"].validate(valid => {
-    if (valid) {
-      if (form.value.couponType == "000") {
-        console.log("usageValue", form.value)
-        form.value.usageValue = form.value.couponValue + form.value.usageValue;
-      }
-      // 将时间转为时分秒格式
-      // form.value.validFrom = new Date(`${form.value.validFrom}T00:00:00Z`);;
-      // form.value.validTo = new Date(`${form.value.validTo}T00:00:00Z`);
-
-      if (form.value.couponId != null) {
-        updateCoupon(form.value).then(response => {
-          proxy.notify.success("修改成功");
-          open.value = false;
-          getList();
-        });
-      } else {
-        addCoupon(form.value).then(response => {
-          proxy.notify.success("新增成功");
-          open.value = false;
-          getList();
-        });
-      }
-    }
-  });
+  open.value = false;
+  getList()
 }
 
 /** 删除按钮操作 */
@@ -513,6 +595,7 @@ function resetSellForm() {
     paymentMethod: "05"
   };
   needCreateUser.value = false;
+  editingUser.value = false;
   proxy.resetForm("sellFormRef");
 }
 
@@ -533,10 +616,24 @@ function handleShowSell() {
 function selectUser(userId) {
   if (!userId || userId.length == 0) {
     sellForm.value.nickName = null;
+    sellForm.value.phonenumber = null;
     return;
   }
   const item = userList.value.find(item => { return item.userId === userId });
-  sellForm.value.nickName = item.nickName;
+  if (item) {
+    sellForm.value.nickName = item.nickName;
+    sellForm.value.phonenumber = item.phonenumber;
+  }
+}
+
+/* 确认用户编辑 */
+function confirmUserEdit() {
+  editingUser.value = false;
+}
+
+/* 取消用户编辑 */
+function cancelUserEdit() {
+  editingUser.value = false;
 }
 
 // 处理失去焦点的情况，保留用户输入
@@ -631,5 +728,215 @@ getList();
   display: flex;
   justify-content: right;
   align-items: center;
+}
+
+/* 卡券售卖弹窗样式 */
+.coupon-sale-dialog :deep(.el-dialog__header) {
+  padding: 0;
+  margin: 0;
+}
+
+.coupon-sale-dialog :deep(.el-dialog__body) {
+  padding: 20px;
+}
+
+.coupon-sale-dialog :deep(.el-dialog__footer) {
+  padding: 16px 20px;
+  border-top: 1px solid var(--el-border-color-lighter);
+}
+
+.dialog-header {
+  background-color: var(--el-color-primary-light-9);
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  border-radius: .5rem;
+}
+
+:root.dark .dialog-header{
+  --el-color-primary-light-9: #1d2c40;
+}
+.dialog-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--el-color-primary);
+}
+
+.coupon-sale-form {
+  padding: 0;
+}
+
+.form-section {
+  margin-bottom: 24px;
+  background-color: var(--el-bg-color-overlay);
+  border-radius: 8px;
+  box-shadow: var(--el-box-shadow-light);
+  overflow: hidden;
+  transition: all 0.3s;
+}
+
+.form-section:hover {
+  box-shadow: var(--el-box-shadow);
+  transform: translateY(-2px);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background-color: var(--el-fill-color-light);
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.section-content {
+  padding: 16px;
+}
+
+/* 会员卡片样式 */
+.member-card {
+  display: flex;
+  align-items: center;
+  background: linear-gradient(135deg, var(--el-fill-color-light) 0%, var(--el-fill-color-dark) 100%);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: var(--el-box-shadow-light);
+  transition: transform 0.3s ease;
+}
+
+.member-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--el-box-shadow);
+}
+
+.member-avatar {
+  margin-right: 16px;
+}
+
+.member-details {
+  flex: 1;
+}
+
+.member-name {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: var(--el-color-primary);
+}
+
+.member-phone {
+  font-size: 14px;
+  color: var(--el-text-color-secondary);
+}
+
+.member-actions {
+  margin-left: auto;
+}
+
+.edit-user-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+/* 价格信息样式 */
+.price-summary-card {
+  background-color: var(--el-fill-color-light);
+  border-radius: 8px;
+  padding: 20px;
+  margin: 24px 0 10px 0;
+  box-shadow: var(--el-box-shadow);
+  transition: transform 0.3s ease;
+}
+
+.price-summary-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--el-box-shadow-dark);
+}
+
+.price-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.price-label {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.price-value {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.price-value.total-amount {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--el-color-danger);
+}
+
+
+.payment-method-section {
+  margin-bottom: 0;
+}
+
+.payment-method-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 0;
+}
+
+.payment-method-radio {
+  margin-right: 0 !important;
+  margin-bottom: 0;
+  height: auto;
+}
+
+.payment-method-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100px;
+  height: 80px;
+  border-radius: 8px;
+  border: 1px solid var(--el-border-color);
+  transition: all 0.3s;
+  cursor: pointer;
+  background-color: var(--el-bg-color-overlay);
+}
+
+.payment-method-card:hover {
+  border-color: var(--el-color-primary);
+  transform: translateY(-2px);
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+}
+
+.payment-method-card.selected {
+  border-color: var(--el-color-primary);
+  background-color: var(--el-fill-color-light);
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+}
+
+.payment-method-card .el-icon {
+  font-size: 24px;
+  margin-bottom: 8px;
+  color: var(--el-color-primary);
+}
+
+.payment-method-card span {
+  font-size: 14px;
 }
 </style>

@@ -92,7 +92,7 @@
                 <el-table v-if="order.clothList && order.clothList.length > 0" :data="order.clothList"
                     :loading="order.loading" row-key="clothingId"
                     @selection-change="selectedItems => handleClothSelectionChange(selectedItems, order)"
-                    ref="clothsTableRef" class="modern-table" border="dash" stripe>
+                    ref="clothsTableRef" class="modern-table" :border="false" :stripe="true">
                     <el-table-column type="selection" width="50" align="center" />
                     <el-table-column label="衣物" align="center" min-width="120">
                         <template #default="scope">
@@ -165,14 +165,14 @@
                             <div class="image-buttons">
                                 <el-button link type="primary" size="small"
                                     :disabled="scope.row.beforePics == null || scope.row.beforePics.length == 0"
-                                    @click="handleShowPicture(scope.row, true)">
+                                    @click="handleShowPicture(scope.row, true)" v-hasPermi="['system:cloths:edit']">
                                     <el-icon>
                                         <Picture />
                                     </el-icon> 洗前
                                 </el-button>
                                 <el-button link type="primary" size="small"
                                     :disabled="scope.row.afterPics == null || scope.row.afterPics.length == 0"
-                                    @click="handleShowPicture(scope.row, false)">
+                                    @click="handleShowPicture(scope.row, false)" v-hasPermi="['system:cloths:edit']">
                                     <el-icon>
                                         <Picture />
                                     </el-icon> 洗后
@@ -190,6 +190,9 @@
                             <el-tag v-if="scope.row.hangLocationCode" type="info">{{ scope.row.hangerName + '-' +
                                 scope.row.hangerNumber }}
                             </el-tag>
+                            <!-- <span v-if="scope.row.hangLocationCode" class="location-badge">
+                                {{ scope.row.hangerName + '-' + scope.row.hangerNumber }}
+                            </span>-->
                             <span v-else>-</span>
                         </template>
                     </el-table-column>
@@ -259,188 +262,113 @@
     </el-dialog>
 
     <!-- 付款弹窗 -->
-    <el-dialog v-model="showPaymentDialog" width="600px" append-to-body lock-scroll modal :close-on-click-modal="false"
-        :show-close="false" class="payment-dialog">
-        <template #header>
-            <div class="dialog-header">
-                <div class="order-info">
-                    <el-icon><Ticket /></el-icon>
-                    <span>订单信息</span>
-                </div>
-                <div class="order-number">{{ paymentForm.titles }}</div>
-            </div>
-        </template>
-
-        <!-- 会员信息卡片 -->
-        <div class="member-card" v-if="currentUser">
-            <div class="member-avatar">
-                <el-avatar :size="50" icon="UserFilled" />
-            </div>
-            <div class="member-details">
-                <div class="member-name">{{ currentUser.nickName || currentUser.userName }}</div>
-                <div class="member-phone">{{ currentUser.phonenumber }}</div>
-            </div>
-            <div class="member-points" v-if="currentUser.integral !== undefined">
-                <div class="points-label">积分</div>
-                <div class="points-value">{{ currentUser.integral }}</div>
-            </div>
-        </div>
-
-        <el-form ref="paymentRef" :model="paymentForm" :rules="paymentRules" label-width="80px" class="payment-form">
-            <!-- 支付方式选择 -->
-            <div class="section-title">支付方式</div>
-            <el-form-item class="payment-method-section">
-                <el-radio-group v-model="paymentForm.paymentMethod" class="payment-method-group">
+    <el-dialog title="付款" v-model="showPaymentDialog" width="600px" append-to-body lock-scroll modal
+        :close-on-click-modal="false">
+        <el-form ref="paymentRef" :model="paymentForm" :rules="paymentRules" label-width="80px">
+            <el-form-item label="订单编号">
+                {{ paymentForm.titles }}
+            </el-form-item>
+            <el-form-item label="支付方式">
+                <el-radio-group v-model="paymentForm.paymentMethod">
                     <template v-for="dict in sys_payment_method" :key="dict.value">
                         <template v-if="dict.value == '06'">
-                            <el-radio v-if="couponTypeList && couponTypeList.has('000')" :value="dict.value" class="payment-method-radio">
-                                <div class="payment-method-card" :class="{ 'selected': paymentForm.paymentMethod === dict.value }">
-                                    <el-icon><CreditCard /></el-icon>
-                                    <span>{{ dict.label }}</span>
-                                </div>
+                            <el-radio v-if="couponTypeList.has('000')" :value="dict.value">
+                                {{ dict.label }}
                             </el-radio>
                         </template>
                         <template v-else-if="dict.value == '07'">
-                            <el-radio v-if="couponTypeList && couponTypeList.has('002')" :value="dict.value" class="payment-method-radio">
-                                <div class="payment-method-card" :class="{ 'selected': paymentForm.paymentMethod === dict.value }">
-                                    <el-icon><Ticket /></el-icon>
-                                    <span>{{ dict.label }}</span>
-                                </div>
+                            <el-radio v-if="couponTypeList.has('002')" :value="dict.value">
+                                {{ dict.label }}
                             </el-radio>
                         </template>
-                        <el-radio v-else-if="dict.value !== '03' && dict.value !== '04'" :value="dict.value" class="payment-method-radio">
-                            <div class="payment-method-card" :class="{ 'selected': paymentForm.paymentMethod === dict.value }">
-                                <el-icon v-if="dict.value === '01'"><Money /></el-icon>
-                                <el-icon v-else-if="dict.value === '02'"><ChatDotRound /></el-icon>
-                                <el-icon v-else-if="dict.value === '05'"><Wallet /></el-icon>
-                                <el-icon v-else><More /></el-icon>
-                                <span>{{ dict.label }}</span>
-                            </div>
+                        <el-radio v-else-if="dict.value !== '03' && dict.value !== '04'" :value="dict.value">
+                            {{ dict.label }}
                         </el-radio>
                     </template>
                 </el-radio-group>
             </el-form-item>
-
-            <!-- 卡券选择区域 -->
             <template v-if="showCoupons">
-                <div class="section-title">选择优惠</div>
-                <div class="coupon-section">
-                    <!-- 储值卡 -->
-                    <el-collapse v-if="userCouponList.filter(item => item.coupon.couponType == '000').length !== 0">
-                        <el-collapse-item title="储值卡" name="storage-card">
-                            <el-checkbox-group v-model="couponStorageCardId" @change="changeCoupon(1)" class="coupon-checkbox-group">
-                                <el-checkbox 
-                                    v-for="card in userCouponList.filter(item => item.coupon.couponType == '000')"
-                                    :disabled="!card.isValid" 
-                                    :key="card.ucId" 
-                                    :value="card.ucId"
-                                    class="coupon-checkbox"
-                                >
-                                    <div class="coupon-card" :class="{ 'disabled': !card.isValid }">
-                                        <div class="coupon-title">{{ card.coupon.couponTitle }}</div>
-                                        <div class="coupon-value">余额: {{ card.availableValue }}元</div>
-                                        <div v-if="!card.isValid" class="coupon-invalid">{{ card.unValidReason }}</div>
-                                    </div>
-                                </el-checkbox>
-                            </el-checkbox-group>
-                        </el-collapse-item>
-                    </el-collapse>
-
-                    <!-- 次卡 -->
-                    <el-collapse v-if="userCouponList.filter(item => item.coupon.couponType == '002').length != 0">
-                        <el-collapse-item title="次卡" name="time-card">
-                            <div class="coupon-times">
-                                <div class="coupon-times-item"
-                                    v-for="card in userCouponList.filter(item => item.coupon.couponType == '002')"
-                                    :key="card.ucId">
-                                    <el-checkbox 
-                                        @change="changeCoupon(2, card)" 
-                                        :disabled="!card.isValid"
-                                        v-model="card.selected" 
-                                        :value="card.ucId"
-                                        class="coupon-checkbox"
-                                    >
-                                        <div class="coupon-card" :class="{ 'disabled': !card.isValid }">
-                                            <div class="coupon-title">{{ card.coupon.couponTitle }}</div>
-                                            <div class="coupon-value">剩余: {{ card.availableValue }}次</div>
-                                            <div v-if="!card.isValid" class="coupon-invalid">{{ card.unValidReason }}</div>
-                                        </div>
-                                    </el-checkbox>
-                                    <el-input-number 
-                                        v-if="card.selected" 
-                                        v-model="card.count"
-                                        @change="changeCouponCount(card)" 
-                                        :min="1" 
-                                        :max="card.availableValue"
-                                        controls-position="right" 
-                                        size="small"
-                                        class="count-input"
-                                    />
-                                </div>
-                            </div>
-                        </el-collapse-item>
-                    </el-collapse>
-
-                    <!-- 优惠券 -->
-                    <el-collapse v-if="userCouponList.filter(item => item.coupon.couponType !== '002' && item.coupon.couponType !== '000').length != 0">
-                        <el-collapse-item title="优惠券" name="discount-coupon">
-                            <el-radio-group v-model="paymentForm.couponId" @change="changeCoupon(3)" class="coupon-radio-group">
-                                <el-radio
-                                    v-for="card in userCouponList.filter(item => item.coupon.couponType !== '000' && item.coupon.couponType !== '002')"
-                                    :disabled="!card.isValid" 
-                                    :key="card.ucId" 
-                                    :value="card.ucId"
-                                    class="coupon-radio"
-                                >
-                                    <div class="coupon-card" :class="{ 'disabled': !card.isValid, 'selected': paymentForm.couponId === card.ucId }">
-                                        <div class="coupon-title">{{ card.coupon.couponTitle }}</div>
-                                        <div class="coupon-value">剩余: {{ card.ucCount }}张</div>
-                                        <div v-if="!card.isValid" class="coupon-invalid">{{ card.unValidReason }}</div>
-                                    </div>
-                                </el-radio>
-                            </el-radio-group>
-                        </el-collapse-item>
-                    </el-collapse>
-                </div>
+                <el-form-item v-if="userCouponList.filter(item => item.coupon.couponType == '000').length !== 0"
+                    label="储值卡">
+                    <el-checkbox-group v-model="couponStorageCardId" @change="changeCoupon(1)">
+                        <el-checkbox v-for="card in userCouponList.filter(item => item.coupon.couponType == '000')"
+                            :disabled="!card.isValid" :key="card.ucId" :value="card.ucId">
+                            {{ card.coupon.couponTitle }}
+                            -余额
+                            {{ card.availableValue }}
+                            {{ card.coupon.couponType == '000' ? '元' : '次' }}
+                            {{ card.isValid ? '' : '(' + card.unValidReason + ')' }}
+                        </el-checkbox>
+                    </el-checkbox-group>
+                </el-form-item>
+                <el-form-item v-if="userCouponList.filter(item => item.coupon.couponType == '002').length != 0"
+                    label="次卡">
+                    <div class="coupon-times">
+                        <div class="coupon-times-item"
+                            v-for="card in userCouponList.filter(item => item.coupon.couponType == '002')"
+                            :key="card.ucId">
+                            <el-checkbox @change="changeCoupon(2, card)" :disabled="!card.isValid"
+                                v-model="card.selected" :value="card.ucId">
+                                {{ card.coupon.couponTitle }}
+                                {{ card.isValid ? '' : '(' + card.unValidReason + ')' }}
+                                {{ '(剩余: ' + card.availableValue + '次)' }}
+                            </el-checkbox>
+                            <el-input-number controls-position="right" v-if="card.selected" v-model="card.count"
+                                @change="changeCouponCount(card)" :min="1" :max="card.availableValue"
+                                placeholder="请输入次卡数量" />
+                        </div>
+                    </div>
+                </el-form-item>
+                <el-form-item
+                    v-if="userCouponList.filter(item => item.coupon.couponType !== '002' && item.coupon.couponType !== '000').length != 0"
+                    label="优惠券">
+                    <el-radio-group v-model="paymentForm.couponId" @change="changeCoupon(3)">
+                        <el-radio
+                            v-for="card in userCouponList.filter(item => item.coupon.couponType !== '000' && item.coupon.couponType !== '002')"
+                            :disabled="!card.isValid" :key="card.ucId" :value="card.ucId">
+                            {{ card.coupon.couponTitle }}
+                            {{ card.isValid ? '' : '(' + card.unValidReason + ')' }}
+                            {{ '(剩余: ' + card.ucCount + '张)' }}
+                        </el-radio>
+                    </el-radio-group>
+                </el-form-item>
             </template>
-
-            <!-- 价格信息区域 -->
-            <div class="price-summary-card">
-                <div class="price-row">
-                    <span class="price-label">订单金额</span>
-                    <span class="price-value">¥ {{ paymentForm.totalAmount }}</span>
-                </div>
-                <div class="price-row" v-if="paymentForm.bonusAmount">
-                    <span class="price-label">优惠金额</span>
-                    <span class="price-value discount">- ¥ {{ paymentForm.bonusAmount }}</span>
-                </div>
-                <div class="price-divider"></div>
-                <div class="price-row total">
-                    <span class="price-label">应付金额</span>
-                    <span class="price-value total-amount">¥ {{ paymentForm.paymentAmount }}</span>
-                </div>
-            </div>
-
-            <!-- 补差价区域 -->
-            <el-form-item label="补差价" v-if="paymentForm.priceDiff > 0" class="price-diff-section">
-                <el-input-number 
-                    v-model="paymentForm.priceDiff" 
-                    controls-position="right" 
-                    :min="0"
-                    :max="paymentForm.paymentAmount" 
-                    placeholder="请输入补差价" 
-                />
-            </el-form-item>
+            <el-row>
+                <el-col :span="8">
+                    <el-form-item label="订单金额">
+                        <span class="payment-amount">
+                            {{ paymentForm.totalAmount }}
+                        </span>
+                    </el-form-item>
+                </el-col>
+                <el-col :span="8">
+                    <el-form-item label="优惠金额">
+                        {{ paymentForm.bonusAmount }}
+                    </el-form-item>
+                </el-col>
+                <el-col :span="8">
+                    <el-form-item label-width="auto" label="优惠后金额">
+                        <span class="payment-amount">
+                            {{ paymentForm.paymentAmount }}
+                        </span>
+                    </el-form-item>
+                </el-col>
+            </el-row>
+            <el-row>
+                <el-form-item label="补差价" v-if="paymentForm.priceDiff > 0">
+                    <el-input-number v-model="paymentForm.priceDiff" controls-position="right" :min="0"
+                        :max="paymentForm.paymentAmount" placeholder="请输入补差价" />
+                </el-form-item>
+            </el-row>
         </el-form>
-
         <template #footer>
             <div class="payment-footer">
-                <el-button size="large" @click="showPaymentDialog = false" plain>取消</el-button>
-                <el-button size="large" type="primary" @click="submitPaymentForm(false)">确认收款</el-button>
-                <el-button size="large" type="primary" @click="submitPaymentForm(true)">收款并取衣</el-button>
+                <el-button type="primary" @click="submitPaymentForm(false)">确认收款</el-button>
+                <el-button type="primary" @click="submitPaymentForm(true)">收款并取衣</el-button>
             </div>
         </template>
     </el-dialog>
+
     <!-- 复洗 -->
     <ReWash :visible="showRewashDialog" :order="rewashOrder" :clothes="rewashClothesId"
         :refresh="() => { selectedCloths = []; getList(); }" :key="showRewashDialog"
@@ -461,6 +389,7 @@ import { selectListExceptCompleted } from "@/api/system/orders";
 import { getPrice } from "@/api/system/price";
 import ReWash from "./rewash.vue";
 import { ElMessageBox } from 'element-plus';
+import { gsap } from 'gsap'
 import { invoke } from '@tauri-apps/api/core';
 
 
@@ -502,9 +431,12 @@ const brandList = ref([]);
 const pictureList = ref([]);
 const selectedCloths = ref([]);
 const selectedOrders = ref([]);
+// 展开的父行
+const expandedRows = ref([]);
 // 选中的储值卡列表
 const couponStorageCardId = ref([]);
 
+const orderTableRef = ref();
 const clothsTableRef = ref();
 // 用户卡券列表
 const userCouponList = ref([]);
@@ -546,6 +478,25 @@ const data = reactive({
 });
 
 const { deliveryForm, paymentForm, pickupRules, queryParams } = toRefs(data);
+
+// 加载动画
+function beforeEnter(el) {
+    console.log('before enter')
+    gsap.set(el, {
+        y: 50,
+        opacity: 0
+    });
+}
+
+function enter(el, done) {
+    gsap.to(el, {
+        y: 0,
+        opacity: 1,
+        duration: 0.5,
+        ease: "power4.out",
+        onComplete: done
+    });
+}
 
 async function go2pay(row) {
     initPaymentForm();
@@ -627,6 +578,7 @@ function changeCouponCount() {
         }
     }
     paymentForm.value.paymentAmount = paymentForm.value.totalAmount - (paymentForm.value.bonusAmount ? paymentForm.value.bonusAmount : 0);
+    // console.log(paymentForm.value)
 }
 
 async function handlePay() {
@@ -668,6 +620,20 @@ async function handlePay() {
     paymentForm.value.titles = paymentForm.value.orders.map(item => item.orderNumber + `(` + item.mount + `元)`).join(' | ');
     paymentForm.value.totalAmount = paymentForm.value.orders.reduce((acc, cur) => acc + cur.mount, 0);
 
+    // 校验订单列表中是否包含选择了价格标签的叮当
+    // const hasSelectedPrice = paymentForm.value.orders.some(item => item.priceId != null);
+    // if (hasSelectedPrice) {
+    //     showCoupons.value = false;
+    // } else {
+    //     showCoupons.value = true;
+    //     // 校验卡券
+    //     checkCoupon();
+    //     // 判断储值卡金额是否能够覆盖订单金额
+    //     const storageCardValue = userCouponList.value.filter(item => item.coupon.couponType === "000" && item.isValid).reduce((acc, cur) => acc + cur.availableValue, 0);
+    //     if (paymentForm.value.totalAmount < storageCardValue) {
+    //         paymentForm.value.paymentMethod = '06';
+    //     }
+    // }
     // 校验卡券
     checkCoupon();
     // 判断储值卡金额是否能够覆盖订单金额
@@ -818,6 +784,15 @@ async function submitPaymentForm(isPickup) {
         paymentForm.value.paymentAmountMv = paymentForm.value.paymentAmount;
     }
     paymentForm.value.totalAmount = Number(paymentForm.value.totalAmount);
+    // pay(paymentForm.value).then(async res => {
+    //     proxy.notify.success('支付成功');
+    //     // 如果选中了衣物，那么同时需要取走
+    //     if (selectedCloths.value.length !== 0 && isPickup) {
+    //         await pickup();
+    //     }
+    //     showPaymentDialog.value = false;
+    //     getList();
+    // })
     try {
         // 等待支付完成
         await pay(paymentForm.value);
@@ -1049,14 +1024,66 @@ function submitDelivery() {
     })
 }
 
+// 处理父行选择变化
+async function handleOrderSelectionChange(selection, row) {
+    selectedOrders.value = selection;
+    // 获取选中的父行（订单）
+    const isSelected = selection.includes(row);
+
+    if (isSelected) {
+        // 选中父行时，自动展开并选中其子行
+        await selection.forEach(async order => {
+            // 自动展开父行
+            if (!expandedRows.value.includes(order.orderId)) {
+                expandedRows.value.push(order.orderId);
+                order.loading = true;
+                await listCloths({ orderClothId: order.orderId }).then(res => {
+                    order.clothList = res.rows;
+                    order.loading = false;
+                    // 展开行
+                    orderTableRef.value.toggleRowExpansion(order);
+                })
+            }
+            // 选中该父行的所有子行
+            order.clothList.forEach(cloth => {
+                // 选中子行
+                clothsTableRef.value.toggleRowSelection(cloth, true);
+                // 将子行加入 selectedCloths 数组
+                if (!selectedCloths.value.find(c => c.clothId === cloth.clothId)) {
+                    selectedCloths.value.push(cloth);
+                }
+
+            });
+        });
+    } else {
+
+        // 当取消选择父行时，取消该行所有子行的选中状态
+        const selectedOrderIds = selection.map(order => order.orderId);
+        row.clothList.forEach(cloth => clothsTableRef.value.toggleRowSelection(cloth, false));
+        selectedCloths.value = selectedCloths.value.filter(cloth => selectedOrderIds.includes(cloth.orderId));
+    }
+};
+
 // 衣物列表多选框选中数据
 function handleClothSelectionChange(selectedItems, row) {
+    // console.log('cloth selection change', selectedItems, row);
+    // selectedCloths.value = selectedItems;
+    // selectedOrders.value = row;
     // 清空当前订单下的选中数据
     const orderId = row.orderId;
     selectedCloths.value = selectedCloths.value.filter(cloth => cloth.orderClothId !== orderId);
 
     // 将新的选中项合并到 shared array
     selectedCloths.value.push(...selectedItems);
+    console.log(selectedCloths.value)
+    // if (!selectedCloths.value.find(item => item.orderClothId === orderId)) {
+    //     // 说明该订单下已经没有选中项，则删除该订单
+    //     orderTableRef.value.toggleRowSelection(row, false);
+    // } else {
+    //     if (selectedCloths.value.filter(item => item.orderClothId === orderId).length === row.clothList.length) {
+    //         orderTableRef.value.toggleRowSelection(row, true);
+    //     }
+    // }
 }
 
 function cancelDelivery() {
@@ -1080,6 +1107,20 @@ function resetDeliveryForm() {
         beforePics: null,
     }
     proxy.resetForm("pickupRef");
+}
+
+function handleExpandChange(row, expanded) {
+    if (expanded && !row.clothList) {
+        row.loading = true;
+        listCloths({ orderClothId: row.orderId }).then(res => {
+            row.clothList = res.rows;
+            row.loading = false;
+        });
+    }
+}
+
+function handleRowClick(row) {
+    orderTableRef.value.toggleRowExpansion(row);
 }
 
 /* 初始化列表数据 */
@@ -1179,6 +1220,7 @@ async function getList() {
             item.clothList = item.clothList.filter(cloth => cloth.clothingStatus !== '00');
         }
     }
+    // console.log('ordersList', ordersList.value);
 }
 
 // 提取出价格计算逻辑
@@ -1356,7 +1398,7 @@ onMounted(async () => {
     flex-direction: column;
     gap: 1.25rem;
     margin-top: 3rem;
-    padding: 0rem 1rem 5rem 1rem;
+    padding: 0rem 1rem 4.5rem 1rem;
     scrollbar-gutter: stable;
 }
 
@@ -1392,16 +1434,11 @@ onMounted(async () => {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0.75rem;
-    border-radius: .5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #f0f0f0;
     color: #409EFF;
     font-weight: 500;
     font-size: 1.1rem;
-    background-color: var(--el-color-primary-light-9);
-}
-
-:root.dark .result-item-order-num {
-    --el-color-primary-light-9: #1d2c40;
 }
 
 .result-item-info {
@@ -1472,13 +1509,7 @@ onMounted(async () => {
     border-radius: 0.5rem;
     overflow: hidden;
     margin-top: 0.5rem;
-    box-shadow: var(--el-box-shadow-lighter);
-}
-
-.modern-table :deep(th) {
-    background-color: var(--el-fill-color-light);
-    color: var(--el-text-color-primary);
-    font-weight: 600;
+    box-shadow: 0 1px 8px rgba(0, 0, 0, 0.05);
 }
 
 .cloth-name {
@@ -1560,332 +1591,5 @@ onMounted(async () => {
 
 .info-item .el-icon {
     color: #909399;
-}
-
-/* 支付弹窗样式 */
-.payment-dialog :deep(.el-dialog__header) {
-    padding: 16px;
-    margin-right: 0;
-    border-bottom: 1px solid var(--el-border-color-lighter);
-}
-
-.dialog-header {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.order-info {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--el-color-primary);
-}
-
-.order-number {
-    font-size: 14px;
-    color: var(--el-text-color-secondary);
-    margin-left: 24px;
-}
-
-.member-card {
-    display: flex;
-    align-items: center;
-    background: linear-gradient(135deg, var(--el-fill-color-light) 0%, var(--el-fill-color-dark) 100%);
-    border-radius: 12px;
-    padding: 16px;
-    margin: 16px 0 24px 0;
-    box-shadow: var(--el-box-shadow-light);
-    transition: transform 0.3s ease;
-}
-
-.member-card:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--el-box-shadow);
-}
-
-.member-avatar {
-    margin-right: 16px;
-}
-
-.member-details {
-    flex: 1;
-}
-
-.member-name {
-    font-size: 18px;
-    font-weight: 600;
-    margin-bottom: 4px;
-}
-
-.member-phone {
-    font-size: 14px;
-    color: var(--el-text-color-secondary);
-}
-
-.member-points {
-    text-align: center;
-    padding: 0 16px;
-    border-left: 1px solid var(--el-border-color-lighter);
-}
-
-.points-label {
-    font-size: 12px;
-    color: var(--el-text-color-secondary);
-}
-
-.points-value {
-    font-size: 20px;
-    font-weight: 600;
-    color: #f56c6c;
-}
-
-.payment-form {
-    padding: 0 16px;
-}
-
-.section-title {
-    font-size: 16px;
-    font-weight: 600;
-    margin: 16px 0 12px 0;
-    color: var(--el-text-color-primary);
-    position: relative;
-    padding-left: 12px;
-}
-
-.section-title::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 4px;
-    height: 16px;
-    background-color: var(--el-color-primary);
-    border-radius: 2px;
-}
-
-.payment-method-section {
-    margin-bottom: 24px;
-}
-
-.payment-method-group {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 16px;
-    margin-bottom: 10px;
-}
-
-.payment-method-radio {
-    margin-right: 0 !important;
-    margin-bottom: 10px;
-    height: auto;
-}
-
-.payment-method-card {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    width: 100px;
-    height: 80px;
-    border-radius: 8px;
-    border: 1px solid var(--el-border-color);
-    transition: all 0.3s;
-    cursor: pointer;
-    background-color: var(--el-bg-color-overlay);
-}
-
-.payment-method-card:hover {
-    border-color: var(--el-color-primary);
-    transform: translateY(-2px);
-    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-}
-
-.payment-method-card.selected {
-    border-color: var(--el-color-primary);
-    background-color: var(--el-color-primary-light-9);
-    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-}
-
-.payment-method-card .el-icon {
-    font-size: 24px;
-    margin-bottom: 8px;
-    color: var(--el-color-primary);
-}
-
-.payment-method-card span {
-    font-size: 14px;
-}
-
-.coupon-section {
-    margin-bottom: 24px;
-}
-
-.coupon-checkbox-group,
-.coupon-radio-group {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-}
-
-.coupon-checkbox,
-.coupon-radio {
-    margin-right: 0 !important;
-    margin-bottom: 12px;
-}
-
-.coupon-card {
-    width: 200px;
-    padding: 12px;
-    border-radius: 8px;
-    border: 1px solid var(--el-border-color-lighter);
-    background: linear-gradient(135deg, #ffffff 0%, #f5f7fa 100%);
-    transition: all 0.3s;
-}
-
-.coupon-card:hover {
-    border-color: var(--el-color-primary);
-    transform: translateY(-2px);
-    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-}
-
-.coupon-card.selected {
-    border-color: var(--el-color-primary);
-    background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, #f5f7fa 100%);
-    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-}
-
-.coupon-card.disabled {
-    opacity: 0.6;
-    background: #f5f7fa;
-}
-
-.coupon-title {
-    font-size: 14px;
-    font-weight: 600;
-    margin-bottom: 8px;
-    color: var(--el-text-color-primary);
-}
-
-.coupon-value {
-    font-size: 14px;
-    color: var(--el-text-color-secondary);
-}
-
-.coupon-invalid {
-    font-size: 12px;
-    color: #f56c6c;
-    margin-top: 4px;
-}
-
-.coupon-times {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.coupon-times-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.count-input {
-    width: 120px;
-}
-
-.price-summary-card {
-    background-color: var(--el-fill-color-light);
-    border-radius: 8px;
-    padding: 16px;
-    margin: 24px 0;
-    box-shadow: var(--el-box-shadow-light);
-    transition: transform 0.3s ease;
-}
-
-.price-summary-card:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--el-box-shadow);
-}
-
-.price-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 8px;
-}
-
-.price-row.total {
-    margin-top: 12px;
-    margin-bottom: 0;
-}
-
-.price-label {
-    font-size: 14px;
-    color: var(--el-text-color-secondary);
-}
-
-.price-value {
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--el-text-color-primary);
-}
-
-.price-value.discount {
-    color: #f56c6c;
-}
-
-.price-value.total-amount {
-    font-size: 24px;
-    color: #f56c6c;
-}
-
-.price-divider {
-    height: 1px;
-    background-color: var(--el-border-color-lighter);
-    margin: 12px 0;
-}
-
-.price-diff-section {
-    margin-top: 16px;
-}
-
-.payment-footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-}
-
-.payment-footer button {
-    transition: all 0.3s;
-}
-
-.payment-footer button:hover {
-    transform: translateY(-2px);
-}
-
-/* 添加一些动画效果 */
-.el-dialog__body {
-    transition: all 0.3s;
-}
-
-.el-collapse-item__header {
-    font-weight: 600;
-    color: var(--el-text-color-primary);
-}
-
-/* 响应式调整 */
-@media (max-width: 768px) {
-    .payment-method-group {
-        justify-content: center;
-    }
-    
-    .coupon-checkbox-group,
-    .coupon-radio-group {
-        justify-content: center;
-    }
 }
 </style>

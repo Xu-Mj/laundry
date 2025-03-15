@@ -13,10 +13,9 @@
                   style="width: 240px" @keyup.enter="handleQuery" @input="handleTelQuery" />
             </el-form-item>
             <el-form-item label="会员等级" prop="levelName" size="large">
-               <el-select size="large" v-model="queryParams.levelName" placeholder="会员等级" clearable
-                  style="width: 240px">
+               <el-select size="large" v-model="queryParams.levelId" placeholder="会员等级" clearable style="width: 240px">
                   <el-option v-for="item in levelOptions" :key="item.levelId" :label="item.levelName"
-                     :value="item.levelName" :disabled="item.status == 1"></el-option>
+                     :value="item.levelId" :disabled="item.status == 1"></el-option>
                </el-select>
             </el-form-item>
             <el-form-item>
@@ -28,16 +27,13 @@
       <el-card class="table-card">
          <el-row :gutter="10" class="mb8">
             <el-col :span="1.5">
-               <el-button type="primary" plain icon="Plus" @click="handleAdd"
-                  v-hasPermi="['system:user:add']">新增</el-button>
+               <el-button type="primary" plain icon="Plus" @click="handleAdd">新增</el-button>
             </el-col>
             <el-col :span="1.5">
-               <el-button type="success" plain icon="Edit" :disabled="single" @click="handleUpdate"
-                  v-hasPermi="['system:user:edit']">修改</el-button>
+               <el-button type="success" plain icon="Edit" :disabled="single" @click="handleUpdate">修改</el-button>
             </el-col>
             <el-col :span="1.5">
-               <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleDelete"
-                  v-hasPermi="['system:user:remove']">删除</el-button>
+               <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleDelete">删除</el-button>
             </el-col>
             <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" :columns="columns"></right-toolbar>
          </el-row>
@@ -158,100 +154,8 @@
       </el-card>
 
       <!-- 添加或修改会员配置对话框 -->
-      <AddUser :visible="open" :key="open" :userId="needUpdateUserId" :taggle="() => { needUpdateUserId = 0; open = !open }" />
-      <!-- <el-dialog v-model="open" width="600px" append-to-body :show-close="false" close-on-click-modal="false">
-         <el-form :model="form" :rules="rules" ref="userRef" label-width="80px">
-            <el-row>
-               <el-col :span="12">
-                  <el-form-item label="会员姓名" prop="nickName">
-                     <el-input v-model="form.nickName" placeholder="请输入会员姓名" maxlength="30" />
-                  </el-form-item>
-               </el-col>
-               <el-col :span="12">
-                  <el-form-item label="会员类型">
-                     <el-select v-model="form.userType" placeholder="请选择">
-                        <el-option v-for="item in sys_user_type" :key="item.value" :label="item.label"
-                           :value="item.value"></el-option>
-                     </el-select>
-                  </el-form-item>
-               </el-col>
-            </el-row>
-            <el-row>
-               <el-col :span="12">
-                  <el-form-item label="手机号码" prop="phonenumber">
-                     <el-input v-model="form.phonenumber" placeholder="请输入手机号码" maxlength="11" />
-                  </el-form-item>
-               </el-col>
-            </el-row>
-            <el-row>
-               <el-col :span="12">
-                  <el-form-item v-if="form.userId == undefined" label="会员账号" prop="userName">
-                     <el-input v-model="form.userName" placeholder="请输入会员账号" maxlength="30" />
-                  </el-form-item>
-               </el-col>
-               <el-col :span="12">
-                  <el-form-item v-if="form.userId == undefined && form.userType == '00'" label="会员密码" prop="password">
-                     <el-input v-model="form.password" placeholder="请输入会员密码" type="password" maxlength="20"
-                        show-password />
-                  </el-form-item>
-               </el-col>
-            </el-row>
-            <el-row>
-               <el-col :span="12">
-                  <el-form-item label="会员性别">
-                     <el-select v-model="form.sex" placeholder="请选择">
-                        <el-option v-for="dict in sys_user_sex" :key="dict.value" :label="dict.label"
-                           :value="dict.value"></el-option>
-                     </el-select>
-                  </el-form-item>
-               </el-col>
-               <el-col :span="12">
-                  <el-form-item label="状态">
-                     <el-radio-group v-model="form.status">
-                        <el-radio v-for="dict in sys_normal_disable" :key="dict.value" :value="dict.value">{{ dict.label
-                           }}</el-radio>
-                     </el-radio-group>
-                  </el-form-item>
-               </el-col>
-            </el-row>
-            <el-row>
-               <el-col :span="12">
-                  <el-form-item label="会员画像">
-                     <el-select v-model="form.userTagsArr" multiple placeholder="请选择">
-                        <el-option v-for="dict in sys_user_tags" :key="dict.value" :label="dict.label"
-                           :value="dict.value"></el-option>
-                     </el-select>
-                  </el-form-item>
-               </el-col>
-               <el-col :span="12">
-                  <el-form-item label="画像备注">
-                     <el-input v-model="form.tagsRemark" placeholder=""></el-input>
-                  </el-form-item>
-               </el-col>
-            </el-row>
-            <el-row>
-               <el-col :span="24">
-                  <el-form-item label="会员住址">
-                     <el-input v-model="form.address" type="textarea" placeholder="请输入内容"></el-input>
-                  </el-form-item>
-               </el-col>
-            </el-row>
-            <el-row>
-               <el-col :span="24">
-                  <el-form-item label="备注">
-                     <el-input v-model="form.remark" type="textarea" placeholder="请输入内容"></el-input>
-                  </el-form-item>
-               </el-col>
-            </el-row>
-         </el-form>
-         <template #footer>
-            <div class="dialog-footer">
-               <el-button type="primary" @click="submitForm">确 定</el-button>
-               <el-button @click="cancel">取 消</el-button>
-            </div>
-         </template>
-      </el-dialog> -->
-
+      <AddUser :visible="open" :key="open" :userId="needUpdateUserId"
+         :taggle="() => { needUpdateUserId = 0; open = !open }" />
       <!-- 会员积分历史记录 -->
       <el-dialog v-model="integralListOpen" width="600px" append-to-body>
          <el-table v-loading="integralLoading" :data="integralList">
@@ -267,16 +171,16 @@
       </el-dialog>
 
       <!-- 展示会员信息详情 -->
-      <el-dialog v-model="userInfoOpen" :show-close="false" width="500px" append-to-body>
-         <UserDetailsCard :user="userInfo" :key="userInfo.userId" />
-      </el-dialog>
+      <Information :user="userInfo" :visible="userInfoOpen" :key="userInfoOpen"
+         :toggle="() => { userInfoOpen = !userInfoOpen }" />
    </div>
 </template>
 
 <script setup name="User">
-import { changeUserStatus, listUser, resetUserPwd, delUser, addUser } from "@/api/system/user";
+import { changeUserStatus, listUser, resetUserPwd, delUser } from "@/api/system/user";
 import { listRecord } from "@/api/system/record";
-import UserDetailsCard from './info.vue';
+import { listPostAll } from "@/api/system/post";
+import Information from "@/views/system/user/information.vue";
 import AddUser from '@/views/home/addUser.vue';
 
 const { proxy } = getCurrentInstance();
@@ -303,7 +207,7 @@ const multiple = ref(true);
 const total = ref(0);
 const title = ref("");
 const needUpdateUserId = ref();
-// const levelOptions = ref([]);
+const levelOptions = ref([]);
 // const roleOptions = ref([]);
 
 // 列显隐信息
@@ -483,11 +387,11 @@ function cancel() {
 };
 
 /* 获取会员等级下拉列表 */
-// function getPostList() {
-//    listPostAll().then(response => {
-//       levelOptions.value = response;
-//    });
-// };
+function getPostList() {
+   listPostAll().then(response => {
+      levelOptions.value = response;
+   });
+};
 
 /** 新增按钮操作 */
 function handleAdd() {
@@ -497,24 +401,8 @@ function handleAdd() {
 
 /** 修改按钮操作 */
 function handleUpdate(row) {
-
    needUpdateUserId.value = row.userId || ids.value;
    open.value = true;
-
-   // reset();
-   // getUser(userId).then(response => {
-   //    form.value = response;
-   //    levelOptions.value = response.posts;
-   //    form.value.postIds = response.postIds;
-   //    form.value.roleIds = response.roleIds;
-   //    if (form.value.userTags && form.value.userTags.length > 0) {
-   //       form.value.userTagsArr = form.value.userTags.split(",");
-   //    }
-   //    open.value = true;
-   //    title.value = "修改会员";
-   //    form.password = "";
-   //    console.log(form.value)
-   // });
 };
 
 /* 根据用户id查询积分使用列表 */
@@ -533,46 +421,8 @@ function showUserInfo(info) {
    userInfo.value = info;
 };
 
-/** 提交按钮 */
-function submitForm() {
-   proxy.$refs["userRef"].validate(valid => {
-      if (valid) {
-         if (form.value.userId != undefined) {
-            if (form.value.userTagsArr && form.value.userTagsArr.length > 0) {
-               form.value.userTags = form.value.userTagsArr.join(",");
-               delete form.value.userTagsArr;
-            } else {
-               form.value.userTags = "";
-            }
-
-            updateUser(form.value).then(response => {
-               proxy.notify.success("修改成功");
-               open.value = false;
-               getList();
-            });
-         } else {
-            if (form.value.userTagsArr && form.value.userTagsArr.length > 0) {
-               form.value.userTags = form.value.userTagsArr.join(",");
-               delete form.value.userTagsArr;
-            }
-
-            // 如果没有填写会员账号，那么默认使用手机号
-            if (form.value.userName == undefined || form.value.userName.trim().length == 0) {
-               form.value.userName = form.value.phonenumber;
-            }
-
-            addUser(form.value).then(response => {
-               proxy.notify.success("新增成功");
-               open.value = false;
-               getList();
-            });
-         }
-      }
-   });
-};
-
 loadColumnVisibility();
-// getPostList();
+getPostList();
 getList();
 </script>
 

@@ -5,30 +5,63 @@
       <el-form :model="queryParams" ref="queryRef" :inline="true" label-width="68px">
         <el-form-item label="订单编码" prop="orderNumber" size="large">
           <el-input size="large" v-model="queryParams.orderNumber" placeholder="请输入订单编码" clearable
-            @keyup.enter="handleQuery" />
+            @keyup.enter="handleQuery">
+            <template #prefix>
+              <el-icon>
+                <Document />
+              </el-icon>
+            </template>
+          </el-input>
         </el-form-item>
         <el-form-item label="手机号" prop="phonenumber" size="large">
           <el-input size="large" v-model="queryParams.phonenumber" placeholder="请输入会员手机号" clearable
-            @keyup.enter="handleQuery" />
+            @keyup.enter="handleQuery">
+            <template #prefix>
+              <el-icon>
+                <Phone />
+              </el-icon>
+            </template>
+          </el-input>
         </el-form-item>
         <el-form-item label="取件码" prop="pickupCode" size="large">
           <el-input size="large" v-model="queryParams.pickupCode" placeholder="请输入取件码" clearable
-            @keyup.enter="handleQuery" />
+            @keyup.enter="handleQuery">
+            <template #prefix>
+              <el-icon>
+                <Ticket />
+              </el-icon>
+            </template>
+          </el-input>
         </el-form-item>
         <el-form-item label="时效预警" prop="costTimeAlarm" size="large">
           <el-select size="large" v-model="queryParams.costTimeAlarm" @change="handleQuery" clearable
-            style="width: 100px;" placeholder="请选择">
+            style="width: 120px;" placeholder="请选择">
+            <template #prefix>
+              <el-icon>
+                <AlarmClock />
+              </el-icon>
+            </template>
             <el-option v-for="dict in sys_cost_time_alarm" :key="dict.value" :label="dict.label" :value="dict.value" />
           </el-select>
         </el-form-item>
         <el-form-item label="支付状态" prop="paymentStatus" size="large">
+          <template #prefix>
+            <el-icon>
+              <Open />
+            </el-icon>
+          </template>
           <el-select size="large" v-model="queryParams.paymentStatus" @change="handleQuery" clearable
-            style="width: 100px;" placeholder="请选择">
+            style="width: 120px;" placeholder="请选择">
             <el-option v-for="dict in sys_payment_status" :key="dict.value" :label="dict.label" :value="dict.value" />
           </el-select>
         </el-form-item>
         <el-form-item label="洗护状态" prop="status" size="large">
-          <el-select size="large" v-model="queryParams.status" @change="handleQuery" clearable style="width: 100px;"
+          <template #prefix>
+            <el-icon>
+              <Open />
+            </el-icon>
+          </template>
+          <el-select size="large" v-model="queryParams.status" @change="handleQuery" clearable style="width: 120px;"
             placeholder="请选择">
             <el-option v-for="dict in sys_order_status" :key="dict.value" :label="dict.label" :value="dict.value" />
           </el-select>
@@ -155,8 +188,7 @@
         <el-table-column label="备注" align="center" prop="remark" show-overflow-tooltip v-if="columns[18].visible" />
         <el-table-column label="操作" fixed="right" align="center" class-name="small-padding fixed-width">
           <template #default="scope">
-            <el-button link type="primary" @click="showClothList(scope.row)"
-              v-hasPermi="['system:orders:list']">衣物</el-button>
+            <el-button link type="primary" @click="showClothList(scope.row)">衣物</el-button>
             <el-dropdown>
               <el-icon class="el-icon--right">
                 <arrow-down />

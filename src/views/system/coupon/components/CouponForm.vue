@@ -1,13 +1,15 @@
 <template>
   <div class="coupon-form-container">
+    <div class="dialog-header">
+      <h3 class="dialog-title">{{ props.title }}</h3>
+    </div>
     <el-form ref="couponFormRef" :model="formData" :rules="rules" label-width="90px">
       <!-- 基本信息卡片 -->
-      <div class="form-card">
-        <div class="card-header">
-          <i class="el-icon-info"></i>
+      <div class="form-section">
+        <div class="section-divider">
           <span>基本信息</span>
         </div>
-        <div class="card-body">
+        <div class="section-content">
           <el-row :gutter="20">
             <el-col :span="12">
               <el-form-item label="卡券名称" prop="couponTitle">
@@ -26,12 +28,11 @@
       </div>
 
       <!-- 价值信息卡片 -->
-      <div class="form-card">
-        <div class="card-header">
-          <i class="el-icon-money"></i>
+      <div class="form-section">
+        <div class="section-divider">
           <span>价值信息</span>
         </div>
-        <div class="card-body">
+        <div class="section-content">
           <!-- 储值卡 -->
           <el-row v-if="formData.couponType === '000'" :gutter="20">
             <el-col :span="12">
@@ -147,12 +148,11 @@
       </div>
 
       <!-- 使用规则卡片 -->
-      <div class="form-card">
-        <div class="card-header">
-          <i class="el-icon-setting"></i>
+      <div class="form-section">
+        <div class="section-divider">
           <span>使用规则</span>
         </div>
-        <div class="card-body">
+        <div class="section-content">
           <el-row :gutter="20">
             <el-col :span="12">
               <el-form-item label="客户可见" prop="customerInvalid">
@@ -187,15 +187,13 @@
             <el-col :span="12">
               <el-form-item label="有效期-起" prop="validFrom">
                 <el-date-picker clearable v-model="formData.validFrom" type="date" value-format="YYYY-MM-DD"
-                  placeholder="请选择有效期-起" class="w-full">
-                </el-date-picker>
+                  placeholder="请选择有效期-起" class="w-full" />
               </el-form-item>
             </el-col>
             <el-col :span="12">
               <el-form-item label="有效期-止" prop="validTo">
                 <el-date-picker clearable v-model="formData.validTo" type="date" value-format="YYYY-MM-DD"
-                  placeholder="请选择有效期-止" class="w-full">
-                </el-date-picker>
+                  placeholder="请选择有效期-止" class="w-full" />
               </el-form-item>
             </el-col>
           </el-row>
@@ -203,12 +201,11 @@
       </div>
 
       <!-- 其他信息卡片 -->
-      <div class="form-card">
-        <div class="card-header">
-          <i class="el-icon-more"></i>
+      <div class="form-section">
+        <div class="section-divider">
           <span>其他信息</span>
         </div>
-        <div class="card-body">
+        <div class="section-content">
           <el-row :gutter="20">
             <el-col :span="12">
               <el-form-item label="卡券状态" prop="status">
@@ -241,6 +238,10 @@
 import { ref, defineProps, defineEmits } from 'vue';
 
 const props = defineProps({
+  title: {
+    type: String,
+    required: true
+  },
   value: {
     type: Object,
     required: true
@@ -312,7 +313,17 @@ const submitForm = () => {
         formData.value.usageValue = formData.value.couponValue + originalUsageValue;
       }
 
-      emit('submit', formData.value);
+      if (formData.value.couponId != null) {
+        updateCoupon(formData.value).then(response => {
+          proxy.notify.success("修改成功");
+          props.submit()
+        });
+      } else {
+        addCoupon(formData.value).then(response => {
+          proxy.notify.success("新增成功");
+          props.submit()
+        });
+      }
     }
   });
 };
@@ -324,85 +335,93 @@ const cancel = () => {
 </script>
 
 <style scoped>
-.coupon-form-container {
-  padding: 10px;
-}
-
-.form-card {
-  background-color: #fff;
+.dialog-header {
+  background-color: var(--el-fill-color-light);
+  padding: 16px 20px;
   border-radius: 8px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
-  margin-bottom: 20px;
-  overflow: hidden;
-  transition: all 0.3s ease;
-}
-
-.form-card:hover {
-  box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.1);
-}
-
-.card-header {
-  background-color: #f5f7fa;
-  padding: 12px 15px;
-  font-weight: 600;
-  color: #303133;
-  border-bottom: 1px solid #ebeef5;
   display: flex;
+  justify-content: space-between;
   align-items: center;
+  box-shadow: var(--el-box-shadow);
 }
 
-.card-header i {
-  margin-right: 8px;
-  color: #409eff;
+.dialog-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
 }
 
-.card-body {
-  padding: 20px 15px;
+.section-divider {
+  position: relative;
+  text-align: left;
+  margin: 15px 0;
+  color: var(--el-text-color-primary);
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.section-divider::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -5px;
+  width: 4rem;
+  height: 3px;
+  background-color: var(--el-color-primary);
+  border-radius: 3px;
+}
+
+.section-content {
+  background-color: var(--el-fill-color);
+  border-radius: 8px;
+  padding: 15px;
+  box-shadow: var(--el-box-shadow);
+
 }
 
 .form-tip {
   font-size: 12px;
   color: #909399;
   margin-top: 4px;
-  line-height: 1.2;
+  line-height: 1.4;
+}
+
+.input-suffix {
+  margin-right: 8px;
+  color: #606266;
 }
 
 .form-actions {
   display: flex;
   justify-content: center;
-  gap: 15px;
-  margin-top: 20px;
+  gap: 12px;
+  margin-top: 24px;
 }
 
-.w-full {
+:deep(.el-form-item) {
+  margin-bottom: 22px;
+}
+
+:deep(.el-input-number.w-full) {
   width: 100%;
-}
-
-.input-suffix {
-  margin-left: 5px;
-  color: #606266;
 }
 
 :deep(.el-form-item__label) {
   font-weight: 500;
+  color: #606266;
 }
 
-:deep(.el-input__inner),
-:deep(.el-select),
-:deep(.el-input-number) {
-  border-radius: 4px;
+:deep(.el-input__wrapper),
+:deep(.el-select__wrapper) {
+  box-shadow: 0 0 0 1px #DCDFE6 inset;
+}
+
+:deep(.el-input__wrapper:hover),
+:deep(.el-select__wrapper:hover) {
+  box-shadow: 0 0 0 1px #409EFF inset;
 }
 
 :deep(.el-switch) {
-  --el-switch-on-color: #13ce66;
-}
-
-:deep(.el-date-editor) {
-  width: 100%;
-}
-
-:deep(.el-textarea__inner) {
-  min-height: 80px;
-  border-radius: 4px;
+  --el-switch-on-color: #409EFF;
 }
 </style>

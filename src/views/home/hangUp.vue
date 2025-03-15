@@ -376,7 +376,6 @@ onMounted(async () => {
 .dialog-header {
     background-color: var(--el-fill-color-light);
     padding: 16px 20px;
-    /* border-bottom: 1px solid var(--el-border-color-light); */
     border-radius: 8px;
     display: flex;
     justify-content: space-between;
@@ -387,7 +386,6 @@ onMounted(async () => {
 .dialog-title {
     margin: 0;
     font-size: 18px;
-    /* color: #303133; */
     font-weight: 600;
 }
 
@@ -426,8 +424,6 @@ onMounted(async () => {
     border-radius: 8px;
     padding: 15px;
     box-shadow: var(--el-box-shadow);
-
-
 }
 
 .cloth-number-container {
@@ -497,7 +493,7 @@ onMounted(async () => {
 .item-title {
     font-size: 14px;
     font-weight: 500;
-    color: #606266;
+    color: var(--el-text-color-secondary);
 }
 
 .tag-container {
@@ -512,7 +508,7 @@ onMounted(async () => {
 }
 
 .remark-content {
-    color: #606266;
+    color: var(--el-text-color-secondary);
     padding-left: 24px;
     line-height: 1.5;
 }

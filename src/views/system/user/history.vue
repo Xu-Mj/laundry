@@ -1,27 +1,61 @@
 <template>
-    <div style="display: flex; justify-content: flex-start; gap: 3rem; margin-bottom: 1rem;">
-        <p>总消费金额:{{ totalAmount }}元</p>
-        <p>客单价: {{ avgPrice }}元</p>
+    <!-- 统计信息卡片 -->
+    <div class="history-stats">
+        <div class="stat-card">
+            <div class="stat-icon">
+                <el-icon>
+                    <Money />
+                </el-icon>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value">{{ totalAmount }}元</div>
+                <div class="stat-label">总消费金额</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">
+                <el-icon>
+                    <ShoppingCart />
+                </el-icon>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value">{{ avgPrice }}元</div>
+                <div class="stat-label">平均客单价</div>
+            </div>
+        </div>
     </div>
-    <el-form :inline="true" label-width="68px">
+
+    <!-- 搜索表单 -->
+    <el-form :inline="true" class="search-form">
         <el-form-item label="衣物名称">
-            <el-input v-model="queryParams.clothingName" placeholder="请输入衣物名称" clearable @keyup.enter="handleQuery" />
+            <el-input v-model="queryParams.clothingName" placeholder="请输入衣物名称" clearable @keyup.enter="handleQuery"
+                prefix-icon="Search" />
         </el-form-item>
-        <el-form-item label="消费日期" style="width: 308px">
+        <el-form-item label="消费日期">
             <el-date-picker v-model="dateRange" value-format="YYYY-MM-DD" type="daterange" range-separator="-"
-                start-placeholder="开始日期" end-placeholder="结束日期"></el-date-picker>
+                start-placeholder="开始日期" end-placeholder="结束日期" style="width: 260px" />
         </el-form-item>
         <el-form-item>
-            <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
-            <el-button icon="Refresh" @click="resetQuery">重置</el-button>
+            <el-button type="primary" @click="handleQuery">
+                <el-icon>
+                    <Search />
+                </el-icon>
+                <span>搜索</span>
+            </el-button>
+            <el-button @click="resetQuery">
+                <el-icon>
+                    <Refresh />
+                </el-icon>
+                <span>重置</span>
+            </el-button>
         </el-form-item>
     </el-form>
 
     <!-- 渲染订单抖索结果列表 -->
     <div class="search-result-list">
 
-        <div v-if="orderList.length === 0" style="text-align: center; padding-top: 1rem;">
-            暂无数据
+        <div v-if="orderList.length === 0" class="no-result">
+            <el-empty description="暂无数据" />
         </div>
         <div v-else class="result-item" v-for="order in orderList" :key="order.orderId">
             <div class="result-item-info">
@@ -37,7 +71,7 @@
             <el-table v-if="order.clothList && order.clothList.length > 0" class="cloths-table" :data="order.clothList"
                 :loading="order.loading" row-key="clothingId"
                 @selection-change="selectedItems => handleClothSelectionChange(selectedItems, order)"
-                ref="clothsTableRef" border="dash">
+                ref="clothsTableRef" border="dash" :max-height="500" stripe>
                 <el-table-column label="衣物编码" align="center" prop="clothingColor" width="110">
                     <template #default="scope">
                         {{ scope.row.hangClothCode }}
@@ -52,15 +86,15 @@
                 <el-table-column label="衣物品牌" align="center" prop="clothingBrand">
                     <template #default="scope">
                         <el-tag v-if="scope.row.clothingBrand" type="primary">
-                            {{ brandList.find(item => item.tagId == scope.row.clothingBrand).tagName }}
+                            {{brandList.find(item => item.tagId == scope.row.clothingBrand).tagName}}
                         </el-tag>
                     </template>
                 </el-table-column>
                 <el-table-column label="衣物颜色" align="center">
                     <template #default="scope">
                         <el-tag v-if="scope.row.clothingColor" type="primary">
-                            {{ scope.row.clothingColor ? colorList.find(item => item.tagId ==
-                                scope.row.clothingColor).tagName : '' }}
+                            {{scope.row.clothingColor ? colorList.find(item => item.tagId ==
+                                scope.row.clothingColor).tagName : ''}}
                         </el-tag>
                     </template>
                 </el-table-column>
@@ -91,6 +125,8 @@ import { getTotalAmountAndAvgConsume } from "@/api/system/payment";
 import { listCloths } from "@/api/system/cloths";
 import { listTagsNoLimit } from "@/api/system/tags";
 import { getPrice } from "@/api/system/price";
+import { Money, ShoppingCart, Search, Refresh } from '@element-plus/icons-vue';
+import { formatTime } from '@/utils/ruoyi';
 
 const props = defineProps({
 
@@ -265,6 +301,13 @@ async function getList() {
 
 }
 
+// 处理衣物选择变化
+function handleClothSelectionChange(selectedItems, order) {
+    // 可以在这里处理选中的衣物项目
+    console.log('选中的衣物:', selectedItems);
+    console.log('所属订单:', order.orderNumber);
+}
+
 onMounted(async () => {
     await initList();
     getList();
@@ -272,34 +315,181 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.el-pagination {
-    right: 1rem !important;
+/* 响应式设计 */
+@media screen and (max-width: 768px) {
+    .history-stats {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .search-form {
+        padding: 12px;
+    }
+
+    .result-item-info {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+
+    }
+
+    .cloths-table {
+        width: 100%;
+        overflow-x: auto;
+    }
 }
 
+/* 统计卡片样式 */
+.history-stats {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 24px;
+}
+
+.stat-card {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    padding: 16px;
+    background-color: var(--el-fill-color-light);
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.stat-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background-color: var(--el-color-primary-light-9);
+    margin-right: 16px;
+}
+
+.stat-icon .el-icon {
+    font-size: 24px;
+    color: var(--el-color-primary);
+}
+
+.stat-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.stat-value {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+    line-height: 1.2;
+}
+
+.stat-label {
+    font-size: 14px;
+    color: var(--el-text-color-secondary);
+    margin-top: 4px;
+}
+
+/* 搜索表单样式 */
+.search-form {
+    background-color: var(--el-fill-color-blank);
+    padding: 16px;
+    border-radius: 8px;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+/* 结果列表样式 */
 .search-result-list {
     height: 100%;
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 16px;
 }
 
 .result-item {
     display: flex;
     flex-direction: column;
-    gap: .5rem;
+    background-color: var(--el-fill-color-blank);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s;
+}
+
+.result-item:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .result-item-info {
-    width: 100%;
     display: flex;
-    justify-content: flex-start;
+    justify-content: space-between;
     align-items: center;
-    gap: 3rem;
-    padding: .5rem;
+    padding: 16px;
+    background-color: var(--el-color-primary-light-9);
+    border-bottom: 1px solid var(--el-border-color-lighter);
+}
 
-    :last-child {
-        display: flex;
-        gap: .5rem;
-    }
+.result-item-info span {
+    display: flex;
+    align-items: center;
+    color: var(--el-text-color-primary);
+    font-weight: 500;
+}
+
+:root.dark .result-item-info {
+    --el-color-primary-light-9: #1d2c40;
+    /* 自定义暗黑模式下的颜色 */
+}
+
+.cloths-table {
+    margin: 0;
+    border-radius: 0 0 8px 8px;
+}
+
+.cloths-table :deep(th) {
+    background-color: var(--el-fill-color-light);
+    color: var(--el-text-color-primary);
+    font-weight: 600;
+}
+
+.cloths-table :deep(.el-table__row) {
+    transition: all 0.2s;
+}
+
+.cloths-table :deep(.el-table__row:hover) {
+    background-color: var(--el-color-primary-light-9) !important;
+}
+
+.cloths-table :deep(.el-table__cell) {
+    padding: 8px 0;
+}
+
+.cloths-table :deep(.el-table--striped .el-table__body tr.el-table__row--striped td) {
+    background-color: var(--el-fill-color-light);
+}
+
+.service-type {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* 分页样式 */
+.el-pagination {
+    margin-top: 20px;
+    justify-content: flex-end;
+}
+
+/* 空状态样式 */
+.no-result {
+    padding: 40px 0;
+    text-align: center;
 }
 </style>

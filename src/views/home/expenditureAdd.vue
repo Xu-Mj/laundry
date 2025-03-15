@@ -1,43 +1,90 @@
 <template>
-    <el-dialog :show-close="false" v-model="open" width="500px" append-to-body @closed="props.taggle()">
-        <el-form ref="expenditureRef" :model="form" :rules="rules" label-width="80px">
-            <el-form-item label="支出类型" prop="expType">
-                <el-select v-model="form.expType" placeholder="请选择支出类型" clearable>
-                    <el-option v-for="dict in sys_exp_type" :key="dict.value" :label="dict.label"
-                        :value="dict.value"></el-option>
-                </el-select>
-            </el-form-item>
-            <el-form-item label="支出账目" prop="expTitle">
-                <el-input v-model="form.expTitle" placeholder="请输入支出账目" />
-            </el-form-item>
-            <el-form-item label="对方账户" prop="recvAccountTitle">
-                <el-select v-model="form.recvAccount" filterable :clearable="true" remote reserve-keyword
-                    placeholder="请选择对方账户" allow-create @blur="handleBlur" remote-show-suffix
-                    :remote-method="searchUserByTel" value-key="recvAccount" style="width: 240px">
-                    <el-option v-for="item in userListRes" :key="item.userId"
-                        :label="item.nickName + '\t' + item.phonenumber" :value="item.userId" />
-                </el-select>
-            </el-form-item>
-            <el-form-item label="支出金额" prop="expAmount">
-                <el-input-number :min="0" v-model="form.expAmount" controls-position="right" placeholder="请输入支出金额" />
-            </el-form-item>
-            <el-form-item label="备注信息" prop="remark">
-                <el-input type="textarea" v-model="form.remark" placeholder="请输入备注信息" />
-            </el-form-item>
-        </el-form>
+    <el-dialog v-model="open" title="支出录入" width="520px" :show-close="true" append-to-body @closed="props.taggle()"
+        class="expenditure-dialog">
+        <div class="expenditure-container">
+            <!-- 表单头部 - 支出类型选择 -->
+            <div class="form-section type-section">
+                <div class="section-title">
+                    <el-icon>
+                        <Money />
+                    </el-icon>
+                    <span>支出类型</span>
+                </div>
+                <el-form-item prop="expType" class="type-selector">
+                    <el-radio-group v-model="form.expType" size="large">
+                        <el-radio-button v-for="dict in sys_exp_type" :key="dict.value" :label="dict.value">
+                            {{ dict.label }}
+                        </el-radio-button>
+                    </el-radio-group>
+                </el-form-item>
+            </div>
+
+            <!-- 主表单区域 -->
+            <el-form ref="expenditureRef" :model="form" :rules="rules" label-position="top" class="expenditure-form">
+                <div class="form-section main-section">
+                    <!-- 支出账目 -->
+                    <el-form-item label="支出账目" prop="expTitle">
+                        <el-input v-model="form.expTitle" placeholder="请输入支出账目" prefix-icon="Document" />
+                    </el-form-item>
+
+                    <!-- 对方账户 -->
+                    <el-form-item label="对方账户" prop="recvAccountTitle">
+                        <el-select v-model="form.recvAccount" filterable :clearable="true" remote reserve-keyword
+                            placeholder="请选择或输入对方账户" allow-create @blur="handleBlur" remote-show-suffix
+                            :remote-method="searchUserByTel" value-key="recvAccount" style="width: 100%"
+                            prefix-icon="User">
+                            <el-option v-for="item in userListRes" :key="item.userId"
+                                :label="item.nickName + ' · ' + item.phonenumber" :value="item.userId" />
+                            <template #prefix>
+                                <el-icon>
+                                    <User />
+                                </el-icon>
+                            </template>
+                        </el-select>
+                    </el-form-item>
+
+                    <!-- 支出金额 -->
+                    <el-form-item label="支出金额" prop="expAmount" class="amount-item">
+                        <el-input-number v-model="form.expAmount" :min="0" controls-position="right"
+                            placeholder="请输入支出金额" class="amount-input" :precision="2" :step="10" style="width: 100%">
+                            <template #prefix>
+                                <el-icon>
+                                    <Money />
+                                </el-icon>
+                            </template>
+                        </el-input-number>
+                        <div class="amount-display" v-if="form.expAmount">
+                            {{ formatCurrency(form.expAmount) }}
+                        </div>
+                    </el-form-item>
+
+                    <!-- 备注信息 -->
+                    <el-form-item label="备注信息" prop="remark">
+                        <el-input type="textarea" v-model="form.remark" placeholder="请输入备注信息" :rows="3" resize="none" />
+                    </el-form-item>
+                </div>
+            </el-form>
+        </div>
+
+        <!-- 底部按钮 -->
         <template #footer>
             <div class="dialog-footer">
-                <el-button type="primary" @click="submitForm">确 定</el-button>
-                <el-button @click="cancel">取 消</el-button>
+                <el-button @click="cancel" plain>取 消</el-button>
+                <el-button type="primary" @click="submitForm" :loading="submitting">
+                    <el-icon v-if="!submitting">
+                        <Check />
+                    </el-icon>
+                    <span>{{ submitting ? '提交中...' : '确 定' }}</span>
+                </el-button>
             </div>
         </template>
     </el-dialog>
 </template>
 
-
 <script setup>
+import { ref, reactive, toRefs, onMounted, getCurrentInstance } from 'vue';
 import { addExpenditure, updateExpenditure } from "@/api/system/expenditure";
-import { getUser, listUserWithNoLimit } from "@/api/system/user";
+import { listUserWithNoLimit } from "@/api/system/user";
 
 const { proxy } = getCurrentInstance();
 const { sys_exp_type } = proxy.useDict("sys_exp_type");
@@ -50,6 +97,10 @@ const props = defineProps({
     taggle: {
         type: Function,
         required: true,
+    },
+    data: {
+        type: Object,
+        required: false,
     }
 });
 
@@ -57,33 +108,31 @@ const userList = ref([]);
 const userListRes = ref([]);
 const notACount = ref(false);
 const open = ref(false);
-const data = reactive({
-    form: {},
-    queryParams: {
-        pageNum: 1,
-        pageSize: 10,
-        orderId: null,
-        clothIds: null,
-        expTitle: null,
-        recvAccount: null,
-        recvAccountTitle: null,
-        expType: null,
-        expAmount: null,
-    },
-    rules: {
-        expTitle: [
-            { required: true, message: "支出账目不能为空", trigger: "blur" }
-        ],
-        expType: [
-            { required: true, message: "支出类型不能为空", trigger: "change" }
-        ],
-        expAmount: [
-            { required: true, message: "支出金额不能为空", trigger: "blur" }
-        ],
-    }
+const submitting = ref(false);
+
+const rules = ref({
+    expTitle: [
+        { required: true, message: "支出账目不能为空", trigger: "blur" }
+    ],
+    expType: [
+        { required: true, message: "支出类型不能为空", trigger: "change" }
+    ],
+    expAmount: [
+        { required: true, message: "支出金额不能为空", trigger: "blur" }
+    ],
 });
 
-const { queryParams, form, rules } = toRefs(data);
+const form = ref({ ...props.data })
+console.log(form.value)
+// 格式化货币显示
+const formatCurrency = (value) => {
+    return new Intl.NumberFormat('zh-CN', {
+        style: 'currency',
+        currency: 'CNY',
+        minimumFractionDigits: 2
+    }).format(value);
+};
+
 // 处理失去焦点的情况，保留用户输入
 const handleBlur = (event) => {
     const inputValue = event.target.value;
@@ -136,32 +185,33 @@ function reset() {
 function submitForm() {
     proxy.$refs["expenditureRef"].validate(valid => {
         if (valid) {
+            submitting.value = true;
+
             if (notACount.value) {
                 form.value.recvAccountTitle = form.value.recvAccount;
                 form.value.recvAccount = null;
             } else if (form.value.recvAccount) {
                 form.value.recvAccountTitle = userList.value.find(item => item.userId === form.value.recvAccount).nickName;
             }
-            if (form.value.expId != null) {
-                updateExpenditure(form.value).then(response => {
-                    proxy.notify.success("修改成功");
-                    open.value = false;
-                    props.taggle();
-                });
-            } else {
-                addExpenditure(form.value).then(response => {
-                    proxy.notify.success("新增成功");
-                    open.value = false;
-                    props.taggle();
-                });
-            }
+
+            const request = form.value.expId != null ?
+                updateExpenditure(form.value) :
+                addExpenditure(form.value);
+
+            request.then(response => {
+                proxy.notify.success(form.value.expId != null ? "修改成功" : "新增成功");
+                open.value = false;
+                reset();
+                props.taggle();
+            }).finally(() => {
+                submitting.value = false;
+            });
         }
     });
 }
 
 onMounted(() => {
     if (props.visible) {
-        reset();
         listUserWithNoLimit().then(res => {
             userList.value = res;
             open.value = true;
@@ -169,3 +219,100 @@ onMounted(() => {
     }
 });
 </script>
+
+<style scoped>
+.expenditure-dialog :deep(.el-dialog__header) {
+    margin-right: 0;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+.expenditure-dialog :deep(.el-dialog__title) {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--el-color-primary);
+}
+
+.expenditure-dialog :deep(.el-dialog__body) {
+    padding: 20px;
+}
+
+.expenditure-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.form-section {
+    background-color: var(--el-fill-color-light);
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+    transition: all 0.3s ease;
+}
+
+.form-section:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.section-title {
+    display: flex;
+    align-items: center;
+    margin-bottom: 16px;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--el-text-color-primary);
+}
+
+.section-title .el-icon {
+    margin-right: 8px;
+    color: var(--el-color-primary);
+}
+
+.type-selector {
+    margin-bottom: 0;
+}
+
+.type-selector :deep(.el-radio-button__inner) {
+    padding: 8px 16px;
+}
+
+.expenditure-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.expenditure-form :deep(.el-form-item__label) {
+    padding-bottom: 8px;
+    font-weight: 500;
+}
+
+.amount-item {
+    position: relative;
+}
+
+.amount-display {
+    position: absolute;
+    right: 0;
+    bottom: -22px;
+    font-size: 14px;
+    color: var(--el-color-success);
+    font-weight: 500;
+}
+
+.dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding-top: 8px;
+}
+
+.dialog-footer .el-button {
+    min-width: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+</style>

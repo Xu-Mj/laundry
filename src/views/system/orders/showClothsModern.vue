@@ -560,18 +560,6 @@ function filterByStatus() {
   });
 }
 
-// 获取状态类型
-function getStatusType(status) {
-  switch(status) {
-    case '00': return 'info';
-    case '01': return 'warning';
-    case '02': return 'success';
-    case '03': return 'danger';
-    default: return 'info';
-  }
-}
-
-
 // 选择处理
 function isSelected(item) {
   return selectionList.value.some(selected => selected.clothId === item.clothId);

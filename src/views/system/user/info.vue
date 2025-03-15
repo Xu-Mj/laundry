@@ -1,144 +1,199 @@
 <template>
-    <el-card shadow="never">
-        <div class="user-details">
-            <!-- 会员编号 -->
-            <div class="detail-item">
-                <span class="detail-label">会员编号:</span>
-                <span>{{ user.userId }}</span>
+    <div class="user-info-container">
+        <!-- 基本信息卡片 -->
+        <el-card shadow="hover" class="info-card">
+            <template #header>
+                <div class="card-header">
+                    <span>基本信息</span>
+                </div>
+            </template>
+            <div class="info-grid">
+                <div class="info-item">
+                    <el-icon><User /></el-icon>
+                    <span class="label">会员编号:</span>
+                    <span class="value">{{ user.userId }}</span>
+                </div>
+                <div class="info-item">
+                    <el-icon><Avatar /></el-icon>
+                    <span class="label">会员姓名:</span>
+                    <span class="value">{{ user.nickName }}</span>
+                </div>
+                <div class="info-item">
+                    <el-icon><UserFilled /></el-icon>
+                    <span class="label">会员账号:</span>
+                    <span class="value">{{ user.userName }}</span>
+                </div>
+                <div class="info-item">
+                    <el-icon><Phone /></el-icon>
+                    <span class="label">手机号码:</span>
+                    <span class="value">{{ user.phonenumber }}</span>
+                </div>
+                <div class="info-item">
+                    <el-icon><Medal /></el-icon>
+                    <span class="label">会员类型:</span>
+                    <dict-tag :options="sys_user_type" :value="user.userType" />
+                </div>
+                <div class="info-item">
+                    <el-icon><Connection /></el-icon>
+                    <span class="label">微信标识:</span>
+                    <span class="value">{{ user.openId || '-' }}</span>
+                </div>
+                <div class="info-item">
+                    <el-icon><Male /></el-icon>
+                    <span class="label">性别:</span>
+                    <dict-tag :options="sys_user_sex" :value="user.sex" />
+                </div>
+                <div class="info-item">
+                    <el-icon><Star /></el-icon>
+                    <span class="label">会员积分:</span>
+                    <span class="value highlight">{{ user.integral || 0 }}</span>
+                </div>
+                <div class="info-item">
+                    <el-icon><Trophy /></el-icon>
+                    <span class="label">会员等级:</span>
+                    <span class="value">{{ user.levelName || '-' }}</span>
+                </div>
             </div>
-            <!-- 会员姓名 -->
-            <div class="detail-item">
-                <span class="detail-label">会员姓名:</span>
-                <span>{{ user.nickName }}</span>
-            </div>
-            <!-- 会员账号 -->
-            <div class="detail-item">
-                <span class="detail-label">会员账号:</span>
-                <span>{{ user.userName }}</span>
-            </div>
-            <!-- 手机号码 -->
-            <div class="detail-item">
-                <span class="detail-label">手机号码:</span>
-                <span>{{ user.phonenumber }}</span>
-            </div>
-            <!-- 会员类型 -->
-            <div class="detail-item">
-                <span class="detail-label">会员类型:</span>
-                <dict-tag :options="sys_user_type" :value="user.userType" />
-            </div>
-            <!-- 微信标识 -->
-            <div class="detail-item">
-                <span class="detail-label">微信标识:</span>
-                <span>{{ user.openId }}</span>
-            </div>
-            <!-- 性别 -->
-            <div class="detail-item">
-                <span class="detail-label">性别:</span>
-                <dict-tag :options="sys_user_sex" :value="user.sex" />
-            </div>
-            <!-- 会员积分 -->
-            <div class="detail-item">
-                <span class="detail-label">会员积分:</span>
-                <span>{{ user.integral }}</span>
-            </div>
-            <!-- 会员等级 -->
-            <div class="detail-item">
-                <span class="detail-label">会员等级:</span>
-                <span>{{ user.levelName }}</span>
-            </div>
-            <!-- 会员画像 -->
-            <div class="detail-item">
-                <span class="detail-label">会员画像:</span>
+        </el-card>
+
+        <!-- 会员画像卡片 -->
+        <el-card shadow="hover" class="info-card">
+            <template #header>
+                <div class="card-header">
+                    <span>会员画像</span>
+                </div>
+            </template>
+            <div class="tags-section">
                 <template v-if="user.userTags && user.userTags.trim() !== ''">
-                    <dict-tag v-for="(item, index) in user.userTags.split(',')" :key="index" :options="sys_user_tags"
-                        :value="item.trim()" />
-                </template>
-                <span v-else>-</span>
-            </div>
-            <!-- 画像备注 -->
-            <div class="detail-item">
-                <span class="detail-label">画像备注:</span>
-                <span>{{ user.tagsRemark }}</span>
-            </div>
-            <!-- 黑灰名单 -->
-            <div class="detail-item">
-                <span class="detail-label">黑灰名单:</span>
-                <dict-tag :options="sys_user_identify" :value="user.identify" />
-            </div>
-            <!-- 账号状态 -->
-            <div class="detail-item">
-                <span class="detail-label">账号状态:</span>
-                <el-switch v-model="user.status" active-value="0" inactive-value="1"
-                    @change="handleStatusChange(user)"></el-switch>
-            </div>
-            <!-- 创建时间 -->
-            <div class="detail-item">
-                <span class="detail-label">创建时间:</span>
-                <span>{{ formatTime(user.createTime) }}</span>
-            </div>
-            <!-- 卡券列表信息 -->
-            <div class="detail-item">
-                <span class="detail-label">储值卡余额:</span>
-                <span style="color: red;" v-if="coupons && coupons.length > 0">
-                    {{ coupons.filter(item => item.coupon.couponType == '000').reduce((acc, cur) => acc +
-                        cur.availableValue, 0) }}
-                    元
-                </span>
-            </div>
-            <!-- 卡券列表信息 -->
-            <div class="detail-item">
-                <span class="detail-label">次卡:</span>
-                <template v-if="coupons && coupons.length > 0">
-                    <div class="user-tags-container">
-                        <span
-                            v-for="(card, index) in coupons.filter(item => item.coupon.couponType == '002' && item.availableValue > 0)"
-                            :key="index">
-                            {{ card.coupon.couponTitle }}
-                            -
-                            {{ card.availableValue }}
-                            次
-                            {{ index === coupons.length - 1 ? '' : '|' }}
-                        </span>
+                    <div class="tags-container">
+                        <dict-tag 
+                            v-for="(item, index) in user.userTags.split(',')" 
+                            :key="index" 
+                            :options="sys_user_tags"
+                            :value="item.trim()" 
+                            class="user-tag"
+                        />
                     </div>
                 </template>
+                <div v-else class="empty-tags">暂无会员画像标签</div>
+                
+                <div class="remark-section" v-if="user.tagsRemark">
+                    <div class="remark-title">画像备注:</div>
+                    <div class="remark-content">{{ user.tagsRemark }}</div>
+                </div>
             </div>
-            <!-- 卡券列表信息 -->
-            <div class="detail-item">
-                <span class="detail-label">优惠券:</span>
-                <template v-if="coupons && coupons.length > 0">
-                    <div class="user-tags-container">
-                        <span
-                            v-for="(card, index) in coupons.filter(item => item.coupon.couponType !== '000' && item.availableValue > 0)"
-                            :key="index">
-                            {{ card.coupon.couponTitle }}
-                            -
-                            {{ card.availableValue }}
-                            张
-                            {{ index === coupons.length - 1 ? '' : '|' }}
-                        </span>
+        </el-card>
+
+        <!-- 账户状态卡片 -->
+        <el-card shadow="hover" class="info-card">
+            <template #header>
+                <div class="card-header">
+                    <span>账户状态</span>
+                </div>
+            </template>
+            <div class="status-section">
+                <div class="status-item">
+                    <el-icon><Warning /></el-icon>
+                    <span class="label">黑灰名单:</span>
+                    <dict-tag :options="sys_user_identify" :value="user.identify" />
+                </div>
+                <div class="status-item">
+                    <el-icon><Switch /></el-icon>
+                    <span class="label">账号状态:</span>
+                    <el-switch 
+                        v-model="user.status" 
+                        active-value="0" 
+                        inactive-value="1"
+                        @change="handleStatusChange(user)"
+                        class="status-switch"
+                    ></el-switch>
+                </div>
+                <div class="status-item">
+                    <el-icon><Calendar /></el-icon>
+                    <span class="label">创建时间:</span>
+                    <span class="value">{{ formatTime(user.createTime) }}</span>
+                </div>
+            </div>
+        </el-card>
+
+        <!-- 卡券信息卡片 -->
+        <el-card shadow="hover" class="info-card">
+            <template #header>
+                <div class="card-header">
+                    <span>卡券信息</span>
+                </div>
+            </template>
+            <div class="coupon-section">
+                <!-- 储值卡余额 -->
+                <div class="coupon-item balance-item">
+                    <el-icon><Wallet /></el-icon>
+                    <span class="label">储值卡余额:</span>
+                    <span class="value amount" v-if="coupons && coupons.length > 0">
+                        {{ coupons.filter(item => item.coupon.couponType == '000').reduce((acc, cur) => acc + cur.availableValue, 0) }} 元
+                    </span>
+                    <span class="value" v-else>0 元</span>
+                </div>
+
+                <!-- 次卡 -->
+                <div class="coupon-item">
+                    <el-icon><Ticket /></el-icon>
+                    <span class="label">次卡:</span>
+                    <div class="coupon-tags" v-if="coupons && coupons.filter(item => item.coupon.couponType == '002' && item.availableValue > 0).length > 0">
+                        <el-tag 
+                            v-for="(card, index) in coupons.filter(item => item.coupon.couponType == '002' && item.availableValue > 0)" 
+                            :key="index"
+                            type="success"
+                            effect="light"
+                            class="coupon-tag"
+                        >
+                            {{ card.coupon.couponTitle }} - {{ card.availableValue }}次
+                        </el-tag>
                     </div>
-                </template>
+                    <span class="value" v-else>无可用次卡</span>
+                </div>
+
+                <!-- 优惠券 -->
+                <div class="coupon-item">
+                    <el-icon><Discount /></el-icon>
+                    <span class="label">优惠券:</span>
+                    <div class="coupon-tags" v-if="coupons && coupons.filter(item => item.coupon.couponType !== '000' && item.coupon.couponType !== '002' && item.availableValue > 0).length > 0">
+                        <el-tag 
+                            v-for="(card, index) in coupons.filter(item => item.coupon.couponType !== '000' && item.coupon.couponType !== '002' && item.availableValue > 0)" 
+                            :key="index"
+                            type="warning"
+                            effect="light"
+                            class="coupon-tag"
+                        >
+                            {{ card.coupon.couponTitle }} - {{ card.availableValue }}张
+                        </el-tag>
+                    </div>
+                    <span class="value" v-else>无可用优惠券</span>
+                </div>
             </div>
-            <!-- 备注信息 -->
-            <div class="detail-item">
-                <span class="detail-label">备注信息:</span>
-                <span>{{ user.remark }}</span>
+        </el-card>
+
+        <!-- 备注信息卡片 -->
+        <el-card shadow="hover" class="info-card" v-if="user.remark">
+            <template #header>
+                <div class="card-header">
+                    <span>备注信息</span>
+                </div>
+            </template>
+            <div class="remark-content">
+                {{ user.remark }}
             </div>
-            <div class="detail-item">
-                <span class="detail-label">消费记录</span>
-                <el-button link style="cursor: pointer;" @click="showHistory">查看消费记录</el-button>
-            </div>
-        </div>
-    </el-card>
-    <History :visible="showHistoryDialog" :userId="user.userId" :key="showHistoryDialog"
-        :toggle="() => { showHistoryDialog = !showHistoryDialog }" />
+        </el-card>
+    </div>
 </template>
 
 <script setup>
 import { changeUserStatus } from "@/api/system/user";
 import { listUserCouponNoPage } from '@/api/system/user_coupon';
 import { ref } from "vue";
-import History from "../../home/history.vue";
+import { 
+    User, UserFilled, Avatar, Phone, Medal, Connection, Male, Star, Trophy,
+    Warning, Switch, Calendar, Wallet, Ticket, Discount
+} from '@element-plus/icons-vue';
 
 const { proxy } = getCurrentInstance();
 const { sys_user_tags, sys_user_sex, sys_user_type, sys_user_identify } = proxy.useDict("sys_user_tags", "sys_user_sex", "sys_user_type", "sys_user_identify");
@@ -151,7 +206,6 @@ const props = defineProps({
     }
 });
 
-const showHistoryDialog = ref(false);
 const coupons = ref();
 
 /* 会员状态修改 */
@@ -165,6 +219,7 @@ const handleStatusChange = (row) => {
         row.status = row.status === "0" ? "1" : "0";
     });
 };
+
 // 获取会员优惠券列表
 if (props.user && props.user.userId) {
     listUserCouponNoPage({ userId: props.user.userId }).then(response => {
@@ -172,36 +227,159 @@ if (props.user && props.user.userId) {
     });
 }
 
-function showHistory() {
-    showHistoryDialog.value = true;
-}
 </script>
 
 <style scoped>
-.el-card {
+.user-info-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.info-card {
+    border-radius: 8px;
+    transition: all 0.3s;
     border: none;
 }
 
-.user-details {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
+.info-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.detail-item {
+.card-header {
     display: flex;
     align-items: center;
-    gap: .5rem;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
 }
 
-.detail-label {
-    font-weight: bold;
-    flex-shrink: 0;
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
 }
 
-.user-tags-container {
+.info-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.info-item .el-icon {
+    color: var(--el-color-primary);
+    font-size: 18px;
+}
+
+.label {
+    color: var(--el-text-color-secondary);
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.value {
+    color: var(--el-text-color-primary);
+}
+
+.value.highlight {
+    color: var(--el-color-danger);
+    font-weight: 600;
+}
+
+/* 会员画像卡片样式 */
+.tags-section {
+    padding: 8px 0;
+}
+
+.tags-container {
     display: flex;
     flex-wrap: wrap;
-    gap: .3rem
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.user-tag {
+    margin-right: 0;
+}
+
+.empty-tags {
+    color: var(--el-text-color-secondary);
+    font-style: italic;
+    padding: 8px 0;
+}
+
+.remark-section {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px dashed var(--el-border-color-lighter);
+}
+
+.remark-title {
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--el-text-color-primary);
+}
+
+.remark-content {
+    color: var(--el-text-color-regular);
+    line-height: 1.5;
+    white-space: pre-wrap;
+}
+
+/* 账户状态卡片样式 */
+.status-section {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.status-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.status-item .el-icon {
+    color: var(--el-color-primary);
+    font-size: 18px;
+}
+
+.status-switch {
+    margin-left: 8px;
+}
+
+/* 卡券信息卡片样式 */
+.coupon-section {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.coupon-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.coupon-item .el-icon {
+    color: var(--el-color-primary);
+    font-size: 18px;
+    margin-top: 2px;
+}
+
+.balance-item .value.amount {
+    color: var(--el-color-danger);
+    font-weight: 600;
+}
+
+.coupon-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.coupon-tag {
+    margin: 0;
 }
 </style>

@@ -5,14 +5,16 @@
       <h2 class="dashboard-title">数据概览</h2>
       <div class="dashboard-date">{{ formatDate(new Date()) }}</div>
     </div>
-    
+
     <!-- 数据卡片区域 -->
     <div class="card-section">
       <el-row :gutter="20">
         <el-col :xs="24" :sm="12" :md="6" :lg="6" v-for="(card, index) in statisticCards" :key="index">
-          <div class="data-card" :class="`data-card-${index+1}`">
+          <div class="data-card" :class="`data-card-${index + 1}`">
             <div class="card-icon">
-              <el-icon><component :is="card.icon" /></el-icon>
+              <el-icon>
+                <component :is="card.icon" />
+              </el-icon>
             </div>
             <div class="card-content">
               <div class="card-title">{{ card.title }}</div>
@@ -28,7 +30,7 @@
         </el-col>
       </el-row>
     </div>
-    
+
     <!-- 图表区域 -->
     <div class="chart-section">
       <el-row :gutter="20">
@@ -43,18 +45,18 @@
             <v-chart class="chart" ref="lineChartRef" :option="lineChart" />
           </div>
         </el-col>
-        
+
         <!-- 右侧图表 -->
         <el-col :xs="24" :sm="24" :md="8" :lg="8">
           <div class="chart-card">
             <div class="chart-header">
               <h3>订单状态占比</h3>
             </div>
-            <v-chart class="chart" :option="pieChartOptions" />
+            <v-chart class="chart" ref="cycleChartRef" :option="pieChartOptions" />
           </div>
         </el-col>
       </el-row>
-      
+
       <!-- 底部图表 -->
       <el-row :gutter="20" class="bottom-charts">
         <el-col :xs="24" :sm="12" :md="6" :lg="6" v-for="(item, index) in countList" :key="item.title">
@@ -66,7 +68,7 @@
           </div>
         </el-col>
       </el-row>
-      
+
       <!-- 第二行底部图表 -->
       <el-row :gutter="20" class="bottom-charts second-row">
         <el-col :xs="24" :sm="12" :md="8" :lg="8" v-for="(item, index) in chartList" :key="index">
@@ -79,13 +81,15 @@
         </el-col>
       </el-row>
     </div>
-    
+
     <!-- 广告展示位 -->
     <div class="ad-container">
       <div class="ad-content">
         <div class="ad-header">
           <h4>推广活动</h4>
-          <el-icon class="close-icon"><Close /></el-icon>
+          <el-icon class="close-icon">
+            <Close />
+          </el-icon>
         </div>
         <div class="ad-body">
           <img src="https://placeholder.pics/svg/200x120/DEDEDE/555555/广告展示" alt="广告" />
@@ -117,6 +121,7 @@ const orderTotalCount = ref(0);
 const chart = ref();
 const lineChart = ref({});
 const lineChartRef = ref();
+const cycleChartRef = ref();
 const paymentData = ref({});
 const chartData = ref([]);
 const pieChartOptions = ref({});
@@ -250,6 +255,8 @@ const handleDateChange = (date) => {
 const resizeCharts = () => {
   if (lineChartRef.value && lineChartRef.value.resize) {
     lineChartRef.value.resize();
+  } if (cycleChartRef.value && cycleChartRef.value.resize) {
+    cycleChartRef.value.resize();
   }
   chartListRefs.value.forEach(chart => {
     if (chart.resize) {
@@ -273,7 +280,7 @@ const initCharts = async () => {
     return acc;
   }, {});
   console.log(paymentData.value)
-  
+
   orderTotalCount.value = await getOrderTotalCount();
   chartData.value = countList.value.map(item => ({ value: item.count, name: item.title }));
   const parsedData = parseData(chart.value);
@@ -318,6 +325,11 @@ watch([width, height], () => {
   padding: 1.5rem;
   background-color: var(--el-bg-color-page, #f5f7fa);
   overflow-y: auto;
+
+  // 设置隐藏滚动条
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 /* 顶部标题区域 */
@@ -355,12 +367,12 @@ watch([width, height], () => {
   transition: all 0.3s ease;
   overflow: hidden;
   position: relative;
-  
+
   &:hover {
     transform: translateY(-5px);
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
   }
-  
+
   &::before {
     content: '';
     position: absolute;
@@ -372,10 +384,21 @@ watch([width, height], () => {
   }
 }
 
-.data-card-1::before { background: linear-gradient(to bottom, #67C23A, #95D475); }
-.data-card-2::before { background: linear-gradient(to bottom, #409EFF, #79BBFF); }
-.data-card-3::before { background: linear-gradient(to bottom, #F56C6C, #F89898); }
-.data-card-4::before { background: linear-gradient(to bottom, #E6A23C, #EEBE77); }
+.data-card-1::before {
+  background: linear-gradient(to bottom, #67C23A, #95D475);
+}
+
+.data-card-2::before {
+  background: linear-gradient(to bottom, #409EFF, #79BBFF);
+}
+
+.data-card-3::before {
+  background: linear-gradient(to bottom, #F56C6C, #F89898);
+}
+
+.data-card-4::before {
+  background: linear-gradient(to bottom, #E6A23C, #EEBE77);
+}
 
 .card-icon {
   display: flex;
@@ -390,10 +413,25 @@ watch([width, height], () => {
   font-size: 1.5rem;
 }
 
-.data-card-1 .card-icon { background-color: rgba(103, 194, 58, 0.1); color: #67C23A; }
-.data-card-2 .card-icon { background-color: rgba(64, 158, 255, 0.1); color: #409EFF; }
-.data-card-3 .card-icon { background-color: rgba(245, 108, 108, 0.1); color: #F56C6C; }
-.data-card-4 .card-icon { background-color: rgba(230, 162, 60, 0.1); color: #E6A23C; }
+.data-card-1 .card-icon {
+  background-color: rgba(103, 194, 58, 0.1);
+  color: #67C23A;
+}
+
+.data-card-2 .card-icon {
+  background-color: rgba(64, 158, 255, 0.1);
+  color: #409EFF;
+}
+
+.data-card-3 .card-icon {
+  background-color: rgba(245, 108, 108, 0.1);
+  color: #F56C6C;
+}
+
+.data-card-4 .card-icon {
+  background-color: rgba(230, 162, 60, 0.1);
+  color: #E6A23C;
+}
 
 .card-content {
   flex: 1;
@@ -446,7 +484,7 @@ watch([width, height], () => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1rem;
-  
+
   h3 {
     font-size: 1rem;
     font-weight: 600;
@@ -498,18 +536,18 @@ watch([width, height], () => {
   padding: 8px 12px;
   background-color: var(--el-color-primary-light-9);
   border-bottom: 1px solid var(--el-border-color-light);
-  
+
   h4 {
     margin: 0;
     font-size: 0.9rem;
     color: var(--el-color-primary);
   }
-  
+
   .close-icon {
     cursor: pointer;
     color: var(--el-text-color-secondary);
     font-size: 0.9rem;
-    
+
     &:hover {
       color: var(--el-color-danger);
     }
@@ -521,20 +559,20 @@ watch([width, height], () => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  
+
   img {
     width: 100%;
     border-radius: 4px;
     margin-bottom: 10px;
   }
-  
+
   .ad-text {
     font-size: 0.9rem;
     color: var(--el-text-color-primary);
     margin-bottom: 10px;
     text-align: center;
   }
-  
+
   .ad-button {
     width: 100%;
   }
@@ -546,15 +584,15 @@ watch([width, height], () => {
     padding: 1rem;
     gap: 1rem;
   }
-  
+
   .chart {
     height: 250px;
   }
-  
+
   .gauge-chart {
     height: 200px;
   }
-  
+
   .ad-container {
     width: 200px;
     bottom: 10px;

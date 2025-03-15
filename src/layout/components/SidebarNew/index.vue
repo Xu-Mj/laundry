@@ -9,7 +9,7 @@
       </button>
     </el-scrollbar>
     <navbar :switch="switchAdmin" :isAdmin="true" />
-    <CouponSale :key="showCouponSale" :visible="showCouponSale" :taggle="() => { showCouponSale = !showCouponSale }" />
+    <CouponSale v-if="showCouponSale" :key="showCouponSale" :visible="showCouponSale" :taggle="() => { showCouponSale = !showCouponSale }" />
     <AddUser :visible="showAddUserDialog" :key="showAddUserDialog"
       :taggle="() => { showAddUserDialog = !showAddUserDialog }" />
     <CouponGift :visible="showCouponGift" :key="showCouponGift" :taggle="() => { showCouponGift = !showCouponGift }" />

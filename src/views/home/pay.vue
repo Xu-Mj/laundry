@@ -1,143 +1,215 @@
 <template>
     <!-- 付款弹窗 -->
     <el-dialog v-model="showPaymentDialog" width="600px" append-to-body lock-scroll modal :close-on-click-modal="false"
-        :show-close="false" @closed="close">
+        :show-close="false" @closed="close" class="payment-dialog">
         <template #header>
-            <span style="color: cornflowerblue; padding: 0 1rem;">
-                订单 -
-                {{ paymentForm.payNumber }}
-            </span>
-            <el-button type="primary" size="small" style="margin-left: 1rem;"
-                @click="showCouponSale = true">购买卡券</el-button>
+            <div class="dialog-header">
+                <div class="order-info">
+                    <el-icon><Ticket /></el-icon>
+                    <span>订单 - {{ paymentForm.payNumber }}</span>
+                </div>
+                <el-button type="primary" size="small" @click="showCouponSale = true">
+                    <el-icon><Plus /></el-icon>购买卡券
+                </el-button>
+            </div>
         </template>
 
-        <!-- 会员信息 -->
-        <el-row class="member-info" style="padding: 0 1rem; margin-bottom: 2rem;">
-            <el-col :span="12">
-                <span>会员信息：</span>
-                <span>{{ user.nickName + '-' + user.phonenumber }}</span>
-            </el-col>
-            <el-col :span="12">
-                <span>会员积分：</span>
-                <span>{{ user.integral }}</span>
-            </el-col>
-        </el-row>
+        <!-- 会员信息卡片 -->
+        <div class="member-card">
+            <div class="member-avatar">
+                <el-avatar :size="50" icon="UserFilled" />
+            </div>
+            <div class="member-details">
+                <div class="member-name">{{ user.nickName }}</div>
+                <div class="member-phone">{{ user.phonenumber }}</div>
+            </div>
+            <div class="member-points">
+                <div class="points-label">积分</div>
+                <div class="points-value">{{ user.integral }}</div>
+            </div>
+        </div>
 
-        <el-form ref="paymentRef" :model="paymentForm" :rules="paymentRules" label-width="80px">
-            <el-form-item label="支付方式">
+        <el-form ref="paymentRef" :model="paymentForm" :rules="paymentRules" label-width="80px" class="payment-form">
+            <!-- 支付方式选择 -->
+            <div class="section-title">支付方式</div>
+            <el-form-item class="payment-method-section">
                 <template v-if="props.order.source === '01'">
-                    美团结转
+                    <div class="payment-method-card selected">
+                        <el-icon><Promotion /></el-icon>
+                        <span>美团结转</span>
+                    </div>
                 </template>
                 <template v-else-if="props.order.source === '02'">
-                    抖音结转
+                    <div class="payment-method-card selected">
+                        <el-icon><VideoPlay /></el-icon>
+                        <span>抖音结转</span>
+                    </div>
                 </template>
                 <template v-else>
-                    <el-radio-group v-model="paymentForm.paymentMethod">
+                    <el-radio-group v-model="paymentForm.paymentMethod" class="payment-method-group">
                         <template v-for="dict in sys_payment_method" :key="dict.value">
                             <template v-if="dict.value == '06'">
-                                <el-radio v-if="couponTypeList.has('000')" :value="dict.value">
-                                    {{ dict.label }}
+                                <el-radio v-if="couponTypeList.has('000')" :value="dict.value" class="payment-method-radio">
+                                    <div class="payment-method-card" :class="{ 'selected': paymentForm.paymentMethod === dict.value }">
+                                        <el-icon><CreditCard /></el-icon>
+                                        <span>{{ dict.label }}</span>
+                                    </div>
                                 </el-radio>
                             </template>
                             <template v-else-if="dict.value == '07'">
-                                <el-radio v-if="couponTypeList.has('002')" :value="dict.value">
-                                    {{ dict.label }}
+                                <el-radio v-if="couponTypeList.has('002')" :value="dict.value" class="payment-method-radio">
+                                    <div class="payment-method-card" :class="{ 'selected': paymentForm.paymentMethod === dict.value }">
+                                        <el-icon><Ticket /></el-icon>
+                                        <span>{{ dict.label }}</span>
+                                    </div>
                                 </el-radio>
                             </template>
-                            <el-radio v-else-if="dict.value !== '03' && dict.value !== '04'" :value="dict.value">
-                                {{ dict.label }}
+                            <el-radio v-else-if="dict.value !== '03' && dict.value !== '04'" :value="dict.value" class="payment-method-radio">
+                                <div class="payment-method-card" :class="{ 'selected': paymentForm.paymentMethod === dict.value }">
+                                    <el-icon v-if="dict.value === '01'"><Money /></el-icon>
+                                    <el-icon v-else-if="dict.value === '02'"><ChatDotRound /></el-icon>
+                                    <el-icon v-else-if="dict.value === '05'"><Wallet /></el-icon>
+                                    <el-icon v-else><More /></el-icon>
+                                    <span>{{ dict.label }}</span>
+                                </div>
                             </el-radio>
                         </template>
                     </el-radio-group>
                 </template>
             </el-form-item>
+
+            <!-- 卡券选择区域 -->
             <template v-if="showCoupons">
-                <el-form-item v-if="userCouponList.filter(item => item.coupon.couponType == '000').length !== 0"
-                    label="储值卡">
-                    <el-checkbox-group v-model="couponStorageCardId" @change="changeCoupon(1)">
-                        <el-checkbox v-for="card in userCouponList.filter(item => item.coupon.couponType == '000')"
-                            :disabled="!card.isValid" :key="card.ucId" :value="card.ucId">
-                            {{ card.coupon.couponTitle }}
-                            -余额
-                            {{ card.availableValue }}
-                            {{ card.coupon.couponType == '000' ? '元' : '次' }}
-                            {{ card.isValid ? '' : '(' + card.unValidReason + ')' }}
-                        </el-checkbox>
-                    </el-checkbox-group>
-                </el-form-item>
-                <el-form-item v-if="userCouponList.filter(item => item.coupon.couponType == '002').length != 0"
-                    label="次卡">
-                    <div class="coupon-times">
-                        <div class="coupon-times-item"
-                            v-for="card in userCouponList.filter(item => item.coupon.couponType == '002')"
-                            :key="card.ucId">
-                            <el-checkbox @change="changeCoupon(2, card)" :disabled="!card.isValid"
-                                v-model="card.selected" :value="card.ucId">
-                                {{ card.coupon.couponTitle }}
-                                {{ card.isValid ? '' : '(' + card.unValidReason + ')' }}
-                                {{ '(剩余: ' + card.availableValue + '次)' }}
-                            </el-checkbox>
-                            <el-input-number controls-position="right" v-if="card.selected" v-model="card.count"
-                                @change="changeCouponCount(card)" :min="1" :max="card.availableValue"
-                                placeholder="请输入次卡数量" />
-                        </div>
-                    </div>
-                </el-form-item>
-                <el-form-item label="优惠券">
-                    <el-radio-group v-model="paymentForm.couponId" @change="changeCoupon(3)">
-                        <el-radio
-                            v-for="card in userCouponList.filter(item => item.coupon.couponType !== '000' && item.coupon.couponType !== '002')"
-                            :disabled="!card.isValid" :key="card.ucId" :value="card.ucId">
-                            {{ card.coupon.couponTitle }}
-                            {{ card.isValid ? '' : '(' + card.unValidReason + ')' }}
-                            {{ '(剩余: ' + card.ucCount + '张)' }}
-                        </el-radio>
-                    </el-radio-group>
-                </el-form-item>
+                <div class="section-title">选择优惠</div>
+                <div class="coupon-section">
+                    <!-- 储值卡 -->
+                    <el-collapse v-if="userCouponList.filter(item => item.coupon.couponType == '000').length !== 0">
+                        <el-collapse-item title="储值卡" name="storage-card">
+                            <el-checkbox-group v-model="couponStorageCardId" @change="changeCoupon(1)" class="coupon-checkbox-group">
+                                <el-checkbox 
+                                    v-for="card in userCouponList.filter(item => item.coupon.couponType == '000')"
+                                    :disabled="!card.isValid" 
+                                    :key="card.ucId" 
+                                    :value="card.ucId"
+                                    class="coupon-checkbox"
+                                >
+                                    <div class="coupon-card" :class="{ 'disabled': !card.isValid }">
+                                        <div class="coupon-title">{{ card.coupon.couponTitle }}</div>
+                                        <div class="coupon-value">余额: {{ card.availableValue }}元</div>
+                                        <div v-if="!card.isValid" class="coupon-invalid">{{ card.unValidReason }}</div>
+                                    </div>
+                                </el-checkbox>
+                            </el-checkbox-group>
+                        </el-collapse-item>
+                    </el-collapse>
+
+                    <!-- 次卡 -->
+                    <el-collapse v-if="userCouponList.filter(item => item.coupon.couponType == '002').length != 0">
+                        <el-collapse-item title="次卡" name="time-card">
+                            <div class="coupon-times">
+                                <div class="coupon-times-item"
+                                    v-for="card in userCouponList.filter(item => item.coupon.couponType == '002')"
+                                    :key="card.ucId">
+                                    <el-checkbox 
+                                        @change="changeCoupon(2, card)" 
+                                        :disabled="!card.isValid"
+                                        v-model="card.selected" 
+                                        :value="card.ucId"
+                                        class="coupon-checkbox"
+                                    >
+                                        <div class="coupon-card" :class="{ 'disabled': !card.isValid }">
+                                            <div class="coupon-title">{{ card.coupon.couponTitle }}</div>
+                                            <div class="coupon-value">剩余: {{ card.availableValue }}次</div>
+                                            <div v-if="!card.isValid" class="coupon-invalid">{{ card.unValidReason }}</div>
+                                        </div>
+                                    </el-checkbox>
+                                    <el-input-number 
+                                        v-if="card.selected" 
+                                        v-model="card.count"
+                                        @change="changeCouponCount(card)" 
+                                        :min="1" 
+                                        :max="card.availableValue"
+                                        controls-position="right" 
+                                        size="small"
+                                        class="count-input"
+                                    />
+                                </div>
+                            </div>
+                        </el-collapse-item>
+                    </el-collapse>
+
+                    <!-- 优惠券 -->
+                    <el-collapse>
+                        <el-collapse-item title="优惠券" name="discount-coupon">
+                            <el-radio-group v-model="paymentForm.couponId" @change="changeCoupon(3)" class="coupon-radio-group">
+                                <el-radio
+                                    v-for="card in userCouponList.filter(item => item.coupon.couponType !== '000' && item.coupon.couponType !== '002')"
+                                    :disabled="!card.isValid" 
+                                    :key="card.ucId" 
+                                    :value="card.ucId"
+                                    class="coupon-radio"
+                                >
+                                    <div class="coupon-card" :class="{ 'disabled': !card.isValid, 'selected': paymentForm.couponId === card.ucId }">
+                                        <div class="coupon-title">{{ card.coupon.couponTitle }}</div>
+                                        <div class="coupon-value">剩余: {{ card.ucCount }}张</div>
+                                        <div v-if="!card.isValid" class="coupon-invalid">{{ card.unValidReason }}</div>
+                                    </div>
+                                </el-radio>
+                            </el-radio-group>
+                        </el-collapse-item>
+                    </el-collapse>
+                </div>
             </template>
-            <el-row class="price-area">
-                <div>
-                    <span class="payment-label">
-                        订单金额:
-                    </span>
-                    <span class="payment-amount">
-                        {{ paymentForm.totalAmount }}
-                    </span>
-                    元
+
+            <!-- 价格信息区域 -->
+            <div class="price-summary-card">
+                <div class="price-row">
+                    <span class="price-label">订单金额</span>
+                    <span class="price-value">¥ {{ paymentForm.totalAmount }}</span>
                 </div>
-                <el-form-item label="优惠金额:">
-                    {{ paymentForm.bonusAmount ? paymentForm.bonusAmount + '元' : '' }}
-                </el-form-item>
-                <div>
-                    <span class="payment-label">
-                        优惠后金额:
-                    </span>
-                    <span class="payment-amount" style="font-size: xx-large; color: red;">
-                        {{ paymentForm.paymentAmount }}
-                    </span>
-                    元
+                <div class="price-row" v-if="paymentForm.bonusAmount">
+                    <span class="price-label">优惠金额</span>
+                    <span class="price-value discount">- ¥ {{ paymentForm.bonusAmount }}</span>
                 </div>
-            </el-row>
-            <el-row>
-                <el-form-item label="补差价" v-if="paymentForm.priceDiff > 0">
-                    <el-input-number v-model="paymentForm.priceDiff" controls-position="right" :min="0"
-                        :max="paymentForm.paymentAmount" placeholder="请输入补差价" />
-                </el-form-item>
-            </el-row>
+                <div class="price-divider"></div>
+                <div class="price-row total">
+                    <span class="price-label">应付金额</span>
+                    <span class="price-value total-amount">¥ {{ paymentForm.paymentAmount }}</span>
+                </div>
+            </div>
+
+            <!-- 补差价区域 -->
+            <el-form-item label="补差价" v-if="paymentForm.priceDiff > 0" class="price-diff-section">
+                <el-input-number 
+                    v-model="paymentForm.priceDiff" 
+                    controls-position="right" 
+                    :min="0"
+                    :max="paymentForm.paymentAmount" 
+                    placeholder="请输入补差价" 
+                />
+            </el-form-item>
         </el-form>
+
         <template #footer>
             <div class="payment-footer">
-                <el-button size="large" @click="close">取消</el-button>
-                <el-button size="large" type="primary" @click="submitPaymentForm">确认收款</el-button>
+                <el-button size="large" @click="close" plain>取消</el-button>
+                <el-button size="large" type="primary" @click="submitPaymentForm">确认支付</el-button>
             </div>
         </template>
     </el-dialog>
+
+    <!-- 卡券购买弹窗 -->
     <el-dialog v-model="showCouponSale" width="600px" append-to-body lock-scroll modal :close-on-click-modal="false"
         :show-close="false">
-        <CouponSale :userId="props.order.userId" :key="showCouponSale"
-            :taggle="() => { showCouponSale = !showCouponSale }" :visible="showCouponSale" :submit="submitCouponSale" />
+        <CouponSale 
+            :userId="props.order.userId" 
+            :key="showCouponSale"
+            :taggle="() => { showCouponSale = !showCouponSale }" 
+            :visible="showCouponSale" 
+            :couponTypeList="couponTypeList"
+            :submit="submitCouponSale" 
+        />
     </el-dialog>
-
 </template>
 
 <script setup name="Pay">
@@ -564,32 +636,288 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.payment-dialog {
+    border-radius: 12px;
+    overflow: hidden;
+    background-color: var(--el-bg-color-page);
+}
+
+.dialog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 16px;
+}
+
+.order-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--el-color-primary);
+}
+
+.member-card {
+    display: flex;
+    align-items: center;
+    background: linear-gradient(135deg, var(--el-fill-color-light) 0%, var(--el-fill-color-dark) 100%);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 24px;
+    box-shadow: var(--el-box-shadow);
+}
+
+.member-avatar {
+    margin-right: 16px;
+}
+
+.member-details {
+    flex: 1;
+}
+
+.member-name {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.member-phone {
+    font-size: 14px;
+    color: var(--el-text-color-secondary);
+}
+
+.member-points {
+    text-align: center;
+    padding: 0 16px;
+    border-left: 1px solid #e4e7ed;
+}
+
+.points-label {
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+}
+
+.points-value {
+    font-size: 20px;
+    font-weight: 600;
+    color: #f56c6c;
+}
+
+.payment-form {
+    padding: 0 16px;
+}
+
+.section-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 16px 0 12px 0;
+    color: var(--el-text-color-primary);
+}
+
+.payment-method-section {
+    margin-bottom: 24px;
+}
+
+.payment-method-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 10px;
+}
+
+.payment-method-radio {
+    margin-right: 0 !important;
+    margin-bottom: 10px;
+    height: auto;
+}
+
+.payment-method-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100px;
+    height: 80px;
+    border-radius: 8px;
+    border: 1px solid var(--el-border-color);
+    transition: all 0.3s;
+    cursor: pointer;
+    background-color: var(--el-bg-color-overlay);
+}
+
+.payment-method-card:hover {
+    border-color: var(--el-color-primary);
+    transform: translateY(-2px);
+    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+}
+
+.payment-method-card.selected {
+    border-color: var(--el-color-primary);
+    background-color: var(--el-fill-color-light);
+    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+}
+
+.payment-method-card .el-icon {
+    font-size: 24px;
+    margin-bottom: 8px;
+    color: var(--el-color-primary);
+}
+
+.payment-method-card span {
+    font-size: 14px;
+}
+
+.coupon-section {
+    margin-bottom: 24px;
+}
+
+.coupon-checkbox-group,
+.coupon-radio-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.coupon-checkbox,
+.coupon-radio {
+    margin-right: 0 !important;
+    margin-bottom: 12px;
+}
+
+.coupon-card {
+    width: 200px;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #e4e7ed;
+    background: linear-gradient(135deg, #ffffff 0%, #f5f7fa 100%);
+    transition: all 0.3s;
+}
+
+.coupon-card.selected {
+    border-color: var(--el-color-primary);
+    background: linear-gradient(135deg, #ecf5ff 0%, #f5f7fa 100%);
+    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+}
+
+.coupon-card.disabled {
+    opacity: 0.6;
+    background: #f5f7fa;
+}
+
+.coupon-title {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #303133;
+}
+
+.coupon-value {
+    font-size: 14px;
+    color: #606266;
+}
+
+.coupon-invalid {
+    font-size: 12px;
+    color: #f56c6c;
+    margin-top: 4px;
+}
+
 .coupon-times {
     display: flex;
     flex-direction: column;
-    gap: .5rem;
+    gap: 12px;
+}
 
-    .coupon-times-item {
-        display: flex;
-        gap: .5rem;
+.coupon-times-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.count-input {
+    width: 120px;
+}
+
+.price-summary-card {
+    background-color: var(--el-fill-color-light);
+    border-radius: 8px;
+    padding: 16px;
+    margin: 24px 0;
+}
+
+.price-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.price-row.total {
+    margin-top: 12px;
+    margin-bottom: 0;
+}
+
+.price-label {
+    font-size: 14px;
+    color: var(--el-text-color-secondary);
+}
+
+.price-value {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+}
+
+.price-value.discount {
+    color: #f56c6c;
+}
+
+.price-value.total-amount {
+    font-size: 24px;
+    color: #f56c6c;
+}
+
+.price-divider {
+    height: 1px;
+    background-color: #e4e7ed;
+    margin: 12px 0;
+}
+
+.price-diff-section {
+    margin-top: 16px;
+}
+
+.payment-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    transition: all 0.3s;
+
+    button:hover{
+        transform: translateY(-2px);
     }
 }
 
-.price-area {
-    margin-top: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: .5rem;
-    align-items: flex-end;
+/* 添加一些动画效果 */
+.el-dialog__body {
+    transition: all 0.3s;
 }
 
-.payment-label {
-    font-weight: bold;
+.el-collapse-item__header {
+    font-weight: 600;
+    color: #303133;
 }
 
-/* .payment-amount {
-    color: red;
-    font-size: large;
-    font-weight: bold;
-} */
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .payment-method-group {
+        justify-content: center;
+    }
+    
+    .coupon-checkbox-group,
+    .coupon-radio-group {
+        justify-content: center;
+    }
+}
 </style>

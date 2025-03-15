@@ -2,18 +2,22 @@
     <!-- show sell coupon -->
     <!-- <el-dialog :title="title" v-model="open" width="780px" :show-close="true" append-to-body @closed="closeHangUpDialog" > -->
     <el-form ref="sellFormRef" :model="sellForm" :rules="rules" label-width="90px">
-        <el-row v-if="props.userId && props.userId != 0">
-            <el-col :span="12">
-                <el-form-item label="会员信息:">
-                    {{ user.nickName }} - {{ user.phonenumber }}
-                </el-form-item>
-            </el-col>
-            <el-col :span="12">
-                <el-form-item label="会员积分:">
-                    {{ user.integral }}
-                </el-form-item>
-            </el-col>
-        </el-row>
+        <div v-if="props.userId && props.userId != 0">
+            <!-- 会员信息卡片 -->
+            <div class="member-card">
+                <div class="member-avatar">
+                    <el-avatar :size="50" icon="UserFilled" />
+                </div>
+                <div class="member-details">
+                    <div class="member-name">{{ user.nickName }}</div>
+                    <div class="member-phone">{{ user.phonenumber }}</div>
+                </div>
+                <div class="member-points">
+                    <div class="points-label">积分</div>
+                    <div class="points-value">{{ user.integral }}</div>
+                </div>
+            </div>
+        </div>
 
         <el-row v-else>
             <el-col :span="6">
@@ -52,7 +56,8 @@
         <el-row>
             <h3 class="title">在售会员卡列表:</h3>
         </el-row>
-        <el-table :data="couponList" max-height="15rem" border @selection-change="handleSelectionChange">
+        <el-table class="info-card" :data="couponList" max-height="15rem" border
+            @selection-change="handleSelectionChange">
             <el-table-column type="selection" width="35" align="center" />
             <el-table-column label="卡券名称" align="center" key="couponTitle" prop="couponTitle" />
             <el-table-column label="卡券类型" align="center" key="couponType" prop="couponType">
@@ -60,22 +65,6 @@
                     <dict-tag :options="sys_coupon_type" :value="scope.row.couponType" />
                 </template>
             </el-table-column>
-            <!-- <el-table-column label="有效时间-起" align="center" prop="validFrom" v-if="columns[9].visible">
-                <template #default="scope">
-                    <span>{{ parseTime(scope.row.validFrom, '{y}-{m}-{d}') }}</span>
-                </template>
-            </el-table-column>
-            <el-table-column label="有效时间-止" align="center" prop="validTo" v-if="columns[10].visible">
-                <template #default="scope">
-                    <span>{{ parseTime(scope.row.validTo, '{y}-{m}-{d}') }}</span>
-                </template>
-            </el-table-column>
-            <el-table-column label="限制条件" align="center" prop="usageLimit" v-if="columns[13].visible">
-                <template #default="scope">
-                    {{ scope.row.couponType === '003' ? '最高消费金额限制' + scope.row.usageLimit + '元' :
-                        scope.row.usageLimit == 0 ? '无限制' : scope.row.usageLimit }}
-                </template>
-            </el-table-column> -->
             <el-table-column label="价格" align="center" key="couponValue" prop="couponValue" />
             <el-table-column label="数量" align="center">
                 <template #default="scope">
@@ -90,34 +79,75 @@
         <el-row>
             <h3 class="title">支付方式</h3>
         </el-row>
-        <el-row>
-            <el-form-item>
-                <el-radio-group v-model="sellForm.paymentMethod">
-                    <el-radio v-for="dict in sys_coupon_payment_method" :key="dict.value" :label="dict.label"
-                        :value="dict.value" />
-                </el-radio-group>
-            </el-form-item>
-        </el-row>
+        <el-form-item class="payment-method-section">
+            <el-radio-group v-model="sellForm.paymentMethod" class="payment-method-group">
+                <template v-for="dict in sys_coupon_payment_method" :key="dict.value">
+                    <template v-if="dict.value == '06'">
+                        <el-radio v-if="props.couponTypeList.has('000')" :value="dict.value"
+                            class="payment-method-radio">
+                            <div class="payment-method-card"
+                                :class="{ 'selected': sellForm.paymentMethod === dict.value }">
+                                <el-icon>
+                                    <CreditCard />
+                                </el-icon>
+                                <span>{{ dict.label }}</span>
+                            </div>
+                        </el-radio>
+                    </template>
+                    <template v-else-if="dict.value == '07'">
+                        <el-radio v-if="props.couponTypeList.has('002')" :value="dict.value"
+                            class="payment-method-radio">
+                            <div class="payment-method-card"
+                                :class="{ 'selected': sellForm.paymentMethod === dict.value }">
+                                <el-icon>
+                                    <Ticket />
+                                </el-icon>
+                                <span>{{ dict.label }}</span>
+                            </div>
+                        </el-radio>
+                    </template>
+                    <el-radio v-else-if="dict.value !== '03' && dict.value !== '04'" :value="dict.value"
+                        class="payment-method-radio">
+                        <div class="payment-method-card" :class="{ 'selected': sellForm.paymentMethod === dict.value }">
+                            <el-icon v-if="dict.value === '01'">
+                                <Money />
+                            </el-icon>
+                            <el-icon v-else-if="dict.value === '02'">
+                                <ChatDotRound />
+                            </el-icon>
+                            <el-icon v-else-if="dict.value === '05'">
+                                <Wallet />
+                            </el-icon>
+                            <el-icon v-else>
+                                <More />
+                            </el-icon>
+                            <span>{{ dict.label }}</span>
+                        </div>
+                    </el-radio>
+                </template>
+            </el-radio-group>
+        </el-form-item>
         <el-row>
             <h3 class="title">备注信息</h3>
         </el-row>
-        <el-row>
-            <el-form-item style="width: 100%;">
-                <el-input type="textarea" v-model="sellForm.remark" placeholder="备注信息" />
-            </el-form-item>
-        </el-row>
+        <div class="payment-method-section remark-section">
+            <el-input type="textarea" v-model="sellForm.remark" placeholder="备注信息" />
+        </div>
+        <!-- 价格信息区域 -->
+        <div class="price-summary-card">
+            <div class="price-row total">
+                <span class="price-label">订单金额：</span>
+                <span class="total-amount">¥ {{ totalPrice }}</span>
+            </div>
+        </div>
 
-        <el-row>
-            <h3 class="title">订单金额: {{ totalPrice }} 元</h3>
-        </el-row>
-        <el-row style="margin-top: 1rem; display: flex; justify-content: center; align-items: center; gap: 1rem;">
-            <el-button type="primary" style="width: 6rem; height: 2rem;" @click="props.taggle()">返回</el-button>
-            <el-button type="primary" style="width: 6rem; height: 2rem;" @click="buy">立即购买</el-button>
-        </el-row>
+        <div class="footer-btn">
+            <el-button size="large" @click="props.taggle()">取消</el-button>
+            <el-button type="primary" size="large" @click="buy">立即购买</el-button>
+        </div>
     </el-form>
     <Information :user="currentUser" :visible="showInfoDialog" :key="showInfoDialog"
         :toggle="() => { showInfoDialog = !showInfoDialog }" />
-    <!-- </el-dialog> -->
 </template>
 
 <script setup name="CouponSale">
@@ -126,7 +156,6 @@ import { getUser, listUserWithNoLimit, addUser } from "@/api/system/user";
 import Information from "@/views/system/user/information.vue";
 import { ref, computed } from "vue";
 
-const router = useRouter();
 const props = defineProps({
     userId: {
         type: String,
@@ -134,6 +163,10 @@ const props = defineProps({
     submit: {
         type: Function,
         default: (data) => { }
+    },
+    couponTypeList: {
+        type: Set,
+        required: true,
     },
     visible: {
         type: Boolean,
@@ -371,26 +404,198 @@ onMounted(async () => {
     }
 });
 </script>
-<!-- <style>
-.el-dialog::before{
-    content: "";
-    width: 100%;
-    height: 100%;
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    backdrop-filter: blur(40px);
-    background-color: rgba(255, 255, 255, 0.2);
-    /* 半透明白色 */
-    z-index: -1;
-    transition: background-color 0.3s ease;
-}
-</style> -->
+
 <style scoped>
 .title {
-    border-bottom: 1px solid gray;
+    font-size: 16px;
+    font-weight: 600;
+    margin: 16px 0 12px 0;
+    color: var(--el-text-color-primary);
+    padding-bottom: 8px;
+    border-bottom: 1px solid #ebeef5;
+}
+
+.member-card {
+    display: flex;
+    align-items: center;
+    background: linear-gradient(135deg, var(--el-fill-color-light) 0%, var(--el-fill-color-dark) 100%);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 24px;
+    box-shadow: var(--el-box-shadow);
+}
+
+.member-avatar {
+    margin-right: 16px;
+}
+
+.member-details {
+    flex: 1;
+}
+
+.member-name {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.member-phone {
+    font-size: 14px;
+    color: var(--el-text-color-secondary);
+}
+
+.member-points {
+    text-align: center;
+    padding: 0 16px;
+    border-left: 1px solid #e4e7ed;
+}
+
+.points-label {
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+}
+
+.points-value {
+    font-size: 20px;
+    font-weight: 600;
+    color: #f56c6c;
+}
+
+.info-card {
+    background-color: var(--el-fill-color);
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: var(--el-box-shadow);
+}
+
+.section-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 16px 0 12px 0;
+    color: var(--el-text-color-primary);
+}
+
+.payment-method-section {
+    background-color: var(--el-fill-color);
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: var(--el-box-shadow);
+}
+
+.payment-method-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.payment-method-radio {
+    margin-right: 0 !important;
+    height: auto;
+}
+
+.payment-method-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100px;
+    height: 80px;
+    border-radius: 8px;
+    border: 1px solid var(--el-border-color);
+    transition: all 0.3s;
+    cursor: pointer;
+    background-color: var(--el-bg-color-overlay);
+}
+
+.payment-method-card:hover {
+    border-color: var(--el-color-primary);
+    transform: translateY(-2px);
+    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+}
+
+.payment-method-card.selected {
+    border-color: var(--el-color-primary);
+    background-color: var(--el-fill-color-light);
+    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+}
+
+.payment-method-card .el-icon {
+    font-size: 24px;
+    margin-bottom: 8px;
+    color: var(--el-color-primary);
+}
+
+.payment-method-card span {
+    font-size: 14px;
+}
+
+.remark-section {
+    margin-bottom: 20px;
+}
+
+.price-summary-card {
+    background-color: var(--el-fill-color-light);
+    border-radius: 8px;
+    padding: 16px;
+    margin: 24px 0;
+    box-shadow: var(--el-box-shadow);
+}
+
+.price-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.price-row.total {
+    margin-bottom: 0;
+}
+
+.price-label {
+    font-size: 14px;
+    color: var(--el-text-color-primary);
+}
+
+.total-amount {
+    font-weight: 600;
+    font-size: 24px;
+    color: #f56c6c;
+}
+
+.footer-btn {
+    margin-top: 1rem;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 1rem;
+    transition: all 0.3s;
+
+    button:hover {
+        transform: translateY(-2px);
+    }
+}
+
+/* 美化表单元素 */
+:deep(.el-input__inner),
+:deep(.el-select),
+:deep(.el-input-number) {
+    border-radius: 6px;
+}
+
+:deep(.el-table) {
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+:deep(.el-textarea__inner) {
+    border-radius: 6px;
+    min-height: 80px;
+}
+
+:deep(.el-button) {
+    border-radius: 6px;
 }
 
 .cash {

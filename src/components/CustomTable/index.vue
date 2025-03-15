@@ -12,7 +12,8 @@
 
     <!-- 表格内容 -->
     <div class="body">
-      <div v-for="item in tableData" :key="item.id" class="row" @click="handleRowClick(item)">
+      <div v-if="tableData.length > 0" v-for="item in tableData" :key="item.id" class="row"
+        @click="handleRowClick(item)">
         <!-- 上半部分 -->
         <div class="cell">{{ item.clothInfo.clothingName ? item.clothInfo.clothingName : '-' }}</div>
         <div class="cell">{{ item.priceValue }} 元</div>
@@ -38,6 +39,11 @@
           </el-tag>
           <span v-if="item.estimateArr && item.estimateArr.length > 0 && item.remark">||</span>
           {{ item.remark }}
+        </div>
+      </div>
+      <div class="empty-info-card" v-else>
+        <div class="empty-state">
+          <el-empty description="暂无数据~" :image-size="80"></el-empty>
         </div>
       </div>
     </div>
@@ -141,35 +147,36 @@ const handleRowClick = (row) => {
   width: 100%;
   display: flex;
   flex-direction: column;
-  border: 1px solid #ebeef5;
-  border-radius: 8px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 12px;
   overflow: hidden;
   text-align: center;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  margin-bottom: 1.5rem;
+  transition: all 0.3s ease;
+}
+
+.custom-table:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .header {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr 1fr 1fr 80px;
-  /* 6 列，操作列固定宽度 */
   gap: 1px;
-  border-bottom: 1px solid #ddd;
-  /* 底部边框 */
-  padding: .4rem;
+  background-color: var(--el-color-primary-light-9);
+  padding: 0.75rem 0.5rem;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
 }
 
-.header-cell {
-  padding: 16px;
-  font-size: 14px;
-  font-weight: bold;
-  /* color: #333; */
-  text-align: center;
-  border-right: 1px solid #ddd;
-  /* 单元格右边框 */
+:root.dark .header {
+  --el-color-primary-light-9: #1d2c40;
 }
 
-.header-cell:last-child {
-  border-right: none;
-  /* 去掉最后一列的右边框 */
+.header>div {
+  padding: 8px;
 }
 
 .row {
@@ -177,49 +184,74 @@ const handleRowClick = (row) => {
   grid-template-columns: 1fr 1fr 1fr 1fr 1fr 80px;
   gap: 1px;
   cursor: pointer;
-  /* 添加鼠标指针样式 */
+  transition: all 0.2s;
 }
 
 .row:hover {
-  background-color: #c5c5c5;
+  background-color: var(--el-fill-color-light);
+  transform: translateY(-1px);
 }
 
 .cell {
-  padding: 12px;
+  padding: 12px 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-bottom: 1px solid #ebeef5;
-  border-right: 1px solid #ebeef5;
-}
-
-.cell:last-child {
-  border-right: none;
+  border-bottom: 1px solid var(--el-border-color-lighter);
 }
 
 .action-cell {
   grid-row: span 2;
-  /* 操作列占两行 */
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
+.action-cell .el-button {
+  transition: all 0.3s;
+}
+
+.action-cell .el-button:hover {
+  transform: scale(1.1);
+}
+
 .remark-cell {
   grid-column: span 5;
-  /* 备注列跨 5 列 */
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  padding-left: 12px;
+  padding: 8px 16px;
+  background-color: var(--el-fill-color-light);
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.remark-cell .el-tag {
+  margin-right: 6px;
+  transition: all 0.3s;
+}
+
+.remark-cell .el-tag:hover {
+  transform: translateY(-2px);
 }
 
 .hidden {
   display: none;
-  /* 隐藏备注行 */
 }
 
 .row:last-child .cell {
   border-bottom: none;
 }
+
+.empty-state {
+    display: flex;
+    justify-content: center;
+}
+
+.empty-info-card {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 </style>

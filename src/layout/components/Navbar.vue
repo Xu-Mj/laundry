@@ -19,6 +19,11 @@
           </template>
         </el-dropdown>
       </div>
+      <span class="setting-icon">
+        <el-icon size="20">
+          <component is="Message" />
+        </el-icon>
+      </span>
     </div>
     <div class="controls-row">
       <ThemeSwitch />
@@ -210,7 +215,7 @@ function setLayout() {
   .avatar-row {
     width: 100%;
     display: flex;
-    justify-content: flex-start;
+    justify-content: space-between;
   }
 
   .controls-row {
@@ -221,6 +226,9 @@ function setLayout() {
   }
 
   .setting-icon {
+    display: flex;
+    justify-content: center;
+    align-items: center;
     cursor: pointer;
     border-radius: 4px;
     transition: background-color 0.3s;

@@ -1,10 +1,13 @@
 <template>
-  <router-view />
+  <AppWatermark>
+    <router-view />
+  </AppWatermark>
 </template>
 
 <script setup>
 import useSettingsStore from '@/store/modules/settings'
 import { handleThemeStyle } from '@/utils/theme'
+import AppWatermark from '@/components/AppWatermark/index.vue'
 
 onMounted(() => {
   nextTick(() => {
@@ -20,6 +23,7 @@ onMounted(() => {
 }
 
 @supports not (view-transition-name: root) {
+
   /* 当浏览器不支持 View Transitions API 时的降级处理 */
   :root {
     --transition-duration: 0.5s;

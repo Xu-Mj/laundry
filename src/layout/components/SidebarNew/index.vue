@@ -9,7 +9,8 @@
       </button>
     </el-scrollbar>
     <navbar :switch="switchAdmin" :isAdmin="true" />
-    <CouponSale v-if="showCouponSale" :key="showCouponSale" :visible="showCouponSale" :taggle="() => { showCouponSale = !showCouponSale }" />
+    <CouponSale v-if="showCouponSale" :key="showCouponSale" :visible="showCouponSale"
+      :taggle="() => { showCouponSale = !showCouponSale }" />
     <AddUser :visible="showAddUserDialog" :key="showAddUserDialog"
       :taggle="() => { showAddUserDialog = !showAddUserDialog }" />
     <CouponGift :visible="showCouponGift" :key="showCouponGift" :taggle="() => { showCouponGift = !showCouponGift }" />
@@ -22,6 +23,7 @@
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import useAppStore from '@/store/modules/app'
+import useSubscriptionStore from '@/store/modules/subscription'
 import Logo from '../Sidebar/Logo.vue';
 import Navbar from '../Navbar.vue';
 import CouponSale from '@/views/home/couponSale.vue'
@@ -36,6 +38,7 @@ const route = useRoute();
 
 const appStore = useAppStore()
 
+const {proxy} = getCurrentInstance();
 const showCouponSale = ref(false);
 const showCouponGift = ref(false);
 const showAddUserDialog = ref(false);
@@ -55,7 +58,7 @@ const menus = ref([
   { 'name': '收衣收鞋', 'type': 'primary', show: true, path: '/create-order', onClick: () => router.push('/create-order') },
   { 'name': '取衣取鞋', 'type': 'primary', show: true, path: '/pick-up', onClick: () => router.push('/pick-up') },
   { 'name': '订单管理', 'type': 'primary', show: true, path: '/order-list', onClick: () => router.push('/order-list') },
-  { 'name': '衣物上挂', 'type': 'primary', show: true, path: '/hang-up', onClick: () => { showHangUp.value = true } },
+  { 'name': '衣物上挂', 'type': 'primary', show: true, path: '/hang-up', onClick: hangupClick },
   { 'name': '交期预警', 'type': 'warning', show: false },
   { 'name': '派送提醒', 'type': 'primary', show: false },
   { 'name': '卡券销售', 'type': 'primary', show: false, path: '/coupon-sale', onClick: () => router.push('/coupon-sale') },
@@ -96,6 +99,19 @@ const switchAdmin = () => {
   router.push('/');
 };
 
+function hangupClick() {
+  // 判断是否是试用期
+  if (useSubscriptionStore().isGuest) {
+    proxy.notify.warning('当前处于游客模式，请先注册！');
+    return;
+  }
+  if (useSubscriptionStore().isInTrial) {
+    // 弹窗提醒
+    proxy.notify.warning('您当前为试用期用户，请升级为正式用户后使用！');
+    return;
+  }
+  showHangUp.value = true;
+}
 onMounted(() => {
   appStore.setSidebarWidth(isAdmin.value)
 })

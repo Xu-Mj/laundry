@@ -123,7 +123,7 @@ const rules = ref({
 });
 
 const form = ref({ ...props.data })
-console.log(form.value)
+
 // 格式化货币显示
 const formatCurrency = (value) => {
     return new Intl.NumberFormat('zh-CN', {

@@ -196,7 +196,7 @@ import AddCloth from "./addCloth.vue";
 import { print } from "@/api/system/printer";
 import Information from "@/views/system/user/information.vue";
 import CustomTable from '@/components/CustomTable';
-import Pay from '@/views/home/pay.vue';
+import Pay from '@/views/components/pay.vue';
 const props = defineProps({
     visible: {
         type: Boolean,

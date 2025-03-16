@@ -1,16 +1,8 @@
 <template>
-  <div :class="{ 'hidden': hidden }" class="pagination-container">
-    <el-pagination
-      :background="background"
-      v-model:current-page="currentPage"
-      v-model:page-size="pageSize"
-      :layout="layout"
-      :page-sizes="pageSizes"
-      :pager-count="pagerCount"
-      :total="total"
-      @size-change="handleSizeChange"
-      @current-change="handleCurrentChange"
-    />
+  <div :class="[{ 'hidden': hidden }, $attrs.class]" class="pagination-container">
+    <el-pagination :background="background" v-model:current-page="currentPage" v-model:page-size="pageSize"
+      :layout="layout" :page-sizes="pageSizes" :pager-count="pagerCount" :total="total" @size-change="handleSizeChange"
+      @current-change="handleCurrentChange" />
   </div>
 </template>
 
@@ -72,7 +64,7 @@ const pageSize = computed({
   get() {
     return props.limit
   },
-  set(val){
+  set(val) {
     emit('update:limit', val)
   }
 })
@@ -95,9 +87,10 @@ function handleCurrentChange(val) {
 </script>
 
 <style scoped>
-.pagination-container {
-  background: #fff;
-  padding: 32px 16px;
+.pagination-container{
+  display: flex;
+  justify-content: flex-end;
+  padding: 1rem 1rem 0 1rem;
 }
 .pagination-container.hidden {
   display: none;

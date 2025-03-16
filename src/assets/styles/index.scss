@@ -5,12 +5,15 @@
 @import './sidebar.scss';
 @import './btn.scss';
 @import './ruoyi.scss';
-:root{
+
+:root {
   --statistic-card-bg-color: #f5f7fa;
 }
-:root.dark{
+
+:root.dark {
   --statistic-card-bg-color: #1d1e1f;
 }
+
 body {
   height: 100%;
   margin: 0;
@@ -132,16 +135,6 @@ aside {
 .components-container {
   margin: 30px 50px;
   position: relative;
-}
-
-.pagination-container {
-  margin-top: 30px;
-  background-color: transparent !important;
-
-  .el-pagination{
-    border-radius: .4rem;
-    padding:.2rem 1rem;
-  }
 }
 
 .text-center {

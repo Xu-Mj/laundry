@@ -100,19 +100,6 @@
 	padding-bottom:5px
 }
 
-/** 表格布局 **/
-.pagination-container {
-    position: relative;
-    height: 25px;
-    margin-bottom: 10px;
-    margin-top: 15px;
-    padding: 10px 20px !important;
-}
-
-// .el-dialog .pagination-container {
-//     // position: static !important;
-// }
-
 /* tree border */
 .tree-border {
     margin-top: 5px;
@@ -120,12 +107,6 @@
     background: #FFFFFF none;
     border-radius:4px;
     width: 100%;
-}
-
-.pagination-container .el-pagination {
-	right: 0;
-	position: absolute;
-	--el-pagination-border-radius: .3rem;
 }
 
 @media ( max-width : 768px) {

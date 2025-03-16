@@ -26,11 +26,11 @@ import useAppStore from '@/store/modules/app'
 import useSubscriptionStore from '@/store/modules/subscription'
 import Logo from '../Sidebar/Logo.vue';
 import Navbar from '../Navbar.vue';
-import CouponSale from '@/views/home/couponSale.vue'
-import Expenditure from '@/views/home/expenditureAdd.vue'
-import AddUser from '@/views/home/addUser.vue'
-import CouponGift from '@/views/home/couponGift.vue';
-import HangUp from '@/views/home/hangUp.vue';
+import CouponSale from '@/views/components/couponSale.vue'
+import Expenditure from '@/views/components/expenditureAdd.vue'
+import AddUser from '@/views/components/addUser.vue'
+import CouponGift from '@/views/components/couponGift.vue';
+import HangUp from '@/views/components/hangUp.vue';
 import Sidebar from '../Sidebar/index.vue';
 
 const router = useRouter();

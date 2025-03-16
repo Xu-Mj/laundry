@@ -181,7 +181,7 @@ import { changeUserStatus, listUser, resetUserPwd, delUser } from "@/api/system/
 import { listRecord } from "@/api/system/record";
 import { listPostAll } from "@/api/system/post";
 import Information from "@/views/system/user/information.vue";
-import AddUser from '@/views/home/addUser.vue';
+import AddUser from '@/views/components/addUser.vue';
 
 const { proxy } = getCurrentInstance();
 const {

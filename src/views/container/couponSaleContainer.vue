@@ -4,8 +4,7 @@
 </template>
 
 <script setup>
-import CouponSale from '@/views/home/couponSale.vue'
-const router = useRouter();
+import CouponSale from '@/views/components/couponSale.vue'
 
 onMounted(() => {
     console.log('createOrderContainer');

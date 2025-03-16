@@ -116,7 +116,7 @@ import { listExpenditure, getExpenditure, delExpenditure, addExpenditure, update
 import { getUser, listUserWithNoLimit } from "@/api/system/user";
 import { getOrders } from "@/api/system/orders";
 import UserInfo from '@/views/system/user/info';
-import Expenditure from '@/views/home/expenditureAdd.vue'
+import Expenditure from '@/views/components/expenditureAdd.vue'
 
 const { proxy } = getCurrentInstance();
 const { sys_exp_type } = proxy.useDict("sys_exp_type");

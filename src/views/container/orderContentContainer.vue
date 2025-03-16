@@ -9,7 +9,7 @@
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue';
-import OrderContent from '@/views/home/oderContent.vue';
+import OrderContent from '@/views/components/oderContent.vue';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();

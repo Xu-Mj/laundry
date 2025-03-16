@@ -7,7 +7,6 @@
     </el-dialog>
 </template>
 <script setup name="Setting">
-import { ElMessage, ElMessageBox } from 'element-plus';
 import { setPrinter, getSettledPrinter, getPrinters } from '../../api/system/printer';
 
 const props = defineProps({
@@ -21,6 +20,8 @@ const props = defineProps({
         required: true,
     }
 });
+
+const {proxy} = getCurrentInstance();
 const open = ref(false);
 const printer = ref();
 const settledPrinter = ref();
@@ -37,10 +38,10 @@ async function set() {
     settledPrinter.value = printers.value.find(item => item.name === printer.value);
     try {
         await setPrinter(settledPrinter.value);
-        ElMessage.success("设置成功");
+        proxy.notify.success("设置成功");
     } catch (error) {
         console.error(error);
-        ElMessage.error("设置失败");
+        proxy.notify.error("设置失败");
     }
 }
 

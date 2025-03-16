@@ -334,8 +334,8 @@ import { refund } from '@/api/system/orders';
 import { addRecord } from '@/api/system/notice_record';
 import { listTemplate } from '@/api/system/template';
 import ShowClothsModern from './showClothsModern.vue';
-import CreateOrder from "@/views/home/createOrder.vue";
-import Pay from "@/views/home/pay.vue";
+import CreateOrder from "@/views/components/createOrder.vue";
+import Pay from "@/views/components/pay.vue";
 import { listCloths } from "@/api/system/cloths";
 import { ArrowDown } from '@element-plus/icons-vue';
 

@@ -2,8 +2,15 @@
     <el-dialog v-model="props.visible" width="650px" append-to-body :show-close="false" :close-on-click-modal="false">
         <template #header>
             <div class="dialog-header">
-                <h2 class="dialog-title">新增会员</h2>
-                <p class="dialog-subtitle">填写会员基本信息</p>
+                <div>
+                    <h2 class="dialog-title">新增会员</h2>
+                    <p class="dialog-subtitle">填写会员基本信息</p>
+                </div>
+                <el-button circle size="small" @click="cancel">
+                    <el-icon>
+                        <Close />
+                    </el-icon>
+                </el-button>
             </div>
         </template>
         <el-form :model="form" :rules="rules" ref="userRef" label-width="90px" class="modern-form">
@@ -137,7 +144,7 @@
 </template>
 
 <script setup name="AddUser">
-import { addUser,  getUser, updateUser, } from "@/api/system/user";
+import { addUser, getUser, updateUser, } from "@/api/system/user";
 
 const { proxy } = getCurrentInstance();
 
@@ -255,7 +262,7 @@ function submitForm() {
 onMounted(async () => {
     if (props.visible) {
         reset();
-        if(props.userId&&props.userId!=0){
+        if (props.userId && props.userId != 0) {
             handleUpdate();
         }
     }
@@ -265,10 +272,19 @@ onMounted(async () => {
 
 <style scoped>
 .dialog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     text-align: left;
-    padding: 0 0 16px 0;
-    border-bottom: 1px solid #f0f0f0;
-    margin-bottom: 16px;
+    padding: 1rem;
+    background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-8) 100%);
+    border-radius: .5rem;
+    margin-bottom: 1rem;
+}
+
+:root.dark .dialog-header {
+    --el-color-primary-light-9: #1d2c40;
+    --el-color-primary-light-8: #2b6095;
 }
 
 .dialog-title {
@@ -294,14 +310,14 @@ onMounted(async () => {
     /* background-color: #ffffff; */
     border-radius: 8px;
     /* box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05); */
-    box-shadow: var(--el-box-shadow-light);
+    box-shadow: var(--el-box-shadow-lighter);
     margin-bottom: 20px;
     overflow: hidden;
     transition: all 0.3s ease;
 }
 
 .form-card:hover {
-    box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.6);
+    box-shadow: var(--el-box-shadow-light);
 }
 
 .form-card:last-child {
@@ -309,7 +325,7 @@ onMounted(async () => {
 }
 
 .card-header {
-    padding: 12px 16px;
+    padding: 12px 1rem;
     background-color: var(--el-fill-color-light);
     border-bottom: 1px solid #ebeef5;
     display: flex;
@@ -328,7 +344,7 @@ onMounted(async () => {
 }
 
 .card-content {
-    padding: 16px;
+    padding: 1rem;
 }
 
 .highlight-item :deep(.el-input__wrapper),
@@ -343,13 +359,21 @@ onMounted(async () => {
 
 .modern-radio-group {
     display: flex;
-    gap: 16px;
+    gap: 1rem;
 }
 
 .dialog-footer {
     display: flex;
     justify-content: flex-end;
     gap: 12px;
+
+    button {
+        transition: all 0.3s;
+    }
+
+    button:hover {
+        transform: translateY(-2px);
+    }
 }
 
 /* 美化滚动条 */

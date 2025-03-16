@@ -308,7 +308,7 @@
                             </el-radio-group>
                             <div class="section-title">工艺加价</div>
                             <div class="process-markup">
-                                <el-input type="number" size="large" v-model="form.processMarkup" :min="0" />元
+                                <el-input style="width: 6rem;" type="number" size="large" v-model="form.processMarkup" :min="0" />元
                             </div>
                             <div class="section-title">备注信息</div>
                             <div class="step6-card">

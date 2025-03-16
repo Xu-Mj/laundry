@@ -569,7 +569,10 @@ onMounted(async () => {
     justify-content: flex-end;
     align-items: center;
     gap: 1rem;
-    transition: all 0.3s;
+
+    button {
+        transition: all 0.3s;
+    }
 
     button:hover {
         transform: translateY(-2px);

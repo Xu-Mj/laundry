@@ -1,42 +1,24 @@
 <template>
-  <el-dialog
-    title="衣物列表"
-    v-model="showClothesDialog"
-    width="1200px"
-    append-to-body
-    lock-scroll
-    modal
-    :close-on-click-modal="false"
-    @closed="close"
-    class="modern-dialog"
-  >
+  <el-dialog title="衣物列表" v-model="showClothesDialog" width="1200px" append-to-body lock-scroll modal
+    :close-on-click-modal="false" @closed="close" class="modern-dialog">
     <!-- 顶部操作栏 -->
     <div class="top-actions">
       <div class="search-bar">
-        <el-input
-          placeholder="搜索衣物..."
-          prefix-icon="Search"
-          v-model="searchQuery"
-          clearable
-          @clear="getList"
-          @keyup.enter="searchCloths"
-        >
+        <el-input placeholder="搜索衣物..." prefix-icon="Search" v-model="searchQuery" clearable @clear="getList"
+          @keyup.enter="searchCloths">
           <template #append>
             <el-button @click="searchCloths">
-              <el-icon><Search /></el-icon>
+              <el-icon>
+                <Search />
+              </el-icon>
             </el-button>
           </template>
         </el-input>
       </div>
       <div class="filter-actions">
         <el-select v-model="statusFilter" style="width: 120px;" placeholder="状态筛选" clearable @change="filterByStatus">
-          <el-option
-            v-for="item in sys_clothing_status"
-            :key="item.value"
-            :label="item.label"
-            :value="item.value"
-          >
-           
+          <el-option v-for="item in sys_clothing_status" :key="item.value" :label="item.label" :value="item.value">
+
           </el-option>
         </el-select>
       </div>
@@ -51,46 +33,32 @@
     <!-- 衣物卡片列表 -->
     <div v-else class="cloth-cards-container">
       <el-empty v-if="clothsList.length === 0" description="暂无衣物数据" />
-      
+
       <div v-else class="cloth-cards">
-        <el-card 
-          v-for="(item, index) in clothsList" 
-          :key="index" 
-          class="cloth-card"
-          :class="{ 'selected-card': isSelected(item) }"
-          shadow="hover"
-          @click="toggleSelection(item)"
-        >
+        <el-card v-for="(item, index) in clothsList" :key="index" class="cloth-card"
+          :class="{ 'selected-card': isSelected(item) }" shadow="hover" @click="toggleSelection(item)">
           <!-- 卡片头部 - 衣物基本信息 -->
           <template #header>
             <div class="card-header">
               <div class="cloth-info">
                 <div class="cloth-name">
-                  <el-icon><Goods /></el-icon>
+                  <el-icon>
+                    <Goods />
+                  </el-icon>
                   <span>{{ item.clothInfo.clothingName }}</span>
-                  <el-tag 
-                    v-if="item.clothingColor" 
-                    size="small" 
-                    effect="plain" 
-                    type="info"
-                    class="cloth-tag"
-                  >
-                    {{ colorList.find(color => color.tagId == item.clothingColor)?.tagName }}
+                  <el-tag v-if="item.clothingColor" size="small" effect="plain" type="info" class="cloth-tag">
+                    {{colorList.find(color => color.tagId == item.clothingColor)?.tagName}}
                   </el-tag>
-                  <el-tag 
-                    v-if="item.clothingBrand" 
-                    size="small" 
-                    effect="plain" 
-                    type="success"
-                    class="cloth-tag"
-                  >
-                    {{ brandList.find(brand => brand.tagId == item.clothingBrand)?.tagName }}
+                  <el-tag v-if="item.clothingBrand" size="small" effect="plain" type="success" class="cloth-tag">
+                    {{brandList.find(brand => brand.tagId == item.clothingBrand)?.tagName}}
                   </el-tag>
                 </div>
                 <div class="cloth-code">
                   <el-tooltip content="衣物编码" placement="top">
                     <el-tag type="info" effect="plain">
-                      <el-icon><Ticket /></el-icon>
+                      <el-icon>
+                        <Ticket />
+                      </el-icon>
                       {{ item.hangClothCode }}
                     </el-tag>
                   </el-tooltip>
@@ -107,7 +75,9 @@
             <!-- 服务信息 -->
             <div class="info-section">
               <div class="section-title">
-                <el-icon><Service /></el-icon>
+                <el-icon>
+                  <Service />
+                </el-icon>
                 <span>服务信息</span>
               </div>
               <div class="service-info">
@@ -132,7 +102,9 @@
             <!-- 衣物详情 -->
             <div class="info-section cloth-details">
               <div class="section-title">
-                <el-icon><InfoFilled /></el-icon>
+                <el-icon>
+                  <InfoFilled />
+                </el-icon>
                 <span>瑕疵/预估</span>
               </div>
               <div class="tags-container" v-if="item.clothingFlaw || item.estimate">
@@ -140,30 +112,20 @@
                 <div v-if="item.clothingFlaw" class="tag-group">
                   <span class="tag-label">瑕疵:</span>
                   <div class="tags">
-                    <el-tag 
-                      v-for="tagId in item.clothingFlaw.split(',')" 
-                      :key="tagId"
-                      type="danger"
-                      size="small"
-                      effect="light"
-                    >
-                      {{ flawList.find(flaw => flaw.tagId == tagId)?.tagName }}
+                    <el-tag v-for="tagId in item.clothingFlaw.split(',')" :key="tagId" type="danger" size="small"
+                      effect="light">
+                      {{flawList.find(flaw => flaw.tagId == tagId)?.tagName}}
                     </el-tag>
                   </div>
                 </div>
-                
+
                 <!-- 洗后预估 -->
                 <div v-if="item.estimate" class="tag-group">
                   <span class="tag-label">预估:</span>
                   <div class="tags">
-                    <el-tag 
-                      v-for="tagId in item.estimate.split(',')" 
-                      :key="tagId"
-                      type="warning"
-                      size="small"
-                      effect="light"
-                    >
-                      {{ estimateList.find(est => est.tagId == tagId)?.tagName }}
+                    <el-tag v-for="tagId in item.estimate.split(',')" :key="tagId" type="warning" size="small"
+                      effect="light">
+                      {{estimateList.find(est => est.tagId == tagId)?.tagName}}
                     </el-tag>
                   </div>
                 </div>
@@ -177,7 +139,9 @@
             <!-- 位置和取回信息 -->
             <div class="info-section">
               <div class="section-title">
-                <el-icon><Location /></el-icon>
+                <el-icon>
+                  <Location />
+                </el-icon>
                 <span>位置与取回</span>
               </div>
               <div class="info-row">
@@ -205,31 +169,17 @@
 
             <!-- 操作按钮 -->
             <div class="card-actions">
-              <el-button 
-                type="primary" 
-                :icon="Picture" 
-                size="small"
+              <el-button type="primary" :icon="Picture" size="small"
                 :disabled="!item.beforePics || item.beforePics.length === 0"
-                @click.stop="handleShowPicture(item, true)"
-              >
+                @click.stop="handleShowPicture(item, true)">
                 洗前照片
               </el-button>
-              <el-button 
-                type="success" 
-                :icon="Picture" 
-                size="small"
-                :disabled="!item.afterPics || item.afterPics.length === 0"
-                @click.stop="handleShowPicture(item, false)"
-              >
+              <el-button type="success" :icon="Picture" size="small"
+                :disabled="!item.afterPics || item.afterPics.length === 0" @click.stop="handleShowPicture(item, false)">
                 洗后照片
               </el-button>
-              <el-button 
-                type="warning" 
-                :icon="Top" 
-                size="small"
-                v-if="item.clothingStatus == '01'"
-                @click.stop="handleShowHangUp(item)"
-              >
+              <el-button type="warning" :icon="Top" size="small" v-if="item.clothingStatus == '01'"
+                @click.stop="handleShowHangUp(item)">
                 上挂
               </el-button>
             </div>
@@ -245,116 +195,70 @@
       </div>
       <div class="action-buttons">
         <el-button type="warning" plain :disabled="afterSaleDisabled" @click="afterSale">
-          <el-icon><Warning /></el-icon> 售后
+          <el-icon>
+            <Warning />
+          </el-icon> 售后
         </el-button>
         <el-button type="danger" plain :disabled="compensationDisabled" @click="handleCompensate">
-          <el-icon><Money /></el-icon> 赔偿
+          <el-icon>
+            <Money />
+          </el-icon> 赔偿
         </el-button>
       </div>
     </div>
 
     <!-- 展示照片对话框 -->
-    <el-dialog
-      title="照片预览"
-      v-model="showPicture"
-      width="600px"
-      append-to-body
-      class="picture-dialog"
-    >
+    <el-dialog title="照片预览" v-model="showPicture" width="600px" append-to-body class="picture-dialog">
       <div class="picture-container">
         <el-empty v-if="pictureList.length === 0" description="暂无照片" />
         <el-carousel v-else :interval="4000" type="card" height="300px">
           <el-carousel-item v-for="(item, index) in pictureList" :key="index">
-            <el-image
-              :src="item"
-              fit="contain"
-              :preview-src-list="pictureList"
-              class="carousel-image"
-            />
+            <el-image :src="item" fit="contain" :preview-src-list="pictureList" class="carousel-image" />
           </el-carousel-item>
         </el-carousel>
         <div class="picture-grid" v-if="pictureList.length > 0">
-          <el-image
-            v-for="(item, index) in pictureList"
-            :key="index"
-            :src="item"
-            fit="cover"
-            :preview-src-list="pictureList"
-            class="grid-image"
-          />
+          <el-image v-for="(item, index) in pictureList" :key="index" :src="item" fit="cover"
+            :preview-src-list="pictureList" class="grid-image" />
         </div>
       </div>
     </el-dialog>
 
     <!-- 上挂对话框 -->
-    <el-dialog
-      title="衣物上挂"
-      v-model="showHangUp"
-      width="450px"
-      :show-close="false"
-      append-to-body
-      :before-close="closeHangUpDialog"
-      class="hangup-dialog"
-    >
+    <el-dialog title="衣物上挂" v-model="showHangUp" width="450px" :show-close="false" append-to-body
+      :before-close="closeHangUpDialog" class="hangup-dialog">
       <div class="hangup-content">
         <div class="cloth-preview" v-if="currentCloth">
           <div class="preview-header">
-            <el-icon><Goods /></el-icon>
+            <el-icon>
+              <Goods />
+            </el-icon>
             <span class="cloth-title">{{ currentCloth.clothInfo?.clothingName }}</span>
-            <el-tag 
-              v-if="currentCloth.clothingColor" 
-              size="small" 
-              effect="plain" 
-              type="info"
-            >
-              {{ colorList.find(color => color.tagId == currentCloth.clothingColor)?.tagName }}
+            <el-tag v-if="currentCloth.clothingColor" size="small" effect="plain" type="info">
+              {{colorList.find(color => color.tagId == currentCloth.clothingColor)?.tagName}}
             </el-tag>
-            <el-tag 
-              v-if="currentCloth.clothingBrand" 
-              size="small" 
-              effect="plain" 
-              type="success"
-            >
-              {{ brandList.find(brand => brand.tagId == currentCloth.clothingBrand)?.tagName }}
+            <el-tag v-if="currentCloth.clothingBrand" size="small" effect="plain" type="success">
+              {{brandList.find(brand => brand.tagId == currentCloth.clothingBrand)?.tagName}}
             </el-tag>
           </div>
         </div>
 
         <el-form ref="hangUpRef" :model="hangForm" :rules="hangRules" label-width="90px" class="hangup-form">
           <el-form-item label="衣物编码" prop="clothingNumber">
-            <el-input
-              v-model="hangForm.clothingNumber"
-              placeholder="请输入衣物编码"
-              prefix-icon="Ticket"
-            />
+            <el-input v-model="hangForm.clothingNumber" placeholder="请输入衣物编码" prefix-icon="Ticket" />
           </el-form-item>
 
           <el-form-item label="衣挂位置" prop="hangLocationId">
             <el-select v-model="hangForm.hangLocationId" placeholder="请选择上挂位置" class="full-width">
-              <el-option
-                v-for="item in hangLocationList"
-                :key="item.id"
-                :label="item.name"
-                :value="item.id"
-              />
+              <el-option v-for="item in hangLocationList" :key="item.id" :label="item.name" :value="item.id" />
             </el-select>
           </el-form-item>
 
           <el-form-item label="衣挂编号" prop="hangerNumber">
-            <el-input
-              v-model="hangForm.hangerNumber"
-              placeholder="请输入上挂衣物编码"
-              prefix-icon="Location"
-            />
+            <el-input v-model="hangForm.hangerNumber" placeholder="请输入上挂衣物编码" prefix-icon="Location" />
           </el-form-item>
 
           <el-form-item label="备注信息" prop="hangRemark">
-            <el-input
-              type="textarea"
-              v-model="hangForm.hangRemark"
-              placeholder="请输入上挂描述信息"
-              rows="3"
-            />
+            <el-input type="textarea" v-model="hangForm.hangRemark" placeholder="请输入上挂描述信息" rows="3" />
           </el-form-item>
         </el-form>
       </div>
@@ -368,13 +272,7 @@
     </el-dialog>
 
     <!-- 赔偿对话框 -->
-    <el-dialog
-      title="衣物赔偿"
-      v-model="showCompensationDialog"
-      width="500px"
-      append-to-body
-      class="compensation-dialog"
-    >
+    <el-dialog title="衣物赔偿" v-model="showCompensationDialog" width="500px" append-to-body class="compensation-dialog">
       <el-form ref="compensationRef" :model="compensationForm" :rules="compensationRules" label-width="90px">
         <el-form-item label="支出账目" prop="expTitle">
           <el-input v-model="compensationForm.expTitle" placeholder="请输入支出账目名称" />
@@ -383,22 +281,11 @@
           <el-input v-model="compensationForm.recvAccountTitle" disabled />
         </el-form-item>
         <el-form-item label="赔偿金额" prop="expAmount">
-          <el-input-number
-            v-model="compensationForm.expAmount"
-            controls-position="right"
-            :precision="2"
-            :min="0"
-            placeholder="请输入赔偿金额"
-            class="full-width"
-          />
+          <el-input-number v-model="compensationForm.expAmount" controls-position="right" :precision="2" :min="0"
+            placeholder="请输入赔偿金额" class="full-width" />
         </el-form-item>
         <el-form-item label="备注信息" prop="remark">
-          <el-input
-            type="textarea"
-            v-model="compensationForm.remark"
-            placeholder="请输入备注信息"
-            rows="3"
-          />
+          <el-input type="textarea" v-model="compensationForm.remark" placeholder="请输入备注信息" rows="3" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -419,6 +306,7 @@ import { hangup } from "@/api/system/cloths";
 import { getUser } from "@/api/system/user";
 import { addExpenditure } from "@/api/system/expenditure";
 import { invoke } from '@tauri-apps/api/core';
+import useSubscriptionStore from '@/store/modules/subscription';
 import { Search, Goods, Location, Picture, Top, InfoFilled, Warning, Money, Ticket, Service } from '@element-plus/icons-vue';
 
 const props = defineProps({
@@ -530,14 +418,14 @@ function searchCloths() {
     getList();
     return;
   }
-  
+
   loading.value = true;
   const query = searchQuery.value.toLowerCase();
-  
+
   listCloths({ orderId: props.orderId }).then(response => {
     clothsList.value = response.filter(item => {
       return item.clothInfo.clothingName.toLowerCase().includes(query) ||
-             item.hangClothCode.toLowerCase().includes(query);
+        item.hangClothCode.toLowerCase().includes(query);
     });
     loading.value = false;
   });
@@ -549,9 +437,9 @@ function filterByStatus() {
     getList();
     return;
   }
-  
+
   loading.value = true;
-  
+
   listCloths({ orderId: props.orderId }).then(response => {
     clothsList.value = response.filter(item => {
       return item.clothingStatus === statusFilter.value;
@@ -567,13 +455,13 @@ function isSelected(item) {
 
 function toggleSelection(item) {
   const index = selectionList.value.findIndex(selected => selected.clothId === item.clothId);
-  
+
   if (index > -1) {
     selectionList.value.splice(index, 1);
   } else {
     selectionList.value.push(item);
   }
-  
+
   updateButtonStatus();
 }
 
@@ -618,7 +506,7 @@ async function initList() {
     });
     promises.push(brandPromise);
   }
-  
+
   // 获取衣挂位置列表
   const rackPromise = listRack().then(res => {
     hangLocationList.value = res;
@@ -631,6 +519,16 @@ async function initList() {
 
 // 显示上挂对话框
 function handleShowHangUp(row) {
+  // 判断是否是试用期
+  if (useSubscriptionStore().isGuest) {
+    proxy.notify.warning('当前处于游客模式，请先注册！');
+    return;
+  }
+  if (useSubscriptionStore().isInTrial) {
+    // 弹窗提醒
+    proxy.notify.warning('您当前为试用期用户，请升级为正式用户后使用！');
+    return;
+  }
   showHangUp.value = true;
   currentCloth.value = row;
   hangForm.value = {
@@ -899,7 +797,7 @@ onMounted(async () => {
   flex-direction: column;
   gap: 8px;
 
-  .service-type{
+  .service-type {
     display: flex;
     gap: .5rem;
   }
@@ -1137,13 +1035,13 @@ onMounted(async () => {
   .cloth-cards {
     grid-template-columns: 1fr;
   }
-  
+
   .top-actions {
     flex-direction: column;
     align-items: stretch;
     gap: 10px;
   }
-  
+
   .search-bar {
     width: 100%;
   }

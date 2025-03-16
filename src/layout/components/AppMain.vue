@@ -8,7 +8,7 @@
       </transition>
     </router-view>
   </section>
-  <el-dialog v-model="showWarning" :show-close="false" width="300px" center="true">
+  <el-dialog :align-center="true" v-model="showWarning" :show-close="false" width="300px" center="true">
     <p style="text-align: center;">您将在 {{ countdown }} 秒后自动注销当前登录。</p>
   </el-dialog>
 </template>

@@ -1,13 +1,10 @@
 <template>
-  <AppWatermark>
     <router-view />
-  </AppWatermark>
 </template>
 
 <script setup>
 import useSettingsStore from '@/store/modules/settings'
 import { handleThemeStyle } from '@/utils/theme'
-import AppWatermark from '@/components/AppWatermark/index.vue'
 
 onMounted(() => {
   nextTick(() => {

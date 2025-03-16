@@ -1,6 +1,16 @@
 <template>
-    <el-dialog v-model="open" title="支出录入" width="520px" :align-center="true" :show-close="true" append-to-body
+    <el-dialog v-model="open" width="520px" :align-center="true" :show-close="false" append-to-body
         @closed="props.taggle()" class="expenditure-dialog">
+        <template #header>
+            <div class="dialog-header">
+                <div class="dialog-title">{{ props.title }}</div>
+                <el-button circle @click="cancel">
+                    <el-icon>
+                        <Close />
+                    </el-icon>
+                </el-button>
+            </div>
+        </template>
         <div class="expenditure-container">
             <!-- 表单头部 - 支出类型选择 -->
             <div class="form-section type-section">
@@ -82,7 +92,6 @@
 </template>
 
 <script setup>
-import { ref, reactive, toRefs, onMounted, getCurrentInstance } from 'vue';
 import { addExpenditure, updateExpenditure } from "@/api/system/expenditure";
 import { listUserWithNoLimit } from "@/api/system/user";
 
@@ -101,6 +110,10 @@ const props = defineProps({
     data: {
         type: Object,
         required: false,
+    },
+    title: {
+        type: String,
+        required: true,
     }
 });
 
@@ -221,6 +234,27 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.dialog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    text-align: left;
+    padding: 1rem;
+    background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-8) 100%);
+    border-radius: .5rem;
+}
+
+:root.dark .dialog-header {
+    --el-color-primary-light-9: #1d2c40;
+    --el-color-primary-light-8: #2b6095;
+}
+
+.dialog-title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+}
+
 .expenditure-dialog :deep(.el-dialog__header) {
     margin-right: 0;
     padding: 16px 20px;

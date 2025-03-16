@@ -1,12 +1,13 @@
 <template>
-    <el-dialog :align-center="true" v-model="props.visible" width="650px" append-to-body :show-close="false" :close-on-click-modal="false">
+    <el-dialog :align-center="true" v-model="props.visible" width="650px" append-to-body :show-close="false"
+        :close-on-click-modal="false" :close-on-press-escape="false">
         <template #header>
             <div class="dialog-header">
                 <div>
                     <h2 class="dialog-title">新增会员</h2>
                     <p class="dialog-subtitle">填写会员基本信息</p>
                 </div>
-                <el-button circle size="small" @click="cancel">
+                <el-button circle @click="cancel">
                     <el-icon>
                         <Close />
                     </el-icon>
@@ -279,7 +280,6 @@ onMounted(async () => {
     padding: 1rem;
     background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-8) 100%);
     border-radius: .5rem;
-    margin-bottom: 1rem;
 }
 
 :root.dark .dialog-header {

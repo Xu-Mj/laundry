@@ -79,7 +79,7 @@
         v-model:limit="queryParams.pageSize" @pagination="getList" />
     </el-card>
     <!-- 添加或修改支出对话框 -->
-    <Expenditure :visible="open" :key="open" :data="form" :taggle="() => { open = !open; getList() }" />
+    <Expenditure :visible="open" :key="open" :data="form" :title="title" :taggle="() => { open = !open; getList() }" />
 
     <!-- 展示会员详细信息 -->
     <el-dialog title="会员详细信息" v-model="showUserInfoDialog" width="400px" :align-center="true" append-to-body>
@@ -112,7 +112,7 @@
 </template>
 
 <script setup name="Expenditure">
-import { listExpenditure, getExpenditure, delExpenditure, addExpenditure, updateExpenditure } from "@/api/system/expenditure";
+import { listExpenditure, getExpenditure, delExpenditure } from "@/api/system/expenditure";
 import { getUser, listUserWithNoLimit } from "@/api/system/user";
 import { getOrders } from "@/api/system/orders";
 import UserInfo from '@/views/system/user/info';
@@ -123,8 +123,6 @@ const { sys_exp_type } = proxy.useDict("sys_exp_type");
 
 const expenditureList = ref([]);
 const userList = ref([]);
-const userListRes = ref([]);
-const notACount = ref(false);
 const open = ref(false);
 const loading = ref(true);
 const showSearch = ref(true);
@@ -230,7 +228,7 @@ function handleAdd() {
     userList.value = res;
     open.value = true;
   })
-  // title.value = "添加支出";
+  title.value = "添加支出";
 }
 
 /** 修改按钮操作 */
@@ -243,7 +241,7 @@ async function handleUpdate(row) {
       form.value.recvAccount = form.value.recvAccountTitle;
     }
     open.value = true;
-    // title.value = "修改支出";
+    title.value = "修改支出";
   });
 }
 

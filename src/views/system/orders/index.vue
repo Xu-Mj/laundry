@@ -4,7 +4,7 @@
     <el-card class="search-card" v-show="showSearch">
       <el-form :model="queryParams" ref="queryRef" :inline="true" label-width="68px">
         <el-form-item label="订单编码" prop="orderNumber" size="large">
-          <el-input size="large" v-model="queryParams.orderNumber" placeholder="请输入订单编码" clearable
+          <el-input size="large" v-model="queryParams.orderNumber" placeholder="请输入订单编码" clearable style="width: 220px;"
             @keyup.enter="handleQuery">
             <template #prefix>
               <el-icon>
@@ -15,7 +15,7 @@
         </el-form-item>
         <el-form-item label="手机号" prop="phonenumber" size="large">
           <el-input size="large" v-model="queryParams.phonenumber" placeholder="请输入会员手机号" clearable
-            @keyup.enter="handleQuery">
+            style="width: 160px;" @keyup.enter="handleQuery">
             <template #prefix>
               <el-icon>
                 <Phone />
@@ -24,7 +24,7 @@
           </el-input>
         </el-form-item>
         <el-form-item label="取件码" prop="pickupCode" size="large">
-          <el-input size="large" v-model="queryParams.pickupCode" placeholder="请输入取件码" clearable
+          <el-input size="large" v-model="queryParams.pickupCode" placeholder="请输入取件码" clearable style="width: 140px;"
             @keyup.enter="handleQuery">
             <template #prefix>
               <el-icon>
@@ -45,24 +45,24 @@
           </el-select>
         </el-form-item>
         <el-form-item label="支付状态" prop="paymentStatus" size="large">
-          <template #prefix>
-            <el-icon>
-              <Open />
-            </el-icon>
-          </template>
           <el-select size="large" v-model="queryParams.paymentStatus" @change="handleQuery" clearable
             style="width: 120px;" placeholder="请选择">
+            <template #prefix>
+              <el-icon>
+                <Warning />
+              </el-icon>
+            </template>
             <el-option v-for="dict in sys_payment_status" :key="dict.value" :label="dict.label" :value="dict.value" />
           </el-select>
         </el-form-item>
         <el-form-item label="洗护状态" prop="status" size="large">
-          <template #prefix>
-            <el-icon>
-              <Open />
-            </el-icon>
-          </template>
           <el-select size="large" v-model="queryParams.status" @change="handleQuery" clearable style="width: 120px;"
             placeholder="请选择">
+            <template #prefix>
+              <el-icon>
+                <Warning />
+              </el-icon>
+            </template>
             <el-option v-for="dict in sys_order_status" :key="dict.value" :label="dict.label" :value="dict.value" />
           </el-select>
         </el-form-item>

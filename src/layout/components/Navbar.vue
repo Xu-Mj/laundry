@@ -8,7 +8,7 @@
           </div>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item @click="showChangePwd = true">修改密码</el-dropdown-item>
+              <el-dropdown-item @click="showChangePwd = true" v-if="!isGuest">修改密码</el-dropdown-item>
               <router-link to="/profile">
                 <el-dropdown-item>个人中心</el-dropdown-item>
               </router-link>
@@ -69,9 +69,9 @@
 import ThemeSwitch from '@/components/ThemeSwitch.vue';
 import { ElMessageBox } from 'element-plus'
 import useUserStore from '@/store/modules/user'
+import useSubscriptionStore from '@/store/modules/subscription'
 import Setting from '@/views/setting/index.vue';
 import { updatePwd } from '@/api/system/user';
-import { Window } from '@tauri-apps/api/window';
 
 const props = defineProps({
   switch: Function,
@@ -80,8 +80,8 @@ const props = defineProps({
 
 const { proxy } = getCurrentInstance();
 
-const appWindow = new Window('main')
 const userStore = useUserStore()
+const isGuest= ref(useSubscriptionStore().isGuest);
 const showSetting = ref(false);
 const showChangePwd = ref(false);
 const form = ref({
@@ -186,7 +186,6 @@ function logout() {
     type: 'warning'
   }).then(() => {
     userStore.logOut().then(async () => {
-      await appWindow.hide();
       location.href = '/index';
     })
   }).catch(() => { });

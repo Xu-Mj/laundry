@@ -49,7 +49,7 @@
                                 </div>
                             </el-col>
                             <el-col :span="8" class="info-action">
-                                <el-button type="primary" icon="DArrowRight"
+                                <el-button type="primary" plain icon="DArrowRight"
                                     @click="showInfoDialog = true">详情</el-button>
                             </el-col>
                         </el-row>
@@ -110,7 +110,23 @@
                         <h3 class="section-title">衣物列表</h3>
                         <CustomTable :table-data="form.cloths" @delete="handleDelete" />
                     </div>
+                    <div class="order-list-card">
+                        <h3 class="section-title">店主调价</h3>
 
+                        <div class="adjust-price-group">
+                            <el-input size="large" type="number" :min="0" :max="1000" @input="adjustInput"
+                                @change="adjustInputChange" v-model="form.adjust.adjustValueSub" placeholder="请输入调减金额"
+                                :disabled="notEditable" />
+                            <el-input size="large" type="number" :min="0" :max="1000" @input="adjustInput"
+                                @change="adjustInputChange" v-model="form.adjust.adjustValueAdd" placeholder="请输入调增金额"
+                                :disabled="notEditable" />
+                            <el-input size="large" type="number" :min="0" :max="Infinity" @input="adjustInput"
+                                @change="adjustInputChange" v-model="form.adjust.adjustTotal" placeholder="请输入总金额"
+                                :disabled="notEditable" />
+                            <el-input size="large" v-model="form.adjust.remark" placeholder="备注信息"
+                                @change="adjustInputChange" :disabled="notEditable" />
+                        </div>
+                    </div>
                     <div class="order-summary-card">
                         <el-row :gutter="20" class="footer">
                             <el-col :xs="24" :sm="8">
@@ -136,12 +152,6 @@
                             </el-col>
                         </el-row>
                     </div>
-                    <!-- <div class="total-price-card">
-                        <div class="total-price">
-                            <span class="price-label">总价</span>
-                            <span class="price-value">{{ totalPrice }}元</span>
-                        </div>
-                    </div> -->
                 </el-form>
                 <div class="left-footer">
                     <div class="total-price">
@@ -149,11 +159,12 @@
                         <span class="price-value">{{ totalPrice }}元</span>
                     </div>
                     <div class="btn-container">
-                        <el-button size="large" @click="cancelSelf">{{ form.orderId ? '关 闭' : '取 消'
+                        <el-button size="large" icon="Close" type="danger" @click="cancelSelf">{{ form.orderId ? '关 闭' :
+                            '取 消'
                             }}</el-button>
-                        <el-button size="large" type="primary" @click="submitForm"
+                        <el-button size="large" icon="Check" type="primary" color="#626aef" @click="submitForm"
                             :disabled="notEditable && !(form.source === '03') && (form.priceId || form.source === '02' || form.source === '01')">取衣收款</el-button>
-                        <el-button size="large" type="primary" @click="createAndPay"
+                        <el-button size="large" type="success" @click="createAndPay" icon="Money"
                             :disabled="notEditable">收衣收款</el-button>
                     </div>
                 </div>
@@ -781,8 +792,9 @@ async function printCloth() {
     }
 }
 
-function handleDelete(clothId) {
-    proxy.$modal.confirm('是否确认删除订单包含的衣物清单编号为"' + clothId + '"的数据项？').then(function () {
+function handleDelete(clothId, name) {
+    const title = name ? name : clothId;
+    proxy.$modal.confirm('是否确认删除订单包含的衣物清单编号为"' + title + '"的数据项？').then(function () {
         return delCloths(clothId);
     }).then(() => {
 
@@ -886,7 +898,6 @@ defineExpose({
     padding: 1.5rem;
     display: flex;
     flex-direction: column;
-
 }
 
 /* 在表单和按钮容器之间添加内容容器 */
@@ -916,7 +927,6 @@ defineExpose({
     justify-content: space-around;
     align-items: center;
     gap: 1.5rem;
-    margin: 1.5rem 0;
     background-color: var(--el-fill-color-light);
     padding: 1rem;
     border-radius: 8px;
@@ -925,7 +935,6 @@ defineExpose({
 .footer {
     padding: 1.5rem;
     border-radius: 8px;
-    margin-top: 1.5rem;
     background-color: var(--el-fill-color-light);
 }
 
@@ -974,7 +983,9 @@ defineExpose({
     align-items: center;
     gap: 1.25rem;
 
-    transition: all 0.3s;
+    button {
+        transition: all 0.3s;
+    }
 
     button:hover {
         transform: translateY(-2px);
@@ -984,17 +995,6 @@ defineExpose({
 .payment-footer {
     text-align: center;
     margin-top: 1.5rem;
-}
-
-.coupon-list {
-    display: flex;
-    justify-content: flex-start;
-    align-items: center;
-    gap: 1.25rem;
-    flex-wrap: wrap;
-    padding: 1rem;
-    background-color: var(--el-fill-color-light);
-    border-radius: 8px;
 }
 
 .status-row {
@@ -1025,13 +1025,6 @@ defineExpose({
     transition: all 0.3s;
 }
 
-.coupon-list-container {
-    overflow: hidden;
-    border-radius: 8px;
-    margin: 1.5rem 0;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-}
-
 .el-form-item__label {
     color: var(--el-text-color-primary);
     font-weight: 500;
@@ -1044,19 +1037,9 @@ defineExpose({
         flex-direction: column;
     }
 
-    .left,
-    .right {
-        height: auto;
-    }
-
     .left-footer {
         position: static;
         margin-top: 2rem;
-    }
-
-    .coupon-list {
-        flex-direction: column;
-        align-items: flex-start;
     }
 }
 
@@ -1132,9 +1115,8 @@ h3 {
 .total-price-card {
     background-color: var(--el-bg-color);
     border-radius: 12px;
-    padding: 1.5rem;
+    padding: 1rem 1.5rem;
     margin-bottom: 1.5rem;
-    /* box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05); */
     box-shadow: var(--el-box-shadow-lighter);
     transition: all 0.3s ease;
 }
@@ -1145,7 +1127,6 @@ h3 {
 .order-summary-card:hover,
 .total-price-card:hover {
     transform: translateY(-2px);
-    /* box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); */
     box-shadow: var(--el-box-shadow);
 }
 

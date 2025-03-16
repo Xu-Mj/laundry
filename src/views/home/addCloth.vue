@@ -308,8 +308,7 @@
                             </el-radio-group>
                             <div class="section-title">工艺加价</div>
                             <div class="process-markup">
-                                <el-input-number size="large" v-model="form.processMarkup" :min="0"
-                                    controls-position="right" />元
+                                <el-input type="number" size="large" v-model="form.processMarkup" :min="0" />元
                             </div>
                             <div class="section-title">备注信息</div>
                             <div class="step6-card">
@@ -1234,9 +1233,9 @@ onMounted(async () => {
 .section-title {
     position: relative;
     text-align: left;
-    font-size: 16px;
+    font-size: 1rem;
     font-weight: 600;
-    margin: 16px 0 12px 0;
+    margin: 1rem 0 12px 0;
     color: var(--el-color-primary-dark-2);
 }
 
@@ -1254,7 +1253,7 @@ onMounted(async () => {
 .payment-method-section {
     background-color: var(--el-fill-color);
     border-radius: 8px;
-    padding: 15px;
+    padding: 1rem;
     box-shadow: var(--el-box-shadow);
 }
 
@@ -1262,10 +1261,9 @@ onMounted(async () => {
     display: flex;
     justify-content: flex-start;
     align-items: center;
-    flex-wrap: wrap;
-    gap: 16px;
+    gap: 1rem;
     border-radius: 8px;
-    padding: 15px;
+    padding: 1rem;
     box-shadow: var(--el-box-shadow-lighter);
     margin-bottom: 1rem;
 }
@@ -1274,9 +1272,9 @@ onMounted(async () => {
     display: flex;
     justify-content: center;
     flex-wrap: wrap;
-    gap: 16px;
+    gap: 1rem;
     border-radius: 8px;
-    padding: 15px;
+    padding: 1rem;
     box-shadow: var(--el-box-shadow-lighter);
     margin-bottom: 1rem;
     transition: all 0.3s;
@@ -1333,7 +1331,7 @@ onMounted(async () => {
 /* 衣物信息卡片样式 */
 .info-card {
     border-radius: 8px;
-    padding: 15px;
+    padding: 1rem;
     box-shadow: var(--el-box-shadow-lighter);
     transition: all 0.3s ease;
 }
@@ -1400,7 +1398,7 @@ onMounted(async () => {
     padding: 0 0 0;
     /* 鼠标穿透 */
     pointer-events: none;
-    
+
     button {
         transition: all 0.3s;
         pointer-events: all;

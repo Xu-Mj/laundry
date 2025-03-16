@@ -1,6 +1,6 @@
 <template>
-    <el-dialog v-model="open" title="支出录入" width="520px" :show-close="true" append-to-body @closed="props.taggle()"
-        class="expenditure-dialog">
+    <el-dialog v-model="open" title="支出录入" width="520px" :align-center="true" :show-close="true" append-to-body
+        @closed="props.taggle()" class="expenditure-dialog">
         <div class="expenditure-container">
             <!-- 表单头部 - 支出类型选择 -->
             <div class="form-section type-section">

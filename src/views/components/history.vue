@@ -1,5 +1,5 @@
 <template>
-    <el-dialog v-model="show" width="80%" @closed="close">
+    <el-dialog v-model="show" width="80%" :align-center="true" @closed="close">
         <el-table :data="data">
             <el-table-column label="衣物" align="center">
                 <template #default="scope">

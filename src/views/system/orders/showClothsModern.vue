@@ -1,6 +1,6 @@
 <template>
   <el-dialog title="衣物列表" v-model="showClothesDialog" width="1200px" append-to-body lock-scroll modal
-    :close-on-click-modal="false" @closed="close" class="modern-dialog">
+    :close-on-click-modal="false" @closed="close" :align-center="true" class="modern-dialog">
     <!-- 顶部操作栏 -->
     <div class="top-actions">
       <div class="search-bar">
@@ -208,7 +208,8 @@
     </div>
 
     <!-- 展示照片对话框 -->
-    <el-dialog title="照片预览" v-model="showPicture" width="600px" append-to-body class="picture-dialog">
+    <el-dialog title="照片预览" v-model="showPicture" width="600px" :align-center="true" append-to-body
+      class="picture-dialog">
       <div class="picture-container">
         <el-empty v-if="pictureList.length === 0" description="暂无照片" />
         <el-carousel v-else :interval="4000" type="card" height="300px">
@@ -224,7 +225,7 @@
     </el-dialog>
 
     <!-- 上挂对话框 -->
-    <el-dialog title="衣物上挂" v-model="showHangUp" width="450px" :show-close="false" append-to-body
+    <el-dialog title="衣物上挂" v-model="showHangUp" width="450px" :align-center="true" :show-close="false" append-to-body
       :before-close="closeHangUpDialog" class="hangup-dialog">
       <div class="hangup-content">
         <div class="cloth-preview" v-if="currentCloth">
@@ -272,7 +273,8 @@
     </el-dialog>
 
     <!-- 赔偿对话框 -->
-    <el-dialog title="衣物赔偿" v-model="showCompensationDialog" width="500px" append-to-body class="compensation-dialog">
+    <el-dialog title="衣物赔偿" v-model="showCompensationDialog" width="500px" :align-center="true" append-to-body
+      class="compensation-dialog">
       <el-form ref="compensationRef" :model="compensationForm" :rules="compensationRules" label-width="90px">
         <el-form-item label="支出账目" prop="expTitle">
           <el-input v-model="compensationForm.expTitle" placeholder="请输入支出账目名称" />

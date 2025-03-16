@@ -82,12 +82,12 @@
     <Expenditure :visible="open" :key="open" :data="form" :taggle="() => { open = !open; getList() }" />
 
     <!-- 展示会员详细信息 -->
-    <el-dialog title="会员详细信息" v-model="showUserInfoDialog" width="400px" append-to-body>
+    <el-dialog title="会员详细信息" v-model="showUserInfoDialog" width="400px" :align-center="true" append-to-body>
       <UserInfo :user="userInfo" />
     </el-dialog>
     <!-- 展示支出详细信息 -->
     <el-dialog title="支出详细信息" v-model="showDetailDialog" width="400px" append-to-body>
-      <el-form ref="expenditureRef" :model="detail" label-width="80px">
+      <el-form ref="expenditureRef" :model="detail" :align-center="true" label-width="80px">
         <el-form-item label="支出账目" prop="expTitle">
           {{ detail.expTitle }}
         </el-form-item>

@@ -1,7 +1,7 @@
 <template>
     <!-- 售后复洗 -->
-    <el-dialog :show-close="false" v-model="showRewashDialog" width="1440px" append-to-body lock-scroll modal
-        :close-on-click-modal="false">
+    <el-dialog :show-close="false" v-model="showRewashDialog" width="1440px" :align-center="true" append-to-body
+        lock-scroll modal :close-on-click-modal="false">
         <AddCloth :isRewash="true" :clothes="clothList" :userId="order.userId" :orderId="order.orderId"
             :submit="submitClothes" :key="order.orderId" />
 

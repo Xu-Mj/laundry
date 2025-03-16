@@ -94,7 +94,7 @@
       @pagination="getList" />
 
     <!-- 添加或修改订单包含的衣物清单对话框 -->
-    <el-dialog :title="title" v-model="open" width="500px" append-to-body>
+    <el-dialog :title="title" v-model="open" width="500px" append-to-body :align-center="true" >
       <el-form ref="clothsRef" :model="form" :rules="rules" label-width="80px">
         <el-form-item label="衣物唯一标识ID" prop="clothingId">
           <el-input v-model="form.clothingId" placeholder="请输入衣物唯一标识ID" />

@@ -355,7 +355,7 @@
             </div>
         </el-form>
         <!-- Camera Modal -->
-        <el-dialog title="拍照留档" v-model="showCameraModal" width="800px" append-to-body>
+        <el-dialog title="拍照留档" :align-center="true" v-model="showCameraModal" width="800px" append-to-body>
             <video ref="video" class="video" autoplay></video>
             <canvas ref="canvas" class="canvas"></canvas>
             <div class="image-list">

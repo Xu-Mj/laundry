@@ -225,7 +225,7 @@
     </div>
 
     <!-- 展示照片 -->
-    <el-dialog title="照片" v-model="showPicture" width="400px" append-to-body>
+    <el-dialog title="照片" v-model="showPicture" width="400px" :align-center="true" append-to-body>
         <div class="img-container">
             <el-image class="img-item" show-progress :zoom-rate="1.2" :max-scale="7" :min-scale="0.2"
                 :preview-src-list="pictureList" :src="item" v-for="(item, index) in pictureList" :key="index"
@@ -233,7 +233,7 @@
         </div>
     </el-dialog>
     <!-- 派送对话框 -->
-    <el-dialog v-model="showDeliveryDialog" width="500px" :show-close="false" append-to-body>
+    <el-dialog v-model="showDeliveryDialog" width="500px" :show-close="false" :align-center="true" append-to-body>
         <el-form ref="pickupRef" :model="deliveryForm" :rules="pickupRules" label-width="80px">
             <!-- 配送地址/配送时间/备注信息 -->
             <el-form-item label="配送地址" prop="address">
@@ -259,8 +259,8 @@
     </el-dialog>
 
     <!-- 付款弹窗 -->
-    <el-dialog v-model="showPaymentDialog" width="600px" append-to-body lock-scroll modal :close-on-click-modal="false"
-        :show-close="false" class="payment-dialog">
+    <el-dialog v-model="showPaymentDialog" width="600px" :align-center="true" append-to-body lock-scroll modal
+        :close-on-click-modal="false" :show-close="false" class="payment-dialog">
         <template #header>
             <div class="dialog-header">
                 <div class="order-info">

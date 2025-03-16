@@ -68,7 +68,7 @@
       v-model:limit="queryParams.pageSize" @pagination="getList" />
 
     <!-- 添加或修改衣物管理对话框 -->
-    <el-dialog :show-close="false" v-model="open" width="500px" append-to-body>
+    <el-dialog :show-close="false" v-model="open" width="500px" append-to-body :align-center="true" >
       <el-form ref="clothingRef" :model="form" :rules="rules" label-width="80px">
         <el-form-item label="衣物名称" prop="clothingName">
           <el-input v-model="form.clothingName" placeholder="请输入衣物名称，如：羽绒服、运动鞋、貂等" />
@@ -130,7 +130,7 @@
 
     <!-- 修改使用次数对话框 -->
     <el-dialog title="修改使用次数" v-model="showUpdateRefNum" width="500px" :show-close="false" append-to-body>
-      <el-form ref="tagNumRef" :model="tagNumForm" :rules="refNumFormRules" label-width="80px">
+      <el-form ref="tagNumRef" :model="tagNumForm" :rules="refNumFormRules" :align-center="true" label-width="80px">
         <el-form-item label="使用次数" prop="refNumber">
           <el-input-number :min="0" required v-model="tagNumForm.refNumber" placeholder="请输入使用次数" />
         </el-form-item>

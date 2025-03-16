@@ -226,7 +226,7 @@
         v-model:limit="queryParams.pageSize" @pagination="getList" />
     </el-card>
     <!-- 通知弹窗 -->
-    <el-dialog v-model="showNoticeDialog" width="400px" append-to-body>
+    <el-dialog v-model="showNoticeDialog" width="400px" :align-center="true" append-to-body>
       <el-form ref="notifyFormRef" :model="notifyForm" :rules="notifyRules" label-width="80px">
         <el-form-item label="通知模板" prop="tempId">
           <el-select v-model="notifyForm.tempId" @change="tempSelectChange">
@@ -251,7 +251,7 @@
     </el-dialog>
 
     <!-- 退单弹窗 -->
-    <el-dialog v-model="showRefundDialog" width="400px" :show-close="false">
+    <el-dialog v-model="showRefundDialog" width="400px" :align-center="true" :show-close="false">
       <el-form ref="refundFormRef" :model="refundForm" :rules="refundRules" label-width="80px">
         <el-form-item label="支出账目" prop="expTitle">
           <el-input v-model="refundForm.expTitle" placeholder="请输入支出账目" />
@@ -278,7 +278,7 @@
     </el-dialog>
 
     <!-- 派送弹窗 -->
-    <el-dialog v-model="showExpressInfoDialog" width="600px" append-to-body>
+    <el-dialog v-model="showExpressInfoDialog" width="600px" :align-center="true" append-to-body>
       <el-form :data="expressInfo">
         <el-form-item label="配送地址" prop="deliveryAddr">
           {{ expressInfo.deliveryAddr }}
@@ -297,7 +297,7 @@
         </el-form-item>
       </el-form>
     </el-dialog>
-    <el-dialog v-model="showDeliveryInfoDialog" width="600px" append-to-body>
+    <el-dialog v-model="showDeliveryInfoDialog" width="600px" :align-center="true" append-to-body>
       <el-form :data="deliveryInfo">
         <el-form-item label="配送地址" prop="deliveryAddr">
           {{ deliveryInfo.deliveryAddr }}

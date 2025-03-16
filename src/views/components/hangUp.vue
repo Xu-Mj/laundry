@@ -1,6 +1,6 @@
 <template>
     <el-dialog v-model="open" width="500px" :show-close="false" append-to-body @closed="closeHangUpDialog"
-        @opened="refGetFocus" class="modern-dialog">
+        @opened="refGetFocus" :align-center="true" class="modern-dialog">
         <template #header>
             <div class="dialog-header">
                 <h3 class="dialog-title">衣物上挂</h3>

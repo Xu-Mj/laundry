@@ -1,7 +1,7 @@
 <template>
     <!-- 付款弹窗 -->
-    <el-dialog v-model="showPaymentDialog" width="600px" append-to-body lock-scroll modal :close-on-click-modal="false"
-        :show-close="false" @closed="close" class="payment-dialog">
+    <el-dialog v-model="showPaymentDialog" width="600px" append-to-body lock-scroll modal :align-center="true"
+        :close-on-click-modal="false" :show-close="false" @closed="close" class="payment-dialog">
         <template #header>
             <div class="dialog-header">
                 <div class="order-info">
@@ -205,8 +205,8 @@
     </el-dialog>
 
     <!-- 卡券购买弹窗 -->
-    <el-dialog v-model="showCouponSale" width="600px" append-to-body lock-scroll modal :close-on-click-modal="false"
-        :show-close="false">
+    <el-dialog v-model="showCouponSale" width="600px" append-to-body lock-scroll modal :align-center="true"
+        :close-on-click-modal="false" :show-close="false">
         <CouponSale :userId="props.order.userId" :key="showCouponSale"
             :taggle="() => { showCouponSale = !showCouponSale }" :visible="showCouponSale"
             :couponTypeList="couponTypeList" :submit="submitCouponSale" />

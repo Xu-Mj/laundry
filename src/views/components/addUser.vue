@@ -1,5 +1,5 @@
 <template>
-    <el-dialog v-model="props.visible" width="650px" append-to-body :show-close="false" :close-on-click-modal="false">
+    <el-dialog :align-center="true" v-model="props.visible" width="650px" append-to-body :show-close="false" :close-on-click-modal="false">
         <template #header>
             <div class="dialog-header">
                 <div>

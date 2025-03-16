@@ -130,7 +130,8 @@
     </el-dialog>
 
     <!-- show sell coupon -->
-    <el-dialog v-model="showSell" width="800px" @closed="closeSell" class="coupon-sale-dialog" :show-close="false">
+    <el-dialog v-model="showSell" width="800px" @closed="closeSell" class="coupon-sale-dialog" :align-center="true"
+      :show-close="false">
       <template #header>
         <div class="dialog-header">
           <div class="dialog-title">

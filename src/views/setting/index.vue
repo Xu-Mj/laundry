@@ -1,6 +1,6 @@
 <template>
     <el-dialog title="选择打印机" v-model="open" width="400px" :show-close="false" append-to-body
-        @closed="closeHangUpDialog">
+    :align-center="true" @closed="closeHangUpDialog">
         <el-select v-model="printer" placeholder="请选择打印机" @change="set">
             <el-option v-for="item in printers" :key="item.name" :label="item.name" :value="item.name"> </el-option>
         </el-select>

@@ -1,6 +1,5 @@
 <template>
     <!-- show sell coupon -->
-    <!-- <el-dialog :title="title" v-model="open" width="780px" :show-close="true" append-to-body @closed="closeHangUpDialog" > -->
     <el-form ref="sellFormRef" :model="sellForm" :rules="rules" label-width="90px">
         <div v-if="props.userId && props.userId != 0">
             <!-- 会员信息卡片 -->
@@ -36,23 +35,6 @@
                 </el-form-item>
             </el-col>
         </el-row>
-        <!-- <el-form style="margin-top: 1rem;" :model="queryParams" ref="queryRef" :inline="true" label-width="68px">
-            <el-form-item label="卡券名称" prop="couponTitle">
-                <el-input v-model="queryParams.couponTitle" placeholder="请输入卡券名称" clearable
-                    @keyup.enter="handleQuery" />
-            </el-form-item>
-            <el-form-item label="卡券类型" prop="couponType">
-                <el-select v-model="queryParams.couponType" @change="handleQuery" placeholder="卡券类型" clearable
-                    style="width: 120px">
-                    <el-option v-for="dict in sys_coupon_type" :key="dict.value" :label="dict.label"
-                        :value="dict.value" />
-                </el-select>
-            </el-form-item>
-            <el-form-item>
-                <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
-                <el-button icon="Refresh" @click="resetQuery">重置</el-button>
-            </el-form-item>
-        </el-form> -->
         <el-row>
             <h3 class="title">在售会员卡列表:</h3>
         </el-row>

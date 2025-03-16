@@ -114,17 +114,18 @@
                         <h3 class="section-title">店主调价</h3>
 
                         <div class="adjust-price-group">
+                            <div class="adjust-price-group-mask" v-if="form.priceId">使用了价格方案后不能调价</div>
                             <el-input size="large" type="number" :min="0" :max="1000" @input="adjustInput"
                                 @change="adjustInputChange" v-model="form.adjust.adjustValueSub" placeholder="请输入调减金额"
-                                :disabled="notEditable" />
+                                :disabled="form.priceId" />
                             <el-input size="large" type="number" :min="0" :max="1000" @input="adjustInput"
                                 @change="adjustInputChange" v-model="form.adjust.adjustValueAdd" placeholder="请输入调增金额"
-                                :disabled="notEditable" />
+                                :disabled="form.priceId" />
                             <el-input size="large" type="number" :min="0" :max="Infinity" @input="adjustInput"
                                 @change="adjustInputChange" v-model="form.adjust.adjustTotal" placeholder="请输入总金额"
-                                :disabled="notEditable" />
+                                :disabled="form.priceId" />
                             <el-input size="large" v-model="form.adjust.remark" placeholder="备注信息"
-                                @change="adjustInputChange" :disabled="notEditable" />
+                                @change="adjustInputChange" :disabled="form.priceId" />
                         </div>
                     </div>
                     <div class="order-summary-card">
@@ -175,7 +176,7 @@
             </div>
         </div>
 
-        <Pay :visible="showPaymentDialog" :key="showPaymentDialog" :order="form" :refresh="getList"
+        <Pay :visible="showPaymentDialog" :key="showPaymentDialog" :order="form" :refresh="cancelSelf"
             :toggle="() => { showPaymentDialog = !showPaymentDialog }" />
         <Information :user="currentUser" :visible="showInfoDialog" :key="showInfoDialog"
             :toggle="() => { showInfoDialog = !showInfoDialog }" />
@@ -927,9 +928,26 @@ defineExpose({
     justify-content: space-around;
     align-items: center;
     gap: 1.5rem;
+    position: relative;
     background-color: var(--el-fill-color-light);
     padding: 1rem;
     border-radius: 8px;
+}
+
+.adjust-price-group-mask {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    left: 0;
+    top: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: var(--el-text-color-placeholder);
+    background-color: var(--el-bg-color-overlay);
+    opacity: 0.9;
+    z-index: 9;
+    backdrop-filter: blur(10px);
 }
 
 .footer {

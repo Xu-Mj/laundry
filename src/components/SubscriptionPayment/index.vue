@@ -1,6 +1,6 @@
 <template>
   <el-dialog v-model="dialogVisible" width="600px" append-to-body lock-scroll modal :close-on-click-modal="false"
-    :show-close="false" class="subscription-payment-dialog">
+    :show-close="false" :align-center="true" class="subscription-payment-dialog">
     <template #header>
       <div class="dialog-header">
         <div class="order-info">

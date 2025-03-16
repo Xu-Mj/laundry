@@ -509,6 +509,7 @@ onMounted(async () => {
 
 .payment-method-card span {
     font-size: 14px;
+    line-height: 14px;
 }
 
 .remark-section {

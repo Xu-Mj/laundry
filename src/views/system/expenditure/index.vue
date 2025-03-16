@@ -282,4 +282,10 @@ getList();
   border-radius: 8px;
   overflow: hidden;
 }
+
+.modern-table :deep(th) {
+  background-color: var(--el-fill-color-light);
+  color: var(--el-text-color-primary);
+  font-weight: 600;
+}
 </style>

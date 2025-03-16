@@ -69,7 +69,7 @@
         <!-- 底部按钮 -->
         <template #footer>
             <div class="dialog-footer">
-                <el-button @click="cancel" plain>取 消</el-button>
+                <el-button @click="cancel" plain icon="Close">取 消</el-button>
                 <el-button type="primary" @click="submitForm" :loading="submitting">
                     <el-icon v-if="!submitting">
                         <Check />
@@ -306,6 +306,14 @@ onMounted(() => {
     justify-content: flex-end;
     gap: 12px;
     padding-top: 8px;
+
+    button {
+        transition: all 0.3s;
+    }
+
+    button:hover {
+        transform: translateY(-2px);
+    }
 }
 
 .dialog-footer .el-button {

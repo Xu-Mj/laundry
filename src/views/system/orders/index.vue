@@ -77,7 +77,7 @@
       <div class="table-operations">
         <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" :columns="columns"></right-toolbar>
       </div>
-      <el-table v-loading="loading" :data="ordersList" class="modern-table" border stripe>
+      <el-table v-loading="loading" :data="ordersList" class="modern-table" stripe>
         <el-table-column label="订单编码" align="center" width="180" prop="orderNumber" v-if="columns[0].visible" />
         <el-table-column label="所属会员" align="center" width="180" v-if="columns[1].visible">
           <template #default="scope">
@@ -466,6 +466,7 @@ function go2pay(row) {
     currentOrder.value = row;
     currentOrder.value.cloths = res;
     showPaymentDialog.value = true;
+    console.log(currentOrder.value)
   });
 }
 
@@ -707,6 +708,12 @@ getList();
   width: 100%;
   border-radius: 8px;
   overflow: hidden;
+}
+
+.modern-table :deep(th) {
+  background-color: var(--el-fill-color-light);
+  color: var(--el-text-color-primary);
+  font-weight: 600;
 }
 
 /* 表格内容样式 */

@@ -92,7 +92,7 @@
                 <el-table v-if="order.clothList && order.clothList.length > 0" :data="order.clothList"
                     :loading="order.loading" row-key="clothingId"
                     @selection-change="selectedItems => handleClothSelectionChange(selectedItems, order)"
-                    ref="clothsTableRef" class="modern-table" border="dash" stripe>
+                    ref="clothsTableRef" class="modern-table" stripe>
                     <el-table-column type="selection" width="50" align="center" />
                     <el-table-column label="衣物" align="center" min-width="120">
                         <template #default="scope">
@@ -1318,7 +1318,10 @@ onMounted(async () => {
     box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
     display: flex;
     gap: 0.75rem;
-    transition: all 0.3s;
+
+    button {
+        transition: all 0.3s;
+    }
 
     button:hover {
         transform: translateY(-2px);
@@ -1473,7 +1476,6 @@ onMounted(async () => {
 
 .modern-table {
     --el-table-border-color: transparent;
-    /* --el-table-header-bg-color: #f5f7fa; */
     /* --el-table-row-hover-bg-color: #f5f7fa; */
     border-radius: 0.5rem;
     overflow: hidden;

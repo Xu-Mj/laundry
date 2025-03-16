@@ -77,16 +77,16 @@ function handleTabClick(tab) {
 }
 
 .dialog-header {
-    background-color: var(--el-color-primary-light-9);
-    padding: 20px;
+    background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-8) 100%);
+    padding: 1rem;
     display: flex;
     align-items: center;
-    border-bottom: 1px solid var(--el-border-color-lighter);
     border-radius: .5rem;
 }
 
 :root.dark .dialog-header {
     --el-color-primary-light-9: #1d2c40;
+    --el-color-primary-light-8: #2b6095;
 }
 
 .user-avatar {

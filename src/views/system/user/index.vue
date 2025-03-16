@@ -39,14 +39,14 @@
          </el-row>
 
          <el-table v-loading="loading" :show-close="false" :data="userList" @selection-change="handleSelectionChange"
-            class="modern-table" border stripe>
+            class="modern-table" stripe>
             <el-table-column type="selection" width="50" align="center" />
             <!-- <el-table-column label="会员编号" align="center" key="userId" prop="userId" v-if="columns[0].visible" /> -->
             <el-table-column label="会员姓名" align="center" v-if="columns[1].visible">
                <template #default="scope">
                   <el-tooltip content="查看会员详情" placement="top">
                      <el-button link type="primary" @click="showUserInfo(scope.row)">{{ scope.row.nickName
-                     }}</el-button>
+                        }}</el-button>
                   </el-tooltip>
                </template>
             </el-table-column>
@@ -455,5 +455,11 @@ getList();
    width: 100%;
    border-radius: 8px;
    overflow: hidden;
+}
+
+.modern-table :deep(th) {
+   background-color: var(--el-fill-color-light);
+   color: var(--el-text-color-primary);
+   font-weight: 600;
 }
 </style>

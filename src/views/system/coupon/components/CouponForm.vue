@@ -408,7 +408,6 @@ const cancel = () => {
 
 :deep(.el-form-item__label) {
   font-weight: 500;
-  color: #606266;
 }
 
 :deep(.el-input__wrapper),

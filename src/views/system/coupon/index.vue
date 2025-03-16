@@ -50,7 +50,8 @@
         <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" :columns="columns" />
       </el-row>
 
-      <el-table v-loading="loading" :data="couponList" ref="table" @selection-change="handleSelectionChange">
+      <el-table v-loading="loading" :data="couponList" ref="table" class="modern-table"
+        @selection-change="handleSelectionChange">
         <el-table-column type="selection" width="55" align="center" />
         <!-- <el-table-column label="卡券唯一标识ID" align="center" prop="couponId" /> -->
         <el-table-column label="卡券名称" align="center" prop="couponTitle" v-if="columns[0].visible" />
@@ -112,10 +113,8 @@
         <el-table-column label="备注" align="center" prop="remark" v-if="columns[15].visible" show-overflow-tooltip />
         <el-table-column label="操作" align="center" class-name="small-padding" width="140">
           <template #default="scope">
-            <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)"
-              v-hasPermi="['system:coupon:edit']">修改</el-button>
-            <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)"
-              v-hasPermi="['system:coupon:remove']">删除</el-button>
+            <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)">修改</el-button>
+            <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -312,10 +311,9 @@
 </template>
 
 <script setup name="Coupon">
-import { listCoupon, getCoupon, delCoupon, addCoupon, updateCoupon, buyCoupon } from "@/api/system/coupon";
+import { listCoupon, getCoupon, delCoupon, buyCoupon } from "@/api/system/coupon";
 import { listUserWithNoLimit, addUser } from "@/api/system/user";
 import CouponForm from "./components/CouponForm.vue";
-import { ref, computed, onMounted } from "vue";
 
 const { proxy } = getCurrentInstance();
 
@@ -719,6 +717,11 @@ getList();
   overflow: hidden;
 }
 
+.modern-table :deep(th) {
+  background-color: var(--el-fill-color-light);
+  color: var(--el-text-color-primary);
+  font-weight: 600;
+}
 
 .title {
   border-bottom: 1px solid gray;
@@ -755,9 +758,10 @@ getList();
   border-radius: .5rem;
 }
 
-:root.dark .dialog-header{
+:root.dark .dialog-header {
   --el-color-primary-light-9: #1d2c40;
 }
+
 .dialog-title {
   display: flex;
   align-items: center;

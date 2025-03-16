@@ -350,7 +350,7 @@ onMounted(async () => {
     flex: 1;
     display: flex;
     align-items: center;
-    padding: 16px;
+    padding: 1rem;
     background-color: var(--el-fill-color-light);
     border-radius: 8px;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
@@ -370,7 +370,7 @@ onMounted(async () => {
     height: 48px;
     border-radius: 12px;
     background-color: var(--el-color-primary-light-9);
-    margin-right: 16px;
+    margin-right: 1rem;
 }
 
 .stat-icon .el-icon {
@@ -399,7 +399,7 @@ onMounted(async () => {
 /* 搜索表单样式 */
 .search-form {
     background-color: var(--el-fill-color-blank);
-    padding: 16px;
+    padding: 1rem;
     border-radius: 8px;
     margin-bottom: 24px;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
@@ -410,7 +410,7 @@ onMounted(async () => {
     height: 100%;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 1rem;
 }
 
 .result-item {
@@ -431,7 +431,7 @@ onMounted(async () => {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px;
+    padding: 1rem;
     background-color: var(--el-color-primary-light-9);
     border-bottom: 1px solid var(--el-border-color-lighter);
 }
@@ -443,9 +443,9 @@ onMounted(async () => {
     font-weight: 500;
 }
 
+/* 自定义暗黑模式下的颜色 */
 :root.dark .result-item-info {
     --el-color-primary-light-9: #1d2c40;
-    /* 自定义暗黑模式下的颜色 */
 }
 
 .cloths-table {

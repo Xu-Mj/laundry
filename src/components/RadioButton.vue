@@ -1,5 +1,5 @@
 <template>
-    <label :class="[{ 'custom-radio-button': true}, className, {'is-checked': isSelected }]">
+    <label :class="[{ 'custom-radio-button': true }, className, { 'is-checked': isSelected }]">
         <input type="radio" :value="value" hidden @change="onChange" :checked="isSelected">
         <span>{{ label }}<slot></slot></span>
     </label>
@@ -49,8 +49,12 @@ export default {
     background-color: var(--el-fill-color-light);
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    /* margin: .5rem; */
+    box-shadow: var(--el-box-shadow-lighter);
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--el-box-shadow-light);
+    }
 }
 
 .custom-radio-button.is-checked {

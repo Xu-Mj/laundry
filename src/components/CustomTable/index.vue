@@ -23,7 +23,7 @@
         </div> <!-- 洗护要求留空 -->
         <div class="cell">{{ calculateTotalPrice(item) }} 元</div>
         <div class="cell action-cell">
-          <el-button type="danger" icon="Delete" @click="handleDelete(item.clothId)" />
+          <el-button type="danger" icon="Delete" @click="handleDelete(item.clothId, item.clothInfo.clothingName)" />
         </div>
 
         <!-- 下半部分 -->
@@ -87,8 +87,8 @@ const calculateTotalPrice = (cloth) => {
 };
 
 // 删除操作
-const handleDelete = (id) => {
-  emit('delete', id);
+const handleDelete = (id, name) => {
+  emit('delete', id, name);
 };
 
 /* 初始化列表数据 */
@@ -152,7 +152,7 @@ const handleRowClick = (row) => {
   overflow: hidden;
   text-align: center;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
   transition: all 0.3s ease;
 }
 
@@ -221,7 +221,6 @@ const handleRowClick = (row) => {
   align-items: center;
   justify-content: flex-start;
   padding: 8px 16px;
-  background-color: var(--el-fill-color-light);
   gap: 8px;
   flex-wrap: wrap;
 }

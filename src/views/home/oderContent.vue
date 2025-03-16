@@ -264,7 +264,9 @@
         <template #header>
             <div class="dialog-header">
                 <div class="order-info">
-                    <el-icon><Ticket /></el-icon>
+                    <el-icon>
+                        <Ticket />
+                    </el-icon>
                     <span>订单信息</span>
                 </div>
                 <div class="order-number">{{ paymentForm.titles }}</div>
@@ -293,27 +295,45 @@
                 <el-radio-group v-model="paymentForm.paymentMethod" class="payment-method-group">
                     <template v-for="dict in sys_payment_method" :key="dict.value">
                         <template v-if="dict.value == '06'">
-                            <el-radio v-if="couponTypeList && couponTypeList.has('000')" :value="dict.value" class="payment-method-radio">
-                                <div class="payment-method-card" :class="{ 'selected': paymentForm.paymentMethod === dict.value }">
-                                    <el-icon><CreditCard /></el-icon>
+                            <el-radio v-if="couponTypeList && couponTypeList.has('000')" :value="dict.value"
+                                class="payment-method-radio">
+                                <div class="payment-method-card"
+                                    :class="{ 'selected': paymentForm.paymentMethod === dict.value }">
+                                    <el-icon>
+                                        <CreditCard />
+                                    </el-icon>
                                     <span>{{ dict.label }}</span>
                                 </div>
                             </el-radio>
                         </template>
                         <template v-else-if="dict.value == '07'">
-                            <el-radio v-if="couponTypeList && couponTypeList.has('002')" :value="dict.value" class="payment-method-radio">
-                                <div class="payment-method-card" :class="{ 'selected': paymentForm.paymentMethod === dict.value }">
-                                    <el-icon><Ticket /></el-icon>
+                            <el-radio v-if="couponTypeList && couponTypeList.has('002')" :value="dict.value"
+                                class="payment-method-radio">
+                                <div class="payment-method-card"
+                                    :class="{ 'selected': paymentForm.paymentMethod === dict.value }">
+                                    <el-icon>
+                                        <Ticket />
+                                    </el-icon>
                                     <span>{{ dict.label }}</span>
                                 </div>
                             </el-radio>
                         </template>
-                        <el-radio v-else-if="dict.value !== '03' && dict.value !== '04'" :value="dict.value" class="payment-method-radio">
-                            <div class="payment-method-card" :class="{ 'selected': paymentForm.paymentMethod === dict.value }">
-                                <el-icon v-if="dict.value === '01'"><Money /></el-icon>
-                                <el-icon v-else-if="dict.value === '02'"><ChatDotRound /></el-icon>
-                                <el-icon v-else-if="dict.value === '05'"><Wallet /></el-icon>
-                                <el-icon v-else><More /></el-icon>
+                        <el-radio v-else-if="dict.value !== '03' && dict.value !== '04'" :value="dict.value"
+                            class="payment-method-radio">
+                            <div class="payment-method-card"
+                                :class="{ 'selected': paymentForm.paymentMethod === dict.value }">
+                                <el-icon v-if="dict.value === '01'">
+                                    <Money />
+                                </el-icon>
+                                <el-icon v-else-if="dict.value === '02'">
+                                    <ChatDotRound />
+                                </el-icon>
+                                <el-icon v-else-if="dict.value === '05'">
+                                    <Wallet />
+                                </el-icon>
+                                <el-icon v-else>
+                                    <More />
+                                </el-icon>
                                 <span>{{ dict.label }}</span>
                             </div>
                         </el-radio>
@@ -328,14 +348,12 @@
                     <!-- 储值卡 -->
                     <el-collapse v-if="userCouponList.filter(item => item.coupon.couponType == '000').length !== 0">
                         <el-collapse-item title="储值卡" name="storage-card">
-                            <el-checkbox-group v-model="couponStorageCardId" @change="changeCoupon(1)" class="coupon-checkbox-group">
-                                <el-checkbox 
+                            <el-checkbox-group v-model="couponStorageCardId" @change="changeCoupon(1)"
+                                class="coupon-checkbox-group">
+                                <el-checkbox
                                     v-for="card in userCouponList.filter(item => item.coupon.couponType == '000')"
-                                    :disabled="!card.isValid" 
-                                    :key="card.ucId" 
-                                    :value="card.ucId"
-                                    class="coupon-checkbox"
-                                >
+                                    :disabled="!card.isValid" :key="card.ucId" :value="card.ucId"
+                                    class="coupon-checkbox">
                                     <div class="coupon-card" :class="{ 'disabled': !card.isValid }">
                                         <div class="coupon-title">{{ card.coupon.couponTitle }}</div>
                                         <div class="coupon-value">余额: {{ card.availableValue }}元</div>
@@ -353,46 +371,34 @@
                                 <div class="coupon-times-item"
                                     v-for="card in userCouponList.filter(item => item.coupon.couponType == '002')"
                                     :key="card.ucId">
-                                    <el-checkbox 
-                                        @change="changeCoupon(2, card)" 
-                                        :disabled="!card.isValid"
-                                        v-model="card.selected" 
-                                        :value="card.ucId"
-                                        class="coupon-checkbox"
-                                    >
+                                    <el-checkbox @change="changeCoupon(2, card)" :disabled="!card.isValid"
+                                        v-model="card.selected" :value="card.ucId" class="coupon-checkbox">
                                         <div class="coupon-card" :class="{ 'disabled': !card.isValid }">
                                             <div class="coupon-title">{{ card.coupon.couponTitle }}</div>
                                             <div class="coupon-value">剩余: {{ card.availableValue }}次</div>
-                                            <div v-if="!card.isValid" class="coupon-invalid">{{ card.unValidReason }}</div>
+                                            <div v-if="!card.isValid" class="coupon-invalid">{{ card.unValidReason }}
+                                            </div>
                                         </div>
                                     </el-checkbox>
-                                    <el-input-number 
-                                        v-if="card.selected" 
-                                        v-model="card.count"
-                                        @change="changeCouponCount(card)" 
-                                        :min="1" 
-                                        :max="card.availableValue"
-                                        controls-position="right" 
-                                        size="small"
-                                        class="count-input"
-                                    />
+                                    <el-input-number v-if="card.selected" v-model="card.count"
+                                        @change="changeCouponCount(card)" :min="1" :max="card.availableValue"
+                                        controls-position="right" size="small" class="count-input" />
                                 </div>
                             </div>
                         </el-collapse-item>
                     </el-collapse>
 
                     <!-- 优惠券 -->
-                    <el-collapse v-if="userCouponList.filter(item => item.coupon.couponType !== '002' && item.coupon.couponType !== '000').length != 0">
+                    <el-collapse
+                        v-if="userCouponList.filter(item => item.coupon.couponType !== '002' && item.coupon.couponType !== '000').length != 0">
                         <el-collapse-item title="优惠券" name="discount-coupon">
-                            <el-radio-group v-model="paymentForm.couponId" @change="changeCoupon(3)" class="coupon-radio-group">
+                            <el-radio-group v-model="paymentForm.couponId" @change="changeCoupon(3)"
+                                class="coupon-radio-group">
                                 <el-radio
                                     v-for="card in userCouponList.filter(item => item.coupon.couponType !== '000' && item.coupon.couponType !== '002')"
-                                    :disabled="!card.isValid" 
-                                    :key="card.ucId" 
-                                    :value="card.ucId"
-                                    class="coupon-radio"
-                                >
-                                    <div class="coupon-card" :class="{ 'disabled': !card.isValid, 'selected': paymentForm.couponId === card.ucId }">
+                                    :disabled="!card.isValid" :key="card.ucId" :value="card.ucId" class="coupon-radio">
+                                    <div class="coupon-card"
+                                        :class="{ 'disabled': !card.isValid, 'selected': paymentForm.couponId === card.ucId }">
                                         <div class="coupon-title">{{ card.coupon.couponTitle }}</div>
                                         <div class="coupon-value">剩余: {{ card.ucCount }}张</div>
                                         <div v-if="!card.isValid" class="coupon-invalid">{{ card.unValidReason }}</div>
@@ -423,13 +429,8 @@
 
             <!-- 补差价区域 -->
             <el-form-item label="补差价" v-if="paymentForm.priceDiff > 0" class="price-diff-section">
-                <el-input-number 
-                    v-model="paymentForm.priceDiff" 
-                    controls-position="right" 
-                    :min="0"
-                    :max="paymentForm.paymentAmount" 
-                    placeholder="请输入补差价" 
-                />
+                <el-input-number v-model="paymentForm.priceDiff" controls-position="right" :min="0"
+                    :max="paymentForm.paymentAmount" placeholder="请输入补差价" />
             </el-form-item>
         </el-form>
 
@@ -1317,6 +1318,11 @@ onMounted(async () => {
     box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
     display: flex;
     gap: 0.75rem;
+    transition: all 0.3s;
+
+    button:hover {
+        transform: translateY(-2px);
+    }
 }
 
 .payment-status {
@@ -1882,7 +1888,7 @@ onMounted(async () => {
     .payment-method-group {
         justify-content: center;
     }
-    
+
     .coupon-checkbox-group,
     .coupon-radio-group {
         justify-content: center;

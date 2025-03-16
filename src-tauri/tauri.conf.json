@@ -13,8 +13,8 @@
     "windows": [
       {
         "title": "laundry",
-        "width": 1000,
-        "height": 650,
+        "width": 1920,
+        "height": 1080,
         "resizable": true,
         "fullscreen": false,
         "decorations": false,

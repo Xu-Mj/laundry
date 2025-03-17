@@ -17,7 +17,6 @@ import AppWatermark from '@/components/AppWatermark/index.vue'
 
 import useAppStore from '@/store/modules/app'
 import useSettingsStore from '@/store/modules/settings'
-import { onMounted } from 'vue'
 
 const settingsStore = useSettingsStore()
 const sidebar = computed(() => useAppStore().sidebar);

@@ -15,7 +15,7 @@
       :taggle="() => { showAddUserDialog = !showAddUserDialog }" />
     <CouponGift :visible="showCouponGift" :key="showCouponGift" :taggle="() => { showCouponGift = !showCouponGift }" />
     <HangUp :visible="showHangUp" :key="showHangUp" :taggle="() => { showHangUp = !showHangUp }" />
-    <Expenditure :visible="showExp" :key="showExp" :taggle="() => { showExp = !showExp }" />
+    <Expenditure :visible="showExp" :key="showExp" title="支出录入" :taggle="() => { showExp = !showExp }" />
   </div>
 </template>
 
@@ -78,7 +78,6 @@ const menus = ref([
   { 'name': '支出录入', 'type': 'success', show: true, onClick: () => { showExp.value = true } },
   { 'name': '收支报表', 'type': 'success', show: true, path: '/expenditures', onClick: () => router.push('/expenditures') },
   { 'name': '经营对账', 'type': 'success', show: false },
-  { 'name': '新增支出', 'type': 'success', show: false },
   { 'name': '营销推送', 'type': 'success', show: false, color: '#626aef', dark: false },
   { 'name': '知识天地', 'type': 'primary', path: '/blogs', show: true, onClick: () => { router.push('/blogs') } },
 ]);

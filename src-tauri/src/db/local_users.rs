@@ -13,6 +13,8 @@ use crate::state::AppState;
 use crate::utils::request::Token;
 use crate::{captcha, utils};
 
+use super::subscriptions::Subscription;
+
 #[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[serde(default)]
@@ -30,11 +32,14 @@ pub struct LocalUser {
     pub password: Option<String>,
     pub owner_gender: Option<String>,
     pub store_status: Option<String>,
-    pub first_login: bool,
+    pub is_guest: bool,
     pub created_at: i64,
     pub updated_at: i64,
     pub deleted: String,
     pub remark: Option<String>,
+    pub nickname: Option<String>,
+    /// 已完成引导的页面，JSON字符串格式，例如：{"home":true,"create-order":true}
+    pub completed_tours: Option<String>,
 }
 
 impl FromRow<'_, SqliteRow> for LocalUser {
@@ -52,11 +57,13 @@ impl FromRow<'_, SqliteRow> for LocalUser {
             password: row.try_get("password").unwrap_or_default(),
             owner_gender: row.try_get("owner_gender").unwrap_or_default(),
             store_status: row.try_get("store_status").unwrap_or_default(),
-            first_login: row.try_get("first_login").unwrap_or_default(),
+            is_guest: row.try_get("is_guest").unwrap_or_default(),
             created_at: row.try_get("created_at").unwrap_or_default(),
             updated_at: row.try_get("updated_at").unwrap_or_default(),
             deleted: row.try_get("deleted").unwrap_or_default(),
             remark: row.try_get("remark").unwrap_or_default(),
+            nickname: row.try_get("nickname").unwrap_or_default(),
+            completed_tours: row.try_get("completed_tours").unwrap_or_default(),
         })
     }
 }
@@ -89,8 +96,8 @@ impl LocalUser {
     pub async fn create(&self, pool: &Pool<Sqlite>) -> Result<Self> {
         let user = sqlx::query_as(
             "INSERT INTO local_users (
-                avatar, store_name, store_location, user_id, owner_name, owner_phone, email, password, owner_gender, store_status, first_login, created_at, updated_at, deleted, remark
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *",
+                avatar, store_name, store_location, user_id, owner_name, owner_phone, email, password, owner_gender, store_status, is_guest, created_at, updated_at, deleted, remark, nickname, completed_tours
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *",
         )
         .bind(&self.avatar)
         .bind(&self.store_name)
@@ -102,14 +109,25 @@ impl LocalUser {
         .bind(&self.password)
         .bind(&self.owner_gender)
         .bind(&self.store_status)
-        .bind(self.first_login)
+        .bind(self.is_guest)
         .bind(self.created_at)
         .bind(self.updated_at)
         .bind(&self.deleted)
         .bind(&self.remark)
+        .bind(&self.nickname)
+        .bind(&self.completed_tours)
         .fetch_one(pool)
         .await?;
         Ok(user)
+    }
+
+    pub async fn get_by_id(pool: &Pool<Sqlite>, id: i64) -> Result<Self> {
+        let user: Option<LocalUser> =
+            sqlx::query_as("SELECT * FROM local_users WHERE id = 0 LIMIT 1")
+                .bind(id)
+                .fetch_optional(pool)
+                .await?;
+        user.ok_or(Error::with_kind(ErrorKind::NotFound))
     }
 
     pub async fn get_by_phone(pool: &Pool<Sqlite>, phone: &str) -> Result<Self> {
@@ -130,20 +148,12 @@ impl LocalUser {
         Ok(result.rows_affected() > 0)
     }
 
-    pub async fn update_first_login(pool: &Pool<Sqlite>, account: &str) -> Result<bool> {
-        let result = sqlx::query("UPDATE local_users SET first_login = 0 WHERE owner_phone = ? ")
-            .bind(account)
-            .execute(pool)
-            .await?;
-        Ok(result.rows_affected() > 0)
-    }
-
     pub async fn upsert(&self, pool: &Pool<Sqlite>) -> Result<Self> {
         let user = sqlx::query_as(
             "INSERT OR REPLACE INTO local_users (
                 id, avatar, store_name, store_location, user_id, owner_name, owner_phone, email, role, password,
-                 owner_gender, store_status, first_login, created_at, updated_at, deleted, remark
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *",
+                 owner_gender, store_status, is_guest, created_at, updated_at, deleted, remark, nickname, completed_tours
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *",
         )
         .bind(self.id)
         .bind(&self.avatar)
@@ -157,11 +167,13 @@ impl LocalUser {
         .bind(&self.password)
         .bind(&self.owner_gender)
         .bind(&self.store_status)
-        .bind(self.first_login)
+        .bind(self.is_guest)
         .bind(self.created_at)
         .bind(self.updated_at)
         .bind(&self.deleted)
         .bind(&self.remark)
+        .bind(&self.nickname)
+        .bind(&self.completed_tours)
         .fetch_one(pool)
         .await?;
         Ok(user)
@@ -305,9 +317,30 @@ impl LoginReq {
     // }
 }
 
+// Guest login logical
+async fn guest_login_logical(state: &State<'_, AppState>) -> Result<Token> {
+    // select by id
+    let user = LocalUser::get_by_id(&state.pool, 0).await?;
+    let token = Token {
+        user,
+        exp: 60 * 60 * 12,
+        token: "guest token".into(),
+        refresh_token: "guest refresh token".into(),
+    };
+    // 更新 AppState 中的 token
+    let mut app_token = state.token.lock().await;
+    *app_token = Some(token.clone());
+    Ok(token)
+}
+
 #[tauri::command]
 pub async fn login(mut state: State<'_, AppState>, req: LoginReq) -> Result<Token> {
     req.login(&mut state).await
+}
+
+#[tauri::command]
+pub async fn guest_login(mut state: State<'_, AppState>) -> Result<Token> {
+    guest_login_logical(&mut state).await
 }
 
 #[tauri::command]
@@ -321,15 +354,28 @@ pub struct UserInfo {
     pub user: Option<LocalUser>,
     pub roles: HashSet<String>,
     pub permissions: HashSet<String>,
+    pub subscription: Option<Subscription>,
 }
 
 #[tauri::command]
 pub async fn get_info(state: State<'_, AppState>) -> Result<UserInfo> {
     let user = state.get_user_info().await;
+    let mut subscription = None;
+
+    // 如果用户存在，获取其订阅信息
+    if let Some(user_data) = &user {
+        if let Some(id) = user_data.id {
+            if id > 0 {
+                subscription = Subscription::get_active_by_user_id(&state.pool, id).await?;
+            }
+        }
+    }
+
     Ok(UserInfo {
         user,
         roles: HashSet::from(["admin".to_string()]),
         permissions: HashSet::from(["*:*:*".to_string()]),
+        subscription,
     })
 }
 
@@ -375,7 +421,11 @@ pub async fn update_pwd(state: State<'_, AppState>, req: UpdatePwdReq) -> Result
 
     let user = LocalUser::get_by_phone(pool, &req.account).await?;
 
-    tracing::debug!("update_pwd: user={:?} token: {:?}", user,state.get_token().await);
+    tracing::debug!(
+        "update_pwd: user={:?} token: {:?}",
+        user,
+        state.get_token().await
+    );
     // get token from state
     let _user: LocalUser = state
         .http_client
@@ -390,7 +440,5 @@ pub async fn update_pwd(state: State<'_, AppState>, req: UpdatePwdReq) -> Result
         .await?;
 
     tracing::debug!("update_pwd33333: user={:?}", _user);
-    LocalUser::update_pwd(pool, &req.account, &password).await?;
-    // update first_login
-    LocalUser::update_first_login(pool, &req.account).await
+    LocalUser::update_pwd(pool, &req.account, &password).await
 }

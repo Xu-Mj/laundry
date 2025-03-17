@@ -8,19 +8,19 @@ pub mod home;
 pub mod printer;
 pub mod routers;
 // pub mod scripts;
+pub mod state;
 pub mod tray;
 pub mod update;
 pub mod utils;
-pub mod state;
 
-use tauri::ipc::Invoke;
 use tauri::Runtime;
+use tauri::ipc::Invoke;
 use tauri_plugin_fs::FsExt;
 
 use crate::db::{
     cloth_price, clothing, configs, coupons, dict_data, dict_type, drying_rack, expenditure,
-    local_users, membership_level, menu, notice_temp, order_clothes, orders, payments, tags, user,
-    user_coupons,
+    local_users, membership_level, menu, notice_temp, order_clothes, orders, payments,
+    subscriptions, tags, tour_guide, user, user_coupons,
 };
 
 pub fn create_app<R: tauri::Runtime, T: Send + Sync + 'static>(
@@ -200,6 +200,7 @@ fn handle_command<R: Runtime>(invoke: Invoke<R>) -> bool {
         routers::get_routers,
         // local_users
         local_users::get_info,
+        local_users::guest_login,
         local_users::login,
         local_users::logout,
         local_users::update_pwd,
@@ -226,6 +227,14 @@ fn handle_command<R: Runtime>(invoke: Invoke<R>) -> bool {
         membership_level::create_membership_level,
         membership_level::update_membership_level,
         membership_level::delete_membership_level,
+        // subscription
+        subscriptions::create_subscription,
+        subscriptions::update_subscription,
+        subscriptions::get_user_subscriptions,
+        subscriptions::get_user_subscription,
+        // tours
+        tour_guide::update_tour_guide,
+        tour_guide::check_tour_completed,
     ];
     handler(invoke);
 

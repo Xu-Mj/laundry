@@ -39,6 +39,10 @@ export function getInfo() {
 return invoke('get_info')
 }
 
+export function guestLogin() {
+return invoke('guest_login')
+}
+
 // 退出方法
 export function logout() {
   return invoke('logout')

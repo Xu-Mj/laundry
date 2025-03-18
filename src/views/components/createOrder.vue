@@ -4,7 +4,7 @@
         <div class="container" v-if="props.visible">
             <div class="left">
                 <el-form ref="ordersRef" :model="form" :rules="rules" label-width="90px" class="modern-form">
-                    <div class="member-card">
+                    <div class="member-card" ref="memberCardRef">
                         <h3 class="section-title">会员信息</h3>
                         <el-row :gutter="20">
                             <el-col :span="12">
@@ -54,7 +54,7 @@
                             </el-col>
                         </el-row>
                     </div>
-                    <div class="order-source-card">
+                    <div class="order-source-card" ref="orderSourceRef">
                         <h3 class="section-title">订单来源</h3>
                         <el-form-item prop="source">
                             <el-radio-group v-model="form.source" @change="sourceChanged" :disabled="notEditable"
@@ -106,11 +106,11 @@
                             </el-form-item>
                         </div>
                     </div>
-                    <div class="order-list-card">
+                    <div class="order-list-card" ref="clothListRef">
                         <h3 class="section-title">衣物列表</h3>
                         <CustomTable :table-data="form.cloths" @delete="handleDelete" />
                     </div>
-                    <div class="order-list-card">
+                    <div class="order-list-card" ref="adjustPriceRef">
                         <h3 class="section-title">店主调价</h3>
 
                         <div class="adjust-price-group">
@@ -128,7 +128,7 @@
                                 @change="adjustInputChange" :disabled="form.priceId" />
                         </div>
                     </div>
-                    <div class="order-summary-card">
+                    <div class="order-summary-card" ref="orderSummaryRef">
                         <el-row :gutter="20" class="footer">
                             <el-col :xs="24" :sm="8">
                                 <div class="summary-item">
@@ -164,13 +164,13 @@
                             '取 消'
                             }}</el-button>
                         <el-button size="large" icon="Check" type="primary" color="#626aef" @click="submitForm"
-                            :disabled="notEditable && !(form.source === '03') && (form.priceId || form.source === '02' || form.source === '01')">取衣收款</el-button>
+                            :disabled="notEditable && !(form.source === '03') && (form.priceId || form.source === '02' || form.source === '01')" ref="submitButtonRef">取衣收款</el-button>
                         <el-button size="large" type="success" @click="createAndPay" icon="Money"
-                            :disabled="notEditable">收衣收款</el-button>
+                            :disabled="notEditable" ref="payButtonRef">收衣收款</el-button>
                     </div>
                 </div>
             </div>
-            <div class="right" :span="14">
+            <div class="right" :span="14" ref="addClothRef">
                 <AddCloth :userId="form.userId" :orderId="form.orderId" :submit="submitClothes" :disabled="notEditable"
                     :key="form.userId" />
             </div>
@@ -180,6 +180,18 @@
             :toggle="() => { showPaymentDialog = !showPaymentDialog }" />
         <Information :user="currentUser" :visible="showInfoDialog" :key="showInfoDialog"
             :toggle="() => { showInfoDialog = !showInfoDialog }" />
+            
+        <OrderTourGuide 
+            :memberCardRef="memberCardRef" 
+            :orderSourceRef="orderSourceRef"
+            :clothListRef="clothListRef"
+            :adjustPriceRef="adjustPriceRef"
+            :orderSummaryRef="orderSummaryRef"
+            :addClothRef="addClothRef"
+            :submitButtonRef="submitButtonRef"
+            :payButtonRef="payButtonRef"
+            @tour-finished="handleTourFinished"
+        />
     </div>
 </template>
 
@@ -198,6 +210,8 @@ import { print } from "@/api/system/printer";
 import Information from "@/views/system/user/information.vue";
 import CustomTable from '@/components/CustomTable';
 import Pay from '@/views/components/pay.vue';
+import OrderTourGuide from '@/components/OrderTourGuide/index.vue';
+
 const props = defineProps({
     visible: {
         type: Boolean,
@@ -254,6 +268,16 @@ const showInfoDialog = ref(false);
 
 const notEditable = ref(false);
 const showCoupons = ref(true);
+
+// 引导组件需要的ref
+const memberCardRef = ref(null);
+const orderSourceRef = ref(null);
+const clothListRef = ref(null);
+const adjustPriceRef = ref(null);
+const orderSummaryRef = ref(null);
+const addClothRef = ref(null);
+const submitButtonRef = ref(null);
+const payButtonRef = ref(null);
 
 const data = reactive({
     form: {
@@ -845,6 +869,11 @@ const handleRouteLeave = (to, from, next) => {
         });
 };
 
+
+// 引导完成后的处理函数
+const handleTourFinished = () => {
+    console.log('订单创建引导已完成');
+};
 
 onMounted(async () => {
     router.beforeEach((to, from, next) => {

@@ -525,7 +525,7 @@ const openCamera = async () => {
         console.log('devices:', devices);
         const videoDevices = devices.filter(device => device.kind === 'videoinput');
         if (videoDevices.length === 0) {
-            ElMessage.error('没有可用的摄像头设备');
+            proxy.notify.error('没有可用的摄像头设备');
             return;
         }
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -537,7 +537,7 @@ const openCamera = async () => {
         });
         video.value.srcObject = stream;
     } catch (error) {
-        ElMessage.error('无法访问摄像头: ' + error);
+        proxy.notify.error('无法访问摄像头: ' + error);
         console.error('无法访问摄像头:', error);
         try {
             const stream = await navigator.mediaDevices.getDisplayMedia({
@@ -545,7 +545,7 @@ const openCamera = async () => {
             });
             video.value.srcObject = stream;
         } catch (error) {
-            ElMessage.error('无法访问桌面: ' + error);
+            proxy.notify.error('无法访问桌面: ' + error);
             console.error('无法访问桌面:', error);
         }
     }

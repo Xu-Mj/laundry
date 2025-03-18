@@ -3,6 +3,7 @@
     <el-button link icon="Close" size="large" @click="closeWindow" />
   </div>
   <WaveBackground />
+  <SunRays position="top-right" />
   <div class="register-container" data-tauri-drag-region>
     <div class="register-card">
       <div class="register-header">
@@ -14,13 +15,13 @@
         <el-form-item prop="storeName" class="custom-form-item">
           <el-input v-model="registerForm.storeName" type="text" size="large" auto-complete="off" placeholder="商家名称"
             class="custom-input">
-            <template #prefix><svg-icon icon-class="company" class="input-icon" /></template>
+            <template #prefix><el-icon  class="input-icon"><OfficeBuilding /></el-icon></template>
           </el-input>
         </el-form-item>
 
         <!-- 联系人姓名 -->
         <el-form-item prop="ownerName" class="custom-form-item">
-          <el-input v-model="registerForm.ownerName" type="text" size="large" auto-complete="off" placeholder="联系人姓名"
+          <el-input v-model="registerForm.ownerName" type="text" size="large" auto-complete="off" placeholder="店主姓名"
             class="custom-input">
             <template #prefix><svg-icon icon-class="user" class="input-icon" /></template>
           </el-input>
@@ -102,6 +103,7 @@
 
 <script setup>
 import WaveBackground from '@/layout/components/WaveBackground.vue';
+import SunRays from '@/layout/components/SunRays.vue';
 import { getCodeImg, register } from "@/api/login";
 import { LogicalSize, Window } from "@tauri-apps/api/window";
 import { ElMessageBox } from "element-plus";

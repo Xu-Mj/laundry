@@ -4,7 +4,7 @@ import Layout from '@/layout'
 import OrderContent from '@/views/container/orderContentContainer.vue'; // 引入组件
 import CreateOrder from '@/views/container/createOrderContainer.vue'; // 引入组件
 import CouponSale from '@/views/container/couponSaleContainer.vue'; // 引入组件
-import HangUp from '@/views/home/hangUp.vue'; // 引入组件
+import HangUp from '@/views/components/hangUp.vue'; // 引入组件
 import User from '@/views/system/user/index.vue'; // 引入组件
 import Coupon from '@/views/system/coupon/index.vue'; // 引入组件
 import ImageTest from '@/views/container/imageTest.vue'
@@ -246,34 +246,6 @@ export const dynamicRoutes = [
         component: () => import('@/views/system/dict/data'),
         name: 'Data',
         meta: { title: '字典数据', activeMenu: '/system/dict' }
-      }
-    ]
-  },
-  {
-    path: '/monitor/job-log',
-    component: Layout,
-    hidden: true,
-    permissions: ['monitor:job:list'],
-    children: [
-      {
-        path: 'index/:jobId(\\d+)',
-        component: () => import('@/views/monitor/job/log'),
-        name: 'JobLog',
-        meta: { title: '调度日志', activeMenu: '/monitor/job' }
-      }
-    ]
-  },
-  {
-    path: '/tool/gen-edit',
-    component: Layout,
-    hidden: true,
-    permissions: ['tool:gen:edit'],
-    children: [
-      {
-        path: 'index/:tableId(\\d+)',
-        component: () => import('@/views/tool/gen/editTable'),
-        name: 'GenEdit',
-        meta: { title: '修改生成配置', activeMenu: '/tool/gen' }
       }
     ]
   }

@@ -2,6 +2,12 @@
     <!-- 付款弹窗 -->
     <el-dialog v-model="showPaymentDialog" width="600px" append-to-body lock-scroll modal :align-center="true"
         :close-on-click-modal="false" :show-close="false" @closed="close" class="payment-dialog">
+        <!-- 扫码支付弹窗 -->
+        <el-dialog v-model="showScannerDialog" title="扫描二维码" width="500px" append-to-body lock-scroll modal :align-center="true"
+            :close-on-click-modal="false" :show-close="true" class="scanner-dialog">
+            <QrCodeScanner :onScanSuccess="handleScanResult" :autoStart="true" @scan-error="handleScanError"
+                @scan-timeout="handleScanTimeout" />
+        </el-dialog>
         <template #header>
             <div class="dialog-header">
                 <div class="order-info">
@@ -101,6 +107,14 @@
                             </el-radio>
                         </template>
                     </el-radio-group>
+
+                    <!-- 扫码支付按钮 -->
+                    <el-button type="primary" @click="startScanPayment" class="scan-code-btn">
+                        <el-icon>
+                            <ScanningFilled />
+                        </el-icon>
+                        扫描付款码
+                    </el-button>
                 </template>
             </el-form-item>
 
@@ -178,6 +192,29 @@
                     <span class="price-label">订单金额</span>
                     <span class="price-value">¥ {{ paymentForm.totalAmount }}</span>
                 </div>
+                <!-- 店主调价信息 -->
+                <template
+                    v-if="props.order.adjust && (props.order.adjust.adjustValueAdd || props.order.adjust.adjustValueSub || props.order.adjust.adjustTotal)">
+                    <div class="price-row adjust-price-row" v-if="props.order.adjust.adjustTotal">
+                        <span class="price-label">店主调价</span>
+                        <span class="price-value adjust">总价调整为 ¥ {{ props.order.adjust.adjustTotal }}</span>
+                    </div>
+                    <div class="price-row adjust-price-row" v-else>
+                        <span class="price-label">店主调价</span>
+                        <div class="adjust-details">
+                            <span v-if="props.order.adjust.adjustValueAdd" class="price-value adjust-add">
+                                + ¥{{ props.order.adjust.adjustValueAdd }}
+                            </span>
+                            <span v-if="props.order.adjust.adjustValueSub" class="price-value adjust-sub">
+                                - ¥{{ props.order.adjust.adjustValueSub }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="price-row adjust-price-row" v-if="props.order.adjust.remark">
+                        <span class="price-label">调价备注</span>
+                        <span class="price-value adjust-remark">{{ props.order.adjust.remark }}</span>
+                    </div>
+                </template>
                 <div class="price-row" v-if="paymentForm.bonusAmount">
                     <span class="price-label">优惠金额</span>
                     <span class="price-value discount">- ¥ {{ paymentForm.bonusAmount }}</span>
@@ -221,6 +258,8 @@ import { getUser } from '@/api/system/user';
 import { isCurrentTimeWithinRange } from "@/utils";
 import { onMounted } from "vue";
 import { getPrice } from "@/api/system/price";
+import QrCodeScanner from '@/components/QrCodeScanner/index.vue';
+import { ElLoading } from 'element-plus';
 
 const props = defineProps({
     visible: {
@@ -247,6 +286,7 @@ const { sys_payment_method } = proxy.useDict("sys_payment_method");
 
 const showPaymentDialog = ref(false);
 const showCoupons = ref(true);
+const showScannerDialog = ref(false);
 
 const paymentForm = ref({
     orders: [],
@@ -283,6 +323,62 @@ function submitCouponSale() {
     showCouponSale.value = false;
 }
 
+/* 启动扫码支付 */
+function startScanPayment() {
+    showScannerDialog.value = true;
+}
+
+/* 处理扫码错误 */
+function handleScanError(error) {
+    console.error('扫码错误:', error);
+    proxy.notify.error('扫码出错: ' + error);
+}
+
+/* 处理扫码超时 */
+function handleScanTimeout() {
+    proxy.notify.warning('扫码超时，请重试');
+}
+
+/* 处理扫码结果 */
+function handleScanResult(result) {
+    console.log('扫码结果:', result);
+    // 关闭扫码弹窗
+    showScannerDialog.value = false;
+
+    // 显示全局loading
+    const loadingInstance = ElLoading.service({
+        lock: true,
+        text: '正在处理支付...',
+        background: 'rgba(0, 0, 0, 0.7)'
+    });
+
+    // 根据扫码结果处理支付逻辑
+    try {
+        // 示例：根据扫码结果前缀判断支付方式
+        if (result.startsWith('1') || result.startsWith('2') || result.startsWith('3')) {
+            // 支付宝付款码通常以1、2、3开头
+            paymentForm.value.paymentMethod = '01';
+            proxy.notify.success('已识别为支付宝付款码');
+        } else if (result.startsWith('1')) {
+            // 微信付款码通常以1开头
+            paymentForm.value.paymentMethod = '02';
+            proxy.notify.success('已识别为微信付款码');
+        } else {
+            proxy.notify.warning('无法识别的付款码格式');
+        }
+
+        // 自动提交支付表单
+        submitPaymentForm().finally(() => {
+            // 关闭loading
+            loadingInstance.close();
+        });
+    } catch (error) {
+        console.error('处理支付出错:', error);
+        proxy.notify.error('处理支付出错');
+        loadingInstance.close();
+    }
+}
+
 /* 初始化支付表单数据 */
 async function initPaymentForm() {
     paymentForm.value = {
@@ -302,12 +398,15 @@ async function initPaymentForm() {
         paymentForm.value.paymentMethod = '04';
         showCoupons.value = false;
     }
-    console.log(props)
 
     let price;
+    // 如果选择了价格套餐，那么使用套餐内价格,使用了价格标签了就不能再进行调价了（顾客可能已经在其他渠道付完款了）
     if (props.order.priceId) {
         const item = await getPrice(props.order.priceId);
         price = item ? item.priceValue : 0;
+    } else if (props.order.adjust.adjustTotal && props.order.adjust.adjustTotal > 0) {
+        // 如果存在店主调价总价格，那么使用总价格
+        price = props.order.adjust.adjustTotal;
     } else {
         price = props.order.cloths.reduce((acc, cur) => {
             // 计算总价
@@ -321,10 +420,10 @@ async function initPaymentForm() {
             return acc +
                 priceValue + cur.processMarkup
         }, 0);
+        price +=
+            Number(props.order.adjust.adjustValueAdd ? props.order.adjust.adjustValueAdd : 0) -
+            Number(props.order.adjust.adjustValueSub ? props.order.adjust.adjustValueSub : 0);
     }
-    price +=
-        Number(props.order.adjust.adjustValueAdd ? props.order.adjust.adjustValueAdd : 0) -
-        Number(props.order.adjust.adjustValueSub ? props.order.adjust.adjustValueSub : 0);
     paymentForm.value.totalAmount = price > 0 ? price : 0;
     paymentForm.value.paymentAmount = paymentForm.value.totalAmount;
     couponStorageCardId.value = [];
@@ -623,7 +722,6 @@ onMounted(async () => {
                 item.count = 1;
             });
             couponTypeList.value = new Set(userCouponList.value.map(coupon => coupon.coupon.couponType));
-            console.log(props.order)
             checkCoupon();
             showPaymentDialog.value = true;
         });
@@ -643,11 +741,16 @@ onMounted(async () => {
     background-color: var(--el-bg-color-page);
 }
 
+.scanner-dialog {
+    border-radius: 12px;
+    overflow: hidden;
+}
+
 .dialog-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0 16px;
+    padding: 0 1rem;
 }
 
 .order-info {
@@ -664,13 +767,12 @@ onMounted(async () => {
     align-items: center;
     background: linear-gradient(135deg, var(--el-fill-color-light) 0%, var(--el-fill-color-dark) 100%);
     border-radius: 12px;
-    padding: 16px;
-    margin-bottom: 24px;
+    padding: 1rem;
     box-shadow: var(--el-box-shadow);
 }
 
 .member-avatar {
-    margin-right: 16px;
+    margin-right: 1rem;
 }
 
 .member-details {
@@ -690,7 +792,7 @@ onMounted(async () => {
 
 .member-points {
     text-align: center;
-    padding: 0 16px;
+    padding: 0 1rem;
     border-left: 1px solid #e4e7ed;
 }
 
@@ -706,13 +808,13 @@ onMounted(async () => {
 }
 
 .payment-form {
-    padding: 0 16px;
+    padding:  1rem 1rem 0 1rem;
 }
 
 .section-title {
-    font-size: 16px;
+    font-size: 1rem;
     font-weight: 600;
-    margin: 16px 0 12px 0;
+    margin: 1rem 0 12px 0;
     color: var(--el-text-color-primary);
 }
 
@@ -723,8 +825,17 @@ onMounted(async () => {
 .payment-method-group {
     display: flex;
     flex-wrap: wrap;
-    gap: 16px;
+    gap: 1rem;
     margin-bottom: 10px;
+}
+
+.scan-code-btn {
+    margin-top: 1rem;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
 }
 
 .payment-method-radio {
@@ -767,6 +878,7 @@ onMounted(async () => {
 
 .payment-method-card span {
     font-size: 14px;
+    line-height: 14px;
 }
 
 .coupon-section {
@@ -843,8 +955,8 @@ onMounted(async () => {
 .price-summary-card {
     background-color: var(--el-fill-color-light);
     border-radius: 8px;
-    padding: 16px;
-    margin: 24px 0;
+    padding: 1rem;
+    margin: .5rem 0;
 }
 
 .price-row {
@@ -865,13 +977,44 @@ onMounted(async () => {
 }
 
 .price-value {
-    font-size: 16px;
+    font-size: 1rem;
     font-weight: 600;
     color: var(--el-text-color-primary);
 }
 
 .price-value.discount {
     color: #f56c6c;
+}
+
+.price-value.adjust {
+    color: #409EFF;
+    font-weight: 500;
+}
+
+.price-value.adjust-add {
+    color: #67C23A;
+    margin-right: 8px;
+}
+
+.price-value.adjust-sub {
+    color: #f56c6c;
+}
+
+.price-value.adjust-remark {
+    color: #909399;
+    font-size: 14px;
+    font-style: italic;
+}
+
+.adjust-details {
+    display: flex;
+}
+
+.adjust-price-row {
+    background-color: rgba(64, 158, 255, 0.05);
+    border-radius: 4px;
+    padding: 4px 8px;
+    margin: 4px 0;
 }
 
 .price-value.total-amount {
@@ -886,7 +1029,7 @@ onMounted(async () => {
 }
 
 .price-diff-section {
-    margin-top: 16px;
+    margin-top: 1rem;
 }
 
 .payment-footer {

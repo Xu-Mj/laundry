@@ -2,7 +2,6 @@
   <Sidebar :switch="switchAdmin" v-if="isAdmin" />
   <div class="sidebar" v-else>
     <logo :collapse="false" />
-    <el-button type="primary" @click="open = true" class="tour-button">开始引导</el-button>
     <el-scrollbar wrap-class="scrollbar-wrapper" :view-class="['menu-list', { 'single-column': isSingleColumn }]">
       <button class="btn menu" :class="{ active: route.path == menu.path }" :color="menu.color" :dark="menu.dark"
         :type="menu.type" @click="handleMenuClick(menu)" plain v-for="menu in menus" v-show="menu.show"
@@ -19,40 +18,7 @@
     <HangUp :visible="showHangUp" :key="showHangUp" :taggle="() => { showHangUp = !showHangUp }" />
     <Expenditure :visible="showExp" :key="showExp" title="支出录入" :taggle="() => { showExp = !showExp }" />
     
-    <el-tour v-model="open">
-      <el-tour-step 
-        :target="menuRefs['首页']" 
-        title="首页"
-        description="返回系统首页"
-      >
-        <img
-          style="width: 240px"
-          src="https://element-plus.org/images/element-plus-logo.svg"
-          alt="tour.png"
-        />
-        <div>点击此按钮返回系统首页</div>
-      </el-tour-step>
-      <el-tour-step
-        :target="menuRefs['收衣收鞋']"
-        title="收衣收鞋"
-        description="创建新的收衣收鞋订单"
-      />
-      <el-tour-step
-        :target="menuRefs['取衣取鞋']"
-        title="取衣取鞋"
-        description="处理客户取衣取鞋业务"
-      />
-      <el-tour-step
-        :target="menuRefs['订单管理']"
-        title="订单管理"
-        description="查看和管理所有订单"
-      />
-      <el-tour-step
-        :target="menuRefs['衣物上挂']"
-        title="衣物上挂"
-        description="管理衣物上挂流程"
-      />
-    </el-tour>
+    <MenuTourGuide :menuRefs="menuRefs" @tour-finished="handleTourFinished" />
   </div>
 </template>
 
@@ -69,8 +35,7 @@ import AddUser from '@/views/components/addUser.vue'
 import CouponGift from '@/views/components/couponGift.vue';
 import HangUp from '@/views/components/hangUp.vue';
 import Sidebar from '../Sidebar/index.vue';
-import { MoreFilled } from '@element-plus/icons-vue';
-import { checkTourCompleted, updateTourGuide } from '@/api/system/tour_guide';
+import MenuTourGuide from '@/components/MenuTourGuide/index.vue';
 
 const router = useRouter();
 const route = useRoute();
@@ -85,7 +50,6 @@ const showHangUp = ref(false);
 const showExp = ref(false);
 const isSingleColumn = ref(false);
 const isAdmin = ref(localStorage.getItem('isAdmin') === 'true');
-const open = ref(false);
 const menuRefs = reactive({});
 
 /*
@@ -152,54 +116,19 @@ function hangupClick() {
   }
   showHangUp.value = true;
 }
-// 检查并自动开启引导
-const checkAndStartTour = async () => {
-  try {
-    // 检查用户是否已完成菜单引导
-    const completed = await checkTourCompleted('sidebar_menu');
-    if (!completed) {
-      // 如果未完成，自动开启引导
-      open.value = true;
-    }
-  } catch (error) {
-    console.error('检查引导状态失败:', error);
-  }
+// 引导完成后的处理函数
+const handleTourFinished = () => {
+  console.log('菜单引导已完成');
 };
-
-// 引导完成后更新用户引导记录
-const handleTourFinish = async () => {
-  try {
-    await updateTourGuide('sidebar_menu');
-    console.log('引导记录已更新');
-  } catch (error) {
-    console.error('更新引导记录失败:', error);
-  }
-};
-
-// 监听引导状态变化
-watch(open, (newValue, oldValue) => {
-  // 当引导关闭时，更新引导记录
-  if (oldValue === true && newValue === false) {
-    handleTourFinish();
-  }
-});
 
 onMounted(() => {
   appStore.setSidebarWidth(isAdmin.value);
-  // 检查并自动开启引导
-  checkAndStartTour();
 })
 </script>
 
 <style scoped>
-/* .sidebar {
-  width: var(--sidebar-width);
-  transition: width 0.3s;
-} */
-
 .btn {
   height: 4rem;
-  /* border: 1px solid rgb(0, 166, 255); */
   border: none;
   border-radius: 0.4rem;
   cursor: pointer;
@@ -215,21 +144,6 @@ onMounted(() => {
   color: #fff;
   background-color: rgba(0, 166, 255, 0.7);
 }
-
-/* .btn::before {
-  content: '';
-  width: 100%;
-  height: 100%;
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  backdrop-filter: blur(40px);
-  background-color: rgba(255, 255, 255, 0.2);
-  z-index: -1;
-  transition: background-color 0.3s ease;
-} */
 
 .btn:hover::before {
   background-color: rgba(0, 166, 255, 0.7);
@@ -250,24 +164,5 @@ onMounted(() => {
   height: 2rem;
   background-color: black;
   cursor: pointer;
-  /* Add your styles for the toggle icon */
-}
-
-.tour-button {
-  margin: 10px;
-  width: calc(100% - 20px);
-}
-</style>
-
-<style>
-/* 
-.menu-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 1rem;
-}
-
-.menu-list.single-column {
-  grid-template-columns: 1fr;
-} */
+} 
 </style>

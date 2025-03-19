@@ -111,7 +111,6 @@ const resetTimeout = (timeoutLength = defaultTimeoutLength) => {
     // 如果已经锁定，不重置计时器
     if (localIsLocked.value) return;
 
-    console.log('timeoutLength', timeoutLength)
     warningTimeoutId = setTimeout(() => {
         // 锁定屏幕
         localIsLocked.value = true;

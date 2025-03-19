@@ -8,89 +8,12 @@
       </transition>
     </router-view>
   </section>
-  <el-dialog :align-center="true" v-model="showWarning" :show-close="false" width="300px" center="true">
-    <p style="text-align: center;">您将在 {{ countdown }} 秒后自动注销当前登录。</p>
-  </el-dialog>
 </template>
 
 <script setup>
 import useTagsViewStore from '@/store/modules/tagsView'
-import { getConfigKey } from '@/api/system/config';
-import useUserStore from '@/store/modules/user';
 
-const userStore = useUserStore();
 const tagsViewStore = useTagsViewStore()
-const showWarning = ref(false);
-const defaultTimeoutLength = 300; // 5 minutes
-const timeOut = ref(defaultTimeoutLength);
-const countdownInit = 30; // 30s
-const countdown = ref(countdownInit);
-let warningTimeoutId;
-let redirectTimeoutId;
-let countdownIntervalId;
-
-const resetTimeout = (timeoutLength = defaultTimeoutLength) => {
-  if (warningTimeoutId) {
-    clearTimeout(warningTimeoutId);
-  }
-  if (redirectTimeoutId) {
-    clearTimeout(redirectTimeoutId);
-  }
-  if (countdownIntervalId) {
-    clearInterval(countdownIntervalId);
-  }
-  showWarning.value = false;
-  countdown.value = countdownInit;
-
-  warningTimeoutId = setTimeout(() => {
-    showWarning.value = true;
-    countdownIntervalId = setInterval(() => {
-      countdown.value -= 1;
-      if (countdown.value <= 0) {
-        showWarning.value = false;
-        clearInterval(countdownIntervalId);
-        userStore.logOut().then(() => {
-          location.href = '/index';
-        })
-      }
-    }, 1000);
-  }, (timeoutLength - countdownInit) * 1000); // 4 minutes 30 seconds
-};
-
-const debounce = (func, wait) => {
-  let timeout;
-  return (...args) => {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func.apply(this, args), wait);
-  };
-};
-
-const handleUserInteraction = debounce(() => {
-  resetTimeout(timeOut.value);
-}, 300); // Debounce with 300ms delay
-
-onMounted(async () => {
-  // get timeoutLength from server
-  const config = await getConfigKey('logout_timeout');
-  timeOut.value = config ? Number(config.configValue) : defaultTimeoutLength;
-  resetTimeout(timeOut.value);
-  window.addEventListener('mousemove', handleUserInteraction);
-  window.addEventListener('keydown', handleUserInteraction);
-});
-
-onBeforeUnmount(() => {
-  if (warningTimeoutId) {
-    clearTimeout(warningTimeoutId);
-  }
-  if (redirectTimeoutId) {
-    clearTimeout(redirectTimeoutId);
-  }
-  if (countdownIntervalId) {
-    clearInterval(countdownIntervalId);
-  }
-  window.removeEventListener('mousemove', handleUserInteraction);
-  window.removeEventListener('keydown', handleUserInteraction);
-});
 </script>
 
 <style lang="scss" scoped>

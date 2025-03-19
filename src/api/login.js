@@ -19,7 +19,7 @@ export function login(account, pwd, code, uuid) {
   //   method: 'post',
   //   data: data
   // })
-  return invoke('login', {req: data})
+  return invoke('login', { req: data })
 }
 
 // 注册方法
@@ -36,11 +36,11 @@ export function register(data) {
 
 // 获取用户详细信息
 export function getInfo() {
-return invoke('get_info')
+  return invoke('get_info')
 }
 
 export function guestLogin() {
-return invoke('guest_login')
+  return invoke('guest_login')
 }
 
 // 退出方法
@@ -50,5 +50,9 @@ export function logout() {
 
 // 获取验证码
 export function getCodeImg() {
-return invoke('get_captcha')
+  return invoke('get_captcha')
+}
+
+export function validatePwd(account, pwd) {
+  return invoke('validate_pwd', { account, pwd })
 }

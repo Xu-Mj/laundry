@@ -5,6 +5,7 @@
       <CloseBar />
       <app-main />
     </div>
+    <LockScreen @unlock="handleUnlock" />
   </AppWatermark>
 </template>
 
@@ -14,6 +15,7 @@ import SidebarNew from './components/SidebarNew/index.vue'
 import { AppMain } from './components'
 import CloseBar from '@/components/close_bar'
 import AppWatermark from '@/components/AppWatermark/index.vue'
+import LockScreen from '@/components/LockScreen/index.vue'
 
 import useAppStore from '@/store/modules/app'
 import useSettingsStore from '@/store/modules/settings'
@@ -40,6 +42,12 @@ watchEffect(() => {
     useAppStore().toggleDevice('desktop')
   }
 })
+
+// 锁屏功能 - 简化后的解锁处理函数
+const handleUnlock = () => {
+  // 用户成功解锁后的回调
+  console.log('用户已解锁');
+};
 </script>
 
 <style lang="scss" scoped>

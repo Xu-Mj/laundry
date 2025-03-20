@@ -586,7 +586,7 @@ function handleReWash(cloth) {
         return;
     }
 
-    const orders = new Set(selectedCloths.value.map(item => item.orderClothId));
+    const orders = new Set(selectedCloths.value.map(item => item.orderId));
     if (orders.length > 1) {
         proxy.$message.error("不支持跨订单复洗");
         return;
@@ -631,6 +631,7 @@ function changeCouponCount() {
 }
 
 async function handlePay() {
+    console.log('paymentForm', ordersList.value)
     if (ordersList.value.length == 0) {
         proxy.notify.warning("没有可支付的订单或可取走的衣物");
         return;
@@ -654,11 +655,11 @@ async function handlePay() {
             .sort((a, b) => b.priceValue - a.priceValue);
     } else {
         // 查询选中衣物所属的订单
-        const orderIds = new Set(selectedCloths.value.map(item => item.orderClothId));
+        const orderIds = new Set(selectedCloths.value.map(item => item.orderId));
         paymentForm.value.orders = ordersList.value.filter(item => orderIds.has(item.orderId) && item.paymentStatus === '01');
         const ids = paymentForm.value.orders.map(item => item.orderId);
         // 排序
-        clothsList.value = selectedCloths.value.filter(item => ids.includes(item.orderClothId)).sort((a, b) => b.priceValue - a.priceValue);
+        clothsList.value = selectedCloths.value.filter(item => ids.includes(item.orderId)).sort((a, b) => b.priceValue - a.priceValue);
     }
     if (paymentForm.value.orders.length == 0) {
         proxy.notify.warning("没有选中未支付的订单");
@@ -984,7 +985,7 @@ async function pickup(cloth) {
 
     const ids = cloths.map(item => item.clothId);
 
-    const orderIds = cloths.map(item => item.orderClothId);
+    const orderIds = cloths.map(item => item.orderId);
     console.log(ids)
 
     // 判断是否包含未支付的订单
@@ -1040,7 +1041,7 @@ function getDate() {
 function submitDelivery() {
     const cloths = selectedCloths.value.filter(item => item.clothingStatus === '02');
     deliveryForm.value.clothId = cloths.map(item => item.clothId).join(',');
-    const orderIds = [...new Set(cloths.map(item => item.orderClothId))];
+    const orderIds = [...new Set(cloths.map(item => item.orderId))];
     deliveryForm.value.orderId = orderIds.join(',');
     console.log(deliveryForm.value)
     delivery(deliveryForm.value).then(res => {
@@ -1054,10 +1055,11 @@ function submitDelivery() {
 function handleClothSelectionChange(selectedItems, row) {
     // 清空当前订单下的选中数据
     const orderId = row.orderId;
-    selectedCloths.value = selectedCloths.value.filter(cloth => cloth.orderClothId !== orderId);
+    selectedCloths.value = selectedCloths.value.filter(cloth => cloth.orderId !== orderId);
 
     // 将新的选中项合并到 shared array
     selectedCloths.value.push(...selectedItems);
+    console.log(ordersList.value)
 }
 
 function cancelDelivery() {
@@ -1068,7 +1070,7 @@ function cancelDelivery() {
 // 重置取走form
 function resetDeliveryForm() {
     deliveryForm.value = {
-        orderClothId: null,
+        orderId: null,
         clothingId: null,
         clothingCategory: null,
         clothingStyle: null,

@@ -631,7 +631,6 @@ function changeCouponCount() {
 }
 
 async function handlePay() {
-    console.log('paymentForm', ordersList.value)
     if (ordersList.value.length == 0) {
         proxy.notify.warning("没有可支付的订单或可取走的衣物");
         return;
@@ -680,7 +679,6 @@ async function handlePay() {
     paymentForm.value.bonusAmount = 0;
     paymentForm.value.paymentAmount = paymentForm.value.totalAmount;
     showPaymentDialog.value = true;
-    // console.log(paymentForm.value)
 }
 
 
@@ -1059,7 +1057,6 @@ function handleClothSelectionChange(selectedItems, row) {
 
     // 将新的选中项合并到 shared array
     selectedCloths.value.push(...selectedItems);
-    console.log(ordersList.value)
 }
 
 function cancelDelivery() {

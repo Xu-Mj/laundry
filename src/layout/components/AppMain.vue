@@ -21,6 +21,7 @@ const tagsViewStore = useTagsViewStore()
   width: 100%;
   height: 100%;
   position: relative;
+  scrollbar-gutter: stable both-edges;
 }
 
 .fixed-header+.app-main {
@@ -43,16 +44,16 @@ const tagsViewStore = useTagsViewStore()
 }
 
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 4px;
+  height: 4px;
 }
 
 ::-webkit-scrollbar-track {
-  background-color: #f1f1f1;
+  background-color: var(--el-bg-color-page);
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: #c0c0c0;
+  background-color: #575c63;
   border-radius: 3px;
 }
 </style>

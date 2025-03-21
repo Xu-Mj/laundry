@@ -7,15 +7,28 @@
   <div class="register-container" data-tauri-drag-region>
     <div class="register-card">
       <div class="register-header">
-        <h2 class="title">LAUNDRY</h2>
+        <h2 class="title">CleanWave</h2>
         <p class="subtitle">商家注册</p>
       </div>
       <el-form ref="registerRef" :model="registerForm" :rules="registerRules" class="register-form">
+        <!-- 头像选择 -->
+        <el-form-item prop="avatar" class="custom-form-item avatar-selection">
+          <!-- <p class="avatar-label">选择头像</p> -->
+          <div class="avatar-group">
+            <div class="avatar-container" v-for="(avatar, index) in avatars" :key="index"
+              :class="{ 'selected': registerForm.avatar === avatar }" @click="registerForm.avatar = avatar">
+              <img :src="convertFileSrc(avatar)" alt="头像" class="avatar-image">
+            </div>
+          </div>
+        </el-form-item>
+
         <!-- 商家名称 -->
         <el-form-item prop="storeName" class="custom-form-item">
           <el-input v-model="registerForm.storeName" type="text" size="large" auto-complete="off" placeholder="商家名称"
             class="custom-input">
-            <template #prefix><el-icon  class="input-icon"><OfficeBuilding /></el-icon></template>
+            <template #prefix><el-icon class="input-icon">
+                <OfficeBuilding />
+              </el-icon></template>
           </el-input>
         </el-form-item>
 
@@ -105,9 +118,9 @@
 import WaveBackground from '@/layout/components/WaveBackground.vue';
 import SunRays from '@/layout/components/SunRays.vue';
 import { getCodeImg, register } from "@/api/login";
-import { LogicalSize, Window } from "@tauri-apps/api/window";
+import { Window } from "@tauri-apps/api/window";
 import { ElMessageBox } from "element-plus";
-import { onMounted } from 'vue';
+import { convertFileSrc } from '@tauri-apps/api/core'
 
 const appWindow = new Window('main');
 const router = useRouter();
@@ -115,6 +128,7 @@ const { proxy } = getCurrentInstance();
 
 // 注册表单数据
 const registerForm = ref({
+  avatar: "images/avatars/avatar1.png", // 默认选择第一个头像
   storeName: "",
   ownerName: "",
   phoneNumber: "",
@@ -147,6 +161,9 @@ const validatePhone = (rule, value, callback) => {
 
 // 表单验证规则
 const registerRules = {
+  avatar: [
+    { required: true, message: "请选择头像", trigger: "change" }
+  ],
   storeName: [
     { required: true, trigger: "blur", message: "请输入商家名称" },
     { min: 2, max: 50, message: "商家名称长度必须介于 2 和 50 之间", trigger: "blur" }
@@ -185,7 +202,11 @@ const loading = ref(false);
 const captchaEnabled = ref(true);
 const smsCodeTimer = ref(0);
 const smsCodeInterval = ref(null);
-
+const avatars = [
+  "images/avatars/avatar1.png",
+  "images/avatars/avatar2.png",
+  "images/avatars/avatar3.png",
+];
 // 关闭窗口
 const closeWindow = () => {
   appWindow.close();
@@ -233,6 +254,7 @@ const handleRegister = () => {
 
       // 构建注册数据
       const registerData = {
+        avatar: registerForm.value.avatar,
         storeName: registerForm.value.storeName,
         ownerName: registerForm.value.ownerName,
         phoneNumber: registerForm.value.phoneNumber,
@@ -325,7 +347,7 @@ onMounted(async () => {
   border-radius: 16px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   padding: 40px;
-  width: 420px;
+  width: 480px;
   transition: all 0.3s ease;
 
   &:hover {
@@ -358,6 +380,49 @@ onMounted(async () => {
 .register-form {
   .custom-form-item {
     margin-bottom: 24px;
+  }
+
+  .avatar-selection {
+    text-align: center;
+
+    .avatar-label {
+      font-size: 14px;
+      color: #606266;
+      margin-bottom: 12px;
+    }
+
+    .avatar-group {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+
+      .avatar-container {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        overflow: hidden;
+        cursor: pointer;
+        border: 3px solid transparent;
+        transition: all 0.3s ease;
+
+        &:hover {
+          transform: scale(1.05);
+          box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        &.selected {
+          border-color: #409EFF;
+          box-shadow: 0 0 15px rgba(64, 158, 255, 0.5);
+        }
+
+        .avatar-image {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+      }
+    }
   }
 
   .custom-input {

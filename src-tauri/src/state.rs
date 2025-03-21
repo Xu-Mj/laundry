@@ -131,6 +131,13 @@ impl AppState {
         token.as_ref().map(|t| t.user.clone())
     }
 
+    pub async fn update_user_info(&self, user: LocalUser) {
+        let mut token = self.token.lock().await;
+        if let Some(token) = token.as_mut() {
+            token.user = user;
+        }
+    }
+
     pub async fn get_token(&self) -> Option<String> {
         let token = self.token.lock().await;
         token.as_ref().map(|t| t.token.clone())

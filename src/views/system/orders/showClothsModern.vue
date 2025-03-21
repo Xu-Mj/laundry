@@ -308,7 +308,7 @@ import { hangup } from "@/api/system/cloths";
 import { getUser } from "@/api/system/user";
 import { addExpenditure } from "@/api/system/expenditure";
 import { invoke } from '@tauri-apps/api/core';
-import useSubscriptionStore from '@/store/modules/subscription';
+import useUserStore from '@/store/modules/user';
 import { Search, Goods, Location, Picture, Top, InfoFilled, Warning, Money, Ticket, Service } from '@element-plus/icons-vue';
 
 const props = defineProps({
@@ -522,11 +522,11 @@ async function initList() {
 // 显示上挂对话框
 function handleShowHangUp(row) {
   // 判断是否是试用期
-  if (useSubscriptionStore().isGuest) {
+  if (useUserStore().isGuest) {
     proxy.notify.warning('当前处于游客模式，请先注册！');
     return;
   }
-  if (useSubscriptionStore().isInTrial) {
+  if (useUserStore().isInTrial) {
     // 弹窗提醒
     proxy.notify.warning('您当前为试用期用户，请升级为正式用户后使用！');
     return;

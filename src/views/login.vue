@@ -3,10 +3,11 @@
     <el-button link icon="Close" size="large" @click="closeWindow" />
   </div>
   <WaveBackground />
+  <SunRays position="top-right" />
   <div class="login-container" data-tauri-drag-region>
     <div class="login-card">
       <div class="login-header">
-        <h2 class="title">LAUNDRY</h2>
+        <h2 class="title">CleanWave</h2>
         <p class="subtitle">欢迎回来，请登录您的账号</p>
       </div>
       <el-form ref="loginRef" :model="loginForm" :rules="loginRules" class="login-form">
@@ -58,6 +59,7 @@
 
 <script setup>
 import WaveBackground from '@/layout/components/WaveBackground.vue';
+import SunRays from '@/layout/components/SunRays.vue';
 import { getCodeImg } from "@/api/login";
 import Cookies from "js-cookie";
 import { encrypt, decrypt } from "@/utils/jsencrypt";
@@ -122,7 +124,6 @@ function handleLogin() {
       }
       // 调用action的登录方法
       userStore.login(loginForm.value).then((res) => {
-        // 直接跳转，不再检查firstLogin
         routeJump();
       }).catch(() => {
         loading.value = false;
@@ -226,18 +227,17 @@ onMounted(async () => {
 }
 
 .login-card {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(10px);
-  border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  width: 400px;
   padding: 40px;
-  width: 420px;
-  transition: all 0.3s ease;
-
-  &:hover {
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
-    transform: translateY(-5px);
-  }
+  margin: 0 auto;
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 10px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: visible;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding-top: 80px;
 }
 
 .login-header {

@@ -13,6 +13,7 @@
                         :closable="false" />
                     <div class="lockout-timer">剩余锁定时间: {{ formatLockoutTime(remainingLockoutTime) }}</div>
                 </div>
+                <el-button style="width: 60%;" v-else-if="userInfo.isGuest" @click="localIsLocked = false" type="primary">点击解锁</el-button>
                 <el-form @submit.prevent="handleUnlock" v-else>
                     <el-form-item>
                         <div class="password-container">
@@ -96,7 +97,8 @@ const userInfo = computed(() => {
     return {
         name: userStore.name,
         avatar: userStore.avatar,
-        account: userStore.account
+        account: userStore.account,
+        isGuest: userStore.isGuest,
     };
 });
 
@@ -170,7 +172,6 @@ const handleUnlock = async () => {
     loading.value = true;
     try {
         // 使用登录API验证密码
-        console.log('userInfo.value.account, password.value', userInfo.value.account, password.value)
         await validatePwd(userInfo.value.account, password.value);
         localIsLocked.value = false;
         emit('unlock');
@@ -203,11 +204,36 @@ const handleUserInteraction = debounce(() => {
     resetTimeout(timeOut.value);
 }, 300); // Debounce with 300ms delay
 
+const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+const modifierKey = isMac ? 'metaKey' : 'ctrlKey';
+
+const handleKeyDown = (event) => {
+  // 检查组合键 + KeyL
+  if (event[modifierKey] && event.code === 'KeyL') {
+    // 尝试阻止默认行为
+    try {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    } catch (e) {
+      console.warn('无法阻止浏览器默认快捷键行为');
+    }
+
+    // 验证锁定条件
+    if (!localIsLocked.value && !isLockoutActive.value) {
+      localIsLocked.value = true;
+      password.value = '';
+      resetTimeout(timeOut.value);
+      nextTick(() => passwordInput.value?.focus());
+    }
+  }
+};
+
 onMounted(async () => {
     // 从服务器获取超时时间
     try {
         const config = await getConfigKey('logout_timeout');
         timeOut.value = config ? Number(config.configValue) : defaultTimeoutLength;
+        // timeOut.value = 5;
     } catch (error) {
         console.error('获取超时配置失败:', error);
     }
@@ -215,6 +241,7 @@ onMounted(async () => {
       resetTimeout(timeOut.value);
     window.addEventListener('mousemove', handleUserInteraction);
     window.addEventListener('keydown', handleUserInteraction);
+    window.addEventListener('keydown', handleKeyDown);
 });
 
 onBeforeUnmount(() => {
@@ -229,6 +256,7 @@ onBeforeUnmount(() => {
     }
     window.removeEventListener('mousemove', handleUserInteraction);
     window.removeEventListener('keydown', handleUserInteraction);
+    window.removeEventListener('keydown', handleKeyDown);
 });
 </script>
 

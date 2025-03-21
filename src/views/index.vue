@@ -64,7 +64,9 @@
             <div class="chart-header">
               <h3>{{ item.title }}</h3>
             </div>
-            <GaugeChart :total="orderTotalCount" :value="item.count" class="gauge-chart" />
+            <GaugeChart :total="orderTotalCount" :value="item.count"
+              :color="['primary', 'success', 'warning', 'danger'][index % 4]" :showPercentage="true"
+              class="gauge-chart" />
           </div>
         </el-col>
       </el-row>
@@ -349,7 +351,7 @@ watch([width, height], () => {
 
 .dashboard-date {
   font-size: 0.9rem;
-  color: var(--el-text-color-secondary);
+  color: var(--el-text-color-primary);
 }
 
 /* 数据卡片区域 */
@@ -370,7 +372,7 @@ watch([width, height], () => {
 
   &:hover {
     transform: translateY(-5px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--el-box-shadow-light);
   }
 
   &::before {
@@ -477,6 +479,12 @@ watch([width, height], () => {
   padding: 1rem;
   margin-bottom: 1.5rem;
   position: relative;
+  transition: all 0.3s;
+
+  &:hover {
+    box-shadow: var(--el-box-shadow-light);
+    transform: translateY(-5px);
+  }
 }
 
 .chart-header {

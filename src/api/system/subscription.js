@@ -1,9 +1,10 @@
 import request from '@/utils/request'
+import invoke from '@/utils/invoke'
 
 // 获取所有订阅套餐
 export function getAllPlans() {
   return request({
-    url: '/subscription/plans',
+    url: '/plans',
     method: 'get'
   })
 }
@@ -11,7 +12,7 @@ export function getAllPlans() {
 // 获取推荐订阅套餐
 export function getRecommendedPlans() {
   return request({
-    url: '/subscription/plans/recommended',
+    url: '/plans/recommended',
     method: 'get'
   })
 }
@@ -19,7 +20,7 @@ export function getRecommendedPlans() {
 // 根据类型获取订阅套餐
 export function getPlansByType(type) {
   return request({
-    url: `/subscription/plans/type/${type}`,
+    url: `/plans/type/${type}`,
     method: 'get'
   })
 }
@@ -27,7 +28,7 @@ export function getPlansByType(type) {
 // 获取订阅套餐详情
 export function getPlanById(id) {
   return request({
-    url: `/subscription/plans/${id}`,
+    url: `/plans/${id}`,
     method: 'get'
   })
 }
@@ -35,7 +36,7 @@ export function getPlanById(id) {
 // 获取商家当前有效的订阅
 export function getActiveSubscription(storeId) {
   return request({
-    url: `/subscription/store/${storeId}/active`,
+    url: `/store/${storeId}/active`,
     method: 'get'
   })
 }
@@ -48,19 +49,15 @@ export function getStoreSubscriptions(storeId) {
   })
 }
 
-// 获取所有订阅记录
-export function getAllSubscriptions(params) {
-  return request({
-    url: '/subscription/list',
-    method: 'get',
-    params: params
-  })
+// 获取订阅详情
+export function saveSubscription(subscription, plan) {
+  return invoke('create_subscription', {subscription, plan})
 }
 
 // 获取订阅详情
-export function getSubscriptionById(id) {
+export function getSubscription(storeId, planId,id) {
   return request({
-    url: `/subscription/${id}`,
+    url: `/subscription/${storeId}/${planId}/${id}`,
     method: 'get'
   })
 }
@@ -80,5 +77,13 @@ export function cancelSubscription(id, reason) {
     url: `/subscription/${id}/cancel`,
     method: 'post',
     data: { cancellationReason: reason }
+  })
+}
+
+// 取消订阅
+export function getSmsPlans() {
+  return request({
+    url: `/sms/plans`,
+    method: 'get',
   })
 }

@@ -56,52 +56,23 @@
         </el-card>
 
         <!-- 订阅信息卡片 -->
-        <el-card class="subscription-card" shadow="hover">
-          <template #header>
-            <div class="card-header">
-              <span>当前订阅</span>
-              <el-tag v-if="subscriptionData.plan" :type="getSubscriptionTagType(subscriptionData.plan.planType)"
-                effect="dark" size="small">
-                {{ getSubscriptionTypeName(subscriptionData.plan.planType) }}
-              </el-tag>
-            </div>
-          </template>
-
-          <div v-if="subscriptionData.plan" class="subscription-info">
-            <h3 class="plan-name">{{ subscriptionData.plan.name }}</h3>
-            <div class="plan-price">
-              <span class="price">¥{{ subscriptionData.plan.price }}</span>
-              <span class="period">/ {{ getPeriodText(subscriptionData.plan.period) }}</span>
-            </div>
-
-            <div class="plan-features" v-if="subscriptionData.plan.features">
-              <div v-for="(feature, index) in getFeaturesList(subscriptionData.plan.features)" :key="index"
-                class="feature-item">
-                <el-icon>
-                  <Check />
-                </el-icon>
-                <span>{{ feature }}</span>
-              </div>
-            </div>
-
-            <div class="subscription-footer">
-              <div class="expiry-info">
-                <el-icon>
-                  <Calendar />
-                </el-icon>
-                <span>到期时间: {{ formatDate(subscriptionData.expiryDate) }}</span>
-              </div>
-              <el-button type="primary" plain size="small" @click="handleRenewSubscription">续费</el-button>
-              <el-button type="success" plain size="small" @click="handleUpgradeSubscription">升级</el-button>
-            </div>
-          </div>
-
-          <div v-else class="no-subscription">
-            <el-empty description="暂无订阅信息" :image-size="60">
-              <el-button type="primary" @click="handleSubscribe">立即订阅</el-button>
-            </el-empty>
-          </div>
-        </el-card>
+        <SubscriptionCard 
+          title="当前订阅"
+          :subscription-data="subscriptionData"
+          @renew="handleRenewSubscription"
+          @upgrade="handleUpgradeSubscription"
+          @subscribe="handleSubscribe"
+        />
+        
+        <!-- 短信订阅信息卡片 -->
+        <SmsSubscriptionCard 
+          title="短信订阅"
+          :sms-subscription-data="smsSubscriptionData"
+          @renew="handleRenewSmsSubscription"
+          @upgrade="handleUpgradeSmsSubscription"
+          @subscribe="handleSmsSubscribe"
+          class="mt-20"
+        />
       </el-col>
 
       <!-- 右侧内容区域 -->
@@ -258,55 +229,10 @@
 
             <!-- 订阅管理标签页 -->
             <el-tab-pane label="订阅管理" name="subscription">
-              <div class="subscription-management">
-                <div class="current-plan-info" v-if="subscriptionData.plan">
-                  <h3>当前订阅计划</h3>
-                  <el-descriptions :column="2" border>
-                    <el-descriptions-item label="套餐名称">{{ subscriptionData.plan.name }}</el-descriptions-item>
-                    <el-descriptions-item label="套餐类型">{{ getSubscriptionTypeName(subscriptionData.plan.planType)
-                    }}</el-descriptions-item>
-                    <el-descriptions-item label="订阅周期">{{ getPeriodText(subscriptionData.plan.period)
-                    }}</el-descriptions-item>
-                    <el-descriptions-item label="套餐价格">¥{{ subscriptionData.plan.price }}</el-descriptions-item>
-                    <el-descriptions-item label="到期时间">{{ formatDate(subscriptionData.expiryDate)
-                    }}</el-descriptions-item>
-                    <el-descriptions-item label="自动续费">
-                      <el-switch v-model="subscriptionData.autoRenew" @change="handleAutoRenewChange" />
-                    </el-descriptions-item>
-                  </el-descriptions>
-                </div>
-
-                <div class="available-plans">
-                  <h3>可用套餐</h3>
-                  <el-row :gutter="20" style="row-gap: 20px">
-                    <el-col :span="8" v-for="plan in availablePlans" :key="plan.id">
-                      <el-card class="plan-card" shadow="hover" :class="{ 'recommended-plan': plan.isRecommended }">
-                        <div class="plan-card-header">
-                          <h4>{{ plan.name }}</h4>
-                          <el-tag v-if="plan.isRecommended" type="warning" effect="dark" size="small">推荐</el-tag>
-                        </div>
-                        <div class="plan-card-price">
-                          <span class="price-value">¥{{ plan.price }}</span>
-                          <span class="price-period">/ {{ getPeriodText(plan.period) }}</span>
-                        </div>
-                        <div class="plan-card-features">
-                          <div v-for="(feature, index) in getFeaturesList(plan.features)" :key="index"
-                            class="feature-item">
-                            <el-icon>
-                              <Check />
-                            </el-icon>
-                            <span>{{ feature }}</span>
-                          </div>
-                        </div>
-                        <el-button type="primary" class="subscribe-btn" :disabled="isCurrentPlan(plan.id)"
-                          @click="showSubscriptionDialog(plan)">
-                          {{ isCurrentPlan(plan.id) ? '当前套餐' : '选择套餐' }}
-                        </el-button>
-                      </el-card>
-                    </el-col>
-                  </el-row>
-                </div>
-              </div>
+              <SubscriptionManagement :subscription-data="subscriptionData" />
+            </el-tab-pane>
+            <el-tab-pane label="短信订阅管理" name="subscription-sms">
+              <SmsSubscriptionManagement :subscription-data="subscriptionData" />
             </el-tab-pane>
           </el-tabs>
         </el-card>
@@ -316,19 +242,25 @@
     <!-- 订阅套餐付款弹窗 -->
     <subscription-payment v-model:visible="subscriptionDialogVisible" :plan-data="selectedPlan"
       @payment-success="handlePaymentSuccess" @payment-cancel="handlePaymentCancel" />
+
+    <!-- 订阅成功贺卡 -->
+    <subscription-congrats v-model:visible="congratsVisible" :plan-data="selectedPlan"
+      :expiry-date="subscriptionExpiryDate" @confirmed="handleCongratsConfirmed" />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { getProfile, updateProfile, updatePaymentConfig } from '@/api/system/profile'
-import { formatDate as formatDateUtil } from '@/utils/index'
-import { getAllPlans } from '@/api/system/subscription'
-import useUserStore from '@/store/modules/user'
-import SubscriptionPayment from '@/components/SubscriptionPayment/index.vue';
-import WechatPayIcon from '../../icons/wechatPayIcon.vue'
-import AliPayIcon from '../../icons/aliPayIcon.vue'
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { getProfile, updateProfile, updatePaymentConfig } from '@/api/system/profile';
+import { formatDate as formatDateUtil } from '@/utils/index';
+import useUserStore from '@/store/modules/user';
+import SubscriptionManagement from '@/components/SubscriptionManagement/index.vue';
+import SmsSubscriptionManagement from '@/components/SmsSubscriptionManagement/index.vue';
+import SubscriptionCard from '@/components/SubscriptionCard/index.vue';
+import SmsSubscriptionCard from '@/components/SmsSubscriptionCard/index.vue';
+import WechatPayIcon from '@/views/icons/wechatPayIcon.vue';
+import AliPayIcon from '@/views/icons/aliPayIcon.vue';
+import { getSubscription, saveSubscription } from '@/api/system/subscription';
 
 const activeTab = ref('basic')
 const profileData = ref({})
@@ -336,7 +268,9 @@ const updating = ref(false)
 
 // 订阅套餐相关
 const subscriptionDialogVisible = ref(false);
+const congratsVisible = ref(false);
 const selectedPlan = ref({});
+const subscriptionExpiryDate = ref(null);
 
 // 支付配置数据
 const paymentConfig = ref({
@@ -359,27 +293,49 @@ const paymentConfig = ref({
 })
 
 // 订阅数据
-const subscriptionData = ref({
+const subscriptionData = ref(useUserStore().sub.subscription)
+
+// 短信订阅数据
+const smsSubscriptionData = ref({
   plan: null,
   expiryDate: null,
   autoRenew: false,
-  status: 'active' // active, expired, pending
+  totalSmsCount: 0,
+  usedSmsCount: 0,
+  remainingSmsCount: 0,
+  status: 'Active'
 })
 
 // 可用套餐列表
 const availablePlans = ref([])
 
-// 显示订阅套餐弹窗
-const showSubscriptionDialog = async (plan) => {
-  selectedPlan.value = plan;
-  subscriptionDialogVisible.value = true;
-
-};
-
 // 处理支付成功
 const handlePaymentSuccess = (paymentInfo) => {
-  console.log('支付成功', paymentInfo);
-  // 这里可以添加支付成功后的逻辑，比如更新用户订阅状态等
+  console.log('支付成功', selectedPlan.value);
+  // 更新订阅状态
+  // subscriptionData.value.plan = selectedPlan.value;
+  // subscriptionExpiryDate.value = Date.now() + 30 * 24 * 60 * 60 * 1000; // 设置30天后到期
+  // subscriptionData.value.expiryDate = subscriptionExpiryDate.value;
+  // subscriptionData.value.status = 'active';
+
+  // get subscription
+  getSubscription(useUserStore().user.id, paymentInfo.planId, paymentInfo.subscriptionId).then(res => {
+    saveSubscription(res.subscription, res.plan).catch(err => { })
+  }).catch(err => { })
+
+  // 关闭支付弹窗
+  subscriptionDialogVisible.value = false;
+
+  // 显示贺卡
+  setTimeout(() => {
+    congratsVisible.value = true;
+  }, 500);
+};
+
+// 处理贺卡确认
+const handleCongratsConfirmed = () => {
+  // 贺卡关闭后的逻辑
+  // activeTab.value = 'basic'; // 可选：切换回基本信息标签页
 };
 
 // 处理支付取消
@@ -390,10 +346,6 @@ const handlePaymentCancel = () => {
 
 // 获取个人信息和配置
 onMounted(async () => {
-  getAllPlans().then(res => {
-    availablePlans.value = res;
-  });
-
   useUserStore().getInfo().then(res => {
     profileData.value = res.user;
   });
@@ -518,23 +470,6 @@ const getFeaturesList = (features) => {
   }
 }
 
-// 判断是否为当前套餐
-const isCurrentPlan = (planId) => {
-  return subscriptionData.value.plan && subscriptionData.value.plan.id === planId
-}
-
-// 处理自动续费变更
-const handleAutoRenewChange = async () => {
-  try {
-    // 实际项目中应调用API更新自动续费状态
-    // await updateSubscription({ autoRenew: subscriptionData.value.autoRenew })
-    ElMessage.success(`自动续费已${subscriptionData.value.autoRenew ? '开启' : '关闭'}`)
-  } catch (error) {
-    subscriptionData.value.autoRenew = !subscriptionData.value.autoRenew
-    ElMessage.error('设置失败：' + (error.message || '未知错误'))
-  }
-}
-
 // 处理续费
 const handleRenewSubscription = () => {
   ElMessageBox.confirm('确定要续费当前套餐吗？', '续费确认', {
@@ -559,29 +494,56 @@ const handleSubscribe = () => {
   activeTab.value = 'subscription'
 }
 
-// 处理选择套餐
-const handleSelectPlan = (plan) => {
-  ElMessageBox.confirm(`确定要选择「${plan.name}」套餐吗？`, '套餐选择', {
+// 处理短信续费
+const handleRenewSmsSubscription = () => {
+  ElMessageBox.confirm('确定要续费当前短信套餐吗？', '续费确认', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     type: 'info'
   }).then(() => {
-    // 实际项目中应跳转到支付页面或调用订阅API
-    ElMessage.success(`已成功订阅「${plan.name}」套餐`)
-    // 模拟更新订阅信息
-    subscriptionData.value.plan = plan
-    subscriptionData.value.expiryDate = Date.now() + 30 * 24 * 60 * 60 * 1000
+    // 实际项目中应跳转到支付页面或调用续费API
+    ElMessage.success('续费成功，短信订阅已延长')
+    // 模拟更新到期时间
+    smsSubscriptionData.value.expiryDate = Date.now() + 30 * 24 * 60 * 60 * 1000
   }).catch(() => { })
+}
+
+// 处理短信升级
+const handleUpgradeSmsSubscription = () => {
+  activeTab.value = 'subscription-sms'
+}
+
+// 处理短信订阅
+const handleSmsSubscribe = () => {
+  activeTab.value = 'subscription-sms'
 }
 </script>
 
 <style scoped>
+/* 工具类 */
+.mt-20 {
+  margin-top: 20px;
+}
+
 /* 整体容器样式 */
 .app-container {
   width: 100%;
   height: 100%;
   padding: 1rem;
   background-color: var(--el-bg-color-page);
+  overflow-y: auto;
+}
+
+.app-container::-webkit-scrollbar-button {
+  display: none;
+}
+
+.app-container::-webkit-scrollbar-thumb {
+  display: none;
+}
+
+.app-container:hover::-webkit-scrollbar-thumb {
+  display: block;
 }
 
 /* 页面标题区域 */
@@ -801,7 +763,6 @@ const handleSelectPlan = (plan) => {
 /* 右侧内容区域 */
 .content-card {
   border-radius: 8px;
-  height: 100%;
 }
 
 .profile-tabs {
@@ -818,140 +779,5 @@ const handleSelectPlan = (plan) => {
   justify-content: space-around;
 }
 
-/* 支付配置区域 */
-.payment-config-container {
-  padding: 16px 0;
-}
-
-.payment-card {
-  height: 100%;
-  border-radius: 8px;
-  transition: all 0.3s;
-}
-
-.payment-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.payment-logo {
-  height: 32px;
-  object-fit: contain;
-}
-
-.payment-form {
-  padding: 16px 0;
-}
-
-.save-btn {
-  width: 100%;
-  margin-top: 16px;
-}
-
-/* 订阅管理区域 */
-.subscription-management {
-  padding: 16px 0;
-}
-
-.current-plan-info {
-  margin-bottom: 32px;
-}
-
-.current-plan-info h3,
-.available-plans h3 {
-  font-size: 18px;
-  font-weight: 600;
-  margin-bottom: 16px;
-  color: var(--el-text-color-primary);
-}
-
-.plan-card {
-  height: 100%;
-  border-radius: 8px;
-  padding: 16px;
-  transition: all 0.3s;
-  position: relative;
-  overflow: hidden;
-  transition: all 0.3s;
-}
-
-.plan-card:hover {
-  transform: translateY(-2px);
-}
-
-
-.recommended-plan {
-  border: 2px solid #e6a23c;
-}
-
-.recommended-plan::before {
-  content: '推荐';
-  position: absolute;
-  top: 10px;
-  right: -30px;
-  background-color: #e6a23c;
-  color: white;
-  padding: 2px 30px;
-  transform: rotate(45deg);
-  font-size: 12px;
-}
-
-.plan-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
-
-.plan-card-header h4 {
-  font-size: 16px;
-  font-weight: 600;
-  margin: 0;
-}
-
-.plan-card-price {
-  margin-bottom: 16px;
-}
-
-.price-value {
-  font-size: 24px;
-  font-weight: 700;
-  color: #409eff;
-}
-
-.price-period {
-  font-size: 14px;
-  color: #909399;
-}
-
-.plan-card-features {
-  margin-bottom: 16px;
-  min-height: 120px;
-}
-
-.subscribe-btn {
-  width: 100%;
-}
-
-/* 响应式调整 */
-@media (max-width: 768px) {
-  .profile-header {
-    margin-bottom: 16px;
-  }
-
-  .profile-title h2 {
-    font-size: 20px;
-  }
-
-  .subscription-footer {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .subscription-footer .el-button {
-    margin-top: 8px;
-    margin-left: 0 !important;
-  }
-}
 </style>
+

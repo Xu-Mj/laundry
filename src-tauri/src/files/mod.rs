@@ -1,5 +1,6 @@
 use std::fs::File;
 use std::io::Write;
+use std::path::Path;
 
 use serde::Serialize;
 use tauri::{AppHandle, Manager, Runtime, State};
@@ -39,6 +40,7 @@ pub async fn save_image<R: Runtime>(
         )
     })?;
 
+    let app_local_data_dir = app_local_data_dir.join("images");
     // 如果目录不存在，则创建
     if !app_local_data_dir.exists() {
         std::fs::create_dir_all(&app_local_data_dir)?;
@@ -90,4 +92,50 @@ pub async fn get_image(state: State<'_, AppState>, id: i64) -> Result<Vec<u8>> {
 
     // 返回图片的二进制数据
     Ok(image_data)
+}
+
+#[tauri::command]
+pub async fn save_file<R: Runtime>(
+    app_handle: AppHandle<R>,
+    name: String,
+    data: Vec<u8>,
+) -> Result<String> {
+    // 获取 PathResolver
+    let path_resolver = app_handle.path();
+
+    // 获取应用的本地数据目录
+    let app_local_data_dir = path_resolver.app_data_dir().map_err(|e| {
+        Error::with_details(
+            ErrorKind::InternalServer,
+            format!("无法获取应用的本地数据目录: {:?}", e),
+        )
+    })?;
+
+    // 创建密钥文件目录
+    let key_files_dir = app_local_data_dir.join("files");
+    if !key_files_dir.exists() {
+        std::fs::create_dir_all(&key_files_dir)?;
+    }
+
+    // 构建保存路径
+    let save_path = key_files_dir.join(name);
+
+    // 将数据写入文件
+    let mut file = File::create(&save_path)?;
+    file.write_all(&data)?;
+
+    // 返回保存路径
+    let path = save_path.to_string_lossy().to_string();
+    Ok(path)
+}
+
+#[tauri::command]
+pub async fn delete_file(file_path: String) -> Result<()> {
+    // 检查文件路径是否存在
+    let path = Path::new(&file_path);
+    if path.exists() {
+        // 删除文件
+        std::fs::remove_file(path)?;
+    }
+    Ok(())
 }

@@ -13,9 +13,13 @@ use crate::state::AppState;
 use crate::utils::request::Token;
 use crate::{captcha, utils};
 
+use super::sms_plan::SmsPlan;
+use super::sms_subscription::SmsSubscription;
+use super::subscription_plan::SubscriptionPlan;
 use super::subscriptions::Subscription;
+use super::user_tours::UserTours;
 
-#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[serde(default)]
 pub struct LocalUser {
@@ -38,8 +42,9 @@ pub struct LocalUser {
     pub deleted: String,
     pub remark: Option<String>,
     pub nickname: Option<String>,
-    /// 已完成引导的页面，JSON字符串格式，例如：{"home":true,"create-order":true}
-    pub completed_tours: Option<String>,
+    /// 已完成引导的页面
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub completed_tours: Option<Vec<UserTours>>,
 }
 
 impl FromRow<'_, SqliteRow> for LocalUser {
@@ -63,7 +68,7 @@ impl FromRow<'_, SqliteRow> for LocalUser {
             deleted: row.try_get("deleted").unwrap_or_default(),
             remark: row.try_get("remark").unwrap_or_default(),
             nickname: row.try_get("nickname").unwrap_or_default(),
-            completed_tours: row.try_get("completed_tours").unwrap_or_default(),
+            completed_tours: None,
         })
     }
 }
@@ -96,8 +101,8 @@ impl LocalUser {
     pub async fn create(&self, pool: &Pool<Sqlite>) -> Result<Self> {
         let user = sqlx::query_as(
             "INSERT INTO local_users (
-                avatar, store_name, store_location, user_id, owner_name, owner_phone, email, password, owner_gender, store_status, is_guest, created_at, updated_at, deleted, remark, nickname, completed_tours
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *",
+                avatar, store_name, store_location, user_id, owner_name, owner_phone, email, password, owner_gender, store_status, is_guest, created_at, updated_at, deleted, remark, nickname
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *",
         )
         .bind(&self.avatar)
         .bind(&self.store_name)
@@ -115,7 +120,6 @@ impl LocalUser {
         .bind(&self.deleted)
         .bind(&self.remark)
         .bind(&self.nickname)
-        .bind(&self.completed_tours)
         .fetch_one(pool)
         .await?;
         Ok(user)
@@ -123,11 +127,17 @@ impl LocalUser {
 
     pub async fn get_by_id(pool: &Pool<Sqlite>, id: i64) -> Result<Self> {
         let user: Option<LocalUser> =
-            sqlx::query_as("SELECT * FROM local_users WHERE id = 0 LIMIT 1")
+            sqlx::query_as("SELECT * FROM local_users WHERE id = ? LIMIT 1")
                 .bind(id)
                 .fetch_optional(pool)
                 .await?;
-        user.ok_or(Error::with_kind(ErrorKind::NotFound))
+
+        let mut user = user.ok_or(Error::with_kind(ErrorKind::NotFound))?;
+
+        // 获取用户的引导记录
+        user.completed_tours = Some(UserTours::get_by_user_id(pool, id).await?);
+
+        Ok(user)
     }
 
     pub async fn get_by_phone(pool: &Pool<Sqlite>, phone: &str) -> Result<Self> {
@@ -148,12 +158,12 @@ impl LocalUser {
         Ok(result.rows_affected() > 0)
     }
 
-    pub async fn upsert(&self, pool: &Pool<Sqlite>) -> Result<Self> {
-        let user = sqlx::query_as(
+    pub async fn upsert(&self, pool: &mut Transaction<'_, Sqlite>) -> Result<Self> {
+        let user:LocalUser = sqlx::query_as(
             "INSERT OR REPLACE INTO local_users (
                 id, avatar, store_name, store_location, user_id, owner_name, owner_phone, email, role, password,
-                 owner_gender, store_status, is_guest, created_at, updated_at, deleted, remark, nickname, completed_tours
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *",
+                 owner_gender, store_status, is_guest, created_at, updated_at, deleted, remark, nickname
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *",
         )
         .bind(self.id)
         .bind(&self.avatar)
@@ -173,8 +183,7 @@ impl LocalUser {
         .bind(&self.deleted)
         .bind(&self.remark)
         .bind(&self.nickname)
-        .bind(&self.completed_tours)
-        .fetch_one(pool)
+        .fetch_one(&mut **pool)
         .await?;
         Ok(user)
     }
@@ -250,6 +259,22 @@ impl LoginReq {
         state.http_client.login(self).await
     }
 
+    async fn pull_subs_and_plans(
+        state: &State<'_, AppState>,
+        user_id: i64,
+        token: &str,
+    ) -> Result<(SubsAndPlans, SmsSubsAndPlans)> {
+        let subs = state
+            .http_client
+            .get(&format!("/subscriptions/store/{user_id}"), Some(token))
+            .await?;
+        let sms_subs = state
+            .http_client
+            .get(&format!("/sms/subscriptions/store/{user_id}"), Some(token))
+            .await?;
+        Ok((subs, sms_subs))
+    }
+
     // login, return token if success
     pub async fn login(self, state: &State<'_, AppState>) -> Result<Token> {
         self.validate()?;
@@ -263,8 +288,33 @@ impl LoginReq {
         let mut token = self.verify_from_server(state).await?;
         token.user.role = Some("admin".to_string());
 
+        let mut tx = state.pool.begin().await?;
         // update local database
-        token.user.upsert(&state.pool).await?;
+        token.user.upsert(&mut tx).await?;
+
+        if let Some(id) = token.user.id {
+            // get user's completed tours
+            token.user.completed_tours = Some(UserTours::get_by_user_id(&state.pool, id).await?);
+
+            let (subs, sms_subs) = Self::pull_subs_and_plans(state, id, &token.token).await?;
+
+            tracing::debug!("request subscriptions and plans: {:?}", subs);
+
+            for ele in subs.subs {
+                ele.upsert(&mut tx).await?;
+            }
+            for ele in subs.plans {
+                ele.upsert(&mut tx).await?;
+            }
+
+            for ele in sms_subs.subs {
+                ele.upsert(&mut tx).await?;
+            }
+            for ele in sms_subs.plans {
+                ele.upsert(&mut tx).await?;
+            }
+        }
+        tx.commit().await?;
 
         tracing::debug!("token: {:?}", token);
         // 更新 AppState 中的 token
@@ -276,45 +326,18 @@ impl LoginReq {
 
         Ok(token)
     }
+}
 
-    // pub async fn register(mut self, pool: &Pool<Sqlite>) -> Result<()> {
-    //     self.decode()?;
+#[derive(Debug, Deserialize)]
+pub struct SubsAndPlans {
+    pub subs: Vec<Subscription>,
+    pub plans: Vec<SubscriptionPlan>,
+}
 
-    //     let mut tr = pool.begin().await?;
-
-    //     let username = self.username.unwrap_or_default();
-    //     let password = self.password.unwrap_or_default();
-
-    //     // validate captcha
-    //     // if !captcha::verify_captcha(&mut tr, self.uuid.clone(), self.code.clone()).await? {
-    //     //     return Err(Error::bad_request("验证码错误"));
-    //     // }
-
-    //     if username.is_empty() {
-    //         return Err(Error::bad_request("用户名不能为空"));
-    //     } else if password.is_empty() {
-    //         return Err(Error::bad_request("用户密码不能为空"));
-    //     } else if username.len() < 2 || username.len() > 20 {
-    //         return Err(Error::bad_request("账户长度必须在2到20个字符之间"));
-    //     } else if password.len() < 5 || password.len() > 20 {
-    //         return Err(Error::bad_request("密码长度必须在5到20个字符之间"));
-    //     } else if LocalUser::check_username_unique(&mut tr, &username).await? {
-    //         return Err(Error::bad_request(format!(
-    //             "保存用户'{}'失败，注册账号已存在",
-    //             username
-    //         )));
-    //     } else {
-    //         // encode the password
-    //         let password = utils::hash_password(password.as_bytes(), PWD_SALT)?;
-    //         let mut user = LocalUser::new(username.clone(), password);
-    //         user.avatar = Some(String::from("images/avatar1.png"));
-    //         user.owner_phone = Some(username);
-    //         user.role = Some(String::from("admin"));
-    //         user.create(pool).await?;
-    //     }
-
-    //     Ok(())
-    // }
+#[derive(Debug, Deserialize)]
+pub struct SmsSubsAndPlans {
+    pub subs: Vec<SmsSubscription>,
+    pub plans: Vec<SmsPlan>,
 }
 
 // Guest login logical
@@ -349,24 +372,39 @@ pub async fn logout(state: State<'_, AppState>) -> Result<()> {
     Ok(())
 }
 
+#[tauri::command]
+pub async fn validate_pwd(state: State<'_, AppState>, account: &str, pwd: &str) -> Result<()> {
+    LoginReq::validate_pwd(&state.pool, account, pwd).await?;
+    Ok(())
+}
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct UserInfo {
     pub user: Option<LocalUser>,
     pub roles: HashSet<String>,
     pub permissions: HashSet<String>,
-    pub subscription: Option<Subscription>,
+    pub subscription: Option<Subscription>, // 保留单个订阅字段以保持向后兼容
+    pub subscriptions: Vec<Subscription>,   // 新增字段，存储所有有效订阅
+    pub sms_sub: Option<SmsSubscription>,
 }
 
 #[tauri::command]
 pub async fn get_info(state: State<'_, AppState>) -> Result<UserInfo> {
     let user = state.get_user_info().await;
     let mut subscription = None;
+    let mut subscriptions = Vec::new();
+    let mut sms_sub = None;
 
     // 如果用户存在，获取其订阅信息
     if let Some(user_data) = &user {
         if let Some(id) = user_data.id {
             if id > 0 {
+                // 获取当前激活的订阅（保持向后兼容）
                 subscription = Subscription::get_active_by_user_id(&state.pool, id).await?;
+                // 获取所有有效订阅
+                subscriptions = Subscription::get_all_active_by_user_id(&state.pool, id).await?;
+
+                sms_sub = SmsSubscription::get_active_subscription(&state.pool, id).await?;
             }
         }
     }
@@ -376,6 +414,8 @@ pub async fn get_info(state: State<'_, AppState>) -> Result<UserInfo> {
         roles: HashSet::from(["admin".to_string()]),
         permissions: HashSet::from(["*:*:*".to_string()]),
         subscription,
+        subscriptions,
+        sms_sub,
     })
 }
 

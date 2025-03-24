@@ -242,11 +242,17 @@ onMounted(() => {
     padding: 1rem;
     background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-8) 100%);
     border-radius: .5rem;
+    transition: all .3s;
 }
 
 :root.dark .dialog-header {
     --el-color-primary-light-9: #1d2c40;
     --el-color-primary-light-8: #2b6095;
+}
+
+.dialog-header:hover{
+  transform: translateY(-2px);
+  box-shadow: var(--el-box-shadow-light);
 }
 
 .dialog-title {

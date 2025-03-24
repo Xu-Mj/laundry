@@ -22,8 +22,8 @@
             start-placeholder="开始日期" end-placeholder="结束日期" @change="handleQuery"></el-date-picker>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
-          <el-button icon="Refresh" @click="resetQuery">重置</el-button>
+          <el-button class="search-btn" type="primary" icon="Search" @click="handleQuery">搜索</el-button>
+          <el-button class="search-btn" icon="Refresh" @click="resetQuery">重置</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -82,7 +82,18 @@
     <Expenditure :visible="open" :key="open" :data="form" :title="title" :taggle="() => { open = !open; getList() }" />
 
     <!-- 展示会员详细信息 -->
-    <el-dialog title="会员详细信息" v-model="showUserInfoDialog" width="700px" :align-center="true" append-to-body>
+    <el-dialog title="会员详细信息" v-model="showUserInfoDialog" width="700px" :show-close="false" :align-center="true"
+      append-to-body>
+      <template #header>
+        <div class="dialog-header">
+          <div class="dialog-title">会员详细信息</div>
+          <el-button circle @click="showUserInfoDialog = false">
+            <el-icon>
+              <Close />
+            </el-icon>
+          </el-button>
+        </div>
+      </template>
       <UserInfo :user="userInfo" />
     </el-dialog>
     <!-- 展示支出详细信息 -->
@@ -259,7 +270,43 @@ function handleDelete(row) {
 getList();
 </script>
 
-<style>
+<style scoped>
+.search-btn {
+  transition: all .3s;
+}
+
+.search-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--el-box-shadow-light);
+}
+
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  text-align: left;
+  padding: 1rem;
+  background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-8) 100%);
+  border-radius: .5rem;
+  transition: all .3s;
+}
+
+:root.dark .dialog-header {
+  --el-color-primary-light-9: #1d2c40;
+  --el-color-primary-light-8: #2b6095;
+}
+
+.dialog-header:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--el-box-shadow-light);
+}
+
+.dialog-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
 /* 搜索区域样式 */
 .search-card {
   margin-bottom: 20px;

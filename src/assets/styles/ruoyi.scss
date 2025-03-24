@@ -257,4 +257,11 @@
 /* 表格右侧工具栏样式 */
 .top-right-btn {
 	margin-left: auto;
+	button {
+		transition: all .3s;
+	}
+
+	button:hover{
+		transform: translateY(-2px);
+	}
 }

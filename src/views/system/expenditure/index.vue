@@ -82,7 +82,7 @@
     <Expenditure :visible="open" :key="open" :data="form" :title="title" :taggle="() => { open = !open; getList() }" />
 
     <!-- 展示会员详细信息 -->
-    <el-dialog title="会员详细信息" v-model="showUserInfoDialog" width="400px" :align-center="true" append-to-body>
+    <el-dialog title="会员详细信息" v-model="showUserInfoDialog" width="700px" :align-center="true" append-to-body>
       <UserInfo :user="userInfo" />
     </el-dialog>
     <!-- 展示支出详细信息 -->

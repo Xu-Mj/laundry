@@ -8,14 +8,14 @@ use chrono::{Duration, Utc};
 use image::{ImageBuffer, Luma};
 use once_cell::sync::Lazy;
 use rand::Rng;
-use rusttype::{point, Font, Scale};
+use rusttype::{Font, Scale, point};
 use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Sqlite};
 use uuid::Uuid;
 
 use crate::db::configs::Config;
-use crate::state::AppState;
 use crate::error::{Error, Result};
+use crate::state::AppState;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
@@ -186,14 +186,16 @@ fn generate_captcha_image(text: &str) -> ImageBuffer<Luma<u8>, Vec<u8>> {
 
 // 启动清理线程
 pub fn start_cleanup_thread() {
-    thread::spawn(|| loop {
-        // 每分钟清理一次
-        thread::sleep(StdDuration::from_secs(60));
+    thread::spawn(|| {
+        loop {
+            // 每分钟清理一次
+            thread::sleep(StdDuration::from_secs(60));
 
-        // 清理过期的验证码
-        if let Ok(mut store) = CAPTCHA_STORE.lock() {
-            let now = Utc::now();
-            store.retain(|_, (_, expiration)| *expiration > now);
+            // 清理过期的验证码
+            if let Ok(mut store) = CAPTCHA_STORE.lock() {
+                let now = Utc::now();
+                store.retain(|_, (_, expiration)| *expiration > now);
+            }
         }
     });
 }

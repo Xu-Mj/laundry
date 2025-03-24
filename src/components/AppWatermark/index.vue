@@ -14,28 +14,28 @@
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue'
-import useSubscriptionStore from '@/store/modules/subscription'
+import useUserStore from '@/store/modules/user';
 import { useDark } from '@vueuse/core';
 
 const isDark = useDark();
-const subscriptionStore = useSubscriptionStore();
+const userStore = useUserStore();
 
 const font = reactive({
   color: 'rgba(0, 0, 0, .15)',
 });
 
 // 是否显示水印
-const showWatermark = computed(() => subscriptionStore.showWatermark)
+const showWatermark = computed(() => userStore.sub.showWatermark)
+// const showWatermark = false
 
 // 水印内容
 const watermarkContent = computed(() => {
-  if (!subscriptionStore.isInTrial) return ''
+  if (!userStore.sub.isInTrial) return ''
   
-  if (subscriptionStore.isGuest) {
-    return `游客模式 - 剩余${subscriptionStore.trialRemaining}天`
+  if (userStore.isGuest) {
+    return `游客模式 - 剩余${userStore.sub.trialRemaining}天`
   } else {
-    return `试用版 - 剩余${subscriptionStore.trialRemaining}天`
+    return `试用版 - 剩余${userStore.sub.trialRemaining}天`
   }
 })
 
@@ -51,10 +51,6 @@ watch(
   }
 )
 
-// 组件挂载时获取订阅信息
-onMounted(async () => {
-  await subscriptionStore.getSubscriptionInfo()
-})
 </script>
 
 <style scoped>

@@ -1,6 +1,6 @@
 <template>
     <el-dialog v-model="props.visible" :title="props.user.nickName + '-' + props.user.phonenumber" width="66.66%"
-        :align-center="true" append-to-body class="modern-user-dialog" @closed="props.toggle" :show-close="false">
+        top="0" append-to-body class="modern-user-dialog" @closed="props.toggle" :show-close="false">
         <template #header>
             <div class="dialog-header">
                 <div class="user-avatar">
@@ -82,6 +82,12 @@ function handleTabClick(tab) {
     display: flex;
     align-items: center;
     border-radius: .5rem;
+    transition: all 0.3s ease;
+}
+
+.dialog-header:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--el-box-shadow-light);
 }
 
 :root.dark .dialog-header {
@@ -90,7 +96,7 @@ function handleTabClick(tab) {
 }
 
 .user-avatar {
-    margin-right: 16px;
+    margin-right: 1rem;
 }
 
 .user-title {
@@ -116,7 +122,8 @@ function handleTabClick(tab) {
 }
 
 .modern-tabs {
-    margin-top: 16px;
+    height: 100%;
+    margin-top: 1rem;
 }
 
 .modern-tabs :deep(.el-tabs__header) {

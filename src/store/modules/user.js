@@ -23,6 +23,7 @@ const useUserStore = defineStore(
       isGuest: true,
       roles: [],
       permissions: [],
+      user: null,
       sub: {
         // 订阅信息
         plan: {},
@@ -38,6 +39,9 @@ const useUserStore = defineStore(
         // 水印显示控制
         showWatermark: false,
         subscription: {},
+        // 所有有效订阅
+        allSubscriptions: [],
+        smsSub: null,
       }
     }),
     getters: {
@@ -141,6 +145,10 @@ const useUserStore = defineStore(
                 this.sub.isInTrial = true
                 this.sub.status = 'inactive'
               }
+
+              this.user = user;
+              this.sub.smsSub = res.smsSub
+              this.sub.allSubscriptions = res.subscriptions
             }
 
             // 检查试用期状态

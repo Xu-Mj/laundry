@@ -1,9 +1,9 @@
 use std::fs;
 use std::path::Path;
 
+use sqlx::Sqlite;
 use sqlx::migrate::MigrateDatabase;
 use sqlx::sqlite::SqlitePoolOptions;
-use sqlx::Sqlite;
 use tauri_plugin_updater::UpdaterExt;
 use tracing::{debug, info};
 

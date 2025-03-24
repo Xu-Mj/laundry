@@ -105,12 +105,11 @@ impl Error {
             details: Some(details.into()),
         }
     }
-    
+
     #[inline]
     pub fn account_or_pwd() -> Self {
         Self::with_kind(ErrorKind::AccountOrPassword)
     }
-
 }
 
 impl fmt::Display for Error {

@@ -1077,7 +1077,7 @@ impl OrderCloth {
         // send message through sms server
 
         tracing::info!("send sms request: {:?}", body);
-        
+
         let result = match state.http_client.post("/sms", body, Some(&token_str)).await {
             Ok(res) => {
                 if res {

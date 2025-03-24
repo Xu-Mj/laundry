@@ -7,8 +7,8 @@ use sqlx::{Pool, Sqlite};
 use tokio::sync::Mutex as TokioMutex;
 use tokio::{task::JoinHandle, time::sleep};
 
-use crate::{error::Result, local_users::LocalUser};
 use crate::utils::request::{HttpClient, Token};
+use crate::{error::Result, local_users::LocalUser};
 
 // SQLite 连接池
 #[derive(Debug)]
@@ -56,20 +56,17 @@ impl AppState {
             const BASE_DELAY: u64 = 2;
 
             loop {
-                
                 let mut token_ref = token.lock().await;
                 if let Some(token) = token_ref.as_mut() {
-                    let remaining = token.exp as i64 - SystemTime::now()
-                        .duration_since(UNIX_EPOCH)
-                        .unwrap()
-                        .as_secs() as i64;
+                    let remaining = token.exp as i64
+                        - SystemTime::now()
+                            .duration_since(UNIX_EPOCH)
+                            .unwrap()
+                            .as_secs() as i64;
 
                     // 提前5分钟预刷新
                     if remaining <= 300 || Self::is_token_expired(&token.exp).unwrap_or(true) {
-                        match http_client
-                            .refresh_token(&token.refresh_token)
-                            .await
-                        {
+                        match http_client.refresh_token(&token.refresh_token).await {
                             Ok(new_token) => {
                                 (*token).set_token(new_token);
                                 retries = 0;
@@ -125,7 +122,7 @@ impl AppState {
         let mut token = self.token.lock().await;
         *token = None; // 将 token 置为 None
     }
-    
+
     pub async fn get_user_info(&self) -> Option<LocalUser> {
         let token = self.token.lock().await;
         token.as_ref().map(|t| t.user.clone())

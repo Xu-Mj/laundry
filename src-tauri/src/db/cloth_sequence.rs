@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use sqlx::{types::chrono::NaiveDate, Acquire, Pool, Sqlite, Transaction};
+use sqlx::{Acquire, Pool, Sqlite, Transaction, types::chrono::NaiveDate};
 
 use crate::error::Result;
 use crate::utils::chrono_serde::naive_date_serde;

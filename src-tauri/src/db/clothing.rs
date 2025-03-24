@@ -4,10 +4,10 @@ use sqlx::{Executor, FromRow, Pool, QueryBuilder, Row, Sqlite, SqlitePool, Trans
 use tauri::State;
 
 use crate::error::{Error, ErrorKind, Result};
-use crate::utils;
 use crate::state::AppState;
+use crate::utils;
 
-use super::{ Curd, PageParams, PageResult};
+use super::{Curd, PageParams, PageResult};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]

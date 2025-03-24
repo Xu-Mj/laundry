@@ -3,8 +3,8 @@ use sqlx::{Pool, QueryBuilder, Sqlite, Transaction};
 use tauri::State;
 
 use crate::db::order_clothes::OrderCloth;
-use crate::state::AppState;
 use crate::error::{Error, ErrorKind, Result};
+use crate::state::AppState;
 
 /// 晾衣架
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default, sqlx::FromRow)]

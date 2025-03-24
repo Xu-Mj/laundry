@@ -56,23 +56,13 @@
         </el-card>
 
         <!-- 订阅信息卡片 -->
-        <SubscriptionCard 
-          title="当前订阅"
-          :subscription-data="subscriptionData"
-          @renew="handleRenewSubscription"
-          @upgrade="handleUpgradeSubscription"
-          @subscribe="handleSubscribe"
-        />
-        
+        <SubscriptionCard title="当前订阅" :subscription-data="subscriptionData" :subscriptions="allSubscriptions"
+          @renew="handleRenewSubscription" @upgrade="handleUpgradeSubscription" @subscribe="handleSubscribe" />
+
         <!-- 短信订阅信息卡片 -->
-        <SmsSubscriptionCard 
-          title="短信订阅"
-          :sms-subscription-data="smsSubscriptionData"
-          @renew="handleRenewSmsSubscription"
-          @upgrade="handleUpgradeSmsSubscription"
-          @subscribe="handleSmsSubscribe"
-          class="mt-20"
-        />
+        <SmsSubscriptionCard title="短信订阅" :sms-subscription-data="smsSubscriptionData"
+          @renew="handleRenewSmsSubscription" @upgrade="handleUpgradeSmsSubscription" @subscribe="handleSmsSubscribe"
+          class="mt-20" />
       </el-col>
 
       <!-- 右侧内容区域 -->
@@ -148,88 +138,21 @@
               <el-row :gutter="20" class="payment-config-container">
                 <!-- 支付宝配置 -->
                 <el-col :span="12">
-                  <el-card class="payment-card alipay-card" shadow="hover">
-                    <template #header>
-                      <div class="payment-header">
-                        <span style="display: flex; align-items: center; gap: .3rem;">
-                          <AliPayIcon />
-                          <span>支付宝</span>
-                        </span>
-                        <el-switch v-model="paymentConfig.alipay.isActive" active-text="已启用" inactive-text="未启用"
-                          @change="handlePaymentStatusChange('alipay')" />
-                      </div>
-                    </template>
-
-                    <el-form label-position="top" class="payment-form">
-                      <el-form-item label="应用ID">
-                        <el-input v-model="paymentConfig.alipay.appId" placeholder="请输入应用ID" />
-                      </el-form-item>
-                      <el-form-item label="私钥">
-                        <el-input v-model="paymentConfig.alipay.privateKey" type="password" placeholder="请输入私钥"
-                          show-password />
-                      </el-form-item>
-                      <el-form-item label="支付宝公钥">
-                        <el-input v-model="paymentConfig.alipay.alipayPublicKey" type="password" placeholder="请输入支付宝公钥"
-                          show-password />
-                      </el-form-item>
-                      <el-form-item label="商户ID">
-                        <el-input v-model="paymentConfig.alipay.sellerId" placeholder="请输入商户ID" />
-                      </el-form-item>
-                      <el-button type="primary" @click="handleUpdatePaymentConfig('alipay')" class="save-btn">
-                        <el-icon>
-                          <Check />
-                        </el-icon> 保存配置
-                      </el-button>
-                    </el-form>
-                  </el-card>
+                  <AlipayConfig :config="paymentConfig.alipay" @config-updated="handleConfigUpdated"
+                    @status-changed="handleStatusChanged" />
                 </el-col>
 
                 <!-- 微信支付配置 -->
                 <el-col :span="12">
-                  <el-card class="payment-card wechat-card" shadow="hover">
-                    <template #header>
-                      <div class="payment-header">
-                        <span style="display: flex; align-items: center; gap: .3rem;">
-                          <WechatPayIcon />
-                          <span>微信支付</span>
-                        </span>
-                        <el-switch v-model="paymentConfig.wechat.isActive" active-text="已启用" inactive-text="未启用"
-                          @change="handlePaymentStatusChange('wechat')" />
-                      </div>
-                    </template>
-
-                    <el-form label-position="top" class="payment-form">
-                      <el-form-item label="应用ID">
-                        <el-input v-model="paymentConfig.wechat.appid" placeholder="请输入应用ID" />
-                      </el-form-item>
-                      <el-form-item label="商户号">
-                        <el-input v-model="paymentConfig.wechat.mchid" placeholder="请输入商户号" />
-                      </el-form-item>
-                      <el-form-item label="商户API序列号">
-                        <el-input v-model="paymentConfig.wechat.serialNo" placeholder="请输入商户API序列号" />
-                      </el-form-item>
-                      <el-form-item label="商户私钥">
-                        <el-input v-model="paymentConfig.wechat.privateKey" type="password" placeholder="请输入商户私钥"
-                          show-password />
-                      </el-form-item>
-                      <el-form-item label="API V3密钥">
-                        <el-input v-model="paymentConfig.wechat.apiV3Key" type="password" placeholder="请输入API V3密钥"
-                          show-password />
-                      </el-form-item>
-                      <el-button type="primary" @click="handleUpdatePaymentConfig('wechat')" class="save-btn">
-                        <el-icon>
-                          <Check />
-                        </el-icon> 保存配置
-                      </el-button>
-                    </el-form>
-                  </el-card>
+                  <WechatPayConfig :config="paymentConfig.wechat" @config-updated="handleConfigUpdated"
+                    @status-changed="handleStatusChanged" />
                 </el-col>
               </el-row>
             </el-tab-pane>
 
             <!-- 订阅管理标签页 -->
             <el-tab-pane label="订阅管理" name="subscription">
-              <SubscriptionManagement :subscription-data="subscriptionData" />
+              <SubscriptionManagement :subscription-data="subscriptionData" :all-subscriptions="allSubscriptions" />
             </el-tab-pane>
             <el-tab-pane label="短信订阅管理" name="subscription-sms">
               <SmsSubscriptionManagement :subscription-data="subscriptionData" />
@@ -238,117 +161,163 @@
         </el-card>
       </el-col>
     </el-row>
-
-    <!-- 订阅套餐付款弹窗 -->
-    <subscription-payment v-model:visible="subscriptionDialogVisible" :plan-data="selectedPlan"
-      @payment-success="handlePaymentSuccess" @payment-cancel="handlePaymentCancel" />
-
-    <!-- 订阅成功贺卡 -->
-    <subscription-congrats v-model:visible="congratsVisible" :plan-data="selectedPlan"
-      :expiry-date="subscriptionExpiryDate" @confirmed="handleCongratsConfirmed" />
   </div>
 </template>
 
 <script setup>
-import { ElMessage, ElMessageBox } from 'element-plus';
-import { getProfile, updateProfile, updatePaymentConfig } from '@/api/system/profile';
-import { formatDate as formatDateUtil } from '@/utils/index';
+import { ElMessageBox } from 'element-plus';
+import { getProfile, updateProfile, getAlipayConfig, getWechatConfig } from '@/api/system/profile';
 import useUserStore from '@/store/modules/user';
 import SubscriptionManagement from '@/components/SubscriptionManagement/index.vue';
 import SmsSubscriptionManagement from '@/components/SmsSubscriptionManagement/index.vue';
 import SubscriptionCard from '@/components/SubscriptionCard/index.vue';
 import SmsSubscriptionCard from '@/components/SmsSubscriptionCard/index.vue';
-import WechatPayIcon from '@/views/icons/wechatPayIcon.vue';
-import AliPayIcon from '@/views/icons/aliPayIcon.vue';
-import { getSubscription, saveSubscription } from '@/api/system/subscription';
+import AlipayConfig from '@/components/AlipayConfig/index.vue';
+import WechatPayConfig from '@/components/WechatPayConfig/index.vue';
+
+const { proxy } = getCurrentInstance();
+const userStore = useUserStore();
 
 const activeTab = ref('basic')
-const profileData = ref({})
+const profileData = ref(userStore.user || {})
 const updating = ref(false)
-
-// 订阅套餐相关
-const subscriptionDialogVisible = ref(false);
-const congratsVisible = ref(false);
-const selectedPlan = ref({});
-const subscriptionExpiryDate = ref(null);
 
 // 支付配置数据
 const paymentConfig = ref({
   alipay: {
     appId: '',
     privateKey: '',
+    privateKeyFile: null,
     alipayPublicKey: '',
+    alipayPublicKeyFile: null,
     sellerId: '',
-    isActive: false
+    isActive: false,
+    isSandbox: false,
+    storeId: 0
   },
   wechat: {
-    appid: '',
+    appId: '',
     mchid: '',
     serialNo: '',
     privateKey: '',
-    wechatCert: '',
     apiV3Key: '',
-    isActive: false
+    spAppid: '',
+    spMchid: '',
+    mchKey: '',
+    apiclientKey: '',
+    apiclientCert: '',
+    isActive: false,
+    storeId: 0
   }
 })
 
+// 文件上传相关
+const privateKeyFileList = ref([])
+const publicKeyFileList = ref([])
+const wechatPrivateKeyFileList = ref([])
+const wechatCertFileList = ref([])
+
+// 处理配置更新事件
+const handleConfigUpdated = (type, config) => {
+  if (type === 'alipay') {
+    paymentConfig.value.alipay = config;
+    proxy.notify.success('支付宝配置已更新');
+  } else if (type === 'wechat') {
+    paymentConfig.value.wechat = config;
+    proxy.notify.success('微信支付配置已更新');
+  }
+}
+
+// 处理状态变更事件
+const handleStatusChanged = (type, isActive) => {
+  if (type === 'alipay') {
+    paymentConfig.value.alipay.isActive = isActive;
+    proxy.notify.success(`支付宝支付已${isActive ? '启用' : '禁用'}`);
+  } else if (type === 'wechat') {
+    paymentConfig.value.wechat.isActive = isActive;
+    proxy.notify.success(`微信支付已${isActive ? '启用' : '禁用'}`);
+  }
+}
+
 // 订阅数据
-const subscriptionData = ref(useUserStore().sub.subscription)
+const subscriptionData = ref(userStore.sub.subscription)
 
 // 短信订阅数据
-const smsSubscriptionData = ref({
-  plan: null,
-  expiryDate: null,
-  autoRenew: false,
-  totalSmsCount: 0,
-  usedSmsCount: 0,
-  remainingSmsCount: 0,
-  status: 'Active'
-})
-
-// 可用套餐列表
-const availablePlans = ref([])
-
-// 处理支付成功
-const handlePaymentSuccess = (paymentInfo) => {
-  console.log('支付成功', selectedPlan.value);
-  // 更新订阅状态
-  // subscriptionData.value.plan = selectedPlan.value;
-  // subscriptionExpiryDate.value = Date.now() + 30 * 24 * 60 * 60 * 1000; // 设置30天后到期
-  // subscriptionData.value.expiryDate = subscriptionExpiryDate.value;
-  // subscriptionData.value.status = 'active';
-
-  // get subscription
-  getSubscription(useUserStore().user.id, paymentInfo.planId, paymentInfo.subscriptionId).then(res => {
-    saveSubscription(res.subscription, res.plan).catch(err => { })
-  }).catch(err => { })
-
-  // 关闭支付弹窗
-  subscriptionDialogVisible.value = false;
-
-  // 显示贺卡
-  setTimeout(() => {
-    congratsVisible.value = true;
-  }, 500);
-};
-
-// 处理贺卡确认
-const handleCongratsConfirmed = () => {
-  // 贺卡关闭后的逻辑
-  // activeTab.value = 'basic'; // 可选：切换回基本信息标签页
-};
-
-// 处理支付取消
-const handlePaymentCancel = () => {
-  console.log('支付已取消');
-  subscriptionDialogVisible.value = false;
-};
+const smsSubscriptionData = ref(userStore.sub.smsSub || {})
+console.log(userStore.sub.allSubscriptions)
+const allSubscriptions = ref(userStore.sub.allSubscriptions);
 
 // 获取个人信息和配置
 onMounted(async () => {
-  useUserStore().getInfo().then(res => {
-    profileData.value = res.user;
-  });
+  // 获取用户的商店ID
+  const storeId = userStore.user.storeId || 0;
+  paymentConfig.value.alipay.storeId = storeId;
+  paymentConfig.value.wechat.storeId = storeId;
+
+  // 获取支付宝配置
+  if (storeId > 0) {
+    getAlipayConfig(storeId).then(config => {
+      if (config) {
+        paymentConfig.value.alipay = {
+          appId: config.appId || '',
+          privateKey: config.privateKey || '',
+          alipayPublicKey: config.alipayPublicKey || '',
+          sellerId: config.sellerId || '',
+          isActive: config.isActive || false,
+          isSandbox: config.isSandbox || false,
+          storeId: storeId
+        };
+
+        // 如果有私钥文件，更新文件列表
+        if (config.privateKeyFile) {
+          const fileName = config.privateKeyFile.split('/').pop();
+          privateKeyFileList.value = [{ name: fileName, url: config.privateKeyFile }];
+        }
+
+        // 如果有公钥文件，更新文件列表
+        if (config.alipayPublicKeyFile) {
+          const fileName = config.alipayPublicKeyFile.split('/').pop();
+          publicKeyFileList.value = [{ name: fileName, url: config.alipayPublicKeyFile }];
+        }
+      }
+    }).catch(error => {
+      console.error('获取支付宝配置失败:', error);
+    });
+
+    // 获取微信支付配置
+    getWechatConfig(storeId).then(config => {
+      if (config) {
+        paymentConfig.value.wechat = {
+          appId: config.appId || '',
+          mchid: config.mchid || '',
+          serialNo: config.serialNo || '',
+          privateKey: config.privateKey || '',
+          apiV3Key: config.apiV3Key || '',
+          spAppid: config.spAppid || '',
+          spMchid: config.spMchid || '',
+          mchKey: config.mchKey || '',
+          apiclientKey: config.apiclientKey || '',
+          apiclientCert: config.apiclientCert || '',
+          isActive: config.isActive || false,
+          storeId: storeId
+        };
+
+        // 如果有私钥文件，更新文件列表
+        if (config.apiclientKey) {
+          const fileName = config.apiclientKey.split('/').pop();
+          wechatPrivateKeyFileList.value = [{ name: fileName, url: config.apiclientKey }];
+        }
+
+        // 如果有证书文件，更新文件列表
+        if (config.apiclientCert) {
+          const fileName = config.apiclientCert.split('/').pop();
+          wechatCertFileList.value = [{ name: fileName, url: config.apiclientCert }];
+        }
+      }
+    }).catch(error => {
+      console.error('获取微信支付配置失败:', error);
+    });
+  }
 })
 
 // 更新个人信息
@@ -356,9 +325,9 @@ const handleUpdateProfile = async () => {
   try {
     updating.value = true
     await updateProfile(profileData.value)
-    ElMessage.success('个人信息更新成功')
+    proxy.notify.success('个人信息更新成功')
   } catch (error) {
-    ElMessage.error('更新失败：' + (error.message || '未知错误'))
+    proxy.notify.error('更新失败：' + (error.message || '未知错误'))
   } finally {
     updating.value = false
   }
@@ -374,40 +343,14 @@ const resetForm = () => {
     try {
       const res = await getProfile()
       profileData.value = res.data
-      ElMessage.success('表单已重置')
+      proxy.notify.success('表单已重置')
     } catch (error) {
       console.error(error)
     }
   }).catch(() => { })
 }
 
-// 更新支付配置
-const handleUpdatePaymentConfig = async (type) => {
-  try {
-    const config = type === 'alipay' ? paymentConfig.value.alipay : paymentConfig.value.wechat
-    await updatePaymentConfig({ type, config })
-    ElMessage.success(`${type === 'alipay' ? '支付宝' : '微信支付'}配置更新成功`)
-  } catch (error) {
-    ElMessage.error('配置更新失败：' + (error.message || '未知错误'))
-  }
-}
 
-// 处理支付状态变更
-const handlePaymentStatusChange = async (type) => {
-  try {
-    const config = type === 'alipay' ? paymentConfig.value.alipay : paymentConfig.value.wechat
-    await updatePaymentConfig({ type, config: { ...config, isActive: config.isActive } })
-    ElMessage.success(`${type === 'alipay' ? '支付宝' : '微信支付'}状态已${config.isActive ? '启用' : '禁用'}`)
-  } catch (error) {
-    // 恢复状态
-    if (type === 'alipay') {
-      paymentConfig.value.alipay.isActive = !paymentConfig.value.alipay.isActive
-    } else {
-      paymentConfig.value.wechat.isActive = !paymentConfig.value.wechat.isActive
-    }
-    ElMessage.error('状态更新失败：' + (error.message || '未知错误'))
-  }
-}
 
 // 处理头像上传成功
 const handleAvatarSuccess = (response) => {
@@ -421,55 +364,6 @@ const maskSensitiveInfo = (str) => {
   return str.substring(0, 4) + '*'.repeat(str.length - 8) + str.substring(str.length - 4)
 }
 
-// 获取订阅类型名称
-const getSubscriptionTypeName = (type) => {
-  const typeMap = {
-    'Standard': '标准版',
-    'Premium': '高级版',
-    'Enterprise': '企业版',
-    'Custom': '定制版'
-  }
-  return typeMap[type] || type
-}
-
-// 获取订阅标签类型
-const getSubscriptionTagType = (type) => {
-  const typeMap = {
-    'Standard': 'info',
-    'Premium': 'success',
-    'Enterprise': 'warning',
-    'Custom': 'danger'
-  }
-  return typeMap[type] || 'info'
-}
-
-// 获取周期文本
-const getPeriodText = (period) => {
-  const periodMap = {
-    'Monthly': '月',
-    'Quarterly': '季度',
-    'HalfYearly': '半年',
-    'Yearly': '年'
-  }
-  return periodMap[period] || period
-}
-
-// 格式化日期
-const formatDate = (timestamp) => {
-  if (!timestamp) return '未设置'
-  return formatDateUtil(new Date(timestamp), 'yyyy-MM-dd')
-}
-
-// 获取特性列表
-const getFeaturesList = (features) => {
-  if (!features) return []
-  try {
-    return typeof features === 'string' ? JSON.parse(features) : features
-  } catch (e) {
-    return []
-  }
-}
-
 // 处理续费
 const handleRenewSubscription = () => {
   ElMessageBox.confirm('确定要续费当前套餐吗？', '续费确认', {
@@ -478,7 +372,7 @@ const handleRenewSubscription = () => {
     type: 'info'
   }).then(() => {
     // 实际项目中应跳转到支付页面或调用续费API
-    ElMessage.success('续费成功，订阅已延长')
+    proxy.notify.success('续费成功，订阅已延长')
     // 模拟更新到期时间
     subscriptionData.value.expiryDate = Date.now() + 30 * 24 * 60 * 60 * 1000
   }).catch(() => { })
@@ -502,7 +396,7 @@ const handleRenewSmsSubscription = () => {
     type: 'info'
   }).then(() => {
     // 实际项目中应跳转到支付页面或调用续费API
-    ElMessage.success('续费成功，短信订阅已延长')
+    proxy.notify.success('续费成功，短信订阅已延长')
     // 模拟更新到期时间
     smsSubscriptionData.value.expiryDate = Date.now() + 30 * 24 * 60 * 60 * 1000
   }).catch(() => { })
@@ -778,6 +672,4 @@ const handleSmsSubscribe = () => {
   display: flex;
   justify-content: space-around;
 }
-
 </style>
-

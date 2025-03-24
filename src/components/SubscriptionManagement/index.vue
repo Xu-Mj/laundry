@@ -16,6 +16,63 @@
         </el-descriptions-item>
       </el-descriptions>
     </div>
+    
+    <!-- 所有有效订阅列表 -->
+    <div class="all-subscriptions" v-if="allSubscriptions.length > 0">
+      <h3>所有有效订阅</h3>
+      <el-table :data="allSubscriptions" style="width: 100%" border>
+        <el-table-column prop="plan.name" label="套餐名称" />
+        <el-table-column label="套餐类型">
+          <template #default="{row}">
+            <el-tag :type="getSubscriptionTypeTag(row.plan.planType)" effect="plain">
+              {{ getSubscriptionTypeName(row.plan.planType) }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="订阅周期">
+          <template #default="{row}">
+            {{ getPeriodText(row.plan.period) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="套餐价格">
+          <template #default="{row}">
+            ¥{{ row.plan.price }}
+          </template>
+        </el-table-column>
+        <el-table-column label="到期时间">
+          <template #default="{row}">
+            {{ formatDate(row.expiryDate) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="状态">
+          <template #default="{row}">
+            <el-tag :type="row.id === subscriptionData.id ? 'success' : 'info'">
+              {{ row.id === subscriptionData.id ? '当前激活' : '未激活' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="180">
+          <template #default="{row}">
+            <el-button 
+              v-if="row.id !== subscriptionData.id" 
+              type="primary" 
+              size="small"
+              @click="activateSubscription(row)"
+            >
+              设为当前
+            </el-button>
+            <el-button 
+              v-if="row.id !== subscriptionData.id" 
+              type="danger" 
+              size="small"
+              @click="confirmCancelSubscription(row)"
+            >
+              取消订阅
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+    </div>
 
     <div class="available-plans">
       <h3>可用套餐</h3>
@@ -78,10 +135,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { Check } from '@element-plus/icons-vue';
 import { formatDate as formatDateUtil } from '@/utils/index';
-import { getAllPlans, getSubscription, saveSubscription } from '@/api/system/subscription';
+import { getAllPlans, getSubscription, saveSubscription, cancelSubscription as apiCancelSubscription } from '@/api/system/subscription';
 import useUserStore from '@/store/modules/user';
 import SubscriptionPayment from '@/components/SubscriptionPayment/index.vue';
 import SubscriptionCongrats from '@/components/SubscriptionCongrats/index.vue';
@@ -91,14 +149,27 @@ const props = defineProps({
     type: Object,
     required: true,
     default: () => ({
+      id: null,
       plan: null,
       expiryDate: null,
       autoRenew: false
     })
+  },
+  // 新增属性，接收所有有效订阅
+  allSubscriptions: {
+    type: Array,
+    default: () => []
   }
 });
+console.log('props', props);
 
-const emit = defineEmits(['subscription-updated']);
+const emit = defineEmits(['subscription-updated', 'subscription-activated', 'subscription-cancelled']);
+
+// 计算属性：所有有效订阅
+const allSubscriptions = computed(() => {
+  console.log('allSubscriptions', props.allSubscriptions);
+  return props.allSubscriptions || [];
+});
 
 // 订阅套餐相关
 const subscriptionDialogVisible = ref(false);
@@ -220,6 +291,48 @@ const handleAutoRenewChange = async () => {
     props.subscriptionData.autoRenew = !props.subscriptionData.autoRenew
     ElMessage.error('设置失败：' + (error.message || '未知错误'))
   }
+}
+
+// 激活指定订阅
+const activateSubscription = (subscription) => {
+  // 更新订阅状态为激活
+  const updatedSubscription = {
+    ...subscription,
+    status: 'Active'
+  };
+  
+  // 通知父组件激活指定订阅
+  emit('subscription-activated', updatedSubscription);
+  ElMessage.success(`已将「${subscription.plan.name}」设为当前激活订阅`);
+}
+
+// 确认取消订阅
+const confirmCancelSubscription = (subscription) => {
+  ElMessageBox.confirm(
+    `确定要取消「${subscription.plan.name}」订阅吗？取消后将无法恢复。`,
+    '取消订阅',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    }
+  ).then(() => {
+    cancelSubscription(subscription);
+  }).catch(() => {
+    // 用户取消操作
+  });
+}
+
+// 取消订阅
+const cancelSubscription = (subscription) => {
+  // 调用取消订阅API
+  apiCancelSubscription(subscription.id, '用户主动取消').then(() => {
+    ElMessage.success('订阅已成功取消');
+    // 通知父组件订阅已取消
+    emit('subscription-cancelled', subscription.id);
+  }).catch(error => {
+    ElMessage.error('取消订阅失败：' + (error.message || '未知错误'));
+  });
 }
 </script>
 

@@ -1,8 +1,8 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "laundry",
+  "productName": "cleanwave",
   "version": "0.1.2",
-  "identifier": "com.tauri-local.dev",
+  "identifier": "cleanwave",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:8090",

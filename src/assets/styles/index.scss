@@ -184,3 +184,12 @@ aside {
     margin-bottom: 10px;
   }
 }
+
+.hover-flow {
+  transition: all 0.3s;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--el-box-shadow-light)
+  }
+}

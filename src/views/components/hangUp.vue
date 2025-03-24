@@ -19,7 +19,7 @@
                     <div class="section-divider">
                         <span>衣物编码</span>
                     </div>
-                    <div class="info-card cloth-number-container">
+                    <div class="info-card hover-flow cloth-number-container">
                         <el-form-item label="衣物编码" prop="clothingNumber">
                             <el-input ref="clothingNumberRef" v-model="hangForm.clothingNumber" @change="getClothInfo"
                                 @keydown.enter="getClothInfoByEnter" placeholder="请输入或扫描衣物编码">
@@ -39,7 +39,7 @@
                         <span>衣物信息</span>
                     </div>
                     <!-- <transition name="fade"> -->
-                    <div class="info-card" v-if="currentCloth">
+                    <div class="info-card hover-flow" v-if="currentCloth">
                         <!-- 衣物基本信息 -->
                         <div class="info-header">
                             <div class="cloth-name">
@@ -110,7 +110,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="info-card empty-info-card" v-else>
+                    <div class="info-card empty-info-card hover-flow " v-else>
                         <div class="empty-state">
                             <el-empty description="请先扫描衣物编码" :image-size="80"></el-empty>
                         </div>
@@ -123,7 +123,7 @@
                     <div class="section-divider">
                         <span>衣挂信息</span>
                     </div>
-                    <div class="info-card">
+                    <div class="info-card hover-flow">
                         <el-form-item label="衣挂位置" prop="hangLocationId">
                             <el-select v-model="hangForm.hangLocationId" placeholder="请选择上挂位置编码" class="modern-select">
                                 <el-option v-for="item in hangLocationList" :key="item.id" :label="item.name"

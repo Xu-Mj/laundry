@@ -66,8 +66,8 @@
             <el-option v-for="dict in sys_order_status" :key="dict.value" :label="dict.label" :value="dict.value" />
           </el-select>
         </el-form-item>
-        <el-button type="primary" icon="Search" @click="handleQuery" size="large">搜索</el-button>
-        <el-button icon="Refresh" @click="resetQuery" size="large">重置</el-button>
+        <el-button class="hover-flow" type="primary" icon="Search" @click="handleQuery" size="large">搜索</el-button>
+        <el-button class="hover-flow" icon="Refresh" @click="resetQuery" size="large">重置</el-button>
       </el-form>
     </el-card>
 
@@ -77,7 +77,7 @@
       <div class="table-operations">
         <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" :columns="columns"></right-toolbar>
       </div>
-      <el-table v-loading="loading" :data="ordersList" class="modern-table" border="dash"  stripe>
+      <el-table v-loading="loading" :data="ordersList" class="modern-table" border="dash" stripe>
         <el-table-column label="订单编码" align="center" width="180" prop="orderNumber" v-if="columns[0].visible" />
         <el-table-column label="所属会员" align="center" width="180" v-if="columns[1].visible">
           <template #default="scope">

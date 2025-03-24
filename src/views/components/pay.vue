@@ -3,8 +3,8 @@
     <el-dialog v-model="showPaymentDialog" width="600px" append-to-body lock-scroll modal :align-center="true"
         :close-on-click-modal="false" :show-close="false" @closed="close" class="payment-dialog">
         <!-- 扫码支付弹窗 -->
-        <el-dialog v-model="showScannerDialog" title="扫描二维码" width="500px" append-to-body lock-scroll modal :align-center="true"
-            :close-on-click-modal="false" :show-close="true" class="scanner-dialog">
+        <el-dialog v-model="showScannerDialog" title="扫描二维码" width="500px" append-to-body lock-scroll modal
+            :align-center="true" :close-on-click-modal="false" :show-close="true" class="scanner-dialog">
             <QrCodeScanner :onScanSuccess="handleScanResult" :autoStart="true" @scan-error="handleScanError"
                 @scan-timeout="handleScanTimeout" />
         </el-dialog>
@@ -25,7 +25,7 @@
         </template>
 
         <!-- 会员信息卡片 -->
-        <div class="member-card">
+        <div class="member-card hover-flow">
             <div class="member-avatar">
                 <el-avatar :size="50" icon="UserFilled" />
             </div>
@@ -235,7 +235,7 @@
 
         <template #footer>
             <div class="payment-footer">
-                <el-button size="large" @click="close" plain>取消</el-button>
+                <el-button size="large" type="danger" @click="close">取消</el-button>
                 <el-button size="large" type="primary" @click="submitPaymentForm">确认支付</el-button>
             </div>
         </template>
@@ -765,10 +765,16 @@ onMounted(async () => {
 .member-card {
     display: flex;
     align-items: center;
-    background: linear-gradient(135deg, var(--el-fill-color-light) 0%, var(--el-fill-color-dark) 100%);
+    background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-8) 100%);
+    /* background: linear-gradient(135deg, var(--el-fill-color-light) 0%, var(--el-fill-color-dark) 100%); */
     border-radius: 12px;
     padding: 1rem;
-    box-shadow: var(--el-box-shadow);
+    box-shadow: var(--el-box-shadow-lighter);
+}
+
+:root.dark .member-card {
+    --el-color-primary-light-9: #1d2c40;
+    --el-color-primary-light-8: #2b6095;
 }
 
 .member-avatar {
@@ -808,7 +814,7 @@ onMounted(async () => {
 }
 
 .payment-form {
-    padding:  1rem 1rem 0 1rem;
+    padding: 1rem 1rem 0 1rem;
 }
 
 .section-title {
@@ -957,6 +963,12 @@ onMounted(async () => {
     border-radius: 8px;
     padding: 1rem;
     margin: .5rem 0;
+    transition: all 0.3s;
+}
+
+.price-summary-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
 }
 
 .price-row {

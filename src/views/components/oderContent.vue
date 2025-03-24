@@ -32,8 +32,9 @@
                 </el-input>
             </el-form-item>
             <el-form-item>
-                <el-button type="primary" icon="Search" @click="handleQuery" size="large" round>搜索</el-button>
-                <el-button icon="Refresh" @click="resetQuery" size="large" round>重置</el-button>
+                <el-button class="hover-flow" type="primary" icon="Search" @click="handleQuery" size="large"
+                    round>搜索</el-button>
+                <el-button class="hover-flow" icon="Refresh" @click="resetQuery" size="large" round>重置</el-button>
             </el-form-item>
         </el-form>
         <!-- 渲染订单抖索结果列表 -->
@@ -99,7 +100,7 @@
                             <div class="cloth-name">
                                 {{ scope.row.clothInfo.clothingName }}
                                 <span v-if="scope.row.clothingColor" class="cloth-color">
-                                    {{ colorList.find(item => item.tagId == scope.row.clothingColor).tagName }}
+                                    {{colorList.find(item => item.tagId == scope.row.clothingColor).tagName}}
                                 </span>
                             </div>
                         </template>
@@ -136,7 +137,7 @@
                             <div class="tag-container">
                                 <el-tag v-for="tagId in scope.row.clothingFlaw ? scope.row.clothingFlaw.split(',') : []"
                                     :key="tagId" type="danger" size="small" effect="light">
-                                    {{ flawList.find(item => item.tagId == tagId).tagName }}
+                                    {{flawList.find(item => item.tagId == tagId).tagName}}
                                 </el-tag>
                                 <span v-if="!scope.row.clothingFlaw">-</span>
                             </div>
@@ -147,7 +148,7 @@
                             <div class="tag-container">
                                 <el-tag v-for="tagId in scope.row.estimate ? scope.row.estimate.split(',') : []"
                                     :key="tagId" type="info" size="small" effect="light">
-                                    {{ estimateList.find(item => item.tagId == tagId).tagName }}
+                                    {{estimateList.find(item => item.tagId == tagId).tagName}}
                                 </el-tag>
                                 <span v-if="!scope.row.estimate">-</span>
                             </div>
@@ -156,7 +157,7 @@
                     <el-table-column label="衣物品牌" align="center" prop="clothingBrand" width="100">
                         <template #default="scope">
                             <el-tag v-if="scope.row.clothingBrand" type="success" size="small" effect="light">
-                                {{ brandList.find(item => item.tagId == scope.row.clothingBrand).tagName }}
+                                {{brandList.find(item => item.tagId == scope.row.clothingBrand).tagName}}
                             </el-tag>
                             <span v-else>-</span>
                         </template>

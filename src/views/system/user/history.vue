@@ -36,13 +36,13 @@
                 start-placeholder="开始日期" end-placeholder="结束日期" style="width: 260px" />
         </el-form-item>
         <el-form-item>
-            <el-button type="primary" @click="handleQuery">
+            <el-button class="search-btn" type="primary" @click="handleQuery">
                 <el-icon>
                     <Search />
                 </el-icon>
                 <span>搜索</span>
             </el-button>
-            <el-button @click="resetQuery">
+            <el-button class="search-btn" @click="resetQuery">
                 <el-icon>
                     <Refresh />
                 </el-icon>
@@ -57,7 +57,7 @@
         <div v-if="orderList.length === 0" class="no-result">
             <el-empty description="暂无数据" />
         </div>
-        <div v-else class="result-item" v-for="order in orderList" :key="order.orderId">
+        <div v-slide-in v-else class="result-item" v-for="order in orderList" :key="order.orderId">
             <div class="result-item-info">
                 <span>订单编码: {{ order.orderNumber }}</span>
                 <span>订单日期: {{ formatTime(order.createTime) }}</span>
@@ -127,6 +127,7 @@ import { listTagsNoLimit } from "@/api/system/tags";
 import { getPrice } from "@/api/system/price";
 import { Money, ShoppingCart, Search, Refresh } from '@element-plus/icons-vue';
 import { formatTime } from '@/utils/ruoyi';
+import vSlideIn from "@/vSlideIn";
 
 const props = defineProps({
 
@@ -403,6 +404,15 @@ onMounted(async () => {
     border-radius: 8px;
     margin-bottom: 24px;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.search-btn {
+    transition: all 0.3s;
+}
+
+.search-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--el-box-shadow-light);
 }
 
 /* 结果列表样式 */

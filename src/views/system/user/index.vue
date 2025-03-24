@@ -80,9 +80,8 @@
             <el-table-column label="会员积分" align="center" v-if="columns[11].visible">
                <template #default="scope">
                   <el-tooltip content="查看历史记录" placement="top">
-                     <el-button type="primary" link @click="queryIntegralList(scope.row.userId)"
-                        v-hasPermi="['system:record:list']">{{
-                           scope.row.integral }}</el-button>
+                     <el-button type="primary" link @click="queryIntegralList(scope.row.userId)">
+                        {{ scope.row.integral }}</el-button>
                   </el-tooltip>
                </template>
             </el-table-column>
@@ -131,20 +130,13 @@
             <el-table-column label="操作" align="center" width="150" class-name="small-padding fixed-width">
                <template #default="scope">
                   <el-tooltip content="编辑" placement="top">
-                     <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)"
-                        v-hasPermi="['system:user:edit']"></el-button>
+                     <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" />
                   </el-tooltip>
                   <el-tooltip content="删除" placement="top">
-                     <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)"
-                        v-hasPermi="['system:user:remove']"></el-button>
+                     <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" />
                   </el-tooltip>
-                  <!-- <el-tooltip content="兑换" placement="top">
-                  <el-button link type="primary" icon="Shop" @click=""
-                     v-hasPermi="['system:user:resetPwd']"></el-button>
-               </el-tooltip> -->
                   <el-tooltip content="重置密码" placement="top">
-                     <el-button link type="primary" icon="Key" @click="handleResetPwd(scope.row)"
-                        v-hasPermi="['system:user:resetPwd']"></el-button>
+                     <el-button link type="primary" icon="Key" @click="handleResetPwd(scope.row)" />
                   </el-tooltip>
                </template>
             </el-table-column>

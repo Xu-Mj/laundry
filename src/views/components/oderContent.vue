@@ -42,7 +42,7 @@
                 <!-- <h1 style="color: #ccc;">暂无数据</h1> -->
                 <el-empty description="暂无数据" />
             </div>
-            <div v-else class="result-item" v-for="order in ordersList" :key="order.orderId">
+            <div v-slide-in v-else class="result-item" v-for="order in ordersList" :key="order.orderId">
                 <div class="result-item-order-num">
                     <span>
                         订单编码: {{ order.orderNumber }}
@@ -125,8 +125,9 @@
                     </el-table-column>
                     <el-table-column label="工艺加价" align="center" prop="processMarkup" width="90">
                         <template #default="scope">
-                            <span v-if="scope.row.processMarkup && scope.row.processMarkup > 0" class="markup-value">+{{
-            scope.row.processMarkup }}</span>
+                            <span v-if="scope.row.processMarkup && scope.row.processMarkup > 0" class="markup-value">
+                                +{{ scope.row.processMarkup }}
+                            </span>
                             <span v-else>-</span>
                         </template>
                     </el-table-column>
@@ -187,8 +188,8 @@
                     </el-table-column>
                     <el-table-column label="上挂位置" align="center" width="120">
                         <template #default="scope">
-                            <el-tag v-if="scope.row.hangLocationCode" type="info">{{ scope.row.hangerName + '-' +
-            scope.row.hangerNumber }}
+                            <el-tag v-if="scope.row.hangLocationCode" type="info">
+                                {{ scope.row.hangerName + '-' + scope.row.hangerNumber }}
                             </el-tag>
                             <span v-else>-</span>
                         </template>
@@ -282,6 +283,7 @@ import ReWash from "./rewash.vue";
 import { ElMessageBox } from 'element-plus';
 import { invoke } from '@tauri-apps/api/core';
 import PaymentDialog from "./PaymentDialog.vue";
+import vSlideIn from "@/vSlideIn";
 
 
 const props = defineProps({

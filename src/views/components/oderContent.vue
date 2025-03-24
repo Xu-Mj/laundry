@@ -365,16 +365,6 @@ const { deliveryForm, pickupRules, queryParams } = toRefs(data);
 
 async function go2pay(row) {
     orders.value = [row];
-    // 获取用户的卡券列表
-    await listUserCouponWithValidTime(row.userId).then(response => {
-        userCouponList.value = response;
-        // 初始化次卡信息
-        userCouponList.value.filter(item => item.coupon.couponType == '002').map(item => {
-            item.selected = false;
-            item.count = 1;
-        })
-    });
-
     showPaymentDialog.value = true;
 }
 
@@ -459,7 +449,6 @@ async function pickup(cloth) {
     const ids = cloths.map(item => item.clothId);
 
     const orderIds = cloths.map(item => item.orderId);
-    console.log(ids)
 
     // 判断是否包含未支付的订单
     const unpaidOrders = ordersList.value.filter(item => orderIds.includes(item.orderId) && item.paymentStatus !== '00');

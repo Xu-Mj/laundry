@@ -58,6 +58,10 @@ pub fn get_now() -> DateTime<FixedOffset> {
     Utc::now().with_timezone(&FixedOffset::east_opt(EAST_ZONE).unwrap())
 }
 
+pub fn get_timestamp() -> i64 {
+    get_now().timestamp_millis()
+}
+
 pub fn gen_random_number() -> i32 {
     // 使用随机种子初始化 StdRng
     let seed = rand::random::<[u8; 32]>();

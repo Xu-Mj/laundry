@@ -125,6 +125,7 @@ function handleLogin() {
       // 调用action的登录方法
       userStore.login(loginForm.value).then((res) => {
         routeJump();
+        loading.value = false;
       }).catch(() => {
         loading.value = false;
         // 重新获取验证码
@@ -249,7 +250,7 @@ onMounted(async () => {
     font-weight: 600;
     margin: 0 0 10px 0;
     background: linear-gradient(45deg, #3498db, #2c3e50);
-    -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
     letter-spacing: 1px;
   }
@@ -414,7 +415,7 @@ onMounted(async () => {
       font-weight: 600;
       margin: 0 0 10px 0;
       background: linear-gradient(45deg, #3498db, #2c3e50);
-      -webkit-background-clip: text;
+      background-clip: text;
       -webkit-text-fill-color: transparent;
       letter-spacing: 1px;
     }

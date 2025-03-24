@@ -41,6 +41,11 @@ export function getActiveSubscription(storeId) {
   })
 }
 
+// 获取用户所有有效订阅
+export function getAllActiveSubscriptions() {
+  return invoke('get_user_subscriptions')
+}
+
 // 获取商家所有订阅记录
 export function getStoreSubscriptions(storeId) {
   return request({

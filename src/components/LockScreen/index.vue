@@ -22,7 +22,7 @@
                                 :class="['password-input', { 'shake': isShaking }]" :disabled="isLockoutActive">
                                 <template #prefix><svg-icon icon-class="password" class="input-icon" /></template>
                             </el-input>
-                            <div class="arrow-button" @click="isPasswordValid && handleUnlock"
+                            <div class="arrow-button" @click="isPasswordValid ? handleUnlock() : null"
                                 :class="{ 'disabled': isLockoutActive || loading || !isPasswordValid }">
                                 <svg-icon icon-class="arrow-right" class="arrow-icon" />
                             </div>

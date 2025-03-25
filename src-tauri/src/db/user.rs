@@ -152,7 +152,7 @@ const BY_ID_SQL: &str = "select u.user_id, u.user_type, u.open_id, u.dept_id, u.
         where u.del_flag = '0' AND u.user_id = ? ";
 
 impl Curd for User {
-    const COUNT_SQL: &'static str = "SELECT COUNT(*) FROM users WHERE del_flag = '0' ";
+    const COUNT_SQL: &'static str = "SELECT COUNT(*) FROM users u LEFT JOIN user_membership_level up ON u.user_id = up.user_id WHERE u.del_flag = '0' ";
     const QUERY_SQL: &'static str = QUERY_SQL;
     const BY_ID_SQL: &'static str = BY_ID_SQL;
     const DELETE_BATCH_SQL: &'static str = "UPDATE users SET del_flag = '2' WHERE user_id IN ( ";
@@ -160,7 +160,7 @@ impl Curd for User {
     fn apply_filters<'a>(&'a self, builder: &mut QueryBuilder<'a, Sqlite>) {
         self.user_name.as_ref().filter(|u| !u.is_empty()).map(|u| {
             builder
-                .push(" AND u.user_name LIKE ")
+                .push(" AND user_name LIKE ")
                 .push_bind(format!("%{}%", u));
         });
 
@@ -169,12 +169,12 @@ impl Curd for User {
             .filter(|p| !p.is_empty())
             .map(|p| {
                 builder
-                    .push(" AND u.phonenumber LIKE ")
+                    .push(" AND phonenumber LIKE ")
                     .push_bind(format!("%{}%", p));
             });
 
         self.level_id.filter(|l| *l != 0).map(|l| {
-            builder.push(" AND p.level_id = ").push_bind(l);
+            builder.push(" AND up.level_id = ").push_bind(l);
         });
     }
 }

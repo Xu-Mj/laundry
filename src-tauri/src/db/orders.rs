@@ -5,8 +5,8 @@ use rust_decimal_macros::dec;
 use serde::{Deserialize, Serialize};
 use sqlx::sqlite::SqliteRow;
 use sqlx::{
-    types::chrono::{DateTime, FixedOffset, NaiveDate, Utc},
     FromRow, Pool, QueryBuilder, Row, Sqlite, Transaction,
+    types::chrono::{DateTime, FixedOffset, NaiveDate, Utc},
 };
 
 use crate::db::adjust_price::OrderClothAdjust;
@@ -93,6 +93,13 @@ pub struct Order {
     pub payment_amount: Option<f64>,
 }
 
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+pub enum PaymentMethod {
+    #[default]
+    Alipay,
+    Wechat,
+}
+
 #[derive(Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[serde(default)]
@@ -100,6 +107,11 @@ pub struct PaymentReq {
     pub payment: Option<Payment>,
     pub orders: Option<Vec<Order>>,
     pub time_based: Option<Vec<TimeBasedCoupon>>,
+    // 扫码支付相关字段
+    pub auth_code: Option<String>,           // 支付授权码
+    pub store_id: Option<i64>,               // 商家ID
+    pub subject: Option<String>,             // 订单标题
+    pub payment_type: Option<PaymentMethod>, // 支付类型：alipay/wechat
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
@@ -381,8 +393,11 @@ impl Order {
     }
 
     async fn count(&self, pool: &Pool<Sqlite>) -> Result<u64> {
-        let mut query_builder =
-            QueryBuilder::<Sqlite>::new("SELECT COUNT(*) FROM orders o WHERE 1=1");
+        let mut query_builder = QueryBuilder::<Sqlite>::new(
+            "SELECT COUNT(*) FROM orders o 
+                    LEFT JOIN users u ON o.user_id = u.user_id
+                    LEFT JOIN order_clothes_adjust a ON o.order_id = a.order_id WHERE 1=1",
+        );
         self.apply_filters(&mut query_builder);
         let query = query_builder.build_query_scalar::<u64>();
         Ok(query.fetch_one(pool).await?)
@@ -455,6 +470,7 @@ impl Order {
         }
 
         builder.push(" GROUP BY o.order_id");
+        builder.push(" ORDER BY o.create_time DESC");
         builder.push(" LIMIT ").push_bind(page_params.page_size);
         builder
             .push(" OFFSET ")
@@ -780,6 +796,26 @@ impl Order {
             vec![]
         };
 
+        // 检查是否使用扫码支付
+        let is_qr_code_payment = payment_req.auth_code.is_some();
+        let auth_code = payment_req.auth_code.take();
+        let store_id = payment_req.store_id.take();
+        let subject = payment_req.subject.take();
+        let payment_type = payment_req.payment_type.take().unwrap_or_default();
+
+        // 如果是扫码支付，需要验证必要参数
+        if is_qr_code_payment {
+            if store_id.is_none() {
+                return Err(Error::bad_request("使用扫码支付时，store_id不能为空"));
+            }
+        }
+
+        // 处理订单信息
+        let mut order_ids = Vec::new();
+        let mut order_numbers = Vec::new();
+        let mut total_payment_amount = 0.0;
+        let mut user_id = None;
+
         for order in orders.iter() {
             if let Some(order_id) = order.order_id {
                 // 校验订单状态
@@ -797,6 +833,7 @@ impl Order {
                 // 计算订单总价
                 let order_total_amount =
                     Self::cal_total_price(pool, &mut existing_order, &clothes).await?;
+                total_payment_amount += payment.payment_amount.unwrap_or(0.0);
 
                 // 应用卡券或储值卡
                 if !user_coupons.is_empty() {
@@ -816,9 +853,6 @@ impl Order {
                             order_total_amount,
                         )
                         .await?;
-                        // if !is_storage_card && !user_coupons.is_empty() {
-                        //     return Err(Error::bad_request("存在不符合使用规则的优惠券"));
-                        // }
                     }
                 }
 
@@ -829,32 +863,153 @@ impl Order {
                     existing_order.status = Some(STATUS_COMPLETED.to_string());
                 }
 
-                // update order payment status to PAID
-                existing_order.payment_status = Some(PAY_STATUS_PAID.to_string());
-                if !existing_order.update(&mut tr).await? {
-                    return Err(Error::internal("update order failed"));
+                // 收集订单信息，用于后续扫码支付
+                order_ids.push(order_id);
+                if let Some(order_number) = &existing_order.order_number {
+                    order_numbers.push(order_number.clone());
+                }
+                if user_id.is_none() {
+                    user_id = existing_order.user_id;
+                }
+            }
+        }
+
+        // 如果是扫码支付，调用相应的支付接口
+        if is_qr_code_payment {
+            let store_id = store_id.unwrap();
+            let subject_text =
+                subject.unwrap_or_else(|| format!("订单支付-{}", order_numbers.join(",")));
+
+            // 根据支付类型调用不同的支付接口
+            if payment_type == PaymentMethod::Alipay {
+                if let Some(auth_code) = auth_code {
+                    // 使用支付宝付款码支付
+                    let req_body = weapay::alipay::prelude::ReqOrderBody {
+                        out_trade_no: format!("{}{}", "PAY", chrono::Utc::now().timestamp_millis()),
+                        subject: subject_text.clone(),
+                        total_amount: total_payment_amount.to_string(),
+                        auth_code: Some(auth_code.clone()),
+                        scene: Some("bar_code".to_string()),
+                        ..Default::default()
+                    };
+
+                    let alipay_result =
+                        crate::pay::pay_with_alipay_auth_code(pool, store_id, req_body).await?;
+
+                    // 检查支付结果
+                    if let Some(trade_status) = &alipay_result.trade_status {
+                        if trade_status == "TRADE_SUCCESS" || trade_status == "TRADE_FINISHED" {
+                            // 支付成功，更新订单状态
+                            for order_id in &order_ids {
+                                let mut existing_order = Self::get_by_id(pool, *order_id)
+                                    .await?
+                                    .ok_or(Error::bad_request("order is not exist"))?;
+
+                                // 更新订单支付状态为已支付
+                                existing_order.payment_status = Some(PAY_STATUS_PAID.to_string());
+                                if !existing_order.update(&mut tr).await? {
+                                    return Err(Error::internal("update order failed"));
+                                }
+
+                                // 创建支付记录
+                                payment.order_status = Some("01".to_string());
+                                payment.payment_status = Some("01".to_string());
+                                payment.pay_number = existing_order.order_number.clone();
+                                payment.uc_order_id = Some(*order_id);
+                                payment.transaction_id = alipay_result
+                                    .trade_no
+                                    .clone()
+                                    .map(|s| s.parse::<i64>().unwrap_or_default());
+                                let payment = payment.create_payment(&mut tr).await?;
+
+                                // 创建qrcode payment record
+                                let qrcode_payment = crate::db::qrcode_payments::QrcodePayment {
+                                    pay_id: payment.pay_id,
+                                    store_id: Some(store_id),
+                                    payment_type: Some("alipay".to_string()),
+                                    auth_code: Some(auth_code.clone()),
+                                    out_trade_no: alipay_result.out_trade_no.clone(),
+                                    trade_no: alipay_result.trade_no.clone(),
+                                    total_amount: Some(total_payment_amount),
+                                    subject: Some(subject_text.clone()),
+                                    trade_status: alipay_result.trade_status.clone(),
+                                    buyer_id: None,
+                                    buyer_logon_id: None,
+                                    receipt_amount: alipay_result
+                                        .total_amount
+                                        .as_ref()
+                                        .map(|s| s.parse::<f64>().unwrap_or_default()),
+                                    raw_response: Some(
+                                        serde_json::to_string(&alipay_result).unwrap_or_default(),
+                                    ),
+                                    create_time: Some(utils::get_now()),
+                                    ..Default::default()
+                                };
+                                qrcode_payment.create(&mut tr).await?;
+                            }
+
+                            // 更新用户积分
+                            if let Some(user_id) = user_id {
+                                if !User::increase_points(
+                                    &mut tr,
+                                    user_id,
+                                    total_payment_amount as i64,
+                                )
+                                .await?
+                                {
+                                    return Err(Error::internal("更新用户积分失败"));
+                                }
+                            }
+
+                            tr.commit().await?;
+                            return Ok(());
+                        } else {
+                            // 支付失败
+                            return Err(Error::bad_request(&format!(
+                                "支付宝付款码支付失败: {}",
+                                trade_status
+                            )));
+                        }
+                    } else {
+                        // 支付状态未知
+                        return Err(Error::bad_request("支付宝付款码支付状态未知"));
+                    }
+                } else if payment_type == PaymentMethod::Wechat {
+                    // 微信支付逻辑可以在这里实现
+                    // 目前先返回错误，表示功能尚未实现
+                    return Err(Error::bad_request("微信扫码支付功能尚未实现"));
+                }
+            } else {
+                // 非扫码支付，继续原有流程
+                for order_id in &order_ids {
+                    let mut existing_order = Self::get_by_id(pool, *order_id)
+                        .await?
+                        .ok_or(Error::bad_request("order is not exist"))?;
+
+                    // 更新订单支付状态为已支付
+                    existing_order.payment_status = Some(PAY_STATUS_PAID.to_string());
+                    if !existing_order.update(&mut tr).await? {
+                        return Err(Error::internal("update order failed"));
+                    }
+
+                    // 创建支付记录
+                    payment.order_status = Some("01".to_string());
+                    payment.payment_status = Some("01".to_string());
+                    payment.pay_number = existing_order.order_number.clone();
+                    payment.uc_order_id = Some(*order_id);
+                    payment.create_payment(&mut tr).await?;
                 }
 
-                // create payment record
-                payment.order_status = Some("01".to_string());
-                payment.payment_status = Some("01".to_string());
-                payment.pay_number = existing_order.order_number;
-                payment.uc_order_id = Some(order_id);
-                payment.create_payment(&mut tr).await?;
+                // 更新用户积分
+                if let Some(user_id) = user_id {
+                    if !User::increase_points(&mut tr, user_id, total_payment_amount as i64).await?
+                    {
+                        return Err(Error::internal("更新用户积分失败"));
+                    }
+                }
             }
         }
 
-        if let Some(order) = orders.first() {
-            if !User::increase_points(
-                &mut tr,
-                order.user_id.unwrap_or_default(),
-                payment.payment_amount.unwrap_or_default() as i64,
-            )
-            .await?
-            {
-                return Err(Error::internal("更新用户积分失败"));
-            }
-        }
         tr.commit().await?;
         Ok(())
     }

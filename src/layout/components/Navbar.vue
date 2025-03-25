@@ -45,7 +45,7 @@
     </div>
     <Setting :visible="showSetting" :key="showSetting" :taggle="() => { showSetting = !showSetting }" />
 
-    <el-dialog v-model="showChangePwd" title="修改密码" :show-close="false" width="300px">
+    <el-dialog :align-center="true" v-model="showChangePwd" title="修改密码" :show-close="false" width="300px">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="80px">
         <el-form-item label="旧密码" prop="oldPassword">
           <el-input v-model="form.oldPassword" type="password" />
@@ -69,7 +69,6 @@
 import ThemeSwitch from '@/components/ThemeSwitch.vue';
 import { ElMessageBox } from 'element-plus'
 import useUserStore from '@/store/modules/user'
-import useSubscriptionStore from '@/store/modules/subscription'
 import Setting from '@/views/setting/index.vue';
 import { updatePwd } from '@/api/system/user';
 
@@ -81,7 +80,7 @@ const props = defineProps({
 const { proxy } = getCurrentInstance();
 
 const userStore = useUserStore()
-const isGuest= ref(useSubscriptionStore().isGuest);
+const isGuest= ref(userStore.isGuest);
 const showSetting = ref(false);
 const showChangePwd = ref(false);
 const form = ref({

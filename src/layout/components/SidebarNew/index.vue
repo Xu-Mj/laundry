@@ -26,7 +26,7 @@
 import { ref, reactive } from 'vue';
 import { useRouter } from 'vue-router';
 import useAppStore from '@/store/modules/app'
-import useSubscriptionStore from '@/store/modules/subscription'
+import useUserStore from '@/store/modules/user'
 import Logo from '../Sidebar/Logo.vue';
 import Navbar from '../Navbar.vue';
 import CouponSale from '@/views/components/couponSale.vue'
@@ -84,7 +84,7 @@ const menus = ref([
   { 'name': '收支报表', 'type': 'success', show: true, path: '/expenditures', onClick: () => router.push('/expenditures') },
   { 'name': '经营对账', 'type': 'success', show: false },
   { 'name': '营销推送', 'type': 'success', show: false, color: '#626aef', dark: false },
-  { 'name': '知识天地', 'type': 'primary', path: '/blogs', show: true, onClick: () => { router.push('/blogs') } },
+  { 'name': '知识天地', 'type': 'primary', path: '/blogs', show: false, onClick: () => { router.push('/blogs') } },
 ]);
 
 watch(isAdmin, (newValue) => {
@@ -105,11 +105,11 @@ const switchAdmin = () => {
 
 function hangupClick() {
   // 判断是否是试用期
-  if (useSubscriptionStore().isGuest) {
+  if (useUserStore().isGuest) {
     proxy.notify.warning('当前处于游客模式，请先注册！');
     return;
   }
-  if (useSubscriptionStore().isInTrial) {
+  if (useUserStore().isInTrial) {
     // 弹窗提醒
     proxy.notify.warning('您当前为试用期用户，请升级为正式用户后使用！');
     return;

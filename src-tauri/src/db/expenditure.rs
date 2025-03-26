@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 use sqlx::sqlite::SqliteRow;
-use sqlx::types::chrono::{DateTime, FixedOffset};
 use sqlx::{FromRow, QueryBuilder, Row, Sqlite};
 use tauri::State;
 
@@ -13,16 +12,16 @@ use crate::utils;
 #[serde(rename_all = "camelCase")]
 #[serde(default)]
 pub struct Expenditure {
-    pub exp_id: Option<i64>,                        // Primary key
-    pub order_id: Option<i64>,                      // Nullable TEXT
-    pub cloth_ids: Option<String>,                  // Nullable TEXT
-    pub exp_title: Option<String>,                  // NOT NULL TEXT
-    pub recv_account: Option<i64>,                  // Nullable INTEGER
-    pub recv_account_title: Option<String>,         // Nullable TEXT
-    pub exp_type: Option<String>,                   // NOT NULL TEXT
-    pub exp_amount: i64,                            // NOT NULL INTEGER
-    pub create_time: Option<DateTime<FixedOffset>>, // Nullable TIMESTAMP
-    pub remark: Option<String>,                     // Nullable TEXT
+    pub exp_id: Option<i64>,                // Primary key
+    pub order_id: Option<i64>,              // Nullable TEXT
+    pub cloth_ids: Option<String>,          // Nullable TEXT
+    pub exp_title: Option<String>,          // NOT NULL TEXT
+    pub recv_account: Option<i64>,          // Nullable INTEGER
+    pub recv_account_title: Option<String>, // Nullable TEXT
+    pub exp_type: Option<String>,           // NOT NULL TEXT
+    pub exp_amount: i64,                    // NOT NULL INTEGER
+    pub create_time: Option<i64>,           // Nullable TIMESTAMP
+    pub remark: Option<String>,             // Nullable TEXT
 }
 
 impl FromRow<'_, SqliteRow> for Expenditure {
@@ -84,7 +83,7 @@ impl Expenditure {
             .bind(&self.recv_account_title)
             .bind(&self.exp_type)
             .bind(&self.exp_amount)
-            .bind(utils::get_now())
+            .bind(utils::get_timestamp())
             .bind(&self.remark)
             .fetch_one(&mut **tx)
             .await?;

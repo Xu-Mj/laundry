@@ -672,7 +672,7 @@ impl Coupon {
             payment_status: Some("01".to_string()),
             payment_method: Some(coupon_buy_req.payment_method),
             order_status: Some("01".to_string()),
-            create_time: Some(utils::get_now()),
+            create_time: Some(utils::get_timestamp()),
             ..Default::default()
         };
         let payment = payment.create_payment(&mut tr).await?;

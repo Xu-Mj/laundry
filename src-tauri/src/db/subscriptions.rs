@@ -167,22 +167,6 @@ impl Subscription {
         Ok(subscription)
     }
 
-    // 获取用户的所有订阅
-    pub async fn get_all_by_user_id(pool: &Pool<Sqlite>, user_id: i64) -> Result<Vec<Self>> {
-        let subscriptions = sqlx::query_as(
-            r#"
-            SELECT * FROM subscriptions 
-            WHERE store_id = ?
-            ORDER BY created_at DESC
-            "#,
-        )
-        .bind(user_id)
-        .fetch_all(pool)
-        .await?;
-
-        Ok(subscriptions)
-    }
-
     // 获取用户的所有有效订阅
     pub async fn get_all_active_by_user_id(pool: &Pool<Sqlite>, user_id: i64) -> Result<Vec<Self>> {
         let now = utils::get_timestamp();
@@ -201,33 +185,6 @@ impl Subscription {
 
         Ok(subscriptions)
     }
-
-    // 根据ID获取订阅
-    pub async fn get_by_id(pool: &Pool<Sqlite>, id: i64) -> Result<Option<Self>> {
-        let subscription = sqlx::query_as("SELECT * FROM subscriptions WHERE id = ?")
-            .bind(id)
-            .fetch_optional(pool)
-            .await?;
-
-        Ok(subscription)
-    }
-
-    // 检查用户是否有有效订阅
-    pub async fn has_active_subscription(pool: &Pool<Sqlite>, user_id: i64) -> Result<bool> {
-        let now = utils::get_timestamp();
-        let count = sqlx::query_scalar::<_, i64>(
-            r#"
-            SELECT COUNT(*) FROM subscriptions 
-            WHERE store_id = ? AND expiry_date > ? AND status = 'active'
-            "#,
-        )
-        .bind(user_id)
-        .bind(now)
-        .fetch_one(pool)
-        .await?;
-
-        Ok(count > 0)
-    }
 }
 
 // service
@@ -240,7 +197,7 @@ impl Subscription {
     ) -> Result<()> {
         let mut tx = pool.begin().await?;
         subscription.create(&mut tx).await?;
-        plan.create(&mut tx).await?;
+        plan.upsert(&mut tx).await?;
         tx.commit().await?;
         Ok(())
     }

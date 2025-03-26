@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use sqlx::{sqlite::SqliteRow, FromRow, Pool, QueryBuilder, Row, Sqlite, Transaction};
+use sqlx::{FromRow, QueryBuilder, Row, Sqlite, Transaction, sqlite::SqliteRow};
 
 use crate::{error::Result, utils};
 
@@ -125,35 +125,6 @@ impl Curd for SmsPlan {
 }
 
 impl SmsPlan {
-    /// 创建新的短信套餐
-    pub async fn create(&self, pool: &Pool<Sqlite>) -> Result<SmsPlan> {
-        let now = chrono::Utc::now().timestamp_millis();
-
-        let result = sqlx::query_as(
-            "INSERT INTO sms_plans 
-            (name, plan_type, period, price, sms_count, description, features, 
-            is_recommended, is_active, sort_order, created_at, updated_at, remark) 
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) 
-            RETURNING *",
-        )
-        .bind(&self.name)
-        .bind(&self.plan_type)
-        .bind(&self.period)
-        .bind(&self.sms_count)
-        .bind(&self.description)
-        .bind(&self.features)
-        .bind(&self.is_recommended)
-        .bind(&self.is_active)
-        .bind(&self.sort_order)
-        .bind(now)
-        .bind(now)
-        .bind(&self.remark)
-        .fetch_one(pool)
-        .await?;
-
-        Ok(result)
-    }
-
     /// 更新短信套餐信息
     pub async fn upsert(&self, pool: &mut Transaction<'_, Sqlite>) -> Result<bool> {
         let now = utils::get_timestamp();
@@ -198,18 +169,5 @@ impl SmsPlan {
         .await?;
 
         Ok(result.rows_affected() > 0)
-    }
-
-    /// 获取所有启用的短信套餐
-    pub async fn get_active_plans(pool: &Pool<Sqlite>) -> Result<Vec<SmsPlan>> {
-        let plans = sqlx::query_as::<_, SmsPlan>(
-            "SELECT * FROM sms_plans 
-            WHERE is_active = true 
-            ORDER BY sort_order ASC",
-        )
-        .fetch_all(pool)
-        .await?;
-
-        Ok(plans)
     }
 }

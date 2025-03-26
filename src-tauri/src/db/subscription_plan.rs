@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, Pool, QueryBuilder, Row, Sqlite, Transaction, sqlite::SqliteRow};
+use sqlx::{FromRow, QueryBuilder, Row, Sqlite, Transaction, sqlite::SqliteRow};
 
 use crate::{error::Result, utils};
 
@@ -125,36 +125,6 @@ impl Curd for SubscriptionPlan {
 }
 
 impl SubscriptionPlan {
-    /// 创建订阅套餐
-    pub async fn create(&self, pool: &mut Transaction<'_, Sqlite>) -> Result<Self> {
-        let result = sqlx::query_as(
-            "
-            INSERT INTO subscription_plans (
-                id, name, plan_type, period, price, description, features,
-                is_recommended, is_active, sort_order, created_at, updated_at, remark
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-            RETURNING *
-            ",
-        )
-        .bind(&self.id)
-        .bind(&self.name)
-        .bind(&self.plan_type)
-        .bind(&self.period)
-        .bind(&self.price)
-        .bind(&self.description)
-        .bind(&self.features)
-        .bind(self.is_recommended)
-        .bind(self.is_active)
-        .bind(self.sort_order)
-        .bind(utils::get_timestamp())
-        .bind(utils::get_timestamp())
-        .bind(&self.remark)
-        .fetch_one(&mut **pool)
-        .await?;
-
-        Ok(result)
-    }
-
     pub async fn upsert(&self, pool: &mut Transaction<'_, Sqlite>) -> Result<Self> {
         let now = utils::get_timestamp();
         let result = sqlx::query_as(
@@ -195,19 +165,5 @@ impl SubscriptionPlan {
         .await?;
 
         Ok(result)
-    }
-    /// 获取所有活跃的套餐
-    pub async fn get_active_plans(pool: &Pool<Sqlite>) -> Result<Vec<Self>> {
-        let plans = sqlx::query_as(
-            "
-            SELECT * FROM subscription_plans
-            WHERE is_active = true
-            ORDER BY sort_order ASC, created_at DESC
-            ",
-        )
-        .fetch_all(pool)
-        .await?;
-
-        Ok(plans)
     }
 }

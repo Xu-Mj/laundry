@@ -8,6 +8,7 @@ pub mod home;
 pub mod printer;
 pub mod routers;
 // pub mod scripts;
+pub mod pay;
 pub mod state;
 pub mod tray;
 pub mod update;
@@ -18,9 +19,9 @@ use tauri::ipc::Invoke;
 use tauri_plugin_fs::FsExt;
 
 use crate::db::{
-    cloth_price, clothing, configs, coupons, dict_data, dict_type, drying_rack, expenditure,
-    local_users, membership_level, menu, notice_temp, order_clothes, orders, payments,
-    subscriptions, tags, tour_guide, user, user_coupons,
+    alipay_config, cloth_price, clothing, configs, coupons, dict_data, dict_type, drying_rack,
+    expenditure, local_users, membership_level, menu, notice_temp, order_clothes, orders, payments,
+    qrcode_payments, subscriptions, tags, tour_guide, user, user_coupons, wechat_config,
 };
 
 pub fn create_app<R: tauri::Runtime, T: Send + Sync + 'static>(
@@ -67,10 +68,22 @@ fn handle_command<R: Runtime>(invoke: Invoke<R>) -> bool {
         files::save_image,
         files::delete_image,
         files::get_image,
+        files::save_file,
+        files::delete_file,
         // captcha
         captcha::get_captcha,
-        // login
-
+        // alipay configuration
+        alipay_config::save_alipay_config,
+        alipay_config::get_alipay_config,
+        alipay_config::deactivate_alipay,
+        // qrcode payment
+        qrcode_payments::get_qrcode_payment_by_pay_id,
+        qrcode_payments::get_qrcode_payment_by_trade_no,
+        qrcode_payments::get_qrcode_payment_by_out_trade_no,
+        // wechat pay configuration
+        wechat_config::save_wechat_config,
+        wechat_config::get_wechat_config,
+        wechat_config::deactivate_wechat,
         // home
         home::query_total_count,
         home::query_count,
@@ -200,9 +213,11 @@ fn handle_command<R: Runtime>(invoke: Invoke<R>) -> bool {
         routers::get_routers,
         // local_users
         local_users::get_info,
+        local_users::validate_pwd,
         local_users::guest_login,
         local_users::login,
         local_users::logout,
+        local_users::update_local_user,
         local_users::update_pwd,
         // expenditure
         expenditure::get_exp_pagination,
@@ -231,7 +246,7 @@ fn handle_command<R: Runtime>(invoke: Invoke<R>) -> bool {
         subscriptions::create_subscription,
         subscriptions::update_subscription,
         subscriptions::get_user_subscriptions,
-        subscriptions::get_user_subscription,
+        subscriptions::get_active_by_user_id,
         // tours
         tour_guide::update_tour_guide,
         tour_guide::check_tour_completed,

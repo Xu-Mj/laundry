@@ -1,8 +1,10 @@
 use serde::{Deserialize, Serialize};
 use sqlx::sqlite::SqliteRow;
 use sqlx::{FromRow, Pool, Row, Sqlite};
+use tauri::State;
 
 use crate::error::Result;
+use crate::state::AppState;
 use crate::utils;
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -73,4 +75,53 @@ impl UserTours {
         let id: i64 = result.get(0);
         Ok(id)
     }
+}
+
+/// 更新用户的引导记录
+#[tauri::command]
+pub async fn update_tour_guide(state: State<'_, AppState>, page_key: String) -> Result<bool> {
+    let mut user = match state.get_user_info().await {
+        Some(user) => user,
+        None => return Ok(false),
+    };
+
+    let user_id = match user.id {
+        Some(id) => id,
+        None => return Ok(false),
+    };
+
+    // 获取用户的引导记录
+    let mut user_tours = UserTours::get_by_user_id(&state.pool, user_id).await?;
+
+    // 检查页面是否已存在，如果不存在则添加
+    if !user_tours
+        .iter()
+        .any(|v| v.page_key.as_deref() == Some(&page_key))
+    {
+        // 创建新记录
+        let new_tour = UserTours::new(user_id, page_key);
+        new_tour.insert(&state.pool).await?;
+        user_tours.push(new_tour);
+        user.completed_tours = Some(user_tours);
+    }
+
+    state.update_user_info(user).await;
+
+    Ok(true)
+}
+
+/// 检查用户是否已完成特定页面的引导
+#[tauri::command]
+pub async fn check_tour_completed(state: State<'_, AppState>, page_key: String) -> Result<bool> {
+    let user = match state.get_user_info().await {
+        Some(user) => user,
+        None => return Ok(false),
+    };
+
+    let user_id = match user.id {
+        Some(id) => id,
+        None => return Ok(false),
+    };
+
+    UserTours::check(&state.pool, user_id, &page_key).await
 }

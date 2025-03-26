@@ -39,3 +39,25 @@ CREATE TABLE sms_plans (
 -- 添加索引以提高查询性能
 CREATE INDEX IF NOT EXISTS idx_sms_plans_type ON sms_plans(plan_type);
 CREATE INDEX IF NOT EXISTS idx_sms_plans_active ON sms_plans(is_active);
+
+CREATE TABLE sms_subscriptions (
+    id BIGSERIAL PRIMARY KEY,
+    store_id BIGINT NOT NULL REFERENCES local_users(id),
+    plan_id BIGINT NOT NULL REFERENCES sms_plans(id),
+    status VARCHAR(20) NOT NULL,
+    start_date BIGINT NOT NULL,
+    expiry_date BIGINT NOT NULL,
+    auto_renew BOOLEAN NOT NULL DEFAULT true,
+    last_payment_id BIGINT REFERENCES payments(pay_id),
+    next_billing_date BIGINT,
+    price_paid DECIMAL(10,2) NOT NULL,
+    total_sms_count INTEGER NOT NULL,
+    used_sms_count INTEGER NOT NULL DEFAULT 0,
+    remaining_sms_count INTEGER GENERATED ALWAYS AS (total_sms_count - used_sms_count) STORED,
+    promo_code VARCHAR(20),
+    is_first_free BOOLEAN NOT NULL DEFAULT false,
+    created_at BIGINT NOT NULL,
+    updated_at BIGINT NOT NULL,
+    cancellation_reason TEXT,
+    remark TEXT
+);

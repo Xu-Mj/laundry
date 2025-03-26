@@ -124,8 +124,12 @@ function handleLogin() {
       }
       // 调用action的登录方法
       userStore.login(loginForm.value).then((res) => {
-        routeJump();
-        loading.value = false;
+        // 获取用户信息，检查订阅状态
+        userStore.getInfo().then(() => {
+          // 检查订阅状态并提示
+          checkSubscriptionStatus();
+          loading.value = false;
+        });
       }).catch(() => {
         loading.value = false;
         // 重新获取验证码
@@ -190,6 +194,47 @@ function focusElement() {
       const button = document.getElementById('loginButton');
       button.focus();
     }
+  }
+}
+
+// 检查订阅状态并提示用户
+function checkSubscriptionStatus() {
+  // 检查用户是否有有效的软件订阅和短信订阅
+  const hasSoftwareSub = userStore.sub.status === 'active';
+  const hasSmsSub = userStore.sub.smsSub;
+  
+  // 如果用户没有任何订阅，提示用户
+  if (!hasSoftwareSub || !hasSmsSub) {
+    let message = '';
+    let path = '';
+    
+    // 根据订阅情况设置提示信息和跳转路径
+    if (!hasSoftwareSub && !hasSmsSub) {
+      message = '您尚未购买软件订阅和短信订阅，是否前往订阅页面？';
+      path = '/profile?tab=subscription'; // 软件订阅优先
+    } else if (!hasSoftwareSub) {
+      message = '您尚未购买软件订阅，是否前往订阅页面？';
+      path = '/profile?tab=subscription';
+    } else if (!hasSmsSub) {
+      message = '您尚未购买短信订阅，是否前往订阅页面？';
+      path = '/profile?tab=sms';
+    }
+    
+    // 显示确认对话框
+    proxy.$confirm(message, '订阅提示', {
+      confirmButtonText: '前往订阅',
+      cancelButtonText: '稍后再说',
+      type: 'info'
+    }).then(() => {
+      // 用户点击确认，跳转到订阅页面
+      router.push(path);
+    }).catch(() => {
+      // 用户点击取消，继续正常跳转
+      routeJump();
+    });
+  } else {
+    // 用户已有所有订阅，正常跳转
+    routeJump();
   }
 }
 

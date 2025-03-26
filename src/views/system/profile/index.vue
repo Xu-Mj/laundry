@@ -71,66 +71,8 @@
           <el-tabs v-model="activeTab" class="profile-tabs">
             <!-- 基本信息标签页 -->
             <el-tab-pane label="基本信息" name="basic">
-              <el-form ref="profileForm" :model="profileData" label-width="120px" class="profile-form">
-                <el-row :gutter="20">
-                  <el-col :span="12">
-                    <el-form-item label="昵称">
-                      <el-input v-model="profileData.nickname" placeholder="请输入昵称" prefix-icon="User" />
-                    </el-form-item>
-                  </el-col>
-                  <el-col :span="12">
-                    <el-form-item label="性别">
-                      <el-radio-group v-model="profileData.ownerGender" class="gender-radio">
-                        <el-radio label="male">男</el-radio>
-                        <el-radio label="female">女</el-radio>
-                      </el-radio-group>
-                    </el-form-item>
-                  </el-col>
-                </el-row>
-
-                <el-row :gutter="20">
-                  <el-col :span="12">
-                    <el-form-item label="店铺名称">
-                      <el-input v-model="profileData.storeName" placeholder="请输入店铺名称" prefix-icon="Shop" />
-                    </el-form-item>
-                  </el-col>
-                  <el-col :span="12">
-                    <el-form-item label="店主姓名">
-                      <el-input v-model="profileData.ownerName" placeholder="请输入店主姓名" prefix-icon="User" />
-                    </el-form-item>
-                  </el-col>
-                </el-row>
-
-                <el-row :gutter="20">
-                  <el-col :span="12">
-                    <el-form-item label="联系电话">
-                      <el-input v-model="profileData.ownerPhone" placeholder="请输入联系电话" prefix-icon="Phone" />
-                    </el-form-item>
-                  </el-col>
-                  <el-col :span="12">
-                    <el-form-item label="电子邮箱">
-                      <el-input v-model="profileData.email" placeholder="请输入电子邮箱" prefix-icon="Message" />
-                    </el-form-item>
-                  </el-col>
-                </el-row>
-
-                <el-form-item label="店铺地址">
-                  <el-input v-model="profileData.storeLocation" placeholder="请输入店铺地址" prefix-icon="Location" />
-                </el-form-item>
-
-                <el-form-item>
-                  <el-button type="primary" @click="handleUpdateProfile" :loading="updating">
-                    <el-icon>
-                      <Check />
-                    </el-icon> 保存修改
-                  </el-button>
-                  <el-button @click="resetForm">
-                    <el-icon>
-                      <RefreshRight />
-                    </el-icon> 重置
-                  </el-button>
-                </el-form-item>
-              </el-form>
+              <ProfileForm :profile-data="profileData" :user-store="userStore" :isGuest="isGuest"
+                @update:profile-data="profileData = $event" @profile-updated="handleProfileUpdated" />
             </el-tab-pane>
 
             <!-- 支付配置标签页 -->
@@ -166,7 +108,7 @@
 
 <script setup>
 import { ElMessageBox } from 'element-plus';
-import { getProfile, updateProfile, getAlipayConfig, getWechatConfig } from '@/api/system/profile';
+import { getAlipayConfig, getWechatConfig } from '@/api/system/profile';
 import useUserStore from '@/store/modules/user';
 import SubscriptionManagement from '@/components/SubscriptionManagement/index.vue';
 import SmsSubscriptionManagement from '@/components/SmsSubscriptionManagement/index.vue';
@@ -174,14 +116,16 @@ import SubscriptionCard from '@/components/SubscriptionCard/index.vue';
 import SmsSubscriptionCard from '@/components/SmsSubscriptionCard/index.vue';
 import AlipayConfig from '@/components/AlipayConfig/index.vue';
 import WechatPayConfig from '@/components/WechatPayConfig/index.vue';
+import ProfileForm from '@/components/ProfileForm/index.vue';
+import { useRoute } from 'vue-router';
 
 const { proxy } = getCurrentInstance();
 const userStore = useUserStore();
+const route = useRoute();
 
 const activeTab = ref('basic')
 const profileData = ref(userStore.user || {})
-const updating = ref(false)
-
+const isGuest = userStore.isGuest;
 // 支付配置数据
 const paymentConfig = ref({
   alipay: {
@@ -190,10 +134,9 @@ const paymentConfig = ref({
     privateKeyFile: null,
     alipayPublicKey: '',
     alipayPublicKeyFile: null,
-    sellerId: '',
     isActive: false,
     isSandbox: false,
-    storeId: 0
+    storeId: useUserStore.id || 0
   },
   wechat: {
     appId: '',
@@ -207,7 +150,7 @@ const paymentConfig = ref({
     apiclientKey: '',
     apiclientCert: '',
     isActive: false,
-    storeId: 0
+    storeId: useUserStore.id || 0
   }
 })
 
@@ -244,13 +187,23 @@ const subscriptionData = ref(userStore.sub.subscription)
 
 // 短信订阅数据
 const smsSubscriptionData = ref(userStore.sub.smsSub || {})
-console.log(userStore.sub.allSubscriptions)
 const allSubscriptions = ref(userStore.sub.allSubscriptions);
 
 // 获取个人信息和配置
 onMounted(async () => {
+  // 检查URL参数，设置激活的标签页
+  if (route.query.tab) {
+    // 处理从login.vue传递过来的tab参数
+    const tabParam = route.query.tab;
+    if (tabParam === 'subscription') {
+      activeTab.value = 'subscription';
+    } else if (tabParam === 'sms') {
+      activeTab.value = 'subscription-sms';
+    }
+  }
+
   // 获取用户的商店ID
-  const storeId = userStore.user.storeId || 0;
+  const storeId = userStore.id || 0;
   paymentConfig.value.alipay.storeId = storeId;
   paymentConfig.value.wechat.storeId = storeId;
 
@@ -262,10 +215,8 @@ onMounted(async () => {
           appId: config.appId || '',
           privateKey: config.privateKey || '',
           alipayPublicKey: config.alipayPublicKey || '',
-          sellerId: config.sellerId || '',
           isActive: config.isActive || false,
           isSandbox: config.isSandbox || false,
-          storeId: storeId
         };
 
         // 如果有私钥文件，更新文件列表
@@ -299,7 +250,6 @@ onMounted(async () => {
           apiclientKey: config.apiclientKey || '',
           apiclientCert: config.apiclientCert || '',
           isActive: config.isActive || false,
-          storeId: storeId
         };
 
         // 如果有私钥文件，更新文件列表
@@ -320,37 +270,10 @@ onMounted(async () => {
   }
 })
 
-// 更新个人信息
-const handleUpdateProfile = async () => {
-  try {
-    updating.value = true
-    await updateProfile(profileData.value)
-    proxy.notify.success('个人信息更新成功')
-  } catch (error) {
-    proxy.notify.error('更新失败：' + (error.message || '未知错误'))
-  } finally {
-    updating.value = false
-  }
+// 处理ProfileForm组件更新个人信息成功事件
+const handleProfileUpdated = (user) => {
+  proxy.notify.success('个人信息更新成功');
 }
-
-// 重置表单
-const resetForm = () => {
-  ElMessageBox.confirm('确定要重置表单吗？所有未保存的修改将丢失。', '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning'
-  }).then(async () => {
-    try {
-      const res = await getProfile()
-      profileData.value = res.data
-      proxy.notify.success('表单已重置')
-    } catch (error) {
-      console.error(error)
-    }
-  }).catch(() => { })
-}
-
-
 
 // 处理头像上传成功
 const handleAvatarSuccess = (response) => {

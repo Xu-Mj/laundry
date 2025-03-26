@@ -1,5 +1,4 @@
 use serde::Serialize;
-use serde_json::json;
 use tauri::State;
 
 use crate::db::orders::{Order, SourceDistribution};
@@ -8,6 +7,7 @@ use crate::db::payments::{
     get_weekly_payment_summary,
 };
 use crate::error::Result;
+use crate::payments::PaymentSummaryWithRate;
 use crate::state::AppState;
 
 #[derive(Debug, Default, Serialize)]
@@ -39,17 +39,17 @@ pub async fn query_count(state: State<'_, AppState>) -> Result<Vec<CountItem>> {
         count,
     });
     // select 线上预约
-    let count = Order::query_count_by_status(pool, "002").await?;
-    count_list.push(CountItem {
-        title: "线上预约".to_string(),
-        count,
-    });
-    // select 线上订单
-    let count = Order::query_count_by_status(pool, "002").await?;
-    count_list.push(CountItem {
-        title: "线上预约".to_string(),
-        count,
-    });
+    // let count = Order::query_count_by_status(pool, "002").await?;
+    // count_list.push(CountItem {
+    //     title: "线上预约".to_string(),
+    //     count,
+    // });
+    // // select 线上订单
+    // let count = Order::query_count_by_status(pool, "002").await?;
+    // count_list.push(CountItem {
+    //     title: "线上预约".to_string(),
+    //     count,
+    // });
     Ok(count_list)
 }
 
@@ -78,10 +78,15 @@ pub async fn fetch_monthly_payment_summary(
     Ok(summaries)
 }
 
+// 修改接口实现
 #[tauri::command]
-pub async fn fetch_payment_summary(state: State<'_, AppState>) -> Result<serde_json::Value> {
+pub async fn fetch_payment_summary(
+    state: State<'_, AppState>,
+) -> Result<Vec<PaymentSummaryWithRate>> {
     let pool = &state.pool;
-    let daily_summary = get_daily_payment_summary(pool).await?;
-    let weekly_summary = get_weekly_payment_summary(pool).await?;
-    Ok(json!([daily_summary, weekly_summary]))
+
+    let daily = get_daily_payment_summary(pool).await?;
+    let weekly = get_weekly_payment_summary(pool).await?;
+
+    Ok(vec![daily, weekly])
 }

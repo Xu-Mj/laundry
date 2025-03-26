@@ -226,12 +226,51 @@ const getChartData = async () => {
 
 const initLineChart = async (year, month) => {
   const data = await fetchMonthlyPaymentSummary(year, month);
-  const dates = data.map(item => item.date);
-  const amounts = data.map(item => item.totalAmount);
+  
+  // 找到第一个收入或支出不为零的数据点索引
+  let firstNonZeroIndex = 0;
+  for (let i = 0; i < data.length; i++) {
+    if (data[i].income > 0 || data[i].expense > 0) {
+      firstNonZeroIndex = i;
+      break;
+    }
+  }
+  
+  // 检查是否为当前月份，如果是则只显示到当前日期的数据
+  let filteredData = data.slice(firstNonZeroIndex);
+  const currentDate = new Date();
+  const currentYear = currentDate.getFullYear();
+  const currentMonth = currentDate.getMonth() + 1;
+  
+  // 如果是当前月份，只显示到当前日期
+  if (year === currentYear && month === currentMonth) {
+    const currentDay = currentDate.getDate();
+    filteredData = filteredData.filter(item => {
+      const itemDate = new Date(item.date);
+      return itemDate.getDate() <= currentDay;
+    });
+  }
+  
+  const dates = filteredData.map(item => item.date);
+  const incomes = filteredData.map(item => item.income);
+  const expenses = filteredData.map(item => item.expense);
 
   lineChart.value = {
     title: { text: '本月收支情况', left: 'center' },
-    tooltip: { trigger: 'axis', formatter: '{a} <br/>{b}: {c} 元' },
+    tooltip: { 
+      trigger: 'axis',
+      formatter: function(params) {
+        let result = params[0].name + '<br/>';
+        params.forEach(param => {
+          result += param.seriesName + ': ' + param.value + ' 元<br/>';
+        });
+        return result;
+      }
+    },
+    legend: {
+      data: ['收入', '支出'],
+      bottom: 0
+    },
     xAxis: {
       type: 'category',
       data: dates,
@@ -244,7 +283,10 @@ const initLineChart = async (year, month) => {
       type: 'value',
       name: '金额 (元)',
     },
-    series: [{ name: '收支金额', type: 'line', data: amounts }],
+    series: [
+      { name: '收入', type: 'line', data: incomes, itemStyle: { color: '#67C23A' } },
+      { name: '支出', type: 'line', data: expenses, itemStyle: { color: '#F56C6C' } }
+    ],
   };
 };
 
@@ -611,7 +653,7 @@ watch([width, height], () => {
 
 <style>
 .date-picker {
-  width: auto !important;
+  width: 120px !important;
 }
 
 /* 全局图表样式优化 */

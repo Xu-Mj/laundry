@@ -1,10 +1,11 @@
-use chrono::{Datelike, NaiveDate, Utc};
+use chrono::{Datelike, Duration, NaiveDate, NaiveDateTime};
 use serde::{Deserialize, Serialize};
 use sqlx::sqlite::SqliteRow;
 use sqlx::{
     FromRow, Pool, Row, Sqlite, Transaction,
     types::chrono::{DateTime, FixedOffset},
 };
+use std::collections::HashMap;
 use tauri::State;
 
 use crate::db::Validator;
@@ -29,8 +30,8 @@ pub struct Payment {
     pub uc_order_id: Option<i64>,
     pub uc_id: Option<String>,
     pub order_status: Option<String>,
-    pub create_time: Option<DateTime<FixedOffset>>,
-    pub update_time: Option<DateTime<FixedOffset>>,
+    pub create_time: Option<i64>,
+    pub update_time: Option<i64>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, FromRow)]
@@ -38,7 +39,8 @@ pub struct Payment {
 #[serde(default)]
 pub struct PaymentSummary {
     pub date: String,
-    pub total_amount: f64,
+    pub income: f64,
+    pub expense: f64,
 }
 
 impl Validator for Payment {
@@ -139,7 +141,7 @@ impl Payment {
             .bind(&self.transaction_id)
             .bind(&self.uc_order_id)
             .bind(&self.uc_id)
-            .bind(utils::get_now())
+            .bind(utils::get_timestamp())
             .bind(&self.order_status)
             .fetch_one(&mut **tr)
             .await?;
@@ -191,7 +193,7 @@ pub async fn get_monthly_payment_summary(
     year: Option<i32>,
     month: Option<u32>,
 ) -> Result<Vec<PaymentSummary>> {
-    let now = Utc::now().naive_utc();
+    let now = utils::get_now().naive_local();
     let year = year.unwrap_or(now.year());
     let month = month.unwrap_or(now.month());
 
@@ -204,21 +206,80 @@ pub async fn get_monthly_payment_summary(
         .and_hms_opt(23, 59, 59)
         .ok_or(Error::bad_request("Invalid time"))?;
 
-    let summaries = sqlx::query_as(
+    // 转换为时间戳，用于查询
+    let start_timestamp = start_of_month.and_utc().timestamp_millis();
+    let end_timestamp = end_of_month.and_utc().timestamp_millis();
+
+    // 获取该月份所有日期
+    let mut all_dates = Vec::new();
+    let mut current_date = start_of_month;
+    while current_date <= end_of_month {
+        all_dates.push(current_date.format("%Y-%m-%d").to_string());
+        current_date = current_date + Duration::days(1);
+    }
+
+    // 查询收入数据
+    let income_data: HashMap<String, f64> = sqlx::query(
         r#"
         SELECT
-            strftime('%Y-%m-%d', create_time) as date,
-            SUM(payment_amount) as total_amount
+            strftime('%Y-%m-%d', datetime(create_time/1000, 'unixepoch')) as date,
+            SUM(payment_amount) as income
         FROM payments
+        WHERE create_time BETWEEN ? AND ?
+          AND payment_status = '01'
+          AND payment_amount > 0
+        GROUP BY date
+        ORDER BY date
+        "#,
+    )
+    .bind(start_timestamp)
+    .bind(end_timestamp)
+    .map(|row: SqliteRow| {
+        let date: String = row.get("date");
+        let income: f64 = row.get("income");
+        (date, income)
+    })
+    .fetch_all(pool)
+    .await?
+    .into_iter()
+    .collect();
+
+    // 查询支出数据
+    let expense_data: HashMap<String, f64> = sqlx::query(
+        r#"
+        SELECT
+            strftime('%Y-%m-%d', datetime(create_time/1000, 'unixepoch')) as date,
+            SUM(exp_amount) as expense
+        FROM expenditure
         WHERE create_time BETWEEN ? AND ?
         GROUP BY date
         ORDER BY date
         "#,
     )
-    .bind(start_of_month)
-    .bind(end_of_month)
+    .bind(start_timestamp)
+    .bind(end_timestamp)
+    .map(|row: SqliteRow| {
+        let date: String = row.get("date");
+        let expense: i64 = row.get("expense");
+        (date, expense as f64)
+    })
     .fetch_all(pool)
-    .await?;
+    .await?
+    .into_iter()
+    .collect();
+
+    // 合并数据
+    let mut summaries = Vec::new();
+    for date in all_dates {
+        let income = *income_data.get(&date).unwrap_or(&0.0);
+        let expense = *expense_data.get(&date).unwrap_or(&0.0);
+
+        summaries.push(PaymentSummary {
+            date,
+            income,
+            expense,
+        });
+    }
 
     Ok(summaries)
 }
@@ -231,76 +292,107 @@ pub struct BarChartData {
     pub expense: f64,
 }
 
-pub async fn get_daily_payment_summary(pool: &Pool<Sqlite>) -> Result<BarChartData> {
-    let now = Utc::now().naive_utc();
-    let start_of_day = NaiveDate::from_ymd_opt(now.year(), now.month(), now.day())
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PaymentSummaryWithRate {
+    income: f64,       // 收入总额
+    expense: f64,      // 支出总额
+    income_rate: f64,  // 增长率百分比
+    expense_rate: f64, // 增长率百分比
+    label: String,     // 时间标签: today/week
+}
+
+/// 获取指定日期的收支数据
+pub async fn get_day_amounts(
+    pool: &Pool<Sqlite>,
+    date: DateTime<FixedOffset>,
+) -> Result<(f64, f64)> {
+    // 返回 (income, expense)
+    let start_of_day = NaiveDate::from_ymd_opt(date.year(), date.month(), date.day())
         .ok_or(Error::bad_request("Invalid date"))?
         .and_hms_opt(0, 0, 0)
         .ok_or(Error::bad_request("Invalid time"))?;
-    let end_of_day = NaiveDate::from_ymd_opt(now.year(), now.month(), now.day())
+    let end_of_day = NaiveDate::from_ymd_opt(date.year(), date.month(), date.day())
         .ok_or(Error::bad_request("Invalid date"))?
         .and_hms_opt(23, 59, 59)
         .ok_or(Error::bad_request("Invalid time"))?;
 
-    let income = sqlx::query_scalar(
-        r#"
-        SELECT COALESCE(SUM(payment_amount), 0.0)
-        FROM payments
-        WHERE create_time BETWEEN ? AND ? AND payment_amount > 0
-        "#,
-    )
-    .bind(start_of_day)
-    .bind(end_of_day)
-    .fetch_one(pool)
-    .await?;
+    query_amounts(pool, start_of_day, end_of_day).await
+}
 
-    let expense: i64 = sqlx::query_scalar(
-        r#"
-        SELECT COALESCE(SUM(exp_amount), 0)
-        FROM expenditure
-        WHERE create_time BETWEEN ? AND ?
-        "#,
-    )
-    .bind(start_of_day)
-    .bind(end_of_day)
-    .fetch_one(pool)
-    .await?;
+// 修改现有的日统计方法
+pub async fn get_daily_payment_summary(pool: &Pool<Sqlite>) -> Result<PaymentSummaryWithRate> {
+    let now = utils::get_now();
 
-    Ok(BarChartData {
-        label: "day".to_string(),
-        income,
-        expense: -expense as f64,
+    // 获取当天数据
+    let (current_income, current_expense) = get_day_amounts(pool, now).await?;
+
+    // 获取前一天数据
+    let prev_day = now - Duration::days(1);
+    let (prev_income, prev_expense) = get_day_amounts(pool, prev_day).await?;
+
+    Ok(PaymentSummaryWithRate {
+        income: current_income,
+        expense: current_expense,
+        income_rate: calculate_rate(current_income, prev_income),
+        expense_rate: calculate_rate(current_expense, prev_expense),
+        label: "today".into(),
     })
 }
 
-pub async fn get_weekly_payment_summary(pool: &Pool<Sqlite>) -> Result<BarChartData> {
-    let now = Utc::now().naive_utc();
-    let start_of_week = now
-        .date()
-        .and_hms_opt(0, 0, 0)
-        .unwrap()
-        .checked_sub_signed(chrono::Duration::days(
-            now.weekday().num_days_from_monday() as i64
-        ))
-        .ok_or(Error::bad_request("Invalid date"))?;
-    let end_of_week = start_of_week
-        .checked_add_signed(chrono::Duration::days(6))
-        .ok_or(Error::bad_request("Invalid date"))?
-        .date()
-        .and_hms_opt(23, 59, 59)
-        .unwrap();
+// 补充周统计方法（需要同时修改）
+pub async fn get_weekly_payment_summary(pool: &Pool<Sqlite>) -> Result<PaymentSummaryWithRate> {
+    let now = utils::get_now();
+
+    // 获取本周数据
+    let (current_income, current_expense) = get_week_amounts(pool, now).await?;
+
+    // 获取上周数据
+    let last_week = now - Duration::weeks(1);
+    let (prev_income, prev_expense) = get_week_amounts(pool, last_week).await?;
+
+    Ok(PaymentSummaryWithRate {
+        income: current_income,
+        expense: current_expense,
+        income_rate: calculate_rate(current_income, prev_income),
+        expense_rate: calculate_rate(current_expense, prev_expense),
+        label: "week".into(),
+    })
+}
+
+/// 辅助方法：获取指定周的数据
+async fn get_week_amounts(pool: &Pool<Sqlite>, date: DateTime<FixedOffset>) -> Result<(f64, f64)> {
+    let naive_date = date.naive_local();
+
+    // 计算周开始（周一）和结束（周日）
+    let days_from_monday = naive_date.weekday().num_days_from_monday() as i64;
+    let start_of_week = naive_date - Duration::days(days_from_monday);
+    let end_of_week = start_of_week + Duration::days(6);
+    query_amounts(pool, start_of_week, end_of_week).await
+}
+async fn query_amounts(
+    pool: &Pool<Sqlite>,
+    start: NaiveDateTime,
+    end: NaiveDateTime,
+) -> Result<(f64, f64)> {
+    let start = start.and_utc().timestamp_millis();
+    let end = end.and_utc().timestamp_millis();
+    // 收入查询（带可选支付状态条件）
     let income = sqlx::query_scalar(
         r#"
         SELECT COALESCE(SUM(payment_amount), 0.0)
         FROM payments
-        WHERE create_time BETWEEN ? AND ? AND payment_amount > 0
+        WHERE create_time BETWEEN ? AND ?
+          AND payment_status = '01'
+          AND payment_amount > 0
         "#,
     )
-    .bind(start_of_week)
-    .bind(end_of_week)
+    .bind(start)
+    .bind(end)
     .fetch_one(pool)
     .await?;
 
+    // 支出查询（公共部分）
     let expense: i64 = sqlx::query_scalar(
         r#"
         SELECT COALESCE(SUM(exp_amount), 0)
@@ -308,16 +400,19 @@ pub async fn get_weekly_payment_summary(pool: &Pool<Sqlite>) -> Result<BarChartD
         WHERE create_time BETWEEN ? AND ?
         "#,
     )
-    .bind(start_of_week)
-    .bind(end_of_week)
+    .bind(start)
+    .bind(end)
     .fetch_one(pool)
     .await?;
 
-    Ok(BarChartData {
-        label: "week".to_string(),
-        income,
-        expense: -expense as f64,
-    })
+    Ok((income, expense as f64))
+}
+/// 增长率计算函数
+fn calculate_rate(current: f64, previous: f64) -> f64 {
+    if previous == 0.0 {
+        return if current > 0.0 { 100.0 } else { 0.0 };
+    }
+    ((current - previous) / previous * 100.0).round()
 }
 
 #[tauri::command]

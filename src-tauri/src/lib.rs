@@ -21,7 +21,7 @@ use tauri_plugin_fs::FsExt;
 use crate::db::{
     alipay_config, cloth_price, clothing, configs, coupons, dict_data, dict_type, drying_rack,
     expenditure, local_users, membership_level, menu, notice_temp, order_clothes, orders, payments,
-    qrcode_payments, subscriptions, tags, tour_guide, user, user_coupons, wechat_config,
+    qrcode_payments, subscriptions, tags, user, user_coupons, user_tours, wechat_config,
 };
 
 pub fn create_app<R: tauri::Runtime, T: Send + Sync + 'static>(
@@ -248,8 +248,8 @@ fn handle_command<R: Runtime>(invoke: Invoke<R>) -> bool {
         subscriptions::get_user_subscriptions,
         subscriptions::get_active_by_user_id,
         // tours
-        tour_guide::update_tour_guide,
-        tour_guide::check_tour_completed,
+        user_tours::update_tour_guide,
+        user_tours::check_tour_completed,
     ];
     handler(invoke);
 

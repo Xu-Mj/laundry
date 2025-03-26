@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS migrations (
     applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS printers 
+CREATE TABLE IF NOT EXISTS printers
 (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
@@ -290,8 +290,8 @@ CREATE TABLE payments
     transaction_id     INTEGER,
     uc_order_id        INTEGER,
     uc_id              TEXT,
-    create_time        TIMESTAMP,
-    update_time        TIMESTAMP,
+    create_time        INTEGER,
+    update_time        INTEGER,
     order_status       TEXT   NOT NULL
 );
 
@@ -482,7 +482,7 @@ CREATE TABLE expenditure
     recv_account_title TEXT,
     exp_type           TEXT    NOT NULL,
     exp_amount         INTEGER NOT NULL,
-    create_time        TIMESTAMP,
+    create_time        INTEGER,
     remark             TEXT
 );
 
@@ -541,7 +541,7 @@ CREATE TABLE promote_record
     status          TEXT DEFAULT '0'
 );
 
-INSERT INTO local_users (id, nickname, owner_name, avatar, owner_phone, password, role, is_guest, store_name, store_location, store_status, created_at, deleted) VALUES (0, 'Guest', 'Guest', 'images/avatars/avatar1.png', '1234567890', '123', 'guest', 1, 'guest', 'guest fake location', '0', CURRENT_TIMESTAMP, '0');
+INSERT INTO local_users (id, nickname, owner_name, avatar, owner_phone, password, role, is_guest, store_name, store_location, store_status, created_at, deleted) VALUES (0, 'Guest', 'Guest', 'images/avatars/avatar1.png', '1234567890', '123', 'Guest', 1, 'guest', 'guest fake location', '0', CURRENT_TIMESTAMP, '0');
 
 INSERT INTO configs (config_id, config_name, config_key, config_value, config_type, create_by, create_time, update_by, update_time, remark) VALUES (1, '账号自助-验证码开关', 'sys.account.captchaEnabled', 'false', 'Y', 'admin', null, '', null, '是否开启验证码功能（true开启，false关闭）');
 INSERT INTO configs (config_id, config_name, config_key, config_value, config_type, create_by, create_time, update_by, update_time, remark) VALUES (2, '预计取衣事件', 'desire_complete_time', '17', 'Y', null, '2025-02-15T10:22:13.032273400+08:00', null, '2025-02-15T10:23:31.618923900+08:00', '默认七天后取衣');

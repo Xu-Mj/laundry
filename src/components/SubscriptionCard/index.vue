@@ -115,7 +115,7 @@ const emit = defineEmits(['renew', 'upgrade', 'subscribe', 'subscription-activat
 
 // 计算属性：是否有订阅
 const hasSubscriptions = computed(() => {
-  return props.subscriptions || props.subscriptions.length > 0;
+  return props.subscriptions && props.subscriptions.length > 0;
 });
 
 // 计算属性：当前激活的订阅

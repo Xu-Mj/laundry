@@ -16,12 +16,11 @@
         <el-input v-model="paymentConfig.appId" placeholder="请输入应用ID" />
       </el-form-item>
       <el-form-item label="私钥">
-        <el-input v-model="paymentConfig.privateKey" type="text" placeholder="请上传私钥文件"
-          readonly />
+        <el-input v-model="paymentConfig.privateKey" type="text" placeholder="请上传私钥文件" readonly />
       </el-form-item>
       <el-form-item label="私钥文件">
-        <el-upload class="upload-demo" :auto-upload="false" :limit="1"
-          :on-change="handlePrivateKeyFileChange" :file-list="privateKeyFileList">
+        <el-upload class="upload-demo" :auto-upload="false" :limit="1" :on-change="handlePrivateKeyFileChange"
+          :file-list="privateKeyFileList">
           <el-button type="primary">选择私钥文件</el-button>
           <template #tip>
             <div class="el-upload__tip">上传私钥文件，支持.pem格式</div>
@@ -29,20 +28,16 @@
         </el-upload>
       </el-form-item>
       <el-form-item label="支付宝公钥">
-        <el-input v-model="paymentConfig.alipayPublicKey" type="text" placeholder="请上传支付宝公钥文件"
-          readonly />
+        <el-input v-model="paymentConfig.alipayPublicKey" type="text" placeholder="请上传支付宝公钥文件" readonly />
       </el-form-item>
       <el-form-item label="支付宝公钥文件">
-        <el-upload class="upload-demo" :auto-upload="false" :limit="1"
-          :on-change="handlePublicKeyFileChange" :file-list="publicKeyFileList">
+        <el-upload class="upload-demo" :auto-upload="false" :limit="1" :on-change="handlePublicKeyFileChange"
+          :file-list="publicKeyFileList">
           <el-button type="primary">选择公钥文件</el-button>
           <template #tip>
             <div class="el-upload__tip">上传支付宝公钥文件，支持.pem格式</div>
           </template>
         </el-upload>
-      </el-form-item>
-      <el-form-item label="商户ID">
-        <el-input v-model="paymentConfig.sellerId" placeholder="请输入商户ID" />
       </el-form-item>
       <el-form-item label="沙箱环境">
         <el-switch v-model="paymentConfig.isSandbox" active-text="开启" inactive-text="关闭" />
@@ -57,7 +52,6 @@
 </template>
 
 <script setup>
-import { ElMessage } from 'element-plus';
 import { updateAlipayConfig, uploadFile } from '@/api/system/profile';
 import AliPayIcon from '@/views/icons/aliPayIcon.vue';
 
@@ -70,12 +64,13 @@ const props = defineProps({
 
 const emit = defineEmits(['config-updated', 'status-changed']);
 
+const { proxy } = getCurrentInstance();
+
 // 支付配置数据
 const paymentConfig = ref({
   appId: '',
   privateKey: '',
   alipayPublicKey: '',
-  sellerId: '',
   isActive: false,
   isSandbox: false,
   storeId: 0
@@ -92,12 +87,12 @@ watch(() => props.config, (newConfig) => {
       appId: newConfig.appId || '',
       privateKey: newConfig.privateKey || '',
       alipayPublicKey: newConfig.alipayPublicKey || '',
-      sellerId: newConfig.sellerId || '',
       isActive: newConfig.isActive || false,
       isSandbox: newConfig.isSandbox || false,
       storeId: newConfig.storeId || 0
     };
 
+    console.log('newConfig', newConfig);
     // 如果有私钥文件，更新文件列表
     if (newConfig.privateKey) {
       const fileName = newConfig.privateKey.split('/').pop();
@@ -125,10 +120,10 @@ const handlePrivateKeyFileChange = async (file) => {
         const result = await uploadFile(file.name, Array.from(data));
         // 保存文件路径
         paymentConfig.value.privateKey = result;
-        ElMessage.success('支付宝私钥文件上传成功');
+        proxy.notify.success('支付宝私钥文件上传成功');
       };
     } catch (error) {
-      ElMessage.error('支付宝私钥文件上传失败：' + error.message);
+      proxy.notify.error('支付宝私钥文件上传失败：' + error.message);
     }
   }
 };
@@ -146,10 +141,10 @@ const handlePublicKeyFileChange = async (file) => {
         const result = await uploadFile(file.name, Array.from(data));
         // 显示文件路径到输入框
         paymentConfig.value.alipayPublicKey = result;
-        ElMessage.success('支付宝公钥文件上传成功');
+        proxy.notify.success('支付宝公钥文件上传成功');
       };
     } catch (error) {
-      ElMessage.error('支付宝公钥文件上传失败：' + error.message);
+      proxy.notify.error('支付宝公钥文件上传失败：' + error.message);
     }
   }
 };
@@ -159,7 +154,7 @@ const handleUpdatePaymentConfig = async () => {
   try {
     // 确保storeId存在
     if (!paymentConfig.value.storeId || paymentConfig.value.storeId <= 0) {
-      ElMessage.error('商家ID不能为空，请先完善店铺信息');
+      proxy.notify.error('商家ID不能为空，请先完善店铺信息');
       return;
     }
 
@@ -169,16 +164,15 @@ const handleUpdatePaymentConfig = async () => {
       appId: paymentConfig.value.appId,
       privateKey: paymentConfig.value.privateKey,
       alipayPublicKey: paymentConfig.value.alipayPublicKey,
-      sellerId: paymentConfig.value.sellerId || '',
       isActive: paymentConfig.value.isActive,
       isSandbox: paymentConfig.value.isSandbox
     };
 
     await updateAlipayConfig(alipayConfig);
-    ElMessage.success('支付宝配置更新成功');
+    proxy.notify.success('支付宝配置更新成功');
     emit('config-updated', 'alipay', alipayConfig);
   } catch (error) {
-    ElMessage.error('配置更新失败：' + (error.message || '未知错误'));
+    proxy.notify.error('配置更新失败：' + (error.message || '未知错误'));
   }
 };
 
@@ -187,7 +181,7 @@ const handlePaymentStatusChange = async () => {
   try {
     // 确保storeId存在
     if (!paymentConfig.value.storeId || paymentConfig.value.storeId <= 0) {
-      ElMessage.error('商家ID不能为空，请先完善店铺信息');
+      proxy.notify.error('商家ID不能为空，请先完善店铺信息');
       // 恢复状态
       paymentConfig.value.isActive = !paymentConfig.value.isActive;
       return;
@@ -199,18 +193,17 @@ const handlePaymentStatusChange = async () => {
       appId: paymentConfig.value.appId,
       privateKey: paymentConfig.value.privateKey,
       alipayPublicKey: paymentConfig.value.alipayPublicKey,
-      sellerId: paymentConfig.value.sellerId || '',
       isActive: paymentConfig.value.isActive,
       isSandbox: paymentConfig.value.isSandbox
     };
 
     await updateAlipayConfig(alipayConfig);
-    ElMessage.success(`支付宝状态已${paymentConfig.value.isActive ? '启用' : '禁用'}`);
+    proxy.notify.success(`支付宝状态已${paymentConfig.value.isActive ? '启用' : '禁用'}`);
     emit('status-changed', 'alipay', paymentConfig.value.isActive);
   } catch (error) {
     // 恢复状态
     paymentConfig.value.isActive = !paymentConfig.value.isActive;
-    ElMessage.error('状态更新失败：' + (error.message || '未知错误'));
+    proxy.notify.error('状态更新失败：' + (error.message || '未知错误'));
   }
 };
 </script>

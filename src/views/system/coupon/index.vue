@@ -40,8 +40,7 @@
     <el-card class="table-card">
       <el-row :gutter="10" class="mb8">
         <el-col :span="1.5">
-          <el-button type="primary" plain icon="Plus" @click="handleAdd"
-            v-hasPermi="['system:coupon:add']">新增</el-button>
+          <el-button type="primary" plain icon="Plus" @click="handleAdd">新增</el-button>
         </el-col>
         <el-col :span="1.5">
           <el-button type="success" :disabled="selectedList.length == 0" plain icon="Sell"
@@ -125,7 +124,22 @@
     <!-- 添加或修改卡券对话框 -->
     <el-dialog v-model="open" width="700px" :show-close="false" lock-scroll modal :close-on-click-modal="false"
       append-to-body>
-      <coupon-form :title="title" :value="form" :coupon-types="sys_coupon_type" :status-options="sys_coupon_status"
+      <template #header>
+        <div class="dialog-header">
+          <div class="dialog-title">
+            <el-icon>
+              <Ticket />
+            </el-icon>
+            <span>{{ title }}</span>
+          </div>
+          <el-button circle @click="cancel">
+            <el-icon>
+              <Close />
+            </el-icon>
+          </el-button>
+        </div>
+      </template>
+      <coupon-form :value="form" :coupon-types="sys_coupon_type" :status-options="sys_coupon_status"
         @submit="submitForm" @cancel="cancel" />
     </el-dialog>
 
@@ -150,7 +164,7 @@
 
       <el-form ref="sellFormRef" :model="sellForm" label-width="90px" :rules="sellRules" class="coupon-sale-form">
         <!-- 会员信息卡片 -->
-        <div class="form-section">
+        <div class="form-section hover-flow">
           <div class="section-header">
             <el-icon>
               <User />
@@ -159,7 +173,7 @@
           </div>
           <div class="section-content">
             <template v-if="sellForm.userId && !needCreateUser && !editingUser">
-              <div class="member-card">
+              <div class="member-card hover-flow">
                 <div class="member-avatar">
                   <el-avatar :size="50" icon="UserFilled" />
                 </div>
@@ -204,7 +218,7 @@
         </div>
 
         <!-- 卡券信息卡片 -->
-        <div class="form-section">
+        <div class="form-section hover-flow">
           <div class="section-header">
             <el-icon>
               <Tickets />
@@ -238,7 +252,7 @@
         </div>
 
         <!-- 支付方式卡片 -->
-        <div class="form-section">
+        <div class="form-section hover-flow">
           <div class="section-header">
             <el-icon>
               <Wallet />
@@ -278,7 +292,7 @@
         </div>
 
         <!-- 备注信息卡片 -->
-        <div class="form-section">
+        <div class="form-section hover-flow">
           <div class="section-header">
             <el-icon>
               <Document />
@@ -293,7 +307,7 @@
         </div>
 
         <!-- 价格信息区域 -->
-        <div class="price-summary-card">
+        <div class="price-summary-card hover-flow">
           <div class="price-row total">
             <span class="price-label">总价</span>
             <span class="price-value total-amount">¥ {{ totalPrice }}</span>
@@ -302,9 +316,9 @@
       </el-form>
 
       <template #footer>
-        <div class="dialog-footer">
-          <el-button size="large" @click="closeSell" plain>取消</el-button>
-          <el-button size="large" type="primary" @click="buy">立即购买</el-button>
+        <div class="dialog-footer hover-flow">
+          <el-button class="hover-flow" size="large" type="danger" @click="closeSell">取消</el-button>
+          <el-button class="hover-flow" size="large" type="primary" @click="buy">立即购买</el-button>
         </div>
       </template>
     </el-dialog>
@@ -782,12 +796,6 @@ getList();
   border-radius: 8px;
   box-shadow: var(--el-box-shadow-light);
   overflow: hidden;
-  transition: all 0.3s;
-}
-
-.form-section:hover {
-  box-shadow: var(--el-box-shadow);
-  transform: translateY(-2px);
 }
 
 .section-header {
@@ -813,12 +821,6 @@ getList();
   border-radius: 12px;
   padding: 16px;
   box-shadow: var(--el-box-shadow-light);
-  transition: transform 0.3s ease;
-}
-
-.member-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--el-box-shadow);
 }
 
 .member-avatar {
@@ -859,12 +861,6 @@ getList();
   padding: 20px;
   margin: 24px 0 10px 0;
   box-shadow: var(--el-box-shadow);
-  transition: transform 0.3s ease;
-}
-
-.price-summary-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--el-box-shadow-dark);
 }
 
 .price-row {

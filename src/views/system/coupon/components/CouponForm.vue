@@ -1,15 +1,12 @@
 <template>
   <div class="coupon-form-container">
-    <div class="dialog-header">
-      <h3 class="dialog-title">{{ props.title }}</h3>
-    </div>
     <el-form ref="couponFormRef" :model="formData" :rules="rules" label-width="90px">
       <!-- 基本信息卡片 -->
       <div class="form-section">
         <div class="section-divider">
           <span>基本信息</span>
         </div>
-        <div class="section-content">
+        <div class="section-content hover-flow">
           <el-row :gutter="20">
             <el-col :span="12">
               <el-form-item label="卡券名称" prop="couponTitle">
@@ -32,7 +29,7 @@
         <div class="section-divider">
           <span>价值信息</span>
         </div>
-        <div class="section-content">
+        <div class="section-content hover-flow">
           <!-- 储值卡 -->
           <el-row v-if="formData.couponType === '000'" :gutter="20">
             <el-col :span="12">
@@ -152,7 +149,7 @@
         <div class="section-divider">
           <span>使用规则</span>
         </div>
-        <div class="section-content">
+        <div class="section-content hover-flow">
           <el-row :gutter="20">
             <el-col :span="12">
               <el-form-item label="客户可见" prop="customerInvalid">
@@ -205,7 +202,7 @@
         <div class="section-divider">
           <span>其他信息</span>
         </div>
-        <div class="section-content">
+        <div class="section-content hover-flow">
           <el-row :gutter="20">
             <el-col :span="12">
               <el-form-item label="卡券状态" prop="status">
@@ -228,8 +225,8 @@
     </el-form>
 
     <div class="form-actions">
-      <el-button @click="cancel">取 消</el-button>
-      <el-button type="primary" @click="submitForm">确 定</el-button>
+      <el-button class="hover-flow" type="danger" @click="cancel">取 消</el-button>
+      <el-button class="hover-flow" type="primary" @click="submitForm">确 定</el-button>
     </div>
   </div>
 </template>
@@ -238,10 +235,6 @@
 import { ref, defineProps, defineEmits } from 'vue';
 
 const props = defineProps({
-  title: {
-    type: String,
-    required: true
-  },
   value: {
     type: Object,
     required: true

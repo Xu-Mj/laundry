@@ -1,5 +1,6 @@
 pub(crate) mod adjust_price;
 pub(crate) mod alarm_management;
+pub(crate) mod alipay_config;
 pub(crate) mod cloth_price;
 pub(crate) mod cloth_sequence;
 pub(crate) mod clothing;
@@ -19,11 +20,20 @@ pub(crate) mod order_pictures;
 pub(crate) mod orders;
 pub(crate) mod payments;
 pub(crate) mod printer;
+pub(crate) mod qrcode_payments;
+pub(crate) mod sms;
+pub(crate) mod sms_plan;
+pub(crate) mod sms_subscription;
+pub(crate) mod subscription_plan;
+pub(crate) mod subscriptions;
 pub(crate) mod tags;
+pub(crate) mod tour_guide;
 pub(crate) mod user;
 pub(crate) mod user_coupons;
 pub(crate) mod user_membership_level;
 pub(crate) mod user_tags;
+pub(crate) mod user_tours;
+pub(crate) mod wechat_config;
 
 use std::collections::HashMap;
 
@@ -81,7 +91,7 @@ pub trait Curd: Sized + for<'f> FromRow<'f, SqliteRow> + Send + Unpin {
     const DELETE_BATCH_SQL: &'static str;
     const ORDER_SQL: Option<&'static str> = None;
 
-    fn apply_filters<'a>(&'a self, builder: &mut QueryBuilder<'a, Sqlite>);
+    fn apply_filters<'a>(&'a self, _builder: &mut QueryBuilder<'a, Sqlite>) {}
 
     async fn get_list(
         &self,

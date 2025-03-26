@@ -235,30 +235,13 @@
         </div>
     </el-dialog>
     <!-- 派送对话框 -->
-    <el-dialog v-model="showDeliveryDialog" width="500px" :show-close="false" :align-center="true" append-to-body>
-        <el-form ref="pickupRef" :model="deliveryForm" :rules="pickupRules" label-width="80px">
-            <!-- 配送地址/配送时间/备注信息 -->
-            <el-form-item label="配送地址" prop="address">
-                <div class="address">
-                    <el-input v-model="deliveryForm.address" @input="needSync = true" placeholder="请输入配送地址" />
-                    <el-checkbox v-if="needSync" v-model="deliveryForm.needSync">更新会员默认地址</el-checkbox>
-                </div>
-            </el-form-item>
-            <el-form-item label="配送时间" prop="dispatchTime">
-                <el-date-picker v-model="deliveryForm.dispatchTime" type="date" placeholder="选择日期" />
-            </el-form-item>
-            <el-form-item label="备注信息" prop="remark">
-                <el-input type="textarea" v-model="deliveryForm.remark" placeholder="请输入备注信息" />
-            </el-form-item>
-        </el-form>
-        <!-- 取消确认 -->
-        <template #footer>
-            <div class="pickup-footer">
-                <el-button type="primary" @click="submitDelivery">确认派送</el-button>
-                <el-button type="primary" @click="cancelDelivery">取消</el-button>
-            </div>
-        </template>
-    </el-dialog>
+    <DeliveryDialog 
+        v-model:visible="showDeliveryDialog" 
+        :user="currentUser" 
+        :selected-cloths="selectedCloths" 
+        @success="handleDeliverySuccess" 
+        @cancel="handleDeliveryCancel" 
+    />
 
     <!-- 复洗 -->
     <ReWash :visible="showRewashDialog" :order="rewashOrder" :clothes="rewashClothesId"
@@ -275,7 +258,7 @@
 import { listCloths } from "@/api/system/cloths";
 import { listTagsNoLimit } from "@/api/system/tags";
 import { onMounted } from "vue";
-import { delivery, pickUp } from "@/api/system/cloths";
+import { pickUp } from "@/api/system/cloths";
 import { listUserCouponWithValidTime } from '@/api/system/user_coupon';
 import { getUser } from '@/api/system/user';
 import { selectListExceptCompleted } from "@/api/system/orders";
@@ -284,6 +267,7 @@ import ReWash from "./rewash.vue";
 import { ElMessageBox } from 'element-plus';
 import { invoke } from '@tauri-apps/api/core';
 import PaymentDialog from "./PaymentDialog.vue";
+import DeliveryDialog from "./DeliveryDialog.vue";
 import vSlideIn from "@/vSlideIn";
 
 
@@ -355,7 +339,6 @@ const phonenumber = ref();
 const orders = ref([]);
 
 const data = reactive({
-    deliveryForm: {},
     pickupRules: {},
     queryParams: {
         orderNumber: null,
@@ -364,7 +347,7 @@ const data = reactive({
     },
 });
 
-const { deliveryForm, pickupRules, queryParams } = toRefs(data);
+const { pickupRules, queryParams } = toRefs(data);
 
 async function go2pay(row) {
     orders.value = [row];
@@ -484,36 +467,18 @@ function handleDelivery() {
         return;
     }
 
-    // 初始化配送表单
-    deliveryForm.value = {
-        address: currentUser.value.address,
-        needSync: false,
-        dispatchTime: getDate(),
-    }
     showDeliveryDialog.value = true;
 }
 
-function getDate() {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0'); // 月份是从0开始的，所以要加1
-    const day = String(today.getDate()).padStart(2, '0');
-
-    const currentDate = `${year}-${month}-${day}`;
-    return currentDate;
+// 派送成功回调
+function handleDeliverySuccess() {
+    proxy.notify.success("派送操作成功");
+    getList();
 }
 
-function submitDelivery() {
-    const cloths = selectedCloths.value.filter(item => item.clothingStatus === '02');
-    deliveryForm.value.clothId = cloths.map(item => item.clothId).join(',');
-    const orderIds = [...new Set(cloths.map(item => item.orderId))];
-    deliveryForm.value.orderId = orderIds.join(',');
-    console.log(deliveryForm.value)
-    delivery(deliveryForm.value).then(res => {
-        showDeliveryDialog.value = false;
-        proxy.notify.success("操作成功");
-        getList();
-    })
+// 派送取消回调
+function handleDeliveryCancel() {
+    // 对话框关闭后的处理
 }
 
 // 衣物列表多选框选中数据
@@ -524,29 +489,6 @@ function handleClothSelectionChange(selectedItems, row) {
 
     // 将新的选中项合并到 shared array
     selectedCloths.value.push(...selectedItems);
-}
-
-function cancelDelivery() {
-    showDeliveryDialog.value = false;
-    resetDeliveryForm();
-}
-
-// 重置取走form
-function resetDeliveryForm() {
-    deliveryForm.value = {
-        orderId: null,
-        clothingId: null,
-        clothingCategory: null,
-        clothingStyle: null,
-        clothingColor: null,
-        clothingFlaw: null,
-        estimate: null,
-        clothingBrand: null,
-        serviceType: null,
-        serviceRequirement: null,
-        beforePics: null,
-    }
-    proxy.resetForm("pickupRef");
 }
 
 /* 初始化列表数据 */

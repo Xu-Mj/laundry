@@ -1,8 +1,32 @@
 <template>
-    <el-tour v-model="tourVisible" :close-on-click-mask="false">
-      <el-tour-step v-for="(step, index) in tourSteps" :key="index" :show-arrow="true" :target="step.target" placement="right"
-        :title="step.title" :description="step.description"/>
-    </el-tour>
+  <el-tour v-model="tourVisible" :close-on-click-mask="false">
+    <!-- <el-tour-step v-for="(step, index) in tourSteps" :key="index" :show-arrow="true" :target="step.target" placement="right"
+        :title="step.title" :description="step.description"/> -->
+    <el-tour-step :target="props.memberCardRef" title="会员信息" placement="bottom" description="查看洗衣相关的知识和技巧">
+      <div>在这里选择或创建会员信息，可以通过手机号搜索已有会员，或创建新会员。选择会员后可以查看会员的余额和积分信息。</div>
+    </el-tour-step>
+        <el-tour-step :target="props.orderSourceRef" title="订单来源" placement="bottom" description="查看洗衣相关的知识和技巧">
+      <div>选择订单的来源渠道，如到店、美团、抖音等。不同来源可能有不同的价格方案。</div>
+    </el-tour-step>
+        <el-tour-step :target="props.addClothRef" title="添加衣物" placement="left" description="查看洗衣相关的知识和技巧">
+      <div>在右侧区域添加衣物，按照步骤选择品类、衣物、颜色等信息。</div>
+    </el-tour-step>
+        <el-tour-step :target="props.clothListRef" title="衣物列表" placement="left" description="查看洗衣相关的知识和技巧">
+      <div>这里显示已添加的衣物列表，可以查看和删除衣物。</div>
+    </el-tour-step>
+        <el-tour-step :target="props.adjustPriceRef" title="店主调价" placement="left" description="查看洗衣相关的知识和技巧">
+      <div>可以对订单进行调价，包括调增、调减金额或直接设置总金额。使用价格方案后不能调价。</div>
+    </el-tour-step>
+        <el-tour-step :target="props.orderSummaryRef" title="订单摘要" placement="left" description="查看洗衣相关的知识和技巧">
+      <div>显示订单的总件数、预计取衣时间，以及设置打印单据的份数。</div>
+    </el-tour-step>
+        <el-tour-step :target="props.submitButtonRef" title="取衣收款" placement="top" description="查看洗衣相关的知识和技巧">
+      <div>完成订单创建，但并进入收款页面，等待用户取衣时才进行收款</div>
+    </el-tour-step>
+        <el-tour-step :target="props.payButtonRef" title="收衣收款" placement="top" description="查看洗衣相关的知识和技巧">
+      <div>完成订单创建并直接进入收款页面，适用于客户送衣时的场景。</div>
+    </el-tour-step>
+  </el-tour>
 </template>
 
 <script setup>

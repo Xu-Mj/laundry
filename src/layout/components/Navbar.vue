@@ -45,23 +45,13 @@
     </div>
     <Setting :visible="showSetting" :key="showSetting" :taggle="() => { showSetting = !showSetting }" />
 
-    <el-dialog :align-center="true" v-model="showChangePwd" title="修改密码" :show-close="false" width="300px">
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="80px">
-        <el-form-item label="旧密码" prop="oldPassword">
-          <el-input v-model="form.oldPassword" type="password" />
-        </el-form-item>
-        <el-form-item label="新密码" prop="newPassword">
-          <el-input v-model="form.newPassword" type="password" />
-        </el-form-item>
-        <el-form-item label="确认密码" prop="confirmPassword">
-          <el-input v-model="form.confirmPassword" type="password" />
-        </el-form-item>
-      </el-form>
-      <template #footer center>
-        <el-button type="" @click="cancelChangePwd">取消</el-button>
-        <el-button type="primary" @click="submitPwd">提交</el-button>
-      </template>
-    </el-dialog>
+    <ChangePwdDialog 
+      :visible="showChangePwd" 
+      :account="userStore.account" 
+      @update:visible="(val) => showChangePwd = val" 
+      @success="handlePwdSuccess" 
+      @cancel="() => showChangePwd = false"
+    />
   </div>
 </template>
 
@@ -70,7 +60,7 @@ import ThemeSwitch from '@/components/ThemeSwitch.vue';
 import { ElMessageBox } from 'element-plus'
 import useUserStore from '@/store/modules/user'
 import Setting from '@/views/setting/index.vue';
-import { updatePwd } from '@/api/system/user';
+import ChangePwdDialog from '@/components/ChangePwdDialog/index.vue';
 
 const props = defineProps({
   switch: Function,
@@ -83,83 +73,13 @@ const userStore = useUserStore()
 const isGuest= ref(userStore.isGuest);
 const showSetting = ref(false);
 const showChangePwd = ref(false);
-const form = ref({
-  oldPassword: '',
-  newPassword: '',
-  confirmPassword: ''
-});
-const formRef = ref();
 
-function reset() {
-  form.value = {
-    oldPassword: '',
-    newPassword: '',
-    confirmPassword: ''
-  };
-  proxy.resetForm("formRef");
-}
-
-// 验证规则
-const validateOldPass = (rule, value, callback) => {
-  if (value === '') {
-    callback(new Error('请输入旧密码'));
-  } else if (value === form.value.newPassword) {
-    callback(new Error('新密码不能与旧密码相同'));
-  } else {
-    callback();
-  }
-};
-
-const validateNewPass = (rule, value, callback) => {
-  if (value === '') {
-    callback(new Error('请输入新密码'));
-  } else if (value.length < 6 || value.length > 20) {
-    callback(new Error('长度在 6 到 20 个字符'));
-  } else {
-    callback();
-  }
-};
-
-const validateConfirmPass = (rule, value, callback) => {
-  if (value === '') {
-    callback(new Error('请再次输入密码'));
-  } else if (value !== form.value.newPassword) {
-    callback(new Error('两次输入密码不一致!'));
-  } else {
-    callback();
-  }
-};
-
-const rules = reactive({
-  oldPassword: [
-    { validator: validateOldPass, trigger: 'blur' },
-  ],
-  newPassword: [
-    { validator: validateNewPass, trigger: 'blur' },
-  ],
-  confirmPassword: [
-    { validator: validateConfirmPass, trigger: 'blur' },
-  ]
-});
-
-function submitPwd() {
-  proxy.$refs["formRef"].validate(valid => {
-    if (valid) {
-      form.value.account = userStore.account;
-      updatePwd(form.value).then(() => {
-        // 修改成功，正在跳转登录页面
-        proxy.notify.success('密码修改成功，正在退出登录');
-        userStore.logOut().then(() => {
-          location.href = '/index';
-        })
-      }).catch(err => { })
-    }
-  })
-}
-
-function cancelChangePwd() {
-  reset();
-  showChangePwd.value = false;
+// 处理密码修改成功事件
+function handlePwdSuccess() {
+  proxy.notify.success('密码修改成功，正在退出登录');
+  userStore.logOut().then(() => {
+    location.href = '/index';
+  });
 }
 
 function handleCommand(command) {

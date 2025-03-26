@@ -5,8 +5,8 @@ use rust_decimal_macros::dec;
 use serde::{Deserialize, Serialize};
 use sqlx::sqlite::SqliteRow;
 use sqlx::{
-    FromRow, Pool, QueryBuilder, Row, Sqlite, Transaction,
-    types::chrono::{DateTime, FixedOffset, NaiveDate, Utc},
+    types::chrono::{DateTime, FixedOffset, NaiveDate, Utc}, FromRow, Pool, QueryBuilder, Row, Sqlite,
+    Transaction,
 };
 
 use crate::db::adjust_price::OrderClothAdjust;
@@ -247,7 +247,9 @@ impl Order {
     pub async fn create(&self, tr: &mut Transaction<'_, Sqlite>) -> Result<Order> {
         let result = sqlx::query_as(
             "INSERT INTO orders
-        (order_number, business_type, user_id, price_id, desire_complete_time, cost_time_alarm, pickup_code, complete_time, delivery_mode, source, status, payment_status, remark, order_type, create_time, update_time)
+        (order_number, business_type, user_id, price_id, desire_complete_time, cost_time_alarm,
+         pickup_code, complete_time, delivery_mode, source, status, payment_status,
+         remark, order_type, create_time, update_time)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         RETURNING *"
         )
@@ -394,7 +396,7 @@ impl Order {
 
     async fn count(&self, pool: &Pool<Sqlite>) -> Result<u64> {
         let mut query_builder = QueryBuilder::<Sqlite>::new(
-            "SELECT COUNT(*) FROM orders o 
+            "SELECT COUNT(*) FROM orders o
                     LEFT JOIN users u ON o.user_id = u.user_id
                     LEFT JOIN order_clothes_adjust a ON o.order_id = a.order_id WHERE 1=1",
         );
@@ -874,6 +876,8 @@ impl Order {
             }
         }
 
+        tracing::debug!("支付请求信息: {:?}", payment_req);
+
         // 如果是扫码支付，调用相应的支付接口
         if is_qr_code_payment {
             let store_id = store_id.unwrap();
@@ -974,38 +978,37 @@ impl Order {
                         // 支付状态未知
                         return Err(Error::bad_request("支付宝付款码支付状态未知"));
                     }
-                } else if payment_type == PaymentMethod::Wechat {
-                    // 微信支付逻辑可以在这里实现
-                    // 目前先返回错误，表示功能尚未实现
-                    return Err(Error::bad_request("微信扫码支付功能尚未实现"));
                 }
-            } else {
-                // 非扫码支付，继续原有流程
-                for order_id in &order_ids {
-                    let mut existing_order = Self::get_by_id(pool, *order_id)
-                        .await?
-                        .ok_or(Error::bad_request("order is not exist"))?;
+            } else if payment_type == PaymentMethod::Wechat {
+                // 微信支付逻辑可以在这里实现
+                // 目前先返回错误，表示功能尚未实现
+                return Err(Error::bad_request("微信扫码支付功能尚未实现"));
+            }
+        } else {
+            // 非扫码支付，继续原有流程
+            for order_id in &order_ids {
+                let mut existing_order = Self::get_by_id(pool, *order_id)
+                    .await?
+                    .ok_or(Error::bad_request("order is not exist"))?;
 
-                    // 更新订单支付状态为已支付
-                    existing_order.payment_status = Some(PAY_STATUS_PAID.to_string());
-                    if !existing_order.update(&mut tr).await? {
-                        return Err(Error::internal("update order failed"));
-                    }
-
-                    // 创建支付记录
-                    payment.order_status = Some("01".to_string());
-                    payment.payment_status = Some("01".to_string());
-                    payment.pay_number = existing_order.order_number.clone();
-                    payment.uc_order_id = Some(*order_id);
-                    payment.create_payment(&mut tr).await?;
+                // 更新订单支付状态为已支付
+                existing_order.payment_status = Some(PAY_STATUS_PAID.to_string());
+                if !existing_order.update(&mut tr).await? {
+                    return Err(Error::internal("update order failed"));
                 }
 
-                // 更新用户积分
-                if let Some(user_id) = user_id {
-                    if !User::increase_points(&mut tr, user_id, total_payment_amount as i64).await?
-                    {
-                        return Err(Error::internal("更新用户积分失败"));
-                    }
+                // 创建支付记录
+                payment.order_status = Some("01".to_string());
+                payment.payment_status = Some("01".to_string());
+                payment.pay_number = existing_order.order_number.clone();
+                payment.uc_order_id = Some(*order_id);
+                payment.create_payment(&mut tr).await?;
+            }
+
+            // 更新用户积分
+            if let Some(user_id) = user_id {
+                if !User::increase_points(&mut tr, user_id, total_payment_amount as i64).await? {
+                    return Err(Error::internal("更新用户积分失败"));
                 }
             }
         }

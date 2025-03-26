@@ -158,6 +158,46 @@ impl LocalUser {
         Ok(result.rows_affected() > 0)
     }
 
+    pub async fn update(&self, pool: &Pool<Sqlite>) -> Result<bool> {
+        let result = sqlx::query(
+            "UPDATE local_users SET
+                avatar = ?,
+                store_name = ?,
+                store_location = ?,
+                user_id = ?,
+                owner_name = ?,
+                owner_phone = ?,
+                email = ?,
+                role = ?,
+                owner_gender = ?,
+                store_status = ?,
+                is_guest = ?,
+                updated_at = ?,
+                remark = ?,
+                nickname = ?
+            WHERE id = ?"
+        )
+        .bind(&self.avatar)
+        .bind(&self.store_name)
+        .bind(&self.store_location)
+        .bind(self.user_id)
+        .bind(&self.owner_name)
+        .bind(&self.owner_phone)
+        .bind(&self.email)
+        .bind(&self.role)
+        .bind(&self.owner_gender)
+        .bind(&self.store_status)
+        .bind(self.is_guest)
+        .bind(self.updated_at)
+        .bind(&self.remark)
+        .bind(&self.nickname)
+        .bind(self.id)
+        .execute(pool)
+        .await?;
+
+        Ok(result.rows_affected() > 0)
+    }
+
     pub async fn upsert(&self, pool: &mut Transaction<'_, Sqlite>) -> Result<Self> {
         let user:LocalUser = sqlx::query_as(
             "INSERT OR REPLACE INTO local_users (
@@ -286,7 +326,7 @@ impl LoginReq {
 
         // request server to validate the password
         let mut token = self.verify_from_server(state).await?;
-        token.user.role = Some("admin".to_string());
+        // token.user.role = Some("admin".to_string());
 
         let mut tx = state.pool.begin().await?;
         // update local database
@@ -411,7 +451,7 @@ pub async fn get_info(state: State<'_, AppState>) -> Result<UserInfo> {
 
     Ok(UserInfo {
         user,
-        roles: HashSet::from(["admin".to_string()]),
+        roles: HashSet::from(["Admin".to_string()]),
         permissions: HashSet::from(["*:*:*".to_string()]),
         subscription,
         subscriptions,
@@ -481,4 +521,39 @@ pub async fn update_pwd(state: State<'_, AppState>, req: UpdatePwdReq) -> Result
 
     tracing::debug!("update_pwd33333: user={:?}", _user);
     LocalUser::update_pwd(pool, &req.account, &password).await
+}
+
+#[tauri::command]
+pub async fn update_local_user(state: State<'_, AppState>, user: LocalUser) -> Result<LocalUser> {
+    // 验证用户信息
+    if user.id.is_none() {
+        return Err(Error::bad_request("用户ID不能为空"));
+    }
+
+    // 设置更新时间
+    let mut updated_user = user.clone();
+    updated_user.updated_at = utils::get_timestamp();
+
+    // 先向服务端发送更新请求
+    tracing::debug!("Updating user on server: {:?}", updated_user);
+
+    let server_user: LocalUser = state
+        .http_client
+        .put(
+            "/stores",
+            &updated_user,
+            state.get_token().await.as_deref(),
+        )
+        .await?;
+
+    // 服务端更新成功后，更新本地数据库
+    tracing::debug!("Server update successful, updating local database");
+    let success = server_user.update(&state.pool).await?;
+
+    if !success {
+        return Err(Error::internal("更新本地数据库失败"));
+    }
+
+    // 返回更新后的用户信息
+    Ok(server_user)
 }

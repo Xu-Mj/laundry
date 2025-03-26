@@ -8,12 +8,8 @@ export function getProfile() {
   })
 }
 
-export function updateProfile(data) {
-  return request({
-    url: '/api/profile',
-    method: 'put',
-    data
-  })
+export function updateProfile(user) {
+  return invoke('update_local_user', { user })
 }
 
 export function updateAlipayConfig(config) {
@@ -21,7 +17,7 @@ export function updateAlipayConfig(config) {
 }
 
 export function getAlipayConfig(storeId) {
-  return invoke('get_alipay_config', { store_id: storeId })
+  return invoke('get_alipay_config', { storeId })
 }
 
 export function uploadFile(name, data) {
@@ -29,7 +25,7 @@ export function uploadFile(name, data) {
 }
 
 export function deleteFile(filePath) {
-  return invoke('delete_file', { file_path: filePath })
+  return invoke('delete_file', { filePath })
 }
 
 export function updateWechatConfig(config) {
@@ -37,5 +33,5 @@ export function updateWechatConfig(config) {
 }
 
 export function getWechatConfig(storeId) {
-  return invoke('get_wechat_config', { store_id: storeId })
+  return invoke('get_wechat_config', { storeId })
 }

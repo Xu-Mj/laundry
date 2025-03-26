@@ -146,17 +146,17 @@ const useUserStore = defineStore(
                 this.sub.status = 'inactive'
               }
 
-              this.user = user;
               this.sub.smsSub = res.smsSub
               this.sub.allSubscriptions = res.subscriptions
             }
+            this.user = user;
 
             // 检查试用期状态
             this.checkTrialStatus()
 
             // 更新水印显示状态
             this.updateWatermarkStatus()
-            console.log('获取订阅信息成功:', this.sub)
+            console.log('获取订阅信息成功:', this)
             resolve(res)
           }).catch(error => {
             reject(error)
@@ -176,6 +176,9 @@ const useUserStore = defineStore(
             reject(error);
           });
         });
+      },
+      setUser(user) {
+        this.user = user
       },
       // 退出系统
       logOut() {

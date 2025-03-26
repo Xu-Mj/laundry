@@ -27,7 +27,6 @@ pub(crate) mod sms_subscription;
 pub(crate) mod subscription_plan;
 pub(crate) mod subscriptions;
 pub(crate) mod tags;
-pub(crate) mod tour_guide;
 pub(crate) mod user;
 pub(crate) mod user_coupons;
 pub(crate) mod user_membership_level;

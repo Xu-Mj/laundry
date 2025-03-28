@@ -10,27 +10,30 @@ export function login(account, pwd, code, uuid) {
     code,
     uuid
   }
-  // return request({
-  //   url: '/login',
-  //   headers: {
-  //     isToken: false,
-  //     repeatSubmit: false
-  //   },
-  //   method: 'post',
-  //   data: data
-  // })
   return invoke('login', { req: data })
 }
 
 // 注册方法
 export function register(data) {
   return request({
-    url: '/register',
+    url: '/register/store',
     headers: {
       isToken: false
     },
     method: 'post',
     data: data
+  })
+}
+
+// 注册方法
+export function getMsgCode(phone) {
+  return request({
+    url: '/register/code',
+    headers: {
+      isToken: false
+    },
+    method: 'post',
+    data: { phone }
   })
 }
 

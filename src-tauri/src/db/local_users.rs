@@ -175,7 +175,7 @@ impl LocalUser {
                 updated_at = ?,
                 remark = ?,
                 nickname = ?
-            WHERE id = ?"
+            WHERE id = ?",
         )
         .bind(&self.avatar)
         .bind(&self.store_name)
@@ -539,11 +539,7 @@ pub async fn update_local_user(state: State<'_, AppState>, user: LocalUser) -> R
 
     let server_user: LocalUser = state
         .http_client
-        .put(
-            "/stores",
-            &updated_user,
-            state.get_token().await.as_deref(),
-        )
+        .put("/stores", &updated_user, state.get_token().await.as_deref())
         .await?;
 
     // 服务端更新成功后，更新本地数据库

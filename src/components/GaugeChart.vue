@@ -13,7 +13,7 @@
       </div>
       <!-- 百分比显示（次要信息） -->
       <div class="percentage-display" v-if="showPercentage">
-        <span class="percentage-value">{{ percentageValue }}%</span>
+        <span class="percentage-value">{{ percentageValue === 0 ? '' : percentageValue + '%' }}</span>
         <span class="percentage-label" v-if="percentageLabel">{{ percentageLabel }}</span>
       </div>
     </div>
@@ -118,6 +118,7 @@ export default {
   },
   computed: {
     percentageValue() {
+      if (this.total === 0) return 0;
       return Math.round((this.value / this.total) * 100);
     },
     colorMap() {
@@ -183,10 +184,10 @@ export default {
     },
     updateChart() {
       if (!this.chart) return;
-      
+
       // 计算百分比值
       const percentage = (this.value / this.total) * 100;
-      
+
       // 更新图表配置
       this.option.series[0].data[0].value = percentage;
       this.option.series[0].progress.itemStyle.color = this.themeColor.main;
@@ -194,7 +195,7 @@ export default {
         [percentage / 100, this.themeColor.main],
         [1, 'rgba(238, 238, 238, 0.3)']
       ];
-      
+
       // 应用更新
       this.chart.setOption(this.option);
     },

@@ -126,10 +126,6 @@ function hangupClick() {
 const handleTourFinished = () => {
   console.log('菜单引导已完成');
 };
-
-onMounted(() => {
-  console.log('isAdmin', isAdmin.value);
-})
 </script>
 
 <style scoped>

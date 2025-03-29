@@ -116,7 +116,7 @@ export const constantRoutes = [
     children: [
       {
         path: '',
-        component: () => import('@/views/system/orders/index.vue'),
+        component: () => import('@/views/orders/index.vue'),
       }
     ]
   },

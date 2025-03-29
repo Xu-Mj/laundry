@@ -34,7 +34,7 @@ import ImageTest from '@/views/container/imageTest.vue'
 export const constantRoutes = [
   {
     path: '/',
-    redirect: '/index' // 默认重定向到首页
+    redirect: '/index'
   },
   {
     path: '/hang-up',
@@ -107,8 +107,6 @@ export const constantRoutes = [
       {
         path: '',
         component: () => import('@/views/system/expenditure/index.vue'),
-        // name: 'Expenditures',
-        // meta: { title: '支出', }
       }
     ]
   },
@@ -119,8 +117,6 @@ export const constantRoutes = [
       {
         path: '',
         component: () => import('@/views/system/orders/index.vue'),
-        // name: 'Orders',
-        // meta: { title: '订单列表', }
       }
     ]
   },
@@ -131,7 +127,6 @@ export const constantRoutes = [
       {
         path: '',
         component: () => import('@/views/system/posts/index.vue'),
-        // meta: { title: '知识天地', icon: 'education' }
       }
     ]
   },
@@ -142,7 +137,76 @@ export const constantRoutes = [
       {
         path: '',
         component: () => import('@/views/system/profile/index.vue'),
-        // meta: { title: '知识天地', icon: 'education' }
+      }
+    ]
+  },
+  {
+    path: '/system/rack',
+    component: Layout,
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/system/rack/index.vue'),
+      }
+    ]
+  },
+  {
+    path: '/system/clothing',
+    component: Layout,
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/system/clothing/index.vue'),
+      }
+    ]
+  },
+  {
+    path: '/system/price',
+    component: Layout,
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/system/price/index.vue'),
+      }
+    ]
+  },
+  {
+    path: '/system/post',
+    component: Layout,
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/system/post/index.vue'),
+      }
+    ]
+  },
+  {
+    path: '/system/tags',
+    component: Layout,
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/system/tags/index.vue'),
+      }
+    ]
+  },
+  {
+    path: '/system/notice-record',
+    component: Layout,
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/system/notice_record/index.vue'),
+      }
+    ]
+  },
+  {
+    path: '/system/config',
+    component: Layout,
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/system/config/index.vue'),
       }
     ]
   },
@@ -187,65 +251,6 @@ export const constantRoutes = [
         component: () => import('@/views/index'),
         name: 'Index',
         meta: { title: '首页', icon: 'dashboard', affix: true }
-      }
-    ]
-  },
-  {
-    path: '/system/dict-data',
-    component: Layout,
-    hidden: true,
-    children: [
-      {
-        path: 'index/:dictId(\\d+)',
-        component: () => import('@/views/system/dict/data'),
-        name: 'Data',
-        meta: { title: '字典数据', activeMenu: '/system/dict' }
-      }
-    ]
-  },
-]
-
-// 动态路由，基于用户权限动态去加载
-export const dynamicRoutes = [
-  {
-    path: '/system/user-auth',
-    component: Layout,
-    hidden: true,
-    permissions: ['system:user:edit'],
-    children: [
-      {
-        path: 'role/:userId(\\d+)',
-        component: () => import('@/views/system/user/authRole'),
-        name: 'AuthRole',
-        meta: { title: '分配角色', activeMenu: '/system/user' }
-      }
-    ]
-  },
-  {
-    path: '/system/role-auth',
-    component: Layout,
-    hidden: true,
-    permissions: ['system:role:edit'],
-    children: [
-      {
-        path: 'user/:roleId(\\d+)',
-        component: () => import('@/views/system/role/authUser'),
-        name: 'AuthUser',
-        meta: { title: '分配用户', activeMenu: '/system/role' }
-      }
-    ]
-  },
-  {
-    path: '/system/dict-data',
-    component: Layout,
-    hidden: true,
-    permissions: ['system:dict:list'],
-    children: [
-      {
-        path: 'index/:dictId(\\d+)',
-        component: () => import('@/views/system/dict/data'),
-        name: 'Data',
-        meta: { title: '字典数据', activeMenu: '/system/dict' }
       }
     ]
   }

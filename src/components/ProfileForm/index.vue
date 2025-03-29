@@ -32,7 +32,7 @@
     <el-row :gutter="20">
       <el-col :span="12">
         <el-form-item label="联系电话" prop="ownerPhone">
-          <el-input v-model="profileData.ownerPhone" placeholder="请输入联系电话" prefix-icon="Phone" />
+          <el-input v-model="profileData.ownerPhone" disabled placeholder="请输入联系电话" prefix-icon="Phone" />
         </el-form-item>
       </el-col>
       <el-col :span="12">

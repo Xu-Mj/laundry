@@ -5,7 +5,6 @@ import 'nprogress/nprogress.css'
 import { getToken } from '@/utils/auth'
 import { isRelogin } from '@/utils/request'
 import useUserStore from '@/store/modules/user'
-import useSettingsStore from '@/store/modules/settings'
 
 NProgress.configure({ showSpinner: false });
 
@@ -14,7 +13,6 @@ const whiteList = ['/login', '/register'];
 router.beforeEach((to, from, next) => {
   NProgress.start()
   if (getToken()) {
-    to.meta.title && useSettingsStore().setTitle(to.meta.title)
     /* has token*/
     if (to.path === '/login') {
       next({ path: '/' })
@@ -36,6 +34,7 @@ router.beforeEach((to, from, next) => {
           //   })
           //   next({ ...to, replace: true }) // hack方法 确保addRoutes已完成
           // })
+          console.log('routers', router.getRoutes())
           next({ ...to, replace: true })
         }).catch(err => {
           useUserStore().logOut().then(() => {

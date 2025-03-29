@@ -131,15 +131,6 @@ pub struct RefundInfoResp {
     pub user_coupons: Vec<UserCoupon>, // List in Java is equivalent to Vec in Rust
 }
 
-impl Order {
-    pub fn new_with_user_id(user_id: i64) -> Self {
-        Self {
-            user_id: Some(user_id),
-            ..Default::default()
-        }
-    }
-}
-
 impl FromRow<'_, SqliteRow> for Order {
     fn from_row(row: &SqliteRow) -> std::result::Result<Self, sqlx::Error> {
         let payment = Payment::from_row(row)?;

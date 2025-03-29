@@ -5,8 +5,8 @@ use rust_decimal_macros::dec;
 use serde::{Deserialize, Serialize};
 use sqlx::sqlite::SqliteRow;
 use sqlx::{
-    types::chrono::{DateTime, FixedOffset, NaiveDate, Utc}, FromRow, Pool, QueryBuilder, Row, Sqlite,
-    Transaction,
+    FromRow, Pool, QueryBuilder, Row, Sqlite, Transaction,
+    types::chrono::{DateTime, FixedOffset, NaiveDate, Utc},
 };
 
 use crate::db::adjust_price::OrderClothAdjust;
@@ -75,6 +75,7 @@ pub struct Order {
     pub order_type: Option<String>,
     pub create_time: Option<DateTime<FixedOffset>>,
     pub update_time: Option<DateTime<FixedOffset>>,
+    pub store_id: Option<i64>, // 商家ID，用于数据隔离
 
     /// Fields from sys_user
     pub nick_name: Option<String>,
@@ -181,6 +182,8 @@ impl FromRow<'_, SqliteRow> for Order {
                 remark: adjust_remark,
             })
         }
+        let store_id = row.try_get("store_id").unwrap_or_default();
+
         Ok(Order {
             order_id: Some(order_id),
             order_number,
@@ -209,12 +212,14 @@ impl FromRow<'_, SqliteRow> for Order {
             payment_bonus_count: None,
             diff_price: None,
             payment_amount: None,
+            store_id,
         })
     }
 }
 
 const SQL: &str = "SELECT
  o.*,
+ p.*,
  u.nick_name,
  u.phonenumber,
  a.adjust_id,
@@ -225,10 +230,12 @@ const SQL: &str = "SELECT
 FROM orders o
 LEFT JOIN users u ON o.user_id = u.user_id
 LEFT JOIN order_clothes_adjust a ON o.order_id = a.order_id
+LEFT JOIN payments p ON o.order_id = p.uc_order_id
 ";
 
 const SQL_BY_CLOTHING_NAME: &str = "SELECT
     o.*,
+    p.*,
     u.nick_name,
     u.phonenumber,
     a.adjust_id,
@@ -239,6 +246,7 @@ const SQL_BY_CLOTHING_NAME: &str = "SELECT
 FROM orders o
     INNER JOIN users u ON o.user_id = u.user_id
     LEFT JOIN order_clothes_adjust a ON o.order_id = a.order_id
+    LEFT JOIN payments p ON o.order_id = p.uc_order_id
     INNER JOIN order_clothes oc ON o.order_id = oc.order_id
     INNER JOIN clothing c ON oc.clothing_id = c.clothing_id ";
 
@@ -247,40 +255,47 @@ impl Order {
     pub async fn create(&self, tr: &mut Transaction<'_, Sqlite>) -> Result<Order> {
         let result = sqlx::query_as(
             "INSERT INTO orders
-        (order_number, business_type, user_id, price_id, desire_complete_time, cost_time_alarm,
+        (order_number, business_type, store_id, user_id, price_id, desire_complete_time, cost_time_alarm,
          pickup_code, complete_time, delivery_mode, source, status, payment_status,
          remark, order_type, create_time, update_time)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        RETURNING *"
+        RETURNING *",
         )
-            .bind(&self.order_number)
-            .bind(&self.business_type)
-            .bind(self.user_id)
-            .bind(self.price_id)
-            .bind(self.desire_complete_time)
-            .bind(&self.cost_time_alarm)
-            .bind(&self.pickup_code)
-            .bind(self.complete_time)
-            .bind(&self.delivery_mode)
-            .bind(&self.source)
-            .bind(&self.status)
-            .bind(&self.payment_status)
-            .bind(&self.remark)
-            .bind(&self.order_type)
-            .bind(self.create_time)
-            .bind(self.update_time)
-            .fetch_one(&mut **tr)
-            .await?;
+        .bind(&self.order_number)
+        .bind(&self.business_type)
+        .bind(self.store_id)
+        .bind(self.user_id)
+        .bind(self.price_id)
+        .bind(self.desire_complete_time)
+        .bind(&self.cost_time_alarm)
+        .bind(&self.pickup_code)
+        .bind(self.complete_time)
+        .bind(&self.delivery_mode)
+        .bind(&self.source)
+        .bind(&self.status)
+        .bind(&self.payment_status)
+        .bind(&self.remark)
+        .bind(&self.order_type)
+        .bind(self.create_time)
+        .bind(self.update_time)
+        .fetch_one(&mut **tr)
+        .await?;
 
         Ok(result)
     }
 
     // Retrieve a SysOrder by ID
-    pub async fn get_by_id(pool: &Pool<Sqlite>, order_id: i64) -> Result<Option<Self>> {
-        let result = sqlx::query_as::<_, Order>(&format!("{SQL} WHERE o.order_id = ?"))
-            .bind(order_id)
-            .fetch_optional(pool)
-            .await?;
+    pub async fn get_by_id(
+        pool: &Pool<Sqlite>,
+        store_id: i64,
+        order_id: i64,
+    ) -> Result<Option<Self>> {
+        let result =
+            sqlx::query_as::<_, Order>(&format!("{SQL} WHERE o.store_id = ? AND o.order_id = ?"))
+                .bind(store_id)
+                .bind(order_id)
+                .fetch_optional(pool)
+                .await?;
         Ok(result)
     }
 
@@ -299,6 +314,9 @@ impl Order {
     }
 
     fn apply_filters<'a>(&'a self, query_builder: &mut QueryBuilder<'a, Sqlite>) {
+        self.store_id
+            .map(|n| query_builder.push(" AND o.store_id = ").push_bind(n));
+
         self.order_number
             .as_ref()
             .filter(|n| !n.is_empty())
@@ -427,10 +445,7 @@ impl Order {
                 .push_bind((param.page - 1) * param.page_size);
         }
 
-        let orders = query_builder
-            .build_query_as::<Order>()
-            .fetch_all(pool)
-            .await?;
+        let orders = query_builder.build_query_as().fetch_all(pool).await?;
         Ok(orders)
     }
 
@@ -453,11 +468,13 @@ impl Order {
 
     pub async fn list_by_cloth_name(
         pool: &Pool<Sqlite>,
+        store_id: i64,
         page_params: &PageParams,
         query: &OrderQuery,
     ) -> Result<Vec<Self>> {
         let mut builder = QueryBuilder::new(SQL_BY_CLOTHING_NAME);
-        builder.push(" WHERE o.user_id = ").push_bind(query.user_id);
+        builder.push(" WHERE o.store_id = ").push_bind(store_id);
+        builder.push(" AND o.user_id = ").push_bind(query.user_id);
         if let Some(cloth_name) = &query.cloth_name {
             builder
                 .push(" AND c.clothing_name LIKE ")
@@ -482,10 +499,15 @@ impl Order {
         Ok(orders)
     }
 
-    pub async fn count_by_cloth_name(pool: &Pool<Sqlite>, query: &OrderQuery) -> Result<u64> {
+    pub async fn count_by_cloth_name(
+        pool: &Pool<Sqlite>,
+        store_id: i64,
+        query: &OrderQuery,
+    ) -> Result<u64> {
         let mut builder =
             QueryBuilder::new(format!("SELECT COUNT(*) FROM ({SQL_BY_CLOTHING_NAME}"));
-        builder.push(" WHERE o.user_id = ").push_bind(query.user_id);
+        builder.push(" WHERE o.store_id = ").push_bind(store_id);
+        builder.push(" AND o.user_id = ").push_bind(query.user_id);
         if let Some(cloth_name) = &query.cloth_name {
             builder
                 .push(" AND c.clothing_name LIKE ")
@@ -645,10 +667,12 @@ impl Order {
 
     pub async fn select_list_with_wait_to_pick_with_user_ids<'a>(
         pool: &Pool<Sqlite>,
+        store_id: i64,
         user_ids: &[i64],
     ) -> Result<Vec<Self>> {
-        let mut builder =
-            QueryBuilder::new(&format!("{SQL} WHERE o.status = '02' AND o.user_id IN ("));
+        let mut builder = QueryBuilder::new(&format!(
+            "{SQL} WHERE o.store_id = {store_id} AND o.status = '02' AND o.user_id IN ("
+        ));
 
         // 添加占位符
         user_ids.iter().enumerate().for_each(|(i, id)| {
@@ -667,25 +691,38 @@ impl Order {
         Ok(result)
     }
 
-    pub async fn query_count_by_status(pool: &Pool<Sqlite>, status: &str) -> Result<i64> {
-        let result = sqlx::query_scalar("SELECT COUNT(1) FROM orders WHERE status = ?")
-            .bind(status)
-            .fetch_one(pool)
-            .await?;
+    pub async fn query_count_by_status(
+        pool: &Pool<Sqlite>,
+        store_id: i64,
+        status: &str,
+    ) -> Result<i64> {
+        let result =
+            sqlx::query_scalar("SELECT COUNT(1) FROM orders WHERE store_id = ? AND status = ?")
+                .bind(store_id)
+                .bind(status)
+                .fetch_one(pool)
+                .await?;
 
         Ok(result)
     }
 
-    pub async fn count_by_source(pool: &Pool<Sqlite>) -> Result<Vec<SourceDistribution>> {
-        let result = sqlx::query_as("SELECT source, COUNT(1) AS count FROM orders GROUP BY source")
-            .fetch_all(pool)
-            .await?;
+    pub async fn count_by_source(
+        pool: &Pool<Sqlite>,
+        store_id: i64,
+    ) -> Result<Vec<SourceDistribution>> {
+        let result = sqlx::query_as(
+            "SELECT source, COUNT(1) AS count FROM orders WHERE store_id = ? GROUP BY source",
+        )
+        .bind(store_id)
+        .fetch_all(pool)
+        .await?;
 
         Ok(result)
     }
 
-    pub async fn total(pool: &Pool<Sqlite>) -> Result<i64> {
-        let count = sqlx::query_scalar("SELECT COUNT(1) FROM orders")
+    pub async fn total(pool: &Pool<Sqlite>, store_id: i64) -> Result<i64> {
+        let count = sqlx::query_scalar("SELECT COUNT(1) FROM orders WHERE store_id =?")
+            .bind(store_id)
             .fetch_one(pool)
             .await?;
 
@@ -758,7 +795,11 @@ impl Order {
         self.create_time = Some(utils::get_now());
     }
 
-    pub async fn pay(pool: &Pool<Sqlite>, mut payment_req: PaymentReq) -> Result<()> {
+    pub async fn pay(
+        pool: &Pool<Sqlite>,
+        store_id: i64,
+        mut payment_req: PaymentReq,
+    ) -> Result<()> {
         let mut tr = pool.begin().await?;
         // 获取多个订单
         let orders = payment_req
@@ -779,7 +820,7 @@ impl Order {
                 .split(',')
                 .filter_map(|id| id.parse::<i64>().ok())
                 .collect();
-            let coupons = UserCoupon::find_by_uc_ids(pool, &ids).await?;
+            let coupons = UserCoupon::find_by_uc_ids(pool, store_id, &ids).await?;
             if coupons.len() != ids.len() {
                 return Err(Error::bad_request("卡券信息不正确，存在未入库的卡券"));
             }
@@ -787,7 +828,7 @@ impl Order {
         } else if let Some(time_based) = &payment_req.time_based {
             // 如果使用了次卡
             let ids: Vec<i64> = time_based.iter().map(|t| t.uc_id).collect();
-            let coupons = UserCoupon::find_by_uc_ids(pool, &ids).await?;
+            let coupons = UserCoupon::find_by_uc_ids(pool, store_id, &ids).await?;
 
             if coupons.len() != ids.len() {
                 return Err(Error::bad_request("卡券信息不正确，存在未入库的卡券"));
@@ -801,16 +842,8 @@ impl Order {
         // 检查是否使用扫码支付
         let is_qr_code_payment = payment_req.auth_code.is_some();
         let auth_code = payment_req.auth_code.take();
-        let store_id = payment_req.store_id.take();
         let subject = payment_req.subject.take();
         let payment_type = payment_req.payment_type.take().unwrap_or_default();
-
-        // 如果是扫码支付，需要验证必要参数
-        if is_qr_code_payment {
-            if store_id.is_none() {
-                return Err(Error::bad_request("使用扫码支付时，store_id不能为空"));
-            }
-        }
 
         // 处理订单信息
         let mut order_ids = Vec::new();
@@ -821,7 +854,7 @@ impl Order {
         for order in orders.iter() {
             if let Some(order_id) = order.order_id {
                 // 校验订单状态
-                let mut existing_order = Self::get_by_id(pool, order_id)
+                let mut existing_order = Self::get_by_id(pool, store_id, order_id)
                     .await?
                     .ok_or(Error::bad_request("order is not exist"))?;
 
@@ -880,7 +913,6 @@ impl Order {
 
         // 如果是扫码支付，调用相应的支付接口
         if is_qr_code_payment {
-            let store_id = store_id.unwrap();
             let subject_text =
                 subject.unwrap_or_else(|| format!("订单支付-{}", order_numbers.join(",")));
 
@@ -905,7 +937,7 @@ impl Order {
                         if trade_status == "TRADE_SUCCESS" || trade_status == "TRADE_FINISHED" {
                             // 支付成功，更新订单状态
                             for order_id in &order_ids {
-                                let mut existing_order = Self::get_by_id(pool, *order_id)
+                                let mut existing_order = Self::get_by_id(pool, store_id, *order_id)
                                     .await?
                                     .ok_or(Error::bad_request("order is not exist"))?;
 
@@ -987,7 +1019,7 @@ impl Order {
         } else {
             // 非扫码支付，继续原有流程
             for order_id in &order_ids {
-                let mut existing_order = Self::get_by_id(pool, *order_id)
+                let mut existing_order = Self::get_by_id(pool, store_id, *order_id)
                     .await?
                     .ok_or(Error::bad_request("order is not exist"))?;
 
@@ -1352,7 +1384,7 @@ impl Order {
     ) -> Result<PageResult<Order>> {
         let mut result = self.list(pool, page_params).await?;
         // combine payment and clothes information
-        for mut order in result.rows.iter_mut() {
+        for order in result.rows.iter_mut() {
             if let Some(id) = order.order_id {
                 // query clothes by order id
                 let clothes = OrderCloth::get_by_order_id(pool, id).await?;
@@ -1363,12 +1395,17 @@ impl Order {
                     .filter_map(|c| c.hang_cloth_code.clone())
                     .collect();
                 order.cloth_codes = Some(cloth_codes);
-                if let Some(mut payment) = Payment::get_by_order_id(pool, id).await? {
-                    Self::cal_payment_method(&mut order, &mut payment);
+
+                // 处理支付方式和金额计算
+                if order.payment.is_some() {
+                    // 先克隆 payment 以避免多重借用
+                    let mut payment_clone = order.payment.clone().unwrap();
+                    Self::cal_payment_method(order, &mut payment_clone);
+                    order.payment = Some(payment_clone);
                 } else {
                     // calculate total
                     order.payment_amount =
-                        Some(Self::cal_total_price(pool, &mut order, &clothes).await?);
+                        Some(Self::cal_total_price(pool, order, &clothes).await?);
                 }
             }
         }
@@ -1377,37 +1414,39 @@ impl Order {
     }
 
     pub async fn query_list4home(&self, pool: &Pool<Sqlite>) -> Result<Vec<Self>> {
-        let mut list = self.list_4_home(pool).await?;
+        let list = self.list_4_home(pool).await?;
 
-        for order in list.iter_mut() {
-            order.payment = Payment::get_by_order_id(pool, order.order_id.unwrap()).await?;
-        }
+        // for order in list.iter_mut() {
+        //     order.payment =
+        //         Payment::get_by_order_id(pool, order.order_id.unwrap(), store_id).await?;
+        // }
 
         Ok(list)
     }
 
     pub async fn query_list4history(
         pool: &Pool<Sqlite>,
+        store_id: i64,
         page_params: PageParams,
         query: OrderQuery,
     ) -> Result<PageResult<Self>> {
-        let rows = Self::list_by_cloth_name(pool, &page_params, &query).await?;
-        let total = Self::count_by_cloth_name(pool, &query).await?;
+        let rows = Self::list_by_cloth_name(pool, store_id, &page_params, &query).await?;
+        let total = Self::count_by_cloth_name(pool, store_id, &query).await?;
 
-        let mut list = PageResult { total, rows };
+        let list = PageResult { total, rows };
 
-        for order in list.rows.iter_mut() {
-            order.payment = Payment::get_by_order_id(pool, order.order_id.unwrap()).await?;
-        }
+        // for order in list.rows.iter_mut() {
+        //     order.payment = Payment::get_by_order_id(pool, order.order_id.unwrap()).await?;
+        // }
 
         Ok(list)
     }
 
-    pub async fn refund(pool: &Pool<Sqlite>, exp: Expenditure) -> Result<()> {
+    pub async fn refund(pool: &Pool<Sqlite>, store_id: i64, exp: Expenditure) -> Result<()> {
         if exp.order_id.is_none() {
             return Err(Error::bad_request("order_id is required"));
         }
-        let mut order = Order::get_by_id(pool, exp.order_id.unwrap())
+        let mut order = Order::get_by_id(pool, store_id, exp.order_id.unwrap())
             .await?
             .ok_or(Error::not_found("order not found"))?;
 
@@ -1437,7 +1476,7 @@ impl Order {
         }
 
         // select payment record
-        let payment = Payment::get_by_order_id(pool, order.order_id.unwrap()).await?;
+        let payment = Payment::get_by_order_id(pool, order.order_id.unwrap(), store_id).await?;
         if payment.is_none() {
             order.status = Some(PAY_STATUS_REFUND.to_string());
             if !order.update(&mut tx).await? {
@@ -1474,7 +1513,7 @@ impl Order {
             .collect();
 
         // query coupon information
-        let mut user_coupons = UserCoupon::find_by_uc_ids(pool, &uc_ids).await?;
+        let mut user_coupons = UserCoupon::find_by_uc_ids(pool, store_id, &uc_ids).await?;
         if user_coupons.len() != uc_ids.len() {
             return Err(Error::internal("卡券信息不正确，无法退还"));
         }
@@ -1568,6 +1607,7 @@ impl Order {
 
     pub async fn get_refund_info(
         pool: &Pool<Sqlite>,
+        store_id: i64,
         order_id: i64,
         user_id: i64,
     ) -> Result<RefundInfoResp> {
@@ -1580,7 +1620,7 @@ impl Order {
         resp.user = Some(user);
 
         // query payment information by order id
-        let payment = Payment::get_by_order_id(pool, order_id).await?;
+        let payment = Payment::get_by_order_id(pool, order_id, store_id).await?;
         if payment.is_none() {
             return Ok(resp);
         }
@@ -1593,7 +1633,7 @@ impl Order {
                 .split(",")
                 .map(|s| s.parse::<i64>().unwrap_or_default())
                 .collect();
-            user_coupons = UserCoupon::find_by_uc_ids(pool, &uc_ids).await?;
+            user_coupons = UserCoupon::find_by_uc_ids(pool, store_id, &uc_ids).await?;
         }
 
         resp.payment = Some(payment);
@@ -1632,6 +1672,8 @@ impl Order {
 
 #[tauri::command]
 pub async fn create_order(state: tauri::State<'_, AppState>, mut order: Order) -> Result<Order> {
+    let store_id = utils::get_user_id(&state).await?;
+    order.store_id = Some(store_id);
     Ok(order.add_order(&state.pool).await?)
 }
 
@@ -1639,16 +1681,20 @@ pub async fn create_order(state: tauri::State<'_, AppState>, mut order: Order) -
 pub async fn get_orders_pagination(
     state: tauri::State<'_, AppState>,
     page_params: PageParams,
-    order: Order,
+    mut order: Order,
 ) -> Result<PageResult<Order>> {
+    let store_id = utils::get_user_id(&state).await?;
+    order.store_id = Some(store_id);
     order.query_list(&state.pool, page_params).await
 }
 
 #[tauri::command]
 pub async fn get_orders4home(
     state: tauri::State<'_, AppState>,
-    order: Order,
+    mut order: Order,
 ) -> Result<Vec<Order>> {
+    let store_id = utils::get_user_id(&state).await?;
+    order.store_id = Some(store_id);
     order.query_list4home(&state.pool).await
 }
 
@@ -1670,18 +1716,22 @@ pub async fn get_orders4history(
     query: OrderQuery,
     page_params: PageParams,
 ) -> Result<PageResult<Order>> {
-    Order::query_list4history(&state.pool, page_params, query).await
+    let store_id = utils::get_user_id(&state).await?;
+    Order::query_list4history(&state.pool, store_id, page_params, query).await
 }
 
 #[tauri::command]
 pub async fn get_order_by_id(state: tauri::State<'_, AppState>, id: i64) -> Result<Option<Order>> {
-    Order::get_by_id(&state.pool, id).await
+    let store_id = utils::get_user_id(&state).await?;
+    Order::get_by_id(&state.pool, store_id, id).await
 }
 
 #[tauri::command]
-pub async fn update_order(state: tauri::State<'_, AppState>, order: Order) -> Result<bool> {
+pub async fn update_order(state: tauri::State<'_, AppState>, mut order: Order) -> Result<bool> {
     let mut tr = state.pool.begin().await?;
 
+    let store_id = utils::get_user_id(&state).await?;
+    order.store_id = Some(store_id);
     let result = order.update(&mut tr).await?;
 
     tr.commit().await?;
@@ -1711,7 +1761,8 @@ pub async fn update_adjust(state: tauri::State<'_, AppState>, order: Order) -> R
 
 #[tauri::command]
 pub async fn pay_order(state: tauri::State<'_, AppState>, req: PaymentReq) -> Result<()> {
-    Order::pay(&state.pool, req).await
+    let store_id = utils::get_user_id(&state).await?;
+    Order::pay(&state.pool, store_id, req).await
 }
 
 #[tauri::command]
@@ -1720,15 +1771,23 @@ pub async fn get_refund_info(
     order_id: i64,
     user_id: i64,
 ) -> Result<RefundInfoResp> {
-    Order::get_refund_info(&state.pool, order_id, user_id).await
+    let store_id = utils::get_user_id(&state).await?;
+    Order::get_refund_info(&state.pool, store_id, order_id, user_id).await
 }
 
 #[tauri::command]
 pub async fn refund_order(state: tauri::State<'_, AppState>, exp: Expenditure) -> Result<()> {
-    Order::refund(&state.pool, exp).await
+    let store_id = utils::get_user_id(&state).await?;
+    Order::refund(&state.pool, store_id, exp).await
 }
 
 #[tauri::command]
 pub async fn get_count_by_user_id(state: tauri::State<'_, AppState>, user_id: i64) -> Result<u64> {
-    Order::new_with_user_id(user_id).count(&state.pool).await
+    let store_id = utils::get_user_id(&state).await?;
+    let order = Order {
+        user_id: Some(user_id),
+        store_id: Some(store_id),
+        ..Default::default()
+    };
+    order.count(&state.pool).await
 }

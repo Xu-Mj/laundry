@@ -5,17 +5,19 @@ use tauri::State;
 use crate::db::order_clothes::OrderCloth;
 use crate::error::{Error, ErrorKind, Result};
 use crate::state::AppState;
+use crate::utils;
 
 /// 晾衣架
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default, sqlx::FromRow)]
 #[serde(rename_all = "camelCase")]
 #[serde(default)]
 pub struct DryingRack {
-    pub(crate) capacity: Option<i32>,
     pub(crate) id: Option<i64>,
+    pub(crate) store_id: Option<i64>,
     pub(crate) name: Option<String>,
     pub(crate) position: Option<i32>,
     pub(crate) rack_type: Option<String>,
+    pub(crate) capacity: Option<i32>,
     pub(crate) remaining_capacity: Option<i32>,
 }
 
@@ -38,8 +40,8 @@ impl DryingRack {
     /// Insert a new drying rack.
     pub async fn add(self, pool: &Pool<Sqlite>) -> Result<DryingRack> {
         let result = sqlx::query_as::<_, DryingRack>(
-            "INSERT INTO drying_rack (name, capacity, position, rack_type, remaining_capacity)
-                values ( ?, ?, ?, ?, ?)
+            "INSERT INTO drying_rack (name, capacity, position, rack_type, remaining_capacity, store_id)
+                values ( ?, ?, ?, ?, ?, ?)
              RETURNING *",
         )
         .bind(&self.name)
@@ -47,6 +49,7 @@ impl DryingRack {
         .bind(&self.position)
         .bind(&self.rack_type)
         .bind(&self.remaining_capacity)
+        .bind(&self.store_id)
         .fetch_one(pool)
         .await?;
 
@@ -96,7 +99,9 @@ impl DryingRack {
 
         if has_update {
             query_builder
-                .push(" WHERE id = ")
+                .push(" WHERE store_id = ")
+                .push_bind(self.store_id)
+                .push(" AND id = ")
                 .push_bind(self.id)
                 .push(" RETURNING *");
             let result = query_builder.build().execute(&mut **tr).await?;
@@ -137,38 +142,48 @@ impl DryingRack {
         Ok(result.rows_affected())
     }
 
-    #[allow(dead_code)]
-    pub async fn select_one(pool: &Pool<Sqlite>, rack_typ: String) -> Result<Option<DryingRack>> {
+    pub async fn select_one(
+        pool: &Pool<Sqlite>,
+        store_id: i64,
+        rack_typ: String,
+    ) -> Result<Option<DryingRack>> {
         let result = sqlx::query_as::<_, DryingRack>(
             "
         SELECT *
         FROM drying_rack
-        WHERE rack_type = ?
+        WHERE store_id = ? AND rack_type = ?
         ORDER BY remaining_capacity DESC
         LIMIT 1;",
         )
+        .bind(store_id)
         .bind(rack_typ)
         .fetch_optional(pool)
         .await?;
         Ok(result)
     }
 
-    pub async fn list(pool: &Pool<Sqlite>) -> Result<Vec<DryingRack>> {
-        let result = sqlx::query_as::<_, DryingRack>("SELECT * FROM drying_rack")
-            .fetch_all(pool)
-            .await?;
+    pub async fn list(pool: &Pool<Sqlite>, store_id: i64) -> Result<Vec<DryingRack>> {
+        let result =
+            sqlx::query_as::<_, DryingRack>("SELECT * FROM drying_rack WHERE store_id = ? ")
+                .bind(store_id)
+                .fetch_all(pool)
+                .await?;
         Ok(result)
     }
 }
 
 impl DryingRack {
-    pub async fn get_position(pool: &Pool<Sqlite>, mut rack_type: String) -> Result<Self> {
+    pub async fn get_position(
+        pool: &Pool<Sqlite>,
+        store_id: i64,
+        mut rack_type: String,
+    ) -> Result<Self> {
         if rack_type.is_empty() {
             rack_type = "1".to_string();
         }
 
         // 根据类型获取当前空余最多的衣架
-        let mut rack = DryingRack::select_one(pool, rack_type)
+        let mut rack = DryingRack::select_one(pool, store_id, rack_type)
             .await?
             .ok_or(Error::not_found("没有可用的衣架"))?;
 
@@ -179,7 +194,8 @@ impl DryingRack {
         let capacity = rack.capacity.unwrap();
 
         // 查询已经占用的挂钩
-        let used_hangers = OrderCloth::query_hanger_number(pool, rack.id.unwrap()).await?;
+        let used_hangers =
+            OrderCloth::query_hanger_number(pool, store_id, rack.id.unwrap()).await?;
         let result = find_first_available_hanger(&used_hangers, capacity);
 
         let position = if result.is_none() {
@@ -203,7 +219,8 @@ impl DryingRack {
 
 #[tauri::command]
 pub async fn list_rack_all(state: State<'_, AppState>) -> Result<Vec<DryingRack>> {
-    DryingRack::list(&state.pool).await
+    let store_id = utils::get_user_id(&state).await?;
+    DryingRack::list(&state.pool, store_id).await
 }
 
 #[tauri::command]
@@ -228,9 +245,12 @@ pub async fn update_rack(state: State<'_, AppState>, mut rack: DryingRack) -> Re
     rack.validate()?;
 
     let pool = &state.pool;
-    let result = DryingRack::get_by_id(pool, rack.id.unwrap())
+    let mut result = DryingRack::get_by_id(pool, rack.id.unwrap())
         .await?
         .ok_or(Error::with_details(ErrorKind::NotFound, "衣架不存在"))?;
+
+    let store_id = utils::get_user_id(&state).await?;
+    result.store_id = Some(store_id);
 
     let mut tr = pool.begin().await?;
 

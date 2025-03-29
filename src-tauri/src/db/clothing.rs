@@ -11,46 +11,38 @@ use super::{Curd, PageParams, PageResult};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
+#[serde(default)]
 pub struct Clothing {
+    /// 商家ID，用于数据隔离
+    store_id: Option<i64>,
     /// 衣物唯一标识ID
-    #[serde(default)]
     clothing_id: Option<i64>,
     /// 衣物名称
-    #[serde(default)]
     clothing_name: Option<String>,
     /// 衣物编码
-    #[serde(default)]
     clothing_number: Option<String>,
     /// 衣物品类
-    #[serde(default)]
     clothing_category: Option<String>,
     /// 所属分类，000上衣，001鞋，002裤子等
-    #[serde(default)]
     clothing_style: Option<String>,
     /// 显示顺序，默认显示顺序
-    #[serde(default)]
     order_num: Option<i64>,
     /// 使用次数，实际被使用的次数，当该值不为0时，将优先将按照该值排序，然后才是显示顺序排序
-    #[serde(default)]
     clothing_degree: Option<i64>,
     /// 基础价格，用于计算价格
-    #[serde(default)]
     clothing_base_price: Option<f64>,
     /// 最小价格，用于计算价格
-    #[serde(default)]
     clothing_min_price: Option<f64>,
-    #[serde(default)]
     hang_type: Option<String>,
     /// 备注
-    #[serde(default)]
     remark: Option<String>,
-    #[serde(default)]
     del_flag: Option<String>,
 }
 
 impl FromRow<'_, SqliteRow> for Clothing {
     fn from_row(row: &'_ SqliteRow) -> std::result::Result<Self, sqlx::Error> {
         Ok(Self {
+            store_id: row.try_get("store_id").unwrap_or_default(),
             clothing_id: row.try_get("clothing_id").unwrap_or_default(),
             clothing_name: row.try_get("clothing_name").unwrap_or_default(),
             clothing_number: row.try_get("clothing_number").unwrap_or_default(),
@@ -71,11 +63,14 @@ impl Curd for Clothing {
     const COUNT_SQL: &'static str = "SELECT COUNT(*) FROM clothing WHERE del_flag = '0' ";
     const QUERY_SQL: &'static str = "SELECT * FROM clothing WHERE del_flag = '0' ";
     const BY_ID_SQL: &'static str =
-        "SELECT * FROM clothing WHERE clothing_id = ? AND del_flag = '0'";
+        "SELECT * FROM clothing WHERE clothing_id = ? AND del_flag = '0' ";
     const DELETE_BATCH_SQL: &'static str =
         "UPDATE clothing SET del_flag = '2' WHERE clothing_id IN (";
 
     fn apply_filters<'a>(&'a self, builder: &mut QueryBuilder<'a, Sqlite>) {
+        if let Some(store_id) = &self.store_id {
+            builder.push(" AND store_id = ").push_bind(store_id);
+        }
         if let Some(clothing_id) = &self.clothing_id {
             builder.push(" AND clothing_id = ").push_bind(clothing_id);
         }
@@ -189,10 +184,15 @@ impl Clothing {
     }
 
     // 检查clothing_name是否已经存在
-    pub async fn exists_by_clothing_name(pool: &Pool<Sqlite>, clothing_name: &str) -> Result<bool> {
+    pub async fn exists_by_clothing_name(
+        pool: &Pool<Sqlite>,
+        store_id: i64,
+        clothing_name: &str,
+    ) -> Result<bool> {
         let result = sqlx::query_scalar(
-            "SELECT EXISTS(SELECT 1 FROM clothing WHERE clothing_name = $1 AND del_flag = '0')",
+            "SELECT EXISTS(SELECT 1 FROM clothing WHERE store_id = ? AND clothing_name = $1 AND del_flag = '0')",
         )
+        .bind(store_id)
         .bind(clothing_name)
         .fetch_one(pool)
         .await?;
@@ -211,11 +211,12 @@ impl Clothing {
     /// 返回一个结果类型，包含新添加的衣物信息。
     pub async fn add(self, pool: &Pool<Sqlite>) -> Result<Clothing> {
         let result = sqlx::query_as::<_, Clothing>(
-            "INSERT INTO clothing (clothing_name, clothing_number, clothing_category, clothing_style,
+            "INSERT INTO clothing (store_id, clothing_name, clothing_number, clothing_category, clothing_style,
              clothing_base_price, clothing_min_price, order_num, clothing_degree, remark, del_flag)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, '0')
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '0')
              RETURNING *"
         )
+            .bind(&self.store_id)
             .bind(&self.clothing_name)
             .bind(&self.clothing_number)
             .bind(&self.clothing_category)
@@ -363,7 +364,9 @@ impl Clothing {
 
         if has_update {
             query_builder
-                .push(" WHERE clothing_id = ")
+                .push("WHERE store_id = ?")
+                .push_bind(self.store_id)
+                .push(" AND clothing_id = ")
                 .push_bind(self.clothing_id)
                 .push(" RETURNING *");
             let updated_clothing = query_builder
@@ -384,16 +387,19 @@ impl Clothing {
 pub async fn list_clothing_pagination(
     state: State<'_, AppState>,
     page_params: PageParams,
-    clothing: Clothing,
+    mut clothing: Clothing,
 ) -> Result<PageResult<Clothing>> {
+    let store_id = utils::get_user_id(&state).await?;
+    clothing.store_id = Some(store_id);
     clothing.get_list(&state.pool, page_params).await
 }
 
 #[tauri::command]
 pub async fn list_clothing_all(
     state: State<'_, AppState>,
-    clothing: Clothing,
+    mut clothing: Clothing,
 ) -> Result<Vec<Clothing>> {
+    clothing.store_id = Some(utils::get_user_id(&state).await?);
     clothing.query_all_clothing(&state.pool).await
 }
 
@@ -410,6 +416,8 @@ pub async fn add_clothing(state: State<'_, AppState>, mut clothing: Clothing) ->
 
     clothing.clothing_number =
         Some(Clothing::select_next_num(&state.pool, &format!("{code}-")).await?);
+
+    clothing.store_id = Some(utils::get_user_id(&state).await?);
 
     let clothing = clothing.add(&state.pool).await?;
 
@@ -442,7 +450,8 @@ pub async fn update_clothing_ref_num(
 
 #[tauri::command]
 pub async fn clothing_name_exists(state: State<'_, AppState>, clothing_name: &str) -> Result<bool> {
-    Clothing::exists_by_clothing_name(&state.pool, clothing_name).await
+    let store_id = utils::get_user_id(&state).await?;
+    Clothing::exists_by_clothing_name(&state.pool, store_id, clothing_name).await
 }
 
 #[tauri::command]

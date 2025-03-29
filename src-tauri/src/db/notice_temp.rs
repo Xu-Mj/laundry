@@ -321,7 +321,12 @@ impl NoticeRecord {
 // const TEMP_TYPE_OTHER: &str = "2";
 
 impl NoticeTemp {
-    pub async fn send_notice(pool: &Pool<Sqlite>, temp_id: i64, user_ids: &[i64]) -> Result<u64> {
+    pub async fn send_notice(
+        pool: &Pool<Sqlite>,
+        store_id: i64,
+        temp_id: i64,
+        user_ids: &[i64],
+    ) -> Result<u64> {
         let mut tr = pool.begin().await?;
         // select temp info by temp_id
         let mut temp = Self::get_by_id(pool, temp_id)
@@ -337,7 +342,8 @@ impl NoticeTemp {
 
         // pickup notice only remain
         // select orders that wait to pickup by user ids
-        let orders = Order::select_list_with_wait_to_pick_with_user_ids(pool, user_ids).await?;
+        let orders =
+            Order::select_list_with_wait_to_pick_with_user_ids(pool, store_id, user_ids).await?;
 
         // generate notice records
         orders.into_iter().for_each(|order| {
@@ -466,6 +472,7 @@ pub async fn send_notice(
     temp_id: i64,
     user_ids: Vec<i64>,
 ) -> Result<bool> {
-    let count = NoticeTemp::send_notice(&state.pool, temp_id, &user_ids).await?;
+    let store_id = utils::get_user_id(&state).await?;
+    let count = NoticeTemp::send_notice(&state.pool, store_id, temp_id, &user_ids).await?;
     Ok(count == user_ids.len() as u64)
 }

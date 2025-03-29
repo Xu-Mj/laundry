@@ -22,6 +22,7 @@ pub struct Expenditure {
     pub exp_amount: i64,                    // NOT NULL INTEGER
     pub create_time: Option<i64>,           // Nullable TIMESTAMP
     pub remark: Option<String>,             // Nullable TEXT
+    pub store_id: Option<i64>,              // 商家ID，用于数据隔离
 }
 
 impl FromRow<'_, SqliteRow> for Expenditure {
@@ -37,6 +38,7 @@ impl FromRow<'_, SqliteRow> for Expenditure {
             exp_amount: row.try_get("exp_amount").unwrap_or_default(),
             create_time: row.try_get("create_time").unwrap_or_default(),
             remark: row.try_get("remark").unwrap_or_default(),
+            store_id: row.try_get("store_id").unwrap_or_default(),
         })
     }
 }
@@ -63,6 +65,10 @@ impl Curd for Expenditure {
                 .push(" AND exp_type LIKE ")
                 .push(format!("'%{}%'", exp_type));
         }
+
+        if let Some(store_id) = &self.store_id {
+            builder.push(" AND store_id = ").push_bind(store_id);
+        }
     }
 }
 
@@ -75,24 +81,35 @@ impl Validator for Expenditure {
 impl Expenditure {
     // insert
     pub async fn create(&self, tx: &mut sqlx::Transaction<'_, Sqlite>) -> Result<Self> {
-        let result = sqlx::query_as("INSERT INTO expenditure (order_id, cloth_ids, exp_title, recv_account, recv_account_title, exp_type, exp_amount, create_time, remark) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *")
-            .bind(&self.order_id)
-            .bind(&self.cloth_ids)
-            .bind(&self.exp_title)
-            .bind(&self.recv_account)
-            .bind(&self.recv_account_title)
-            .bind(&self.exp_type)
-            .bind(&self.exp_amount)
-            .bind(utils::get_timestamp())
-            .bind(&self.remark)
-            .fetch_one(&mut **tx)
-            .await?;
+        let result = sqlx::query_as(
+            "INSERT INTO expenditure 
+            (
+                order_id, cloth_ids, exp_title, recv_account, recv_account_title,
+                 exp_type, exp_amount, create_time, remark, store_id
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            RETURNING *",
+        )
+        .bind(&self.order_id)
+        .bind(&self.cloth_ids)
+        .bind(&self.exp_title)
+        .bind(&self.recv_account)
+        .bind(&self.recv_account_title)
+        .bind(&self.exp_type)
+        .bind(&self.exp_amount)
+        .bind(utils::get_timestamp())
+        .bind(&self.remark)
+        .bind(&self.store_id)
+        .fetch_one(&mut **tx)
+        .await?;
         Ok(result)
     }
 
     // update
     pub async fn update(&self, tx: &mut sqlx::Transaction<'_, Sqlite>) -> Result<bool> {
-        let result = sqlx::query("UPDATE expenditure SET order_id = ?, cloth_ids = ?, exp_title = ?, recv_account = ?, recv_account_title = ?, exp_type = ?, exp_amount = ?, create_time = ?, remark = ? WHERE exp_id = ?")
+        let result = sqlx::query("UPDATE expenditure SET order_id = ?, cloth_ids = ?, exp_title = ?,
+             recv_account = ?, recv_account_title = ?, exp_type = ?, exp_amount = ?, create_time = ?, remark = ?,
+            WHERE exp_id = ? AND store_id = ?")
             .bind(&self.order_id)
             .bind(&self.cloth_ids)
             .bind(&self.exp_title)
@@ -103,6 +120,7 @@ impl Expenditure {
             .bind(&self.create_time)
             .bind(&self.remark)
             .bind(&self.exp_id)
+            .bind(&self.store_id)
             .execute(&mut **tx)
             .await?;
         Ok(result.rows_affected() > 0)
@@ -124,15 +142,19 @@ pub async fn get_exp_by_id(state: State<'_, AppState>, exp_id: i64) -> Result<Op
 }
 
 #[tauri::command]
-pub async fn create_exp(state: State<'_, AppState>, exp: Expenditure) -> Result<Expenditure> {
+pub async fn create_exp(state: State<'_, AppState>, mut exp: Expenditure) -> Result<Expenditure> {
+    let store_id = utils::get_user_id(&state).await?;
     let mut tx = state.pool.begin().await?;
+    exp.store_id = Some(store_id);
     let result = exp.create(&mut tx).await?;
     tx.commit().await?;
     Ok(result)
 }
 
 #[tauri::command]
-pub async fn update_exp(state: State<'_, AppState>, exp: Expenditure) -> Result<bool> {
+pub async fn update_exp(state: State<'_, AppState>, mut exp: Expenditure) -> Result<bool> {
+    let store_id = utils::get_user_id(&state).await?;
+    exp.store_id = Some(store_id);
     let mut tx = state.pool.begin().await?;
     let result = exp.update(&mut tx).await?;
     tx.commit().await?;

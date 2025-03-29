@@ -29,6 +29,8 @@ pub struct Tag {
     remark: Option<String>,
     /// 删除标志
     del_flag: Option<String>,
+    /// 商家ID，用于数据隔离
+    store_id: Option<i64>,
 }
 
 impl Curd for Tag {
@@ -69,6 +71,10 @@ impl Curd for Tag {
 
         if let Some(remark) = &self.remark {
             builder.push(" AND remark = ").push_bind(remark);
+        }
+
+        if let Some(store_id) = &self.store_id {
+            builder.push(" AND store_id = ").push_bind(store_id);
         }
     }
 }
@@ -173,8 +179,8 @@ impl Tag {
     /// 返回一个结果类型，包含新添加的标签信息。
     pub async fn add(self, pool: &Pool<Sqlite>) -> Result<Tag> {
         let result = sqlx::query_as::<_, Tag>(
-            "INSERT INTO tags (tag_name, tag_number, tag_order, order_num, ref_num, status, remark, del_flag)
-             VALUES (?, ?, ?, ?, ?, ?, ?, '0')
+            "INSERT INTO tags (tag_name, tag_number, tag_order, order_num, ref_num, status, remark, del_flag, store_id)
+             VALUES (?, ?, ?, ?, ?, ?, ?, '0', ?)
              RETURNING *"
         )
             .bind(&self.tag_name)
@@ -184,6 +190,7 @@ impl Tag {
             .bind(&self.ref_num)
             .bind(&self.status)
             .bind(&self.remark)
+            .bind(&self.store_id)
             .fetch_one(pool)
             .await?;
 

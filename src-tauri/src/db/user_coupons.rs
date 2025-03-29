@@ -10,6 +10,7 @@ use crate::db::Validator;
 use crate::db::coupons::Coupon;
 use crate::error::{Error, ErrorKind, Result};
 use crate::state::AppState;
+use crate::utils;
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -27,6 +28,7 @@ pub struct UserCoupon {
     pub status: Option<String>,
     pub remark: Option<String>,
     pub coupon: Option<Coupon>,
+    pub store_id: Option<i64>,
 }
 
 impl FromRow<'_, SqliteRow> for UserCoupon {
@@ -44,6 +46,7 @@ impl FromRow<'_, SqliteRow> for UserCoupon {
             create_time: row.try_get("create_time").unwrap_or_default(),
             status: row.try_get("status").unwrap_or_default(),
             remark: row.try_get("remark").unwrap_or_default(),
+            store_id: row.try_get("store_id").unwrap_or_default(),
             coupon: Some(coupon),
         })
     }
@@ -51,6 +54,10 @@ impl FromRow<'_, SqliteRow> for UserCoupon {
 
 impl Validator for UserCoupon {
     fn validate(&self) -> Result<()> {
+        if self.store_id.is_none() {
+            return Err(Error::unauthorized());
+        }
+
         if self.user_id.is_none() {
             return Err(Error::with_details(
                 ErrorKind::BadRequest,
@@ -78,12 +85,13 @@ impl UserCoupon {
         let result = sqlx::query_as(
             r#"
             INSERT INTO user_coupons (
-                user_id, coupon_id, create_time, obtain_at, available_value,
+                store_id, user_id, coupon_id, create_time, obtain_at, available_value,
                 uc_count, pay_id, uc_type, status, remark
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             RETURNING *
             "#,
         )
+        .bind(self.store_id)
         .bind(self.user_id)
         .bind(self.coupon_id)
         .bind(self.create_time)
@@ -114,8 +122,13 @@ impl UserCoupon {
         Ok(result)
     }
 
-    pub async fn find_by_user_id(pool: &Pool<Sqlite>, user_id: i64) -> Result<Vec<UserCoupon>> {
-        let result = sqlx::query_as(&format!("{SQL} WHERE user_id = ?"))
+    pub async fn find_by_user_id(
+        pool: &Pool<Sqlite>,
+        store_id: i64,
+        user_id: i64,
+    ) -> Result<Vec<UserCoupon>> {
+        let result = sqlx::query_as(&format!("{SQL} WHERE uc.store_id = ? AND uc.user_id = ?"))
+            .bind(store_id)
             .bind(user_id)
             .fetch_all(pool)
             .await?;
@@ -123,10 +136,11 @@ impl UserCoupon {
         Ok(result)
     }
 
-    pub async fn cal_balance(pool: &Pool<Sqlite>, user_id: i64) -> Result<f64> {
+    pub async fn cal_balance(pool: &Pool<Sqlite>, store_id: i64, user_id: i64) -> Result<f64> {
         let result = sqlx::query_scalar(
-            "SELECT SUM(available_value) FROM user_coupons WHERE user_id = ? AND uc_type = '01'",
+            "SELECT SUM(available_value) FROM user_coupons WHERE store_id = ? AND user_id = ? AND uc_type = '01'",
         )
+        .bind(store_id)
         .bind(user_id)
         .fetch_one(pool)
         .await?;
@@ -136,25 +150,34 @@ impl UserCoupon {
 
     pub async fn find_valid_time_by_user_id(
         pool: &Pool<Sqlite>,
+        store_id: i64,
         user_id: i64,
     ) -> Result<Vec<Self>> {
         let result = sqlx::query_as(&format!(
-            "{SQL} WHERE uc.user_id = ? AND datetime('now') BETWEEN c.valid_from AND c.valid_to
+            "{SQL} WHERE uc.store_id = ?  AND uc.user_id = ? 
+                  AND datetime('now') BETWEEN c.valid_from AND c.valid_to
                   AND uc.available_value > 0
                   AND uc.uc_count > 0;"
         ))
+        .bind(store_id)
         .bind(user_id)
         .fetch_all(pool)
         .await?;
         Ok(result)
     }
 
-    pub async fn exists_by_coupon_id(pool: &Pool<Sqlite>, coupon_id: i64) -> Result<bool> {
-        let result =
-            sqlx::query_scalar::<_, i64>("SELECT 1 FROM user_coupons WHERE coupon_id = ? LIMIT 1")
-                .bind(coupon_id)
-                .fetch_optional(pool)
-                .await?;
+    pub async fn exists_by_coupon_id(
+        pool: &Pool<Sqlite>,
+        store_id: i64,
+        coupon_id: i64,
+    ) -> Result<bool> {
+        let result = sqlx::query_scalar::<_, i64>(
+            "SELECT 1 FROM user_coupons WHERE store_id = ? AND coupon_id = ? LIMIT 1",
+        )
+        .bind(store_id)
+        .bind(coupon_id)
+        .fetch_optional(pool)
+        .await?;
 
         Ok(result.is_some())
     }
@@ -175,7 +198,7 @@ impl UserCoupon {
                 uc_type = ?,
                 status = ?,
                 remark = ?
-            WHERE uc_id = ?
+            WHERE store_id = ? AND uc_id = ?
             "#,
         )
         .bind(self.user_id)
@@ -185,9 +208,10 @@ impl UserCoupon {
         .bind(self.available_value)
         .bind(self.uc_count)
         .bind(self.pay_id)
-        .bind(self.uc_type.clone())
-        .bind(self.status.clone())
-        .bind(self.remark.clone())
+        .bind(&self.uc_type)
+        .bind(&self.status)
+        .bind(&self.remark)
+        .bind(self.store_id)
         .bind(self.uc_id)
         .execute(&mut **tr)
         .await?;
@@ -197,12 +221,15 @@ impl UserCoupon {
 
     pub async fn update_pay_id(
         tr: &mut Transaction<'_, Sqlite>,
+        store_id: i64,
         uc_ids: &[i64],
         pay_id: i64,
     ) -> Result<()> {
         let mut builder = QueryBuilder::new("UPDATE user_coupons SET pay_id = ");
         builder.push_bind(pay_id);
-        builder.push(" WHERE pay_id IN (");
+        builder.push(" WHERE store_id = ");
+        builder.push_bind(store_id);
+        builder.push(" AND  pay_id IN (");
 
         uc_ids.iter().enumerate().for_each(|(i, id)| {
             if i > 0 {
@@ -243,8 +270,13 @@ impl UserCoupon {
         Ok(result)
     }
 
-    pub async fn find_by_uc_ids(pool: &Pool<Sqlite>, uc_ids: &[i64]) -> Result<Vec<UserCoupon>> {
-        let mut builder = QueryBuilder::new(&format!("{SQL} WHERE uc_id IN ("));
+    pub async fn find_by_uc_ids(
+        pool: &Pool<Sqlite>,
+        store_id: i64,
+        uc_ids: &[i64],
+    ) -> Result<Vec<UserCoupon>> {
+        let mut builder =
+            QueryBuilder::new(&format!("{SQL} WHERE store_id = {store_id} uc_id IN ("));
 
         uc_ids.iter().enumerate().for_each(|(i, id)| {
             if i > 0 {
@@ -262,7 +294,8 @@ impl UserCoupon {
 
 #[tauri::command]
 pub async fn get_user_coupons(state: State<'_, AppState>, user_id: i64) -> Result<Vec<UserCoupon>> {
-    UserCoupon::find_by_user_id(&state.pool, user_id).await
+    let store_id = utils::get_user_id(&state).await?;
+    UserCoupon::find_by_user_id(&state.pool, store_id, user_id).await
 }
 
 #[tauri::command]
@@ -270,7 +303,8 @@ pub async fn get_user_coupons4sale(
     state: State<'_, AppState>,
     user_id: i64,
 ) -> Result<Vec<UserCoupon>> {
-    UserCoupon::find_valid_time_by_user_id(&state.pool, user_id).await
+    let store_id = utils::get_user_id(&state).await?;
+    UserCoupon::find_valid_time_by_user_id(&state.pool, store_id, user_id).await
 }
 
 #[tauri::command]
@@ -278,5 +312,6 @@ pub async fn get_user_coupon_by_user_id(
     state: State<'_, AppState>,
     id: i64,
 ) -> Result<Vec<UserCoupon>> {
-    UserCoupon::find_by_user_id(&state.pool, id).await
+    let store_id = utils::get_user_id(&state).await?;
+    UserCoupon::find_by_user_id(&state.pool, store_id, id).await
 }

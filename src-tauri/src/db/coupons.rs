@@ -23,6 +23,7 @@ use super::user::User;
 #[serde(default)]
 pub struct Coupon {
     pub coupon_id: Option<i64>,           // Coupon ID
+    pub store_id: Option<i64>,            // Coupon ID
     pub coupon_number: Option<String>,    // Unique Coupon Number
     pub coupon_type: Option<String>,      // Coupon Type (e.g., '000')
     pub coupon_title: Option<String>,     // Coupon Title
@@ -57,6 +58,7 @@ impl FromRow<'_, SqliteRow> for Coupon {
     fn from_row(row: &'_ SqliteRow) -> std::result::Result<Self, sqlx::Error> {
         Ok(Self {
             coupon_id: row.try_get("coupon_id").unwrap_or_default(),
+            store_id: row.try_get("store_id").unwrap_or_default(),
             coupon_number: row.try_get("coupon_number").unwrap_or_default(),
             coupon_title: row.try_get("coupon_title").unwrap_or_default(),
             coupon_type: row.try_get("coupon_type").unwrap_or_default(),
@@ -192,6 +194,10 @@ impl Curd for Coupon {
             builder.push(" AND status = ").push_bind(status);
         }
 
+        if let Some(store_id) = &self.store_id {
+            builder.push(" AND store_id = ").push_bind(store_id);
+        }
+
         if let Some(del_flag) = &self.del_flag {
             builder.push(" AND del_flag = ").push_bind(del_flag);
         }
@@ -201,14 +207,15 @@ impl Curd for Coupon {
 impl Coupon {
     pub async fn add(&self, tr: &mut Transaction<'_, Sqlite>) -> Result<Self> {
         let query = r#"
-        INSERT INTO coupons (coupon_number, coupon_type, coupon_title, desc, coupon_value, min_spend, customer_invalid,
+        INSERT INTO coupons (store_id, coupon_number, coupon_type, coupon_title, desc, coupon_value, min_spend, customer_invalid,
                             customer_sale_total, customer_sale_count, valid_from, valid_to, auto_delay, usage_value,
                             usage_limit, del_flag, applicable_category, applicable_style, applicable_cloths, status, remark)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *
     "#;
 
         tracing::debug!("coupon add: {:?}", self);
         let result = sqlx::query_as(query)
+            .bind(&self.store_id)
             .bind(&self.coupon_number)
             .bind(&self.coupon_type)
             .bind(&self.coupon_title)
@@ -498,7 +505,9 @@ impl Coupon {
         }
 
         // query if there is a coupon which has sold already
-        let is_exist = UserCoupon::exists_by_coupon_id(pool, self.coupon_id.unwrap()).await?;
+        let is_exist =
+            UserCoupon::exists_by_coupon_id(pool, self.store_id.unwrap(), self.coupon_id.unwrap())
+                .await?;
 
         let mut tr = pool.begin().await?;
         if is_exist {
@@ -576,6 +585,7 @@ impl Coupon {
         let now = utils::get_now();
         let user_coupon = UserCoupon {
             uc_id: None,
+            store_id: coupon.store_id,
             user_id: Some(req.user_id),
             coupon_id: coupon.coupon_id,
             create_time: Some(now),
@@ -626,7 +636,11 @@ impl Coupon {
         Ok(())
     }
 
-    pub async fn buy(pool: &Pool<Sqlite>, coupon_buy_req: CouponBuyReq) -> Result<()> {
+    pub async fn buy(
+        pool: &Pool<Sqlite>,
+        store_id: i64,
+        coupon_buy_req: CouponBuyReq,
+    ) -> Result<()> {
         let mut uc_ids = Vec::with_capacity(coupon_buy_req.coupons.len());
         let mut total_amount = 0.0;
         let mut amount = 0.0;
@@ -653,6 +667,7 @@ impl Coupon {
 
         // create order
         CouponOrder::new_with_now(
+            store_id,
             uc_ids
                 .iter()
                 .map(|x| x.to_string())
@@ -673,12 +688,13 @@ impl Coupon {
             payment_method: Some(coupon_buy_req.payment_method),
             order_status: Some("01".to_string()),
             create_time: Some(utils::get_timestamp()),
+            store_id: Some(store_id),
             ..Default::default()
         };
         let payment = payment.create_payment(&mut tr).await?;
 
         // update user coupon's payment_id
-        UserCoupon::update_pay_id(&mut tr, &uc_ids, payment.pay_id.unwrap()).await?;
+        UserCoupon::update_pay_id(&mut tr, store_id, &uc_ids, payment.pay_id.unwrap()).await?;
         tr.commit().await?;
         Ok(())
     }
@@ -699,7 +715,9 @@ pub async fn get_coupons4sale(
     title: Option<String>,
     tp: Option<String>,
 ) -> Result<Vec<Coupon>> {
-    let coupon = Coupon::new4sale("0", "0", title, tp);
+    let mut coupon = Coupon::new4sale("0", "0", title, tp);
+    let store_id = utils::get_user_id(&state).await?;
+    coupon.store_id = Some(store_id);
     coupon.list4sale(&state.pool).await
 }
 
@@ -710,7 +728,8 @@ pub async fn get_coupon_by_id(state: State<'_, AppState>, id: i64) -> Result<Opt
 
 #[tauri::command]
 pub async fn buy_coupons(state: State<'_, AppState>, coupon_buy_req: CouponBuyReq) -> Result<()> {
-    Coupon::buy(&state.pool, coupon_buy_req).await
+    let store_id = utils::get_user_id(&state).await?;
+    Coupon::buy(&state.pool, store_id, coupon_buy_req).await
 }
 
 #[tauri::command]
@@ -720,6 +739,9 @@ pub async fn gift_coupons(state: State<'_, AppState>, coupon_buy_req: CouponBuyR
 
 #[tauri::command]
 pub async fn add_coupon(state: State<'_, AppState>, mut coupon: Coupon) -> Result<Coupon> {
+    let store_id = utils::get_user_id(&state).await?;
+    coupon.store_id = Some(store_id);
+
     let mut tr = state.pool.begin().await?;
     coupon.validate()?;
 
@@ -730,6 +752,8 @@ pub async fn add_coupon(state: State<'_, AppState>, mut coupon: Coupon) -> Resul
 
 #[tauri::command]
 pub async fn update_coupon(state: State<'_, AppState>, mut coupon: Coupon) -> Result<bool> {
+    let store_id = utils::get_user_id(&state).await?;
+    coupon.store_id = Some(store_id);
     coupon.update_coupon(&state.pool).await
 }
 

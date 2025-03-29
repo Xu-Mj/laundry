@@ -21,6 +21,8 @@ const STORAGE_CARD_TYPE: &str = "000";
 #[serde(rename_all = "camelCase")]
 #[serde(default)]
 pub struct User {
+    /// 所属商店ID
+    pub store_id: Option<i64>,
     /// 用户ID
     pub user_id: Option<i64>,
     /// 微信标识
@@ -84,6 +86,7 @@ pub struct User {
 impl FromRow<'_, SqliteRow> for User {
     fn from_row(row: &'_ SqliteRow) -> std::result::Result<Self, sqlx::Error> {
         Ok(User {
+            store_id: row.try_get("store_id").unwrap_or_default(),
             user_id: row.try_get("user_id").unwrap_or_default(),
             open_id: row.try_get("open_id").unwrap_or_default(),
             dept_id: row.try_get("dept_id").unwrap_or_default(),
@@ -134,17 +137,14 @@ impl User {
 }
 const USER_MEMBERSHIP_COSTUMER: i64 = 3;
 
-const QUERY_SQL: &str = "select u.user_id, u.user_type, u.open_id, u.dept_id, u.nick_name, u.address, u.user_name, u.email, u.avatar, u.phonenumber,
-        u.sex, u.status, u.del_flag, u.integral, u.identify, u.login_ip, u.login_date, u.create_by, u.create_time,
-        u.remark, p.level_name, p.level_id, t.tags AS user_tags,
+const QUERY_SQL: &str = "select u.*, p.level_name, p.level_id, t.tags AS user_tags,
         t.remark as tags_remark from users u
         left join user_membership_level up on u.user_id = up.user_id
         left join membership_level p on up.level_id = p.level_id
         left join user_tags t  on t.user_id = u.user_id
         where u.del_flag = '0'";
-const BY_ID_SQL: &str = "select u.user_id, u.user_type, u.open_id, u.dept_id, u.nick_name, u.address, u.user_name, u.email, u.avatar, u.phonenumber,
-        u.sex, u.status, u.del_flag, u.integral, u.identify, u.login_ip, u.login_date, u.create_by, u.create_time,
-        u.remark, p.level_name, p.level_id, t.tags AS user_tags,
+
+const BY_ID_SQL: &str = "select u.*, p.level_name, p.level_id, t.tags AS user_tags,
         t.remark as tags_remark from users u
         left join user_membership_level up on u.user_id = up.user_id
         left join membership_level p on up.level_id = p.level_id
@@ -176,6 +176,10 @@ impl Curd for User {
         self.level_id.filter(|l| *l != 0).map(|l| {
             builder.push(" AND up.level_id = ").push_bind(l);
         });
+
+        self.store_id.filter(|l| *l != 0).map(|l| {
+            builder.push(" AND u.store_id = ").push_bind(l);
+        });
     }
 }
 
@@ -183,12 +187,13 @@ impl User {
     pub async fn create(&self, tr: &mut sqlx::Transaction<'_, Sqlite>) -> Result<Self> {
         let row = sqlx::query_as(
             "INSERT INTO users (
-            open_id, dept_id, user_name, nick_name, user_type, email, phonenumber,
+            store_id, open_id, dept_id, user_name, nick_name, user_type, email, phonenumber,
             sex, avatar, password, status, integral, identify, login_ip,
             login_date, create_by, create_time, remark, address, del_flag
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '0')
         RETURNING *",
         )
+        .bind(&self.store_id)
         .bind(&self.open_id)
         .bind(&self.dept_id)
         .bind(&self.user_name)
@@ -363,7 +368,10 @@ impl User {
                 .push(" ,update_time = ")
                 .push_bind(utils::get_now());
             query_builder
-                .push(" WHERE user_id = ")
+                .push(" WHERE store_id = ?")
+                .push_bind(self.store_id);
+            query_builder
+                .push(" AND user_id = ")
                 .push_bind(self.user_id);
             let result = query_builder.build().execute(&mut **tr).await?;
             Ok(result.rows_affected() > 0)
@@ -390,10 +398,15 @@ impl User {
     }
 
     /// check account exist
-    pub async fn check_user_name_unique(pool: &Pool<Sqlite>, user_name: &str) -> Result<bool> {
+    pub async fn check_user_name_unique(
+        pool: &Pool<Sqlite>,
+        store_id: i64,
+        user_name: &str,
+    ) -> Result<bool> {
         let result = sqlx::query_scalar::<_, u64>(
-            "SELECT count(1) FROM users WHERE del_flag = '0' AND user_name = ?",
+            "SELECT count(1) FROM users WHERE del_flag = '0' AND store_id = ? AND user_name = ?",
         )
+        .bind(store_id)
         .bind(user_name)
         .fetch_one(pool)
         .await?;
@@ -401,10 +414,11 @@ impl User {
         Ok(result > 0)
     }
 
-    pub async fn check_tel_unique(pool: &Pool<Sqlite>, tel: &str) -> Result<bool> {
+    pub async fn check_tel_unique(pool: &Pool<Sqlite>, store_id: i64, tel: &str) -> Result<bool> {
         let result = sqlx::query_scalar::<_, u64>(
-            "SELECT count(1) FROM users WHERE del_flag = '0' AND phonenumber = ?",
+            "SELECT count(1) FROM users WHERE del_flag = '0' AND store_id = ? AND phonenumber = ?",
         )
+        .bind(store_id)
         .bind(tel)
         .fetch_one(pool)
         .await?;
@@ -446,6 +460,7 @@ impl User {
 impl User {
     pub async fn get_user_by_cloth_code(
         pool: &Pool<Sqlite>,
+        store_id: i64,
         cloth_code: &str,
     ) -> Result<Option<Self>> {
         let cloth = OrderCloth::get_by_cloth_code(pool, cloth_code)
@@ -456,7 +471,7 @@ impl User {
             return Err(Error::internal("cloth data error"));
         }
 
-        let order = Order::get_by_id(pool, cloth.order_id.unwrap_or_default())
+        let order = Order::get_by_id(pool, store_id, cloth.order_id.unwrap_or_default())
             .await?
             .ok_or(Error::not_found("order not found"))?;
 
@@ -467,10 +482,19 @@ impl User {
         let mut tr = pool.begin().await?;
 
         // validate
+        if self.store_id.is_none() {
+            return Err(Error::unauthorized());
+        }
 
         if self.phonenumber.is_none() {
             return Err(Error::bad_request("手机号不能为空"));
-        } else if User::check_tel_unique(pool, self.phonenumber.as_ref().unwrap()).await? {
+        } else if User::check_tel_unique(
+            pool,
+            self.store_id.unwrap(),
+            self.phonenumber.as_ref().unwrap(),
+        )
+        .await?
+        {
             return Err(Error::bad_request("手机号已经存在"));
         }
 
@@ -478,7 +502,13 @@ impl User {
             self.user_name = self.phonenumber.clone();
         }
 
-        if User::check_user_name_unique(pool, self.user_name.as_ref().unwrap()).await? {
+        if User::check_user_name_unique(
+            pool,
+            self.store_id.unwrap(),
+            self.user_name.as_ref().unwrap(),
+        )
+        .await?
+        {
             return Err(Error::bad_request("账号已存在"));
         }
 
@@ -490,6 +520,7 @@ impl User {
                 user.user_id.unwrap(),
                 tags.clone(),
                 user.tags_remark.clone(),
+                self.store_id,
             )
             .insert(&mut tr)
             .await?;
@@ -506,15 +537,21 @@ impl User {
     pub async fn update_user(&self, pool: &Pool<Sqlite>) -> Result<bool> {
         let mut tr = pool.begin().await?;
         // validate
+        if self.store_id.is_none() {
+            return Err(Error::unauthorized());
+        }
+
         if self.user_id.is_none() {
             return Err(Error::bad_request("user id can not be empty"));
         }
+
         // update user tags
         if let Some(tags) = &self.user_tags {
             UserTags::new(
                 self.user_id.unwrap(),
                 tags.clone(),
                 self.tags_remark.clone(),
+                self.store_id,
             )
             .update(&mut tr)
             .await?;
@@ -534,7 +571,7 @@ impl User {
         for user in result.rows.iter_mut() {
             // query user coupons for storage card and calculate balance
             if let Some(id) = user.user_id {
-                let coupons = UserCoupon::find_by_user_id(pool, id).await?;
+                let coupons = UserCoupon::find_by_user_id(pool, self.store_id.unwrap(), id).await?;
                 tracing::debug!("user {} has {:?} coupons", id, coupons);
                 user.balance = coupons
                     .iter()
@@ -595,8 +632,9 @@ pub async fn get_user_by_id(state: State<'_, AppState>, id: i64) -> Result<Optio
     }
     let mut user = user.unwrap();
 
+    let store_id = utils::get_user_id(&state).await?;
     // cal balance
-    user.balance = UserCoupon::cal_balance(pool, user.user_id.unwrap()).await?;
+    user.balance = UserCoupon::cal_balance(pool, store_id, user.user_id.unwrap()).await?;
     Ok(Some(user))
 }
 
@@ -610,22 +648,29 @@ pub async fn get_user_by_cloth_code(
     state: State<'_, AppState>,
     code: String,
 ) -> Result<Option<User>> {
-    User::get_user_by_cloth_code(&state.pool, &code).await
+    let store_id = utils::get_user_id(&state).await?;
+    User::get_user_by_cloth_code(&state.pool, store_id, &code).await
 }
 
 #[tauri::command]
 pub async fn create_user(state: State<'_, AppState>, mut user: User) -> Result<User> {
+    let store_id = utils::get_user_id(&state).await?;
+    user.store_id = Some(store_id);
     user.create_user(&state.pool).await
 }
 
 #[tauri::command]
-pub async fn update_user(state: State<'_, AppState>, user: User) -> Result<bool> {
+pub async fn update_user(state: State<'_, AppState>, mut user: User) -> Result<bool> {
+    let store_id = utils::get_user_id(&state).await?;
+    user.store_id = Some(store_id);
     user.update_user(&state.pool).await
 }
 
 #[tauri::command]
-pub async fn change_user_status(state: State<'_, AppState>, user: User) -> Result<bool> {
+pub async fn change_user_status(state: State<'_, AppState>, mut user: User) -> Result<bool> {
     let mut tr = state.pool.begin().await?;
+    let store_id = utils::get_user_id(&state).await?;
+    user.store_id = Some(store_id);
     let result = user.update(&mut tr).await?;
     tr.commit().await?;
     Ok(result)

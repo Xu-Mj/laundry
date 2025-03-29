@@ -55,7 +55,6 @@
 </template>
 
 <script setup>
-import { ref, reactive, defineProps, defineEmits, watch } from 'vue';
 import { Lock, Key, Edit, Check, Close } from '@element-plus/icons-vue';
 import { updatePwd } from '@/api/system/user';
 

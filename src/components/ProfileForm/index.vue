@@ -62,7 +62,6 @@
 </template>
 
 <script setup>
-import { ref, defineProps, defineEmits, getCurrentInstance } from 'vue';
 import { ElMessageBox } from 'element-plus';
 import { Check, RefreshRight } from '@element-plus/icons-vue';
 import { getProfile, updateProfile } from '@/api/system/profile';

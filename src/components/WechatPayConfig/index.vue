@@ -57,7 +57,6 @@
 </template>
 
 <script setup>
-import { ref, defineProps, defineEmits, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import { updateWechatConfig, uploadFile } from '@/api/system/profile';
 import WechatPayIcon from '@/views/icons/wechatPayIcon.vue';

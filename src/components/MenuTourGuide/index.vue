@@ -30,14 +30,13 @@
     <el-tour-step :target="menuRefs['收支报表']" title="收支报表" placement="right" description="查看店铺的收支统计报表">
       <div>点击此按钮查看店铺的收支统计报表，了解经营状况和财务分析</div>
     </el-tour-step>
-    <el-tour-step :target="menuRefs['知识天地']" title="知识天地" placement="right" description="查看洗衣相关的知识和技巧">
+    <!-- <el-tour-step :target="menuRefs['知识天地']" title="知识天地" placement="right" description="查看洗衣相关的知识和技巧">
       <div>点击此按钮查看洗衣相关的知识和技巧，提升服务质量和专业水平</div>
-    </el-tour-step>
+    </el-tour-step> -->
   </el-tour>
 </template>
 
 <script setup>
-import { ref, watch, onMounted, defineProps, defineEmits } from 'vue';
 import { checkTourCompleted, updateTourGuide } from '@/api/system/tour_guide';
 
 const props = defineProps({

@@ -30,7 +30,6 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, defineProps, defineEmits } from 'vue';
 import { checkTourCompleted, updateTourGuide } from '@/api/system/tour_guide';
 
 const props = defineProps({

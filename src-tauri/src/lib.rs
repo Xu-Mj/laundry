@@ -1,14 +1,11 @@
+pub mod captcha;
 pub mod config;
 pub mod db;
-
-pub mod captcha;
 pub mod error;
 pub mod files;
 pub mod home;
-pub mod printer;
-pub mod routers;
-// pub mod scripts;
 pub mod pay;
+pub mod printer;
 pub mod state;
 pub mod tray;
 pub mod update;
@@ -203,8 +200,6 @@ fn handle_command<R: Runtime>(invoke: Invoke<R>) -> bool {
         dict_data::add_dict_data_auto,
         dict_data::update_dict_data,
         dict_data::delete_dict_data,
-        // routers
-        routers::get_routers,
         // local_users
         local_users::get_info,
         local_users::validate_pwd,

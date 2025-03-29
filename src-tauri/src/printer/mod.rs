@@ -48,6 +48,12 @@ pub struct Client {
 
 #[tauri::command]
 pub async fn print(state: State<'_, AppState>, items: Vec<Item>) -> Result<()> {
+    let store_name = state
+        .get_user_info()
+        .await
+        .ok_or(Error::unauthorized())?
+        .store_name
+        .ok_or(Error::unauthorized())?;
     // 查询数据库，获取当前打印机的系统名称
     let printer_configuration = get_settled_printer(state)
         .await?
@@ -57,7 +63,7 @@ pub async fn print(state: State<'_, AppState>, items: Vec<Item>) -> Result<()> {
 
     for item in items {
         // 生成pdf文件
-        let file_name = gen_pdf(item)?;
+        let file_name = gen_pdf(&store_name, item)?;
         tracing::debug!("print file: {}", file_name);
 
         // 打印
@@ -90,7 +96,7 @@ fn gen_img(code: &str) -> Result<()> {
     Ok(())
 }
 
-fn gen_pdf(item: Item) -> Result<String> {
+fn gen_pdf(store_name: &str, item: Item) -> Result<String> {
     let (doc, page1, layer1) =
         PdfDocument::new("PDF_Document_title", Mm(WIDTH), Mm(HEIGHT), "Layer 1");
 
@@ -104,7 +110,7 @@ fn gen_pdf(item: Item) -> Result<String> {
 
     // 在指定位置添加文字
     current_layer.use_text(
-        "印洗匠心",
+        store_name,
         FONT_SIZE,
         Mm(PADDING),
         Mm(HEIGHT - PADDING),

@@ -26,7 +26,7 @@
                                 </div>
                             </el-scrollbar>
                         </el-col>
-                        <el-col :span="21" style="height: 100%;">
+                        <el-col :span="21" style="height: 100%; padding-left: .5rem;">
                             <el-form-item label="">
                                 <div class="input-btn-row">
                                     <el-input size="large" v-model="cateName" placeholder="请输入分类名称" />
@@ -1163,8 +1163,8 @@ onMounted(async () => {
 }
 
 .step0 {
-    display: flex;
     height: 100%;
+    display: flex;
 }
 
 .step6 {

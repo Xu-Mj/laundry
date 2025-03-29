@@ -201,6 +201,16 @@ export const constantRoutes = [
     ]
   },
   {
+    path: '/system/template',
+    component: Layout,
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/system/template/index.vue'),
+      }
+    ]
+  },
+  {
     path: '/system/config',
     component: Layout,
     children: [

@@ -110,6 +110,11 @@ impl Error {
     pub fn account_or_pwd() -> Self {
         Self::with_kind(ErrorKind::AccountOrPassword)
     }
+
+    #[inline]
+    pub fn unauthorized() -> Self {
+        Self::with_kind(ErrorKind::UnAuthorized)
+    }
 }
 
 impl fmt::Display for Error {

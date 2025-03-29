@@ -20,7 +20,7 @@ use tauri_plugin_fs::FsExt;
 
 use crate::db::{
     alipay_config, cloth_price, clothing, configs, coupons, dict_data, dict_type, drying_rack,
-    expenditure, local_users, membership_level, menu, notice_temp, order_clothes, orders, payments,
+    expenditure, local_users, membership_level, notice_temp, order_clothes, orders, payments,
     qrcode_payments, subscriptions, tags, user, user_coupons, user_tours, wechat_config,
 };
 
@@ -203,12 +203,6 @@ fn handle_command<R: Runtime>(invoke: Invoke<R>) -> bool {
         dict_data::add_dict_data_auto,
         dict_data::update_dict_data,
         dict_data::delete_dict_data,
-        // menu
-        menu::get_menu_list,
-        menu::get_menu_by_id,
-        menu::add_menu,
-        menu::update_menu,
-        menu::delete_menu,
         // routers
         routers::get_routers,
         // local_users

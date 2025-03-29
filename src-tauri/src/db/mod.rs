@@ -13,7 +13,6 @@ pub(crate) mod drying_rack;
 pub(crate) mod expenditure;
 pub(crate) mod local_users;
 pub(crate) mod membership_level;
-pub(crate) mod menu;
 pub(crate) mod notice_temp;
 pub(crate) mod order_clothes;
 pub(crate) mod order_pictures;

@@ -37,7 +37,7 @@
           <el-dropdown-menu>
             <el-dropdown-item @click="showSetting = true">选择打印机</el-dropdown-item>
             <el-dropdown-item command="goAdmin">
-              <span>{{ props.isAdmin ? '后台管理' : '返回' }}</span>
+              <span>{{ props.isAdmin ? '返回' : '后台管理' }}</span>
             </el-dropdown-item>
           </el-dropdown-menu>
         </template>
@@ -45,13 +45,9 @@
     </div>
     <Setting :visible="showSetting" :key="showSetting" :taggle="() => { showSetting = !showSetting }" />
 
-    <ChangePwdDialog 
-      :visible="showChangePwd" 
-      :account="userStore.account" 
-      @update:visible="(val) => showChangePwd = val" 
-      @success="handlePwdSuccess" 
-      @cancel="() => showChangePwd = false"
-    />
+    <ChangePwdDialog :visible="showChangePwd" :account="userStore.account"
+      @update:visible="(val) => showChangePwd = val" @success="handlePwdSuccess"
+      @cancel="() => showChangePwd = false" />
   </div>
 </template>
 
@@ -70,7 +66,7 @@ const props = defineProps({
 const { proxy } = getCurrentInstance();
 
 const userStore = useUserStore()
-const isGuest= ref(userStore.isGuest);
+const isGuest = ref(userStore.isGuest);
 const showSetting = ref(false);
 const showChangePwd = ref(false);
 

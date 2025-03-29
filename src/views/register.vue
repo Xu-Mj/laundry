@@ -23,8 +23,8 @@
         </el-form-item>
 
         <!-- 商家名称 -->
-        <el-form-item prop="storeName" class="custom-form-item">
-          <el-input v-model="registerForm.storeName" type="text" size="large" auto-complete="off" placeholder="商家名称"
+        <el-form-item prop="name" class="custom-form-item">
+          <el-input v-model="registerForm.name" type="text" size="large" auto-complete="off" placeholder="商家名称"
             class="custom-input">
             <template #prefix><el-icon class="input-icon">
                 <OfficeBuilding />
@@ -41,17 +41,17 @@
         </el-form-item>
 
         <!-- 手机号 -->
-        <el-form-item prop="phoneNumber" class="custom-form-item">
-          <el-input v-model="registerForm.phoneNumber" type="text" size="large" auto-complete="off" placeholder="手机号码"
+        <el-form-item prop="ownerPhone" class="custom-form-item">
+          <el-input v-model="registerForm.ownerPhone" type="text" size="large" auto-complete="off" placeholder="手机号码"
             class="custom-input">
             <template #prefix><svg-icon icon-class="phone" class="input-icon" /></template>
           </el-input>
         </el-form-item>
 
         <!-- 短信验证码 -->
-        <el-form-item prop="smsCode" class="custom-form-item sms-code-item">
-          <el-input v-model="registerForm.smsCode" type="text" size="large" auto-complete="off" placeholder="短信验证码"
-            class="custom-input sms-input">
+        <el-form-item prop="verificationCode" class="custom-form-item sms-code-item">
+          <el-input v-model="registerForm.verificationCode" type="text" size="large" auto-complete="off"
+            placeholder="短信验证码" class="custom-input sms-input">
             <template #prefix><svg-icon icon-class="validCode" class="input-icon" /></template>
           </el-input>
           <el-button :disabled="smsCodeTimer > 0" type="primary" class="sms-code-button" @click="getSmsCode">
@@ -60,8 +60,8 @@
         </el-form-item>
 
         <!-- 商家地址 -->
-        <el-form-item prop="storeLocation" class="custom-form-item">
-          <el-input v-model="registerForm.storeLocation" type="text" size="large" auto-complete="off" placeholder="商家地址"
+        <el-form-item prop="location" class="custom-form-item">
+          <el-input v-model="registerForm.location" type="text" size="large" auto-complete="off" placeholder="商家地址"
             class="custom-input">
             <template #prefix><svg-icon icon-class="tree" class="input-icon" /></template>
           </el-input>
@@ -110,6 +110,19 @@
         </div>
       </el-form>
     </div>
+    <el-dialog title="提示" :visible.sync="dialogVisible" width="30%">
+      <div style="text-align:center; padding: 30px 20px;">
+        <div style="margin-bottom:30px;">
+          <div
+            style="display:inline-flex; justify-content:center; align-items:center; width:80px; height:80px; border-radius:50%; background-color:#67C23A; box-shadow:0 6px 16px rgba(103, 194, 58, 0.4);">
+            <i class="el-icon-check" style="font-size:40px; color:white;"></i>
+          </div>
+        </div>
+        <div style="font-size:24px; color:#303133; margin-bottom:20px; font-weight:600">注册申请已提交</div>
+        <div style="color:#606266; font-size:16px; line-height:1.8; margin-bottom:8px;">您的注册申请已提交，请等待管理员审核。</div>
+        <div style="color:#606266; font-size:16px; line-height:1.8; margin-top:8px;">审核通过后，您将收到短信通知。</div>
+      </div>
+    </el-dialog>
   </div>
 
 </template>
@@ -117,7 +130,7 @@
 <script setup>
 import WaveBackground from '@/layout/components/WaveBackground.vue';
 import SunRays from '@/layout/components/SunRays.vue';
-import { getCodeImg, register } from "@/api/login";
+import { getCodeImg, register, getMsgCode } from "@/api/login";
 import { Window } from "@tauri-apps/api/window";
 import { ElMessageBox } from "element-plus";
 import { convertFileSrc } from '@tauri-apps/api/core'
@@ -129,11 +142,11 @@ const { proxy } = getCurrentInstance();
 // 注册表单数据
 const registerForm = ref({
   avatar: "images/avatars/avatar1.png", // 默认选择第一个头像
-  storeName: "",
+  name: "",
   ownerName: "",
-  phoneNumber: "",
-  smsCode: "",
-  storeLocation: "",
+  ownerPhone: "17863935638",
+  verificationCode: "",
+  location: "",
   password: "",
   confirmPassword: "",
   code: "",
@@ -164,7 +177,7 @@ const registerRules = {
   avatar: [
     { required: true, message: "请选择头像", trigger: "change" }
   ],
-  storeName: [
+  name: [
     { required: true, trigger: "blur", message: "请输入商家名称" },
     { min: 2, max: 50, message: "商家名称长度必须介于 2 和 50 之间", trigger: "blur" }
   ],
@@ -172,15 +185,15 @@ const registerRules = {
     { required: true, trigger: "blur", message: "请输入联系人姓名" },
     { min: 2, max: 20, message: "联系人姓名长度必须介于 2 和 20 之间", trigger: "blur" }
   ],
-  phoneNumber: [
+  ownerPhone: [
     { required: true, trigger: "blur", message: "请输入手机号码" },
     { validator: validatePhone, trigger: "blur" }
   ],
-  smsCode: [
+  verificationCode: [
     { required: true, trigger: "blur", message: "请输入短信验证码" },
     { min: 4, max: 6, message: "验证码长度不正确", trigger: "blur" }
   ],
-  storeLocation: [
+  location: [
     { required: true, trigger: "blur", message: "请输入商家地址" },
     { min: 5, max: 100, message: "地址长度必须介于 5 和 100 之间", trigger: "blur" }
   ],
@@ -216,7 +229,7 @@ const closeWindow = () => {
 const getSmsCode = async () => {
   // 验证手机号
   try {
-    await proxy.$refs.registerRef.validateField('phoneNumber');
+    await proxy.$refs.registerRef.validateField('ownerPhone');
 
     // 开始倒计时
     smsCodeTimer.value = 60;
@@ -229,14 +242,15 @@ const getSmsCode = async () => {
 
     // 这里应该调用发送短信验证码的API
     // 由于目前没有实际的短信API，这里只做模拟
+    await getMsgCode(registerForm.value.ownerPhone);
     proxy.$notify.success({
       title: "验证码已发送",
-      message: `验证码已发送至手机号: ${registerForm.value.phoneNumber}`,
+      message: `验证码已发送至手机号: ${registerForm.value.ownerPhone}`,
       duration: 3000
     });
 
     // 实际项目中应该调用类似的API
-    // await sendSmsCode(registerForm.value.phoneNumber);
+    // await sendSmsCode(registerForm.value.ownerPhone);
   } catch (error) {
     proxy.$notify.error({
       title: "验证失败",
@@ -252,32 +266,28 @@ const handleRegister = () => {
     if (valid) {
       loading.value = true;
 
-      // 构建注册数据
-      const registerData = {
-        avatar: registerForm.value.avatar,
-        storeName: registerForm.value.storeName,
-        ownerName: registerForm.value.ownerName,
-        phoneNumber: registerForm.value.phoneNumber,
-        smsCode: registerForm.value.smsCode,
-        storeLocation: registerForm.value.storeLocation,
-        password: registerForm.value.password,
-        code: registerForm.value.code,
-        uuid: registerForm.value.uuid
-      };
-
       // 调用注册API
-      register(registerData).then(res => {
+      register(registerForm.value).then(res => {
         loading.value = false;
         ElMessageBox.alert(
-          `<div style="text-align:center">
-            <div style="font-size:18px;color:#303133;margin-bottom:10px;font-weight:500">注册申请已提交</div>
-            <div style="color:#606266">您的注册申请已提交，请等待管理员审核。</div>
-            <div style="color:#606266;margin-top:10px">审核通过后，您将收到短信通知。</div>
+          `<div style="text-align:center; padding: 30px 20px;">
+            <div style="margin-bottom:30px;">
+              <div style="display:inline-flex; justify-content:center; align-items:center; width:80px; height:80px; border-radius:50%; background-color:#67C23A; box-shadow:0 6px 16px rgba(103, 194, 58, 0.4);">
+                <i class="el-icon-check" style="font-size:40px; color:white;"></i>
+              </div>
+            </div>
+            <div style="font-size:24px; color:#303133; margin-bottom:20px; font-weight:600">注册申请已提交</div>
+            <div style="color:#606266; font-size:16px; line-height:1.8; margin-bottom:8px;">您的注册申请已提交，请等待管理员审核。</div>
+            <div style="color:#606266; font-size:16px; line-height:1.8; margin-top:8px;">审核通过后，您将收到短信通知。</div>
           </div>`,
           "提示",
           {
             dangerouslyUseHTMLString: true,
             confirmButtonText: "返回登录页",
+            customClass: {
+              container: "register-success-dialog",
+              confirmButton: "register-success-confirm-btn"
+            },
             callback: () => {
               router.push("/login");
             }
@@ -365,7 +375,7 @@ onMounted(async () => {
     font-weight: 600;
     margin: 0 0 10px 0;
     background: linear-gradient(45deg, #3498db, #2c3e50);
-    -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
     letter-spacing: 1px;
   }

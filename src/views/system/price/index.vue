@@ -1,87 +1,75 @@
 <template>
   <div class="app-container">
-    <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="68px">
-      <el-form-item label="订单类别" prop="orderType">
-        <el-select v-model="queryParams.orderType" @change="selectChange" placeholder="订单类别" clearable
-          style="width: 100px;">
-          <el-option v-for="dict in sys_price_order_type" :key="dict.value" :label="dict.label" :value="dict.value" />
-        </el-select>
-      </el-form-item>
-      <el-form-item label="价格名称" prop="priceName">
-        <el-input v-model="queryParams.priceName" placeholder="请输入价格名称" clearable @keyup.enter="handleQuery" />
-      </el-form-item>
-      <el-form-item>
-        <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
-        <el-button icon="Refresh" @click="resetQuery">重置</el-button>
-      </el-form-item>
-    </el-form>
+    <el-card class="search-card" v-show="showSearch">
+      <el-form :model="queryParams" ref="queryRef" :inline="true" label-width="68px">
+        <el-form-item label="订单类别" prop="orderType">
+          <el-select v-model="queryParams.orderType" @change="selectChange" placeholder="订单类别" clearable
+            style="width: 100px;">
+            <el-option v-for="dict in sys_price_order_type" :key="dict.value" :label="dict.label" :value="dict.value" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="价格名称" prop="priceName">
+          <el-input v-model="queryParams.priceName" placeholder="请输入价格名称" clearable @keyup.enter="handleQuery" />
+        </el-form-item>
+        <el-form-item>
+          <el-button class="hover-flow" type="primary" icon="Search" @click="handleQuery">搜索</el-button>
+          <el-button class="hover-flow" icon="Refresh" @click="resetQuery">重置</el-button>
+        </el-form-item>
+      </el-form>
+    </el-card>
 
-    <el-row :gutter="10" class="mb8">
-      <el-col :span="1.5">
-        <el-button type="primary" plain icon="Plus" @click="handleAdd" v-hasPermi="['system:price:add']">新增</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button type="success" plain icon="Edit" :disabled="ids.length == 0" @click="showUpdateRefNum = true"
-          v-hasPermi="['system:price:edit']">设置使用计数</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleDelete"
-          v-hasPermi="['system:price:remove']">删除</el-button>
-      </el-col>
-      <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
-    </el-row>
+    <el-card class="table-card">
+      <el-row :gutter="10" class="mb8">
+        <el-col :span="1.5">
+          <el-button type="primary" plain icon="Plus" @click="handleAdd">新增</el-button>
+        </el-col>
+        <el-col :span="1.5">
+          <el-button type="success" plain icon="Edit" :disabled="ids.length == 0"
+            @click="showUpdateRefNum = true">设置使用计数</el-button>
+        </el-col>
+        <el-col :span="1.5">
+          <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleDelete">删除</el-button>
+        </el-col>
+        <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
+      </el-row>
 
-    <el-table v-loading="loading" :data="priceList" v-model="selectedList" @selection-change="handleSelectionChange">
-      <el-table-column type="selection" width="55" align="center" />
-      <!-- <el-table-column label="唯一标识ID" align="center" prop="priceId" /> -->
-      <el-table-column label="价格编码" align="center" prop="priceNumber" />
-      <el-table-column label="订单类别" align="center" prop="orderType">
-        <template #default="scope">
-          <dict-tag :options="sys_price_order_type" :value="scope.row.orderType" />
-        </template>
-      </el-table-column>
-      <el-table-column label="价格名称" align="center" prop="priceName" />
-      <el-table-column label="价格" align="center" prop="priceValue" />
-      <el-table-column label="折扣系数" align="center" prop="priceDiscount" />
-      <!-- <el-table-column label="适用衣物" align="center" prop="applicableCloths">
-        <template #default="scope">
-          <el-tag type="primary"
-            v-for="item, index in scope.row.applicableCloths ? scope.row.applicableCloths.split(',') : []"
-            :key="index">{{
-              item }}</el-tag>
-        </template>
-      </el-table-column> -->
-      <el-table-column label="显示顺序" align="center" prop="orderNum" />
-      <el-table-column label="使用计数" align="center" prop="refNum" />
-      <el-table-column label="状态" align="center" width="100">
-        <template #default="scope">
-          <el-switch v-model="scope.row.status" active-value="0" inactive-value="1"
-            @change="handleStatusChange(scope.row)"></el-switch>
-        </template>
-      </el-table-column>
-      <el-table-column label="备注" align="center" prop="remark" show-overflow-tooltip />
-      <el-table-column label="创建时间" align="center" prop="createTime" width="180">
-        <template #default="scope">
-          <span>{{ formatTime(scope.row.createTime) }}</span>
-        </template>
-      </el-table-column>
-      <!-- <el-table-column label="更新时间" align="center" prop="updatedAt" width="180">
-        <template #default="scope">
-          <span>{{ parseTime(scope.row.updatedAt, '{y}-{m}-{d}') }}</span>
-        </template>
-      </el-table-column> -->
-      <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
-        <template #default="scope">
-          <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)"
-            v-hasPermi="['system:price:edit']">修改</el-button>
-          <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)"
-            v-hasPermi="['system:price:remove']">删除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+      <el-table v-loading="loading" :data="priceList" v-model="selectedList" @selection-change="handleSelectionChange" class="modern-table"
+      border stripe>
+        <el-table-column type="selection" width="55" align="center" />
+        <el-table-column label="价格编码" align="center" prop="priceNumber" />
+        <el-table-column label="订单类别" align="center" prop="orderType">
+          <template #default="scope">
+            <dict-tag :options="sys_price_order_type" :value="scope.row.orderType" />
+          </template>
+        </el-table-column>
+        <el-table-column label="价格名称" align="center" prop="priceName" />
+        <el-table-column label="价格" align="center" prop="priceValue" />
+        <el-table-column label="折扣系数" align="center" prop="priceDiscount" />
+        <el-table-column label="显示顺序" align="center" prop="orderNum" />
+        <el-table-column label="使用计数" align="center" prop="refNum" />
+        <el-table-column label="状态" align="center" width="100">
+          <template #default="scope">
+            <el-switch v-model="scope.row.status" active-value="0" inactive-value="1"
+              @change="handleStatusChange(scope.row)"></el-switch>
+          </template>
+        </el-table-column>
+        <el-table-column label="备注" align="center" prop="remark" show-overflow-tooltip />
+        <el-table-column label="创建时间" align="center" prop="createTime" width="180">
+          <template #default="scope">
+            <span>{{ formatTime(scope.row.createTime) }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
+          <template #default="scope">
+            <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)">修改</el-button>
+            <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
 
-    <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum"
-      v-model:limit="queryParams.pageSize" @pagination="getList" />
+      <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum"
+        v-model:limit="queryParams.pageSize" @pagination="getList" />
+    </el-card>
 
     <!-- 添加或修改价格管理对话框 -->
     <el-dialog v-model="open" :show-close="false" width="500px" @opened="refNumberGetFocus"
@@ -95,7 +83,8 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="价格" prop="priceValue">
-              <el-input-number v-model="form.priceValue" controls-position="right" placeholder="请输入价格" :disabled="isPriceValueDisabled" />
+              <el-input-number v-model="form.priceValue" controls-position="right" placeholder="请输入价格"
+                :disabled="isPriceValueDisabled" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -110,22 +99,17 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="折扣系数" prop="priceDiscount">
-              <el-input-number v-model="form.priceDiscount" controls-position="right" placeholder="请输入折扣系数" :disabled="isPriceDiscountDisabled" />
+              <el-input-number v-model="form.priceDiscount" controls-position="right" placeholder="请输入折扣系数"
+                :disabled="isPriceDiscountDisabled" />
             </el-form-item>
           </el-col>
         </el-row>
-        <!-- <el-form-item label="适用衣物" prop="applicableCloths">
-          <el-select v-model="form.applicableClothsArr" placeholder="适用衣物" clearable multiple filterable remote
-            reserve-keyword remote-show-suffix :remote-method="getClothingList" :loading="clothListloading">
-            <el-option v-for="item in clothList" :key="item.clothingId"
-              :label="item.clothingName + '-' + item.clothingNumber" :value="item.clothingName" />
-          </el-select>
-        </el-form-item> -->
 
         <el-form-item label="状态">
           <el-radio-group v-model="form.status">
-            <el-radio v-for="dict in sys_normal_disable" :key="dict.value" :value="dict.value">{{ dict.label
-              }}</el-radio>
+            <el-radio v-for="dict in sys_normal_disable" :key="dict.value" :value="dict.value">
+              {{ dict.label }}
+            </el-radio>
           </el-radio-group>
         </el-form-item>
         <el-row>

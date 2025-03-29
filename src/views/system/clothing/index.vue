@@ -1,74 +1,77 @@
 <template>
   <div class="app-container">
-    <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="68px">
-      <el-form-item label="衣物类别" prop="clothingCategory">
-        <el-select v-model="queryParams.clothingCategory" @change="selectChange" placeholder="衣物类别" clearable
-          style="width: 240px">
-          <el-option v-for="dict in sys_cloth_cate" :key="dict.value" :label="dict.label" :value="dict.value" />
-        </el-select>
-      </el-form-item>
-      <el-form-item label="衣物编码" prop="clothingNumber">
-        <el-input v-model="queryParams.clothingNumber" placeholder="请输入衣物编码" clearable @keyup.enter="handleQuery" />
-      </el-form-item>
-      <el-form-item label="衣物名称" prop="clothingName">
-        <el-input v-model="queryParams.clothingName" placeholder="请输入衣物名称" clearable
-          @keyup.enter="handleQuery" />
-      </el-form-item>
-      <el-form-item>
-        <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
-        <el-button icon="Refresh" @click="resetQuery">重置</el-button>
-      </el-form-item>
-    </el-form>
+    <el-card class="search-card" v-show="showSearch">
+      <el-form :model="queryParams" ref="queryRef" :inline="true" label-width="68px">
+        <el-form-item label="衣物类别" prop="clothingCategory">
+          <el-select v-model="queryParams.clothingCategory" @change="selectChange" placeholder="衣物类别" clearable
+            style="width: 240px">
+            <el-option v-for="dict in sys_cloth_cate" :key="dict.value" :label="dict.label" :value="dict.value" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="衣物编码" prop="clothingNumber">
+          <el-input v-model="queryParams.clothingNumber" placeholder="请输入衣物编码" clearable @keyup.enter="handleQuery" />
+        </el-form-item>
+        <el-form-item label="衣物名称" prop="clothingName">
+          <el-input v-model="queryParams.clothingName" placeholder="请输入衣物名称" clearable @keyup.enter="handleQuery" />
+        </el-form-item>
+        <el-form-item>
+          <el-button class="hover-flow" type="primary" icon="Search" @click="handleQuery">搜索</el-button>
+          <el-button class="hover-flow" icon="Refresh" @click="resetQuery">重置</el-button>
+        </el-form-item>
+      </el-form>
+    </el-card>
 
-    <el-row :gutter="10" class="mb8">
-      <el-col :span="1.5">
-        <el-button type="primary" plain icon="Plus" @click="handleAdd">新增</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleDelete">批量删除</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button type="success" plain icon="Edit" :disabled="ids.length == 0" @click="showUpdateRefNum = true">设置使用计数</el-button>
-      </el-col>
-      <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
-    </el-row>
+    <el-card class="table-card">
+      <el-row :gutter="10" class="mb8">
+        <el-col :span="1.5">
+          <el-button type="primary" plain icon="Plus" @click="handleAdd">新增</el-button>
+        </el-col>
+        <el-col :span="1.5">
+          <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleDelete">批量删除</el-button>
+        </el-col>
+        <el-col :span="1.5">
+          <el-button type="success" plain icon="Edit" :disabled="ids.length == 0"
+            @click="showUpdateRefNum = true">设置使用计数</el-button>
+        </el-col>
+        <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
+      </el-row>
 
-    <el-table v-loading="loading" :data="clothingList" @selection-change="handleSelectionChange">
-      <el-table-column type="selection" width="55" align="center" />
-      <!-- <el-table-column label="衣物唯一标识ID" align="center" prop="clothingId" /> -->
-      <el-table-column label="衣物名称" align="center" prop="clothingName" />
-      <el-table-column label="衣物编码" align="center" prop="clothingNumber" />
-      <el-table-column label="所属品类" align="center" prop="clothingCategory">
-        <template #default="scope">
-          <dict-tag :options="sys_cloth_cate" :value="scope.row.clothingCategory" />
-        </template>
-      </el-table-column>
-      <el-table-column label="所属分类" align="center" prop="clothingStyle">
-        <template #default="scope">
-          <!-- <dict-tag :options="sys_cloth_style" :value="scope.row.clothingStyle" /> -->
-          <el-tag :type="getStyleCss(scope.row)">
-            {{ getStyle(scope.row) }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="基准价格" align="center" prop="clothingBasePrice" />
-      <el-table-column label="最低价格" align="center" prop="clothingMinPrice" />
-      <el-table-column label="显示顺序" align="center" prop="orderNum" />
-      <el-table-column label="使用计数" align="center" prop="clothingDegree" />
-      <el-table-column label="备注" align="center" prop="remark" show-overflow-tooltip />
-      <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
-        <template #default="scope">
-          <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)">修改</el-button>
-          <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)">删除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+      <el-table v-loading="loading" :data="clothingList" @selection-change="handleSelectionChange" class="modern-table"
+        border stripe>
+        <el-table-column type="selection" width="55" align="center" />
+        <el-table-column label="衣物名称" align="center" prop="clothingName" />
+        <el-table-column label="衣物编码" align="center" prop="clothingNumber" />
+        <el-table-column label="所属品类" align="center" prop="clothingCategory">
+          <template #default="scope">
+            <dict-tag :options="sys_cloth_cate" :value="scope.row.clothingCategory" />
+          </template>
+        </el-table-column>
+        <el-table-column label="所属分类" align="center" prop="clothingStyle">
+          <template #default="scope">
+            <el-tag :type="getStyleCss(scope.row)">
+              {{ getStyle(scope.row) }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="基准价格" align="center" prop="clothingBasePrice" />
+        <el-table-column label="最低价格" align="center" prop="clothingMinPrice" />
+        <el-table-column label="显示顺序" align="center" prop="orderNum" />
+        <el-table-column label="使用计数" align="center" prop="clothingDegree" />
+        <el-table-column label="备注" align="center" prop="remark" show-overflow-tooltip />
+        <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
+          <template #default="scope">
+            <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)">修改</el-button>
+            <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
 
-    <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum"
-      v-model:limit="queryParams.pageSize" @pagination="getList" />
+      <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum"
+        v-model:limit="queryParams.pageSize" @pagination="getList" />
+    </el-card>
 
     <!-- 添加或修改衣物管理对话框 -->
-    <el-dialog :show-close="false" v-model="open" width="500px" append-to-body :align-center="true" >
+    <el-dialog :show-close="false" v-model="open" width="500px" append-to-body :align-center="true">
       <el-form ref="clothingRef" :model="form" :rules="rules" label-width="80px">
         <el-form-item label="衣物名称" prop="clothingName">
           <el-input v-model="form.clothingName" placeholder="请输入衣物名称，如：羽绒服、运动鞋、貂等" />

@@ -232,8 +232,6 @@
 </template>
 
 <script setup>
-import { ref, defineProps, defineEmits } from 'vue';
-
 const props = defineProps({
   value: {
     type: Object,

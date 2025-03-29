@@ -97,7 +97,6 @@
 </template>
 
 <script setup>
-import { ref, reactive, defineProps, defineEmits, toRefs, watch } from 'vue';
 import { delivery } from "@/api/system/cloths";
 import { ElMessage } from 'element-plus';
 import { Van } from '@element-plus/icons-vue';

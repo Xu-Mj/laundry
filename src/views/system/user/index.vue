@@ -427,31 +427,4 @@ getList();
    flex-flow: row wrap;
    gap: .5rem;
 }
-
-/* 搜索区域样式 */
-.search-card {
-   margin-bottom: 20px;
-   border-radius: 8px;
-
-   .el-form-item {
-      margin-bottom: 0 !important;
-   }
-}
-
-.table-card {
-   border-radius: 8px;
-   margin-bottom: 20px;
-}
-
-.modern-table {
-   width: 100%;
-   border-radius: 8px;
-   overflow: hidden;
-}
-
-.modern-table :deep(th) {
-   background-color: var(--el-fill-color-light);
-   color: var(--el-text-color-primary);
-   font-weight: 600;
-}
 </style>

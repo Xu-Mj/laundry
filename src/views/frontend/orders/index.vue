@@ -682,38 +682,11 @@ getList();
 </script>
 
 <style scoped>
-/* 搜索区域样式 */
-.search-card {
-  margin-bottom: 20px;
-  border-radius: 8px;
-
-  .el-form-item {
-    margin-bottom: 0 !important;
-  }
-}
-
 /* 表格区域样式 */
 .table-operations {
   display: flex;
   justify-content: flex-end;
   margin-bottom: 15px;
-}
-
-.table-card {
-  border-radius: 8px;
-  margin-bottom: 20px;
-}
-
-.modern-table {
-  width: 100%;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.modern-table :deep(th) {
-  background-color: var(--el-fill-color-light);
-  color: var(--el-text-color-primary);
-  font-weight: 600;
 }
 
 /* 表格内容样式 */

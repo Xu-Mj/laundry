@@ -2,7 +2,7 @@
   <div class="app-container">
     <!-- 搜索区域 -->
     <el-card class="search-card" v-show="showSearch">
-      <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="68px">
+      <el-form :model="queryParams" ref="queryRef" :inline="true" label-width="68px">
         <el-form-item label="支出账目" prop="expTitle">
           <el-input v-model="queryParams.expTitle" placeholder="请输入支出账目" clearable @keyup.enter="handleQuery" />
         </el-form-item>
@@ -27,6 +27,7 @@
         </el-form-item>
       </el-form>
     </el-card>
+
     <el-card class="table-card">
       <el-row :gutter="10" class="mb8">
         <el-col :span="1.5">
@@ -292,30 +293,4 @@ getList();
   font-weight: 600;
 }
 
-/* 搜索区域样式 */
-.search-card {
-  margin-bottom: 20px;
-  border-radius: 8px;
-
-  .el-form-item {
-    margin-bottom: 0 !important;
-  }
-}
-
-.table-card {
-  border-radius: 8px;
-  margin-bottom: 20px;
-}
-
-.modern-table {
-  width: 100%;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.modern-table :deep(th) {
-  background-color: var(--el-fill-color-light);
-  color: var(--el-text-color-primary);
-  font-weight: 600;
-}
 </style>

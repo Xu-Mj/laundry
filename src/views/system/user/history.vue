@@ -86,15 +86,15 @@
                 <el-table-column label="衣物品牌" align="center" prop="clothingBrand">
                     <template #default="scope">
                         <el-tag v-if="scope.row.clothingBrand" type="primary">
-                            {{brandList.find(item => item.tagId == scope.row.clothingBrand).tagName}}
+                            {{ brandList.find(item => item.tagId == scope.row.clothingBrand).tagName }}
                         </el-tag>
                     </template>
                 </el-table-column>
                 <el-table-column label="衣物颜色" align="center">
                     <template #default="scope">
                         <el-tag v-if="scope.row.clothingColor" type="primary">
-                            {{scope.row.clothingColor ? colorList.find(item => item.tagId ==
-                                scope.row.clothingColor).tagName : ''}}
+                            {{ scope.row.clothingColor ? colorList.find(item => item.tagId ==
+                    scope.row.clothingColor).tagName : '' }}
                         </el-tag>
                     </template>
                 </el-table-column>
@@ -130,9 +130,8 @@ import { formatTime } from '@/utils/ruoyi';
 import vSlideIn from "@/vSlideIn";
 
 const props = defineProps({
-
     userId: {
-        type: Object,
+        type: Number,
         required: true,
     },
 });
@@ -247,9 +246,10 @@ async function calculatePrice(item) {
 
 async function getList() {
     queryParams.value.userId = props.userId;
-    // if (queryParams.value.pickupCode === '' && queryParams.value.phonenumber === '' && queryParams.value.orderNumber === '') {
-    //     return;
-    // }
+    if (!props.userId || props.userId === 0) {
+        proxy.notify.Warn("请先选择用户");
+        return;
+    }
     if (dateRange.value && dateRange.value.length === 2) {
         queryParams.value.startTime = dateRange.value[0];
         queryParams.value.endTime = dateRange.value[1];

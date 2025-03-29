@@ -23,16 +23,6 @@ const tagsViewStore = useTagsViewStore()
   position: relative;
   scrollbar-gutter: stable both-edges;
 }
-
-.fixed-header+.app-main {
-  padding-top: 50px;
-}
-
-.hasTagsView {
-  .fixed-header+.app-main {
-    padding-top: 114px;
-  }
-}
 </style>
 
 <style lang="scss">

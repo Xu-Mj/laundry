@@ -12,20 +12,20 @@
       <el-col :span="6" :xs="24">
         <el-card class="profile-card" shadow="hover">
           <div class="profile-avatar-container">
-            <el-upload class="avatar-uploader" :show-file-list="false" :on-success="handleAvatarSuccess">
+            <!-- <el-upload class="avatar-uploader" :show-file-list="false" :on-success="handleAvatarSuccess"> -->
               <div class="avatar-wrapper">
                 <img v-if="profileData.avatar" :src="profileData.avatar" class="avatar">
                 <el-icon v-else class="avatar-icon">
                   <UserFilled />
                 </el-icon>
-                <div class="avatar-mask">
+                <!-- <div class="avatar-mask">
                   <el-icon>
                     <Camera />
                   </el-icon>
                   <span>更换头像</span>
-                </div>
+                </div> -->
               </div>
-            </el-upload>
+            <!-- </el-upload> -->
             <h3 class="profile-name">{{ profileData.nickname || '未设置昵称' }}</h3>
             <p class="profile-store">{{ profileData.storeName || '未设置店铺' }}</p>
           </div>

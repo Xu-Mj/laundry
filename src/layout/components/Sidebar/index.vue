@@ -1,6 +1,6 @@
 <template>
   <div class="sidebar">
-    <logo :collapse="false" />
+    <logo />
     <el-scrollbar wrap-class="scrollbar-wrapper" :view-class="['menu-list', { 'single-column': isSingleColumn }]">
       <button v-for="menu in menus" class="btn menu" :class="{ active: route.path == menu.path }" :color="menu.color"
         :dark="menu.dark" :type="menu.type" @click="handleMenuClick(menu)" plain v-show="menu.show"
@@ -160,5 +160,4 @@ onMounted(() => {
   border-color: var(--el-color-primary);
   color: var(--el-color-primary);
 }
-
 </style>

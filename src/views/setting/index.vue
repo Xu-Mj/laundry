@@ -7,7 +7,7 @@
     </el-dialog>
 </template>
 <script setup name="Setting">
-import { setPrinter, getSettledPrinter, getPrinters } from '../../api/system/printer';
+import { setPrinter, getSettledPrinter, getPrinters } from '@/api/system/printer';
 
 const props = defineProps({
     visible: {

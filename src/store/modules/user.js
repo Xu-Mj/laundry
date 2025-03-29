@@ -20,7 +20,8 @@ const useUserStore = defineStore(
       name: '',
       account: '',
       avatar: '',
-      isGuest: true,
+      // isGuest: true,
+      // isInTrial: true,
       roles: [],
       permissions: [],
       user: null,
@@ -99,29 +100,22 @@ const useUserStore = defineStore(
           getInfo().then(res => {
             const user = res.user;
             const avatar = (user.avatar == "" || user.avatar == null) ? defAva : convertFileSrc(user.avatar);
-
-            // if (res.roles && res.roles.length > 0) {
-            //   this.roles = res.roles
-            //   this.permissions = res.permissions
-            // } else {
-            //   this.roles = ['ROLE_DEFAULT']
-            // }
             this.id = user.id
             this.name = user.nickname
             this.account = user.ownerPhone
-            this.isGuest = user.isGuest ? user.isGuest : false
+            this.sub.isGuest = user.isGuest ? user.isGuest : false
             this.avatar = avatar
             res.user.avatar = avatar
             // 需要检查是否已经登录
             // 检查是否是游客账号
             if (res.user && res.user.id === 0) {
-              this.isGuest = true
+              this.sub.isGuest = true
               this.sub.isInTrial = true
               // 游客模式使用特殊的试用期天数
               this.sub.trialDays = GUEST_TRIAL_DAYS
               this.sub.status = 'trial'
             } else {
-              this.isGuest = false
+              this.sub.isGuest = false
               this.sub.trialDays = TRIAL_DAYS
 
               // 从本地数据库获取订阅信息
@@ -203,10 +197,12 @@ const useUserStore = defineStore(
           return
         }
 
-        // 如果是首次使用，记录时间
+        // 如果是首次使用，记录时间并与用户ID关联
         if (!this.sub.firstUseTime) {
           this.sub.firstUseTime = new Date().toISOString()
           firstUseTime.value = this.sub.firstUseTime
+          // 将首次使用时间与用户ID一起存储
+          useStorage(`app_first_use_time_${this.id}`, this.sub.firstUseTime)
         }
 
         // 计算试用期剩余天数
@@ -218,7 +214,7 @@ const useUserStore = defineStore(
 
       // 更新水印显示状态
       updateWatermarkStatus() {
-        this.sub.showWatermark = this.sub.shouldShowWatermark
+        this.sub.showWatermark = this.sub.isGuest || this.sub.isInTrial
       },
 
       // 设置试用期天数（用于开发测试）

@@ -211,6 +211,27 @@ export const constantRoutes = [
     ]
   },
   {
+    path: '/system/dict',
+    component: Layout,
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/system/dict/index.vue'),
+      }
+    ]
+  },
+  {
+    path: '/system/dict-data',
+    component: Layout,
+    hidden: true,
+    children: [
+      {
+        path: 'index/:dictId(\\d+)',
+        component: () => import('@/views/system/dict/data'),
+      }
+    ]
+  },
+  {
     path: '/redirect',
     component: Layout,
     hidden: true,

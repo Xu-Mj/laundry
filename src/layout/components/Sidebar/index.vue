@@ -88,6 +88,7 @@ const manageMenus = [
   { 'name': '标签管理', 'type': 'primary', show: true, path: '/system/tags', onClick: () => router.push('/system/tags') },
   { 'name': '通知记录', 'type': 'primary', show: true, path: '/system/notice-record', onClick: () => router.push('/system/notice-record') },
   { 'name': '参数设置', 'type': 'primary', show: true, path: '/system/config', onClick: () => router.push('/system/config') },
+  { 'name': '字典管理', 'type': 'primary', show: true, path: '/system/dict', onClick: () => router.push('/system/dict') },
 ];
 
 const menus = computed(() => {

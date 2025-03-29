@@ -183,32 +183,7 @@ impl Validator for OrderCloth {
 }
 
 const SQL: &str = "SELECT
-               oc.order_id,
-               oc.cloth_id,
-               oc.clothing_id,
-               oc.clothing_category,
-               oc.clothing_style,
-               oc.clothing_color,
-               oc.clothing_flaw,
-               oc.estimate,
-               oc.clothing_brand,
-               oc.service_type,
-               oc.service_requirement,
-               oc.before_pics,
-               oc.after_pics,
-               oc.notes,
-               oc.process_markup,
-               oc.price_value,
-               oc.hang_type,
-               oc.hang_location_code,
-               oc.hang_cloth_code,
-               oc.hanger_number,
-               oc.hang_remark,
-               oc.create_time,
-               oc.clothing_status,
-               oc.pickup_time,
-               oc.pickup_method,
-               oc.remark,
+               oc.*,
                c.clothing_id,
                c.clothing_category,
                c.clothing_number,
@@ -350,11 +325,13 @@ impl OrderCloth {
 
     pub async fn query_hanger_number(
         pool: &Pool<Sqlite>,
+        store_id: i64,
         hang_location_code: i64,
     ) -> Result<Vec<i32>> {
         let numbers = sqlx::query_scalar::<_, i32>(
-            "SELECT hanger_number FROM order_clothes WHERE hang_location_code = ?",
+            "SELECT hanger_number FROM order_clothes WHERE store_id = ? AND hang_location_code = ?",
         )
+        .bind(store_id)
         .bind(hang_location_code)
         .fetch_all(pool)
         .await?;
@@ -645,7 +622,7 @@ impl OrderCloth {
         Ok(clothing_number)
     }
 
-    pub async fn insert_order_cloth(&mut self, pool: &Pool<Sqlite>) -> Result<Self> {
+    pub async fn insert_order_cloth(&mut self, pool: &Pool<Sqlite>, store_id: i64) -> Result<Self> {
         let mut tr = pool.begin().await?; // 开启事务
 
         // 设置时间
@@ -661,9 +638,12 @@ impl OrderCloth {
         self.pickup_time = None;
 
         // 生成衣挂位置
-        let drying_rack =
-            DryingRack::get_position(pool, self.hang_type.clone().unwrap_or("01".to_string()))
-                .await?;
+        let drying_rack = DryingRack::get_position(
+            pool,
+            store_id,
+            self.hang_type.clone().unwrap_or("01".to_string()),
+        )
+        .await?;
 
         if !drying_rack.update(&mut tr).await? {
             return Err(Error::internal("Failed to update drying rack"));
@@ -917,6 +897,7 @@ impl OrderCloth {
     //     Ok(())
     // }
     pub async fn hang_cloth(state: &State<'_, AppState>, hang_req: HangReq) -> Result<()> {
+        let store_id = utils::get_user_id(&state).await?;
         let pool = &state.pool;
         let mut tr = pool.begin().await?;
 
@@ -946,7 +927,7 @@ impl OrderCloth {
         }
 
         // query order information
-        let mut order = Order::get_by_id(pool, cloth.order_id.unwrap())
+        let mut order = Order::get_by_id(pool, store_id, cloth.order_id.unwrap())
             .await?
             .ok_or(Error::with_details(ErrorKind::NotFound, "order not found"))?;
 
@@ -1107,7 +1088,7 @@ impl OrderCloth {
     }
 
     /// clothes may be in different orders
-    pub async fn pickup(pool: &Pool<Sqlite>, ids: &[i64]) -> Result<()> {
+    pub async fn pickup(pool: &Pool<Sqlite>, store_id: i64, ids: &[i64]) -> Result<()> {
         let mut tr = pool.begin().await?;
         // query clothes by ids and change status
         let mut clothes = Self::get_by_ids(pool, ids).await?;
@@ -1149,7 +1130,7 @@ impl OrderCloth {
                 .count()
                 == clothes.len()
             {
-                let order = Order::get_by_id(pool, order_id).await?;
+                let order = Order::get_by_id(pool, store_id, order_id).await?;
                 if let Some(mut order) = order {
                     // update order status to complete if it was paid already
                     if order.payment_status == Some(ORDER_STATUS_PAID.to_string()) {
@@ -1230,7 +1211,8 @@ pub async fn add_order_cloth(
     state: State<'_, AppState>,
     mut order_cloth: OrderCloth,
 ) -> Result<OrderCloth> {
-    order_cloth.insert_order_cloth(&state.pool).await
+    let store_id = utils::get_user_id(&state).await?;
+    order_cloth.insert_order_cloth(&state.pool, store_id).await
 }
 
 #[tauri::command]
@@ -1245,7 +1227,8 @@ pub async fn remove_pic_from_order_cloth(
 
 #[tauri::command]
 pub async fn pickup_order_cloth(state: State<'_, AppState>, clothes_id: Vec<i64>) -> Result<()> {
-    OrderCloth::pickup(&state.pool, &clothes_id).await
+    let store_id = utils::get_user_id(&state).await?;
+    OrderCloth::pickup(&state.pool, store_id, &clothes_id).await
 }
 
 #[tauri::command]

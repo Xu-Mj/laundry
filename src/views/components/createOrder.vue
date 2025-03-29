@@ -686,7 +686,10 @@ function searchUserByTel(tel) {
         form.value.nickName = null;
         form.value.userId = null;
         userCouponList.value = [];
-        currentUser.value = {};
+        currentUser.value = {
+            phonenumber: tel,
+            status: "0",
+        };
     } else {
         if (userListRes.value.length == 1) {
             form.value.nickName = userListRes.value[0].nickName;

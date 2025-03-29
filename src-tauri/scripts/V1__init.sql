@@ -51,30 +51,6 @@ CREATE TABLE IF NOT EXISTS user_membership_level (
     PRIMARY KEY (user_id, level_id) -- 复合主键: 用户ID和会员等级ID
 );
 
-CREATE TABLE IF NOT EXISTS menu
-(
-    menu_id     INTEGER PRIMARY KEY AUTOINCREMENT, -- 菜单ID
-    menu_name   TEXT NOT NULL,                     -- 菜单名称
-    parent_id   INTEGER  DEFAULT 0,                -- 父菜单ID
-    order_num   INTEGER  DEFAULT 0,                -- 显示顺序
-    path        TEXT     DEFAULT '',               -- 路由地址
-    component   TEXT     DEFAULT NULL,             -- 组件路径
-    query       TEXT     DEFAULT NULL,             -- 路由参数
-    route_name  TEXT     DEFAULT '',               -- 路由名称
-    is_frame    INTEGER  DEFAULT 1,                -- 是否为外链（0是 1否）
-    is_cache    INTEGER  DEFAULT 0,                -- 是否缓存（0缓存 1不缓存）
-    menu_type   TEXT     DEFAULT '',               -- 菜单类型（M目录 C菜单 F按钮）
-    visible     TEXT     DEFAULT '0',              -- 菜单状态（0显示 1隐藏）
-    status      TEXT     DEFAULT '0',              -- 菜单状态（0正常 1停用）
-    perms       TEXT     DEFAULT NULL,             -- 权限标识
-    icon        TEXT     DEFAULT '#',              -- 菜单图标
-    create_by   TEXT     DEFAULT '',               -- 创建者
-    create_time DATETIME DEFAULT NULL,             -- 创建时间
-    update_by   TEXT     DEFAULT '',               -- 更新者
-    update_time DATETIME DEFAULT NULL,             -- 更新时间
-    remark      TEXT     DEFAULT ''                -- 备注
-);
-
 CREATE TABLE IF NOT EXISTS configs
 (
     config_id    INTEGER PRIMARY KEY AUTOINCREMENT,                           -- 参数主键
@@ -248,7 +224,7 @@ CREATE TABLE user_coupons
 (
     uc_id           INTEGER PRIMARY KEY AUTOINCREMENT,
     store_id        INTEGER NOT NULL,
-    user_id         INTEGER NOT NULL,    
+    user_id         INTEGER NOT NULL,
     coupon_id       INTEGER NOT NULL,
     create_time     TIMESTAMP,
     obtain_at       TIMESTAMP DEFAULT NULL,
@@ -721,23 +697,6 @@ INSERT INTO local_users (id, nickname, owner_name, avatar, owner_phone, password
 INSERT INTO configs (config_id, config_name, config_key, config_value, config_type, create_by, create_time, update_by, update_time, remark) VALUES (1, '账号自助-验证码开关', 'sys.account.captchaEnabled', 'false', 'Y', 'admin', null, '', null, '是否开启验证码功能（true开启，false关闭）');
 INSERT INTO configs (config_id, config_name, config_key, config_value, config_type, create_by, create_time, update_by, update_time, remark) VALUES (2, '预计取衣时间', 'desire_complete_time', '17', 'Y', null, '2025-02-15T10:22:13.032273400+08:00', null, '2025-02-15T10:23:31.618923900+08:00', '默认七天后取衣');
 INSERT INTO configs (config_id, config_name, config_key, config_value, config_type, create_by, create_time, update_by, update_time, remark) VALUES (3, '页面无操作注销时间', 'logout_timeout', '600', 'Y', null, '2025-02-15T11:40:01.890123500+08:00', null, null, '单位：秒');
-
-
-INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (1, '系统管理', 0, 1, '/system', null, '', '', '1', '0', 'M', '0', '0', '', '/system', 'admin', '2024-08-16 06:41:56', '', null, '系统管理目录');
-INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (102, '菜单管理', 1, 3, 'menu', 'system/menu/index', '', '', '1', '0', 'C', '0', '0', 'system:menu:list', 'tree-table', 'admin', '2024-08-16 06:41:56', '', null, '菜单管理菜单');
-INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (104, '等级管理', 1, 5, 'post', 'system/post/index', '', '', '1', '0', 'C', '0', '0', 'system:post:list', 'post', 'admin', '2024-08-16 06:41:56', 'admin', '2024-08-22 15:31:54', '岗位管理菜单');
-INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (105, '字典管理', 1, 6, 'dict', 'system/dict/index', '', '', '1', '0', 'C', '0', '0', 'system:dict:list', 'dict', 'admin', '2024-08-16 06:41:56', '', null, '字典管理菜单');
-INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (106, '参数设置', 1, 7, 'config', 'system/config/index', '', '', '1', '0', 'C', '0', '0', 'system:config:list', 'edit', 'admin', '2024-08-16 06:41:56', '', null, '参数设置菜单');
-INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2000, '用户地址', 3, 1, 'address', 'system/address/index', null, '', '1', '0', 'C', '0', '0', 'system:address:list', '#', 'admin', '2024-08-29 00:50:02', '', null, '用户地址菜单');
-INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2006, '衣物管理', 1, 1, 'clothing', 'system/clothing/index', null, '', '1', '0', 'C', '0', '0', 'system:clothing:list', 'theme', 'admin', '2024-08-29 00:50:03', 'admin', '2025-02-15T22:19:20.840106400+08:00', '衣物信息菜单');
-INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2030, '标签管理', 1, 1, 'tags', 'system/tags/index', null, '', '1', '0', 'C', '0', '0', 'system:tags:list', 'checkbox', 'admin', '2024-09-02 06:32:39', 'admin', '2025-02-15T22:19:48.939528900+08:00', '用于配置系统中用到的所有标准化的数据，包括衣物类型、衣物颜色、洗前瑕疵、以后预估等菜单');
-INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2042, '通知模板', 1, 1, 'template', 'system/template/index', null, '', '1', '0', 'C', '0', '0', 'system:template:list', 'email', 'admin', '2024-09-04 14:26:01', 'admin', '2025-02-15T22:19:57.149302500+08:00', '通知模板管理菜单');
-INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2048, '通知记录', 1, 1, 'notice_record', 'system/notice_record/index', null, '', '1', '0', 'C', '0', '0', 'system:noticeRecord:list', 'documentation', 'admin', '2024-09-05 02:42:29', 'admin', '2025-02-15T22:20:02.971941200+08:00', '通知记录管理菜单');
-INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2054, '价格管理', 1, 1, 'price', 'system/price/index', null, '', '1', '0', 'C', '0', '0', 'system:price:list', 'money', 'admin', '2024-09-06 13:39:17', 'admin', '2025-02-15T22:20:19.476233+08:00', '价格管理菜单');
-INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2066, '支出管理', 2078, 1, 'expenditure', 'system/expenditure/index', null, '', '1', '0', 'C', '0', '0', 'system:expenditure:list', 'edit', 'admin', '2024-09-11 01:26:21', 'admin', '2025-02-15T22:20:47.895946300+08:00', '支出菜单');
-INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2072, '衣挂管理', 1, 1, 'rack', 'system/rack/index', null, '', '1', '0', 'C', '0', '0', 'system:rack:list', 'list', 'admin', '2024-09-14 06:13:30', 'admin', '2025-02-15T22:20:29.505985200+08:00', '晾衣架菜单');
-INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2080, '推广模板', 1, 1, 'promote-template', 'system/promote_template/index', null, '', '1', '0', 'C', '1', '1', 'system:promote-template:list', '#', 'admin', '2024-10-13 11:25:55', 'admin', '2024-12-07T11:33:04.524330900+08:00', '推广模板菜单');
-INSERT INTO menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES (2086, '推广记录', 1, 1, 'promote-record', 'system/promote_record/index', null, '', '1', '0', 'C', '1', '1', 'system:promote-record:list', '#', 'admin', '2024-10-13 11:29:08', 'admin', '2024-12-07T11:33:09.946013+08:00', '推广记录菜单');
 
 INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (1, '用户性别', 'sys_user_sex', '0', '2024-08-16 06:41:56', null, '用户性别列表');
 INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (2, '菜单状态', 'sys_show_hide', '0', '2024-08-16 06:41:56', '', '菜单状态列表');

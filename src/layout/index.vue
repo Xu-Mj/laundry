@@ -6,6 +6,7 @@
       <app-main />
     </div>
     <LockScreen @unlock="handleUnlock" />
+    <TrialExpired />
   </AppWatermark>
 </template>
 
@@ -15,6 +16,7 @@ import { AppMain } from './components'
 import CloseBar from '@/components/close_bar'
 import AppWatermark from '@/components/AppWatermark/index.vue'
 import LockScreen from '@/components/LockScreen/index.vue'
+import TrialExpired from '@/components/TrialExpired/index.vue'
 
 // 锁屏功能 - 简化后的解锁处理函数
 const handleUnlock = () => {

@@ -4,6 +4,8 @@
   </div>
   <WaveBackground />
   <SunRays position="top-right" />
+  <!-- 衣挂初始化检查组件 -->
+  <RackInitCheck v-model:visible="showRackInitCheck" @setup-complete="handleRackSetupComplete" />
   <div class="login-container" data-tauri-drag-region>
     <div class="login-card">
       <div class="login-header">
@@ -60,18 +62,23 @@
 <script setup>
 import WaveBackground from '@/layout/components/WaveBackground.vue';
 import SunRays from '@/layout/components/SunRays.vue';
+import RackInitCheck from '@/components/RackInitCheck/index.vue';
 import { getCodeImg } from "@/api/login";
 import Cookies from "js-cookie";
 import { encrypt, decrypt } from "@/utils/jsencrypt";
 import useUserStore from '@/store/modules/user';
 import { Window } from "@tauri-apps/api/window";
 import { onMounted } from 'vue';
+import { checkRackInitialized } from '@/api/system/rackCheck';
 const appWindow = new Window('main');
 
 const userStore = useUserStore()
 const route = useRoute();
 const router = useRouter();
 const { proxy } = getCurrentInstance();
+
+// 衣挂初始化检查相关状态
+const showRackInitCheck = ref(false);
 
 const loginForm = ref({
   account: null,
@@ -80,6 +87,12 @@ const loginForm = ref({
   code: "",
   uuid: ""
 });
+
+// 衣挂初始化检查完成处理函数
+const handleRackSetupComplete = (completed) => {
+  // 无论用户是否完成设置，都继续正常跳转
+  routeJump();
+};
 
 const loginRules = {
   account: [{ required: true, trigger: "blur", message: "请输入您的账号" }],
@@ -148,9 +161,10 @@ function handleGuestLogin() {
   // 调用登录方法
   userStore.guestLogin().then((res) => {
     routeJump();
-  }).catch(() => {
+  }).catch((err) => {
     loading.value = false;
     proxy.notify.error('游客登录失败，请稍后再试');
+    console.error(err);
   });
 }
 
@@ -163,6 +177,26 @@ async function routeJump() {
     return acc;
   }, {});
   router.push({ path: redirect.value || "/", query: otherQueryParams });
+}
+
+// 检查衣挂数据是否已初始化
+async function checkRackInitialization() {
+  try {
+    // 调用API检查衣挂数据是否已初始化
+    const isInitialized = await checkRackInitialized();
+    
+    if (!isInitialized) {
+      // 如果未初始化，显示衣挂初始化设置对话框
+      showRackInitCheck.value = true;
+    } else {
+      // 已初始化，正常跳转
+      routeJump();
+    }
+  } catch (error) {
+    console.error('检查衣挂初始化状态失败:', error);
+    // 发生错误时，仍然正常跳转
+    routeJump();
+  }
 }
 
 async function getCode() {
@@ -200,8 +234,8 @@ function focusElement() {
 // 检查订阅状态并提示用户
 function checkSubscriptionStatus() {
   // 检查用户是否有有效的软件订阅和短信订阅
-  const hasSoftwareSub = userStore.sub.status === 'active';
-  const hasSmsSub = userStore.sub.smsSub;
+  const hasSoftwareSub = userStore.subscription.status === 'active';
+  const hasSmsSub = userStore.smsSub;
   
   // 如果用户没有任何订阅，提示用户
   if (!hasSoftwareSub || !hasSmsSub) {
@@ -230,11 +264,11 @@ function checkSubscriptionStatus() {
       router.push(path);
     }).catch(() => {
       // 用户点击取消，继续正常跳转
-      routeJump();
+      checkRackInitialization();
     });
   } else {
     // 用户已有所有订阅，正常跳转
-    routeJump();
+    checkRackInitialization();
   }
 }
 

@@ -38,6 +38,7 @@
 
 <script setup>
 import { checkTourCompleted, updateTourGuide } from '@/api/system/tour_guide';
+import useUserStore from '@/store/modules/user';
 
 const props = defineProps({
   // 菜单引用对象
@@ -59,8 +60,17 @@ const tourVisible = ref(false);
 // 检查并自动开启引导
 const checkAndStartTour = async () => {
   try {
+    // 获取用户状态
+    const userStore = useUserStore();
+    
+    // 检查用户是否已登录（有token）
+    if (!userStore.token) {
+      return; // 如果用户未登录，不显示引导
+    }
+    
     // 检查用户是否已完成菜单引导
     const completed = await checkTourCompleted(props.pageKey);
+    // debugger;
     if (!completed) {
       // 如果未完成，自动开启引导
       tourVisible.value = true;

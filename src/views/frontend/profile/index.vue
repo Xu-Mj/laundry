@@ -125,7 +125,7 @@ const route = useRoute();
 
 const activeTab = ref('basic')
 const profileData = ref(userStore.user || {})
-const isGuest = userStore.isGuest;
+const isGuest = userStore.trial.isGuest;
 // 支付配置数据
 const paymentConfig = ref({
   alipay: {

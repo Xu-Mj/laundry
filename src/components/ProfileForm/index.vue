@@ -52,18 +52,17 @@
           <Check />
         </el-icon> 保存修改
       </el-button>
-      <el-button :disabled="props.isGuest" @click="resetForm">
+      <!-- <el-button :disabled="props.isGuest" @click="resetForm">
         <el-icon>
           <RefreshRight />
         </el-icon> 重置
-      </el-button>
+      </el-button> -->
     </el-form-item>
   </el-form>
 </template>
 
 <script setup>
 import { ElMessageBox } from 'element-plus';
-import { Check, RefreshRight } from '@element-plus/icons-vue';
 import { getProfile, updateProfile } from '@/api/system/profile';
 
 const props = defineProps({

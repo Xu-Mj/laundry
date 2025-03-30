@@ -100,7 +100,7 @@
         <el-table-column label="限制条件" align="center" prop="usageLimit" v-if="columns[12].visible">
           <template #default="scope">
             {{ scope.row.couponType === '003' ? '最高消费金额限制' + scope.row.usageLimit + '元' :
-              scope.row.usageLimit == 0 ? '无限制' : scope.row.usageLimit }}
+      scope.row.usageLimit == 0 ? '无限制' : scope.row.usageLimit }}
           </template>
         </el-table-column>
         <el-table-column label="卡券状态" align="center" prop="status" v-if="columns[13].visible">
@@ -123,20 +123,16 @@
     </el-card>
     <!-- 添加或修改卡券对话框 -->
     <el-dialog v-model="open" width="700px" :show-close="false" lock-scroll modal :close-on-click-modal="false"
-      append-to-body>
+      align-center append-to-body>
       <template #header>
-        <div class="dialog-header">
+        <div class="dialog-header hover-flow">
           <div class="dialog-title">
             <el-icon>
               <Ticket />
             </el-icon>
             <span>{{ title }}</span>
           </div>
-          <el-button circle @click="cancel">
-            <el-icon>
-              <Close />
-            </el-icon>
-          </el-button>
+          <el-button circle @click="cancel" icon="Close" />
         </div>
       </template>
       <coupon-form :value="form" :coupon-types="sys_coupon_type" :status-options="sys_coupon_status"
@@ -144,10 +140,10 @@
     </el-dialog>
 
     <!-- show sell coupon -->
-    <el-dialog v-model="showSell" width="800px" @closed="closeSell" class="coupon-sale-dialog" :align-center="true"
+    <el-dialog v-model="showSell" width="800px" @closed="closeSell" class="coupon-sale-dialog" align-center
       :show-close="false">
       <template #header>
-        <div class="dialog-header">
+        <div class="dialog-header hover-flow">
           <div class="dialog-title">
             <el-icon>
               <Ticket />
@@ -241,10 +237,10 @@
               <el-table-column label="数量" align="center" width="180">
                 <template #default="scope">
                   <el-input-number v-model="scope.row.count" :min="0" :max="(scope.row.customerSaleCount != -1 && scope.row.customerSaleTotal != -1)
-                    ? Math.min(scope.row.customerSaleCount, scope.row.customerSaleTotal)
-                    : (scope.row.customerSaleTotal != -1 ? scope.row.customerSaleTotal
-                      : (scope.row.customerSaleCount != -1 ? scope.row.customerSaleCount : Infinity))"
-                    controls-position="right" class="quantity-input" />
+      ? Math.min(scope.row.customerSaleCount, scope.row.customerSaleTotal)
+      : (scope.row.customerSaleTotal != -1 ? scope.row.customerSaleTotal
+        : (scope.row.customerSaleCount != -1 ? scope.row.customerSaleCount : Infinity))" controls-position="right"
+                    class="quantity-input" />
                 </template>
               </el-table-column>
             </el-table>
@@ -761,29 +757,6 @@ getList();
 .coupon-sale-dialog :deep(.el-dialog__footer) {
   padding: 16px 20px;
   border-top: 1px solid var(--el-border-color-lighter);
-}
-
-.dialog-header {
-  background-color: var(--el-color-primary-light-9);
-  padding: 16px 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid var(--el-border-color-lighter);
-  border-radius: .5rem;
-}
-
-:root.dark .dialog-header {
-  --el-color-primary-light-9: #1d2c40;
-}
-
-.dialog-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--el-color-primary);
 }
 
 .coupon-sale-form {

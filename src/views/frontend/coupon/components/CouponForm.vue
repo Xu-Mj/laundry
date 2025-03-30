@@ -225,8 +225,8 @@
     </el-form>
 
     <div class="form-actions">
-      <el-button class="hover-flow" type="danger" @click="cancel">取 消</el-button>
       <el-button class="hover-flow" type="primary" @click="submitForm">确 定</el-button>
+      <el-button class="hover-flow" type="danger" @click="cancel">取 消</el-button>
     </div>
   </div>
 </template>

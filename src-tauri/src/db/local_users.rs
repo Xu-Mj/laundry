@@ -421,8 +421,6 @@ pub async fn validate_pwd(state: State<'_, AppState>, account: &str, pwd: &str) 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct UserInfo {
     pub user: Option<LocalUser>,
-    pub roles: HashSet<String>,
-    pub permissions: HashSet<String>,
     pub subscription: Option<Subscription>, // 保留单个订阅字段以保持向后兼容
     pub subscriptions: Vec<Subscription>,   // 新增字段，存储所有有效订阅
     pub sms_sub: Option<SmsSubscription>,
@@ -451,8 +449,6 @@ pub async fn get_info(state: State<'_, AppState>) -> Result<UserInfo> {
 
     Ok(UserInfo {
         user,
-        roles: HashSet::from(["Admin".to_string()]),
-        permissions: HashSet::from(["*:*:*".to_string()]),
         subscription,
         subscriptions,
         sms_sub,

@@ -1,0 +1,93 @@
+<svg width="400" height="400" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景 -->
+  <rect width="400" height="400" fill="#f5f7fa" rx="10" ry="10"/>
+  
+  <!-- 标题 -->
+  <text x="200" y="30" font-family="Arial, sans-serif" font-size="18" text-anchor="middle" fill="#303133" font-weight="bold">衣挂架示意图</text>
+  
+  <!-- 输送线类型 -->
+  <g transform="translate(50, 80)">
+    <!-- 输送线标题 -->
+    <text x="0" y="0" font-family="Arial, sans-serif" font-size="14" fill="#303133" font-weight="bold">输送线类型</text>
+    
+    <!-- 输送线轨道 -->
+    <line x1="0" y1="20" x2="130" y2="20" stroke="#409EFF" stroke-width="6" stroke-linecap="round"/>
+    
+    <!-- 衣挂钩 -->
+    <g transform="translate(30, 20)">
+      <line x1="0" y1="0" x2="0" y2="40" stroke="#909399" stroke-width="2"/>
+      <circle cx="0" cy="0" r="3" fill="#909399"/>
+      <path d="M-15,40 L15,40 L10,70 L-10,70 Z" fill="#67C23A" stroke="#606266" stroke-width="1"/>
+    </g>
+    
+    <g transform="translate(70, 20)">
+      <line x1="0" y1="0" x2="0" y2="30" stroke="#909399" stroke-width="2"/>
+      <circle cx="0" cy="0" r="3" fill="#909399"/>
+      <rect x="-12" y="30" width="24" height="35" rx="2" ry="2" fill="#F56C6C" stroke="#606266" stroke-width="1"/>
+    </g>
+    
+    <g transform="translate(110, 20)">
+      <line x1="0" y1="0" x2="0" y2="50" stroke="#909399" stroke-width="2"/>
+      <circle cx="0" cy="0" r="3" fill="#909399"/>
+      <path d="M-15,50 L15,50 L15,80 L-15,80 Z" fill="#E6A23C" stroke="#606266" stroke-width="1"/>
+    </g>
+    
+    <!-- 容量说明 -->
+    <text x="65" y="100" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#606266">容量: 可挂衣物数量</text>
+  </g>
+  
+  <!-- 其他类型 -->
+  <g transform="translate(230, 80)">
+    <!-- 其他类型标题 -->
+    <text x="0" y="0" font-family="Arial, sans-serif" font-size="14" fill="#303133" font-weight="bold">其他类型</text>
+    
+    <!-- 衣架架子 -->
+    <rect x="0" y="15" width="120" height="10" fill="#909399" rx="2" ry="2"/>
+    <rect x="10" y="25" width="5" height="60" fill="#909399"/>
+    <rect x="105" y="25" width="5" height="60" fill="#909399"/>
+    
+    <!-- 衣架 -->
+    <path d="M30,40 L50,25 L70,40" stroke="#409EFF" stroke-width="2" fill="none"/>
+    <line x1="50" y1="25" x2="50" y2="40" stroke="#409EFF" stroke-width="2"/>
+    
+    <path d="M60,55 L80,40 L100,55" stroke="#409EFF" stroke-width="2" fill="none"/>
+    <line x1="80" y1="40" x2="80" y2="55" stroke="#409EFF" stroke-width="2"/>
+    
+    <!-- 容量说明 -->
+    <text x="60" y="100" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#606266">容量: 架子可容纳衣物数</text>
+  </g>
+  
+  <!-- 鞋柜类型 -->
+  <g transform="translate(140, 200)">
+    <!-- 鞋柜类型标题 -->
+    <text x="0" y="0" font-family="Arial, sans-serif" font-size="14" fill="#303133" font-weight="bold">鞋柜类型</text>
+    
+    <!-- 鞋柜外框 -->
+    <rect x="0" y="15" width="120" height="100" fill="none" stroke="#909399" stroke-width="2" rx="3" ry="3"/>
+    
+    <!-- 鞋柜隔板 -->
+    <line x1="0" y1="48" x2="120" y2="48" stroke="#909399" stroke-width="1"/>
+    <line x1="0" y1="81" x2="120" y2="81" stroke="#909399" stroke-width="1"/>
+    
+    <!-- 鞋子示意图 -->
+    <!-- 第一层鞋子 -->
+    <path d="M20,25 C25,20 35,20 40,25 L40,40 C35,42 25,42 20,40 Z" fill="#409EFF" stroke="#606266" stroke-width="1"/>
+    <path d="M80,25 C85,20 95,20 100,25 L100,40 C95,42 85,42 80,40 Z" fill="#F56C6C" stroke="#606266" stroke-width="1"/>
+    
+    <!-- 第二层鞋子 -->
+    <path d="M30,58 C35,53 45,53 50,58 L50,73 C45,75 35,75 30,73 Z" fill="#67C23A" stroke="#606266" stroke-width="1"/>
+    <path d="M70,58 C75,53 85,53 90,58 L90,73 C85,75 75,75 70,73 Z" fill="#E6A23C" stroke="#606266" stroke-width="1"/>
+    
+    <!-- 第三层鞋子 -->
+    <path d="M25,91 C30,86 40,86 45,91 L45,106 C40,108 30,108 25,106 Z" fill="#909399" stroke="#606266" stroke-width="1"/>
+    <path d="M75,91 C80,86 90,86 95,91 L95,106 C90,108 80,108 75,106 Z" fill="#67C23A" stroke="#606266" stroke-width="1"/>
+    
+    <!-- 容量说明 -->
+    <text x="60" y="130" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#606266">容量: 鞋柜可容纳鞋子数量</text>
+  </g>
+  
+  <!-- 底部说明 -->
+  <text x="200" y="350" font-family="Arial, sans-serif" font-size="14" text-anchor="middle" fill="#303133">请根据实际情况设置衣挂信息</text>
+  <text x="200" y="370" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#606266">架子名称: 为衣挂架命名</text>
+  <text x="200" y="390" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#606266">架子类型: 选择输送线、其他类型或鞋柜</text>
+</svg>

@@ -1,13 +1,13 @@
 import { createWebHistory, createRouter } from 'vue-router'
 /* Layout */
 import Layout from '@/layout'
-import OrderContent from '@/views/container/orderContentContainer.vue'; // 引入组件
-import CreateOrder from '@/views/container/createOrderContainer.vue'; // 引入组件
-import CouponSale from '@/views/container/couponSaleContainer.vue'; // 引入组件
+import OrderContent from '@/views/frontend/container/orderContentContainer.vue'; // 引入组件
+import CreateOrder from '@/views/frontend/container/createOrderContainer.vue'; // 引入组件
+import CouponSale from '@/views/frontend/container/couponSaleContainer.vue'; // 引入组件
 import HangUp from '@/views/components/hangUp.vue'; // 引入组件
-import User from '@/views/system/user/index.vue'; // 引入组件
-import Coupon from '@/views/system/coupon/index.vue'; // 引入组件
-import ImageTest from '@/views/container/imageTest.vue'
+import User from '@/views/frontend/user/index.vue'; // 引入组件
+import Coupon from '@/views/frontend/coupon/index.vue'; // 引入组件
+import ImageTest from '@/views/frontend/container/imageTest.vue'
 /**
  * Note: 路由配置项
  *
@@ -126,7 +126,7 @@ export const constantRoutes = [
     children: [
       {
         path: '',
-        component: () => import('@/views/system/posts/index.vue'),
+        component: () => import('@/views/frontend/posts/index.vue'),
       }
     ]
   },
@@ -136,7 +136,7 @@ export const constantRoutes = [
     children: [
       {
         path: '',
-        component: () => import('@/views/system/profile/index.vue'),
+        component: () => import('@/views/frontend/profile/index.vue'),
       }
     ]
   },

@@ -45,10 +45,10 @@
     </div>
     <Setting :visible="showSetting" :key="showSetting" :taggle="() => { showSetting = !showSetting }" />
 
+    </div>
     <ChangePwdDialog :visible="showChangePwd" :account="userStore.account"
       @update:visible="(val) => showChangePwd = val" @success="handlePwdSuccess"
       @cancel="() => showChangePwd = false" />
-  </div>
 </template>
 
 <script setup>
@@ -66,7 +66,7 @@ const props = defineProps({
 const { proxy } = getCurrentInstance();
 
 const userStore = useUserStore()
-const isGuest = ref(userStore.isGuest);
+const isGuest = ref(userStore.trial.isGuest);
 const showSetting = ref(false);
 const showChangePwd = ref(false);
 
@@ -101,7 +101,7 @@ function logout() {
     type: 'warning'
   }).then(() => {
     userStore.logOut().then(async () => {
-      location.href = '/index';
+      location.href = '/';
     })
   }).catch(() => { });
 }

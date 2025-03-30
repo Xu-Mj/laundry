@@ -69,10 +69,6 @@
               class="gauge-chart" />
           </div>
         </el-col>
-      </el-row>
-
-      <!-- 第二行底部图表 -->
-      <el-row :gutter="20" class="bottom-charts second-row">
         <el-col :xs="24" :sm="12" :md="8" :lg="8" v-for="(item, index) in chartList" :key="index">
           <div class="chart-card">
             <div class="chart-header">
@@ -82,6 +78,18 @@
           </div>
         </el-col>
       </el-row>
+
+      <!-- 第二行底部图表 -->
+      <!-- <el-row :gutter="20" class="bottom-charts second-row">
+        <el-col :xs="24" :sm="12" :md="8" :lg="8" v-for="(item, index) in chartList" :key="index">
+          <div class="chart-card">
+            <div class="chart-header">
+              <h3>订单来源分布</h3>
+            </div>
+            <v-chart class="chart" :option="item" :ref="(el) => setChartRef(el, index)" />
+          </div>
+        </el-col>
+      </el-row> -->
     </div>
 
     <!-- 广告展示位 -->
@@ -226,7 +234,7 @@ const getChartData = async () => {
 
 const initLineChart = async (year, month) => {
   const data = await fetchMonthlyPaymentSummary(year, month);
-  
+
   // 找到第一个收入或支出不为零的数据点索引
   let firstNonZeroIndex = 0;
   for (let i = 0; i < data.length; i++) {
@@ -235,13 +243,13 @@ const initLineChart = async (year, month) => {
       break;
     }
   }
-  
+
   // 检查是否为当前月份，如果是则只显示到当前日期的数据
   let filteredData = data.slice(firstNonZeroIndex);
   const currentDate = new Date();
   const currentYear = currentDate.getFullYear();
   const currentMonth = currentDate.getMonth() + 1;
-  
+
   // 如果是当前月份，只显示到当前日期
   if (year === currentYear && month === currentMonth) {
     const currentDay = currentDate.getDate();
@@ -250,16 +258,16 @@ const initLineChart = async (year, month) => {
       return itemDate.getDate() <= currentDay;
     });
   }
-  
+
   const dates = filteredData.map(item => item.date);
   const incomes = filteredData.map(item => item.income);
   const expenses = filteredData.map(item => item.expense);
 
   lineChart.value = {
     title: { text: '本月收支情况', left: 'center' },
-    tooltip: { 
+    tooltip: {
       trigger: 'axis',
-      formatter: function(params) {
+      formatter: function (params) {
         let result = params[0].name + '<br/>';
         params.forEach(param => {
           result += param.seriesName + ': ' + param.value + ' 元<br/>';
@@ -323,7 +331,6 @@ const initCharts = async () => {
     };
     return acc;
   }, {});
-  console.log(paymentData.value)
 
   orderTotalCount.value = await getOrderTotalCount();
   chartData.value = countList.value.map(item => ({ value: item.count, name: item.title }));
@@ -633,6 +640,10 @@ watch([width, height], () => {
   .dashboard {
     padding: 1rem;
     gap: 1rem;
+  }
+
+  .el-row {
+    gap: 1rem !important;
   }
 
   .chart {

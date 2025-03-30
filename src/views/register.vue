@@ -144,7 +144,7 @@ const registerForm = ref({
   avatar: "images/avatars/avatar1.png", // 默认选择第一个头像
   name: "",
   ownerName: "",
-  ownerPhone: "17863935638",
+  ownerPhone: "",
   verificationCode: "",
   location: "",
   password: "",

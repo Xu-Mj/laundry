@@ -3,7 +3,6 @@
     v-if="showWatermark"
     :content="watermarkContent"
     :font="font"
-    :zIndex="9999"
     class="app-watermark"
   >
   <slot></slot>
@@ -25,17 +24,17 @@ const font = reactive({
 });
 
 // 是否显示水印
-const showWatermark = computed(() => userStore.sub.showWatermark)
+const showWatermark = computed(() => userStore.showWatermark)
 // const showWatermark = false
 
 // 水印内容
 const watermarkContent = computed(() => {
-  if (!userStore.sub.isInTrial) return ''
+  if (!userStore.trial.isInTrial) return ''
   
-  if (userStore.isGuest) {
-    return `游客模式 - 剩余${userStore.sub.trialRemaining}天`
+  if (userStore.trial.isGuest) {
+    return `游客模式 - 剩余${userStore.trial.remainingDays}天`
   } else {
-    return `试用版 - 剩余${userStore.sub.trialRemaining}天`
+    return `试用版 - 剩余${userStore.trial.remainingDays}天`
   }
 })
 

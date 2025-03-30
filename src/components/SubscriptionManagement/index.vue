@@ -192,7 +192,7 @@ const handlePaymentSuccess = (paymentInfo) => {
   console.log('支付成功', selectedPlan.value);
 
   // 获取订阅信息
-  getSubscription(useUserStore().user.id, paymentInfo.planId, paymentInfo.subscriptionId).then(res => {
+  getSubscription(useUserStore().id, paymentInfo.planId, paymentInfo.subscriptionId).then(res => {
     saveSubscription(res.subscription, res.plan).catch(err => { })
     // 通知父组件订阅已更新
     emit('subscription-updated');

@@ -22,7 +22,7 @@
                 </el-col>
                 <el-col :span="6">
                     <el-button type="primary" @click="genRewashOrder">生成复洗订单</el-button>
-                    <el-button type="primary" @click="cancel">取 消</el-button>
+                    <el-button type="danger" @click="cancel">取 消</el-button>
                 </el-col>
 
             </el-form-item>

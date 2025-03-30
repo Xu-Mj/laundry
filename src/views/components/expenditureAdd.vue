@@ -2,18 +2,14 @@
     <el-dialog v-model="open" width="520px" :align-center="true" :show-close="false" append-to-body
         @closed="props.taggle()" class="expenditure-dialog">
         <template #header>
-            <div class="dialog-header">
+            <div class="dialog-header hover-flow">
                 <div class="dialog-title">{{ props.title }}</div>
-                <el-button circle @click="cancel">
-                    <el-icon>
-                        <Close />
-                    </el-icon>
-                </el-button>
+                <el-button circle @click="cancel" icon="Close" />
             </div>
         </template>
         <div class="expenditure-container">
             <!-- 表单头部 - 支出类型选择 -->
-            <div class="form-section type-section">
+            <div class="form-section hover-flow">
                 <div class="section-title">
                     <el-icon>
                         <Money />
@@ -31,7 +27,7 @@
 
             <!-- 主表单区域 -->
             <el-form ref="expenditureRef" :model="form" :rules="rules" label-position="top" class="expenditure-form">
-                <div class="form-section main-section">
+                <div class="form-section hover-flow">
                     <!-- 支出账目 -->
                     <el-form-item label="支出账目" prop="expTitle">
                         <el-input v-model="form.expTitle" placeholder="请输入支出账目" prefix-icon="Document" />
@@ -79,13 +75,13 @@
         <!-- 底部按钮 -->
         <template #footer>
             <div class="dialog-footer">
-                <el-button @click="cancel" plain icon="Close">取 消</el-button>
                 <el-button type="primary" @click="submitForm" :loading="submitting">
                     <el-icon v-if="!submitting">
                         <Check />
                     </el-icon>
                     <span>{{ submitting ? '提交中...' : '确 定' }}</span>
                 </el-button>
+                <el-button type="danger" @click="cancel" icon="Close">取 消</el-button>
             </div>
         </template>
     </el-dialog>
@@ -234,33 +230,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.dialog-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    text-align: left;
-    padding: 1rem;
-    background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-8) 100%);
-    border-radius: .5rem;
-    transition: all .3s;
-}
-
-:root.dark .dialog-header {
-    --el-color-primary-light-9: #1d2c40;
-    --el-color-primary-light-8: #2b6095;
-}
-
-.dialog-header:hover{
-  transform: translateY(-2px);
-  box-shadow: var(--el-box-shadow-light);
-}
-
-.dialog-title {
-    margin: 0;
-    font-size: 18px;
-    font-weight: 600;
-}
-
 .expenditure-dialog :deep(.el-dialog__header) {
     margin-right: 0;
     padding: 16px 20px;
@@ -289,10 +258,6 @@ onMounted(() => {
     padding: 16px;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
     transition: all 0.3s ease;
-}
-
-.form-section:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .section-title {

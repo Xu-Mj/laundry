@@ -84,7 +84,7 @@ impl HttpClient {
     }
 
     pub async fn refresh_token(&self, refresh_token: &str) -> Result<String> {
-        let url = format!("{}/refresh-token/{}/true", self.base_url, refresh_token);
+        let url = format!("{}/stores/refresh-token/{}/true", self.base_url, refresh_token);
         let request = self.client.get(&url);
         self.send_request(request).await
     }

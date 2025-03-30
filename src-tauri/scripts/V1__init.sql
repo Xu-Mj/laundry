@@ -484,6 +484,9 @@ CREATE TABLE drying_rack
     position           INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX idx_drying_rack_store_id ON drying_rack (store_id);
+-- 写一条游客使用的数据
+INSERT INTO drying_rack (store_id, name, rack_type, capacity, remaining_capacity, position) VALUES (0, '游客使用晾衣架', '1', 100, 100, 0);
+
 
 -- 用来存储衣物的编码最大值
 CREATE TABLE cloth_sequence

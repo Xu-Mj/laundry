@@ -181,7 +181,7 @@
         <Information :user="currentUser" :visible="showInfoDialog" :key="showInfoDialog"
             :toggle="() => { showInfoDialog = !showInfoDialog }" />
             
-        <OrderTourGuide 
+        <!-- <OrderTourGuide 
             :memberCardRef="memberCardRef" 
             :orderSourceRef="orderSourceRef"
             :clothListRef="clothListRef"
@@ -191,7 +191,7 @@
             :submitButtonRef="submitButtonRef"
             :payButtonRef="payButtonRef"
             @tour-finished="handleTourFinished"
-        />
+        /> -->
     </div>
 </template>
 
@@ -207,7 +207,7 @@ import { getFutureDate } from "@/utils";
 import { getConfigKey } from '@/api/system/config';
 import AddCloth from "./addCloth.vue";
 import { print } from "@/api/system/printer";
-import Information from "@/views/system/user/information.vue";
+import Information from "@/views/frontend/user/information.vue";
 import CustomTable from '@/components/CustomTable';
 import Pay from '@/views/components/pay.vue';
 import OrderTourGuide from '@/components/OrderTourGuide/index.vue';

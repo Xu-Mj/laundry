@@ -135,7 +135,7 @@
 <script setup name="CouponSale">
 import { listCoupon4sale, buyCoupon } from "@/api/system/coupon";
 import { getUser, listUserWithNoLimit, addUser } from "@/api/system/user";
-import Information from "@/views/system/user/information.vue";
+import Information from "@/views/frontend/user/information.vue";
 import { ref, computed } from "vue";
 
 const props = defineProps({

@@ -2,7 +2,7 @@
     <el-dialog :align-center="true" v-model="props.visible" width="650px" append-to-body :show-close="false"
         :close-on-click-modal="false" :close-on-press-escape="false">
         <template #header>
-            <div class="dialog-header">
+            <div class="dialog-header  hover-flow">
                 <div>
                     <h2 class="dialog-title">新增会员</h2>
                     <p class="dialog-subtitle">填写会员基本信息</p>
@@ -16,7 +16,7 @@
         </template>
         <el-form :model="form" :rules="rules" ref="userRef" label-width="90px" class="modern-form">
             <!-- 基本信息卡片 -->
-            <div class="form-card">
+            <div class="form-card hover-flow">
                 <div class="card-header">
                     <i class="el-icon-user"></i>
                     <span>基本信息</span>
@@ -66,7 +66,7 @@
             </div>
 
             <!-- 个人特征卡片 -->
-            <div class="form-card">
+            <div class="form-card hover-flow">
                 <div class="card-header">
                     <i class="el-icon-info"></i>
                     <span>个人特征</span>
@@ -84,9 +84,9 @@
                         <el-col :span="12">
                             <el-form-item label="状态">
                                 <el-radio-group v-model="form.status" class="modern-radio-group">
-                                    <el-radio v-for="dict in sys_normal_disable" :key="dict.value"
-                                        :value="dict.value">{{
-                                            dict.label }}</el-radio>
+                                    <el-radio v-for="dict in sys_normal_disable" :key="dict.value" :value="dict.value">
+                                        {{ dict.label }}
+                                    </el-radio>
                                 </el-radio-group>
                             </el-form-item>
                         </el-col>
@@ -110,7 +110,7 @@
             </div>
 
             <!-- 附加信息卡片 -->
-            <div class="form-card">
+            <div class="form-card hover-flow">
                 <div class="card-header">
                     <i class="el-icon-location"></i>
                     <span>附加信息</span>
@@ -137,8 +137,8 @@
         </el-form>
         <template #footer>
             <div class="dialog-footer">
-                <el-button @click="cancel">取 消</el-button>
-                <el-button type="primary" @click="submitForm">确 定</el-button>
+                <el-button type="primary" @click="submitForm" icon="Check">确 定</el-button>
+                <el-button type="danger" @click="cancel" icon="Close">取 消</el-button>
             </div>
         </template>
     </el-dialog>
@@ -272,28 +272,6 @@ onMounted(async () => {
 
 
 <style scoped>
-.dialog-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    text-align: left;
-    padding: 1rem;
-    background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-8) 100%);
-    border-radius: .5rem;
-}
-
-:root.dark .dialog-header {
-    --el-color-primary-light-9: #1d2c40;
-    --el-color-primary-light-8: #2b6095;
-}
-
-.dialog-title {
-    margin: 0;
-    font-size: 18px;
-    /* color: #303133; */
-    font-weight: 600;
-}
-
 .dialog-subtitle {
     margin: 8px 0 0 0;
     font-size: 14px;
@@ -304,43 +282,6 @@ onMounted(async () => {
     max-height: 65vh;
     overflow-y: auto;
     padding-right: 10px;
-}
-
-.form-card {
-    /* background-color: #ffffff; */
-    border-radius: 8px;
-    /* box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05); */
-    box-shadow: var(--el-box-shadow-lighter);
-    margin-bottom: 20px;
-    overflow: hidden;
-    transition: all 0.3s ease;
-}
-
-.form-card:hover {
-    box-shadow: var(--el-box-shadow-light);
-}
-
-.form-card:last-child {
-    margin-bottom: 10px;
-}
-
-.card-header {
-    padding: 12px 1rem;
-    background-color: var(--el-fill-color-light);
-    border-bottom: 1px solid #ebeef5;
-    display: flex;
-    align-items: center;
-}
-
-.card-header i {
-    margin-right: 8px;
-    color: #409EFF;
-}
-
-.card-header span {
-    font-size: 15px;
-    font-weight: 500;
-    color: var(--el-text-color-primary);
 }
 
 .card-content {

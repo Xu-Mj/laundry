@@ -225,6 +225,8 @@ pub async fn list_rack_all(state: State<'_, AppState>) -> Result<Vec<DryingRack>
 
 #[tauri::command]
 pub async fn add_rack(state: State<'_, AppState>, mut rack: DryingRack) -> Result<DryingRack> {
+    let store_id = utils::get_user_id(&state).await?;
+    rack.store_id = Some(store_id);
     rack.validate()?;
 
     rack.remaining_capacity = Some(rack.capacity.unwrap());

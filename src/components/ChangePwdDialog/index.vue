@@ -1,6 +1,6 @@
 <template>
-    <el-dialog :align-center="true" v-model="dialogVisible" title="修改密码" :show-close="false" width="400px"
-        class="modern-dialog">
+    <el-dialog :align-center="true" v-model="dialogVisible" title="修改密码" append-to-body :show-close="false"
+        width="400px" class="modern-dialog">
         <template #header>
             <div class="dialog-header">
                 <div class="dialog-title">
@@ -18,7 +18,6 @@
         </template>
 
         <div class="form-container">
-
             <el-form ref="formRef" :model="form" :rules="rules" label-width="80px">
                 <div class="form-section hover-flow">
                     <div class="section-header">

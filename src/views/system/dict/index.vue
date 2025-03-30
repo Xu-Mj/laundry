@@ -75,28 +75,73 @@
             v-model:limit="queryParams.pageSize" @pagination="getList" />
       </el-card>
       <!-- 添加或修改参数配置对话框 -->
-      <el-dialog :title="title" v-model="open" :show-close="false" width="500px" append-to-body>
-         <el-form ref="dictRef" :model="form" :rules="rules" :align-center="true" label-width="80px">
-            <el-form-item label="字典名称" prop="dictName">
-               <el-input v-model="form.dictName" placeholder="请输入字典名称" />
-            </el-form-item>
-            <el-form-item label="字典类型" prop="dictType">
-               <el-input v-model="form.dictType" placeholder="请输入字典类型" />
-            </el-form-item>
-            <el-form-item label="状态" prop="status">
-               <el-radio-group v-model="form.status">
-                  <el-radio v-for="dict in sys_normal_disable" :key="dict.value" :value="dict.value">{{ dict.label
-                     }}</el-radio>
-               </el-radio-group>
-            </el-form-item>
-            <el-form-item label="备注" prop="remark">
-               <el-input v-model="form.remark" type="textarea" placeholder="请输入内容"></el-input>
-            </el-form-item>
+      <el-dialog v-model="open" :show-close="false" width="550px" align-center destroy-on-close>
+         <template #header>
+            <div class="dialog-header hover-flow">
+               <span class="dialog-title">{{ title }}</span>
+               <el-button circle @click="cancel">
+                  <el-icon>
+                     <Close />
+                  </el-icon>
+               </el-button>
+            </div>
+         </template>
+         <el-form ref="dictRef" :model="form" :rules="rules" :align-center="true" label-width="80px" class="dict-form">
+            <div class="form-card hover-flow">
+               <div class="card-header">
+                  <el-icon>
+                     <Money />
+                  </el-icon>
+                  <span>基本信息</span>
+               </div>
+               <div class="card-body">
+                  <el-row :gutter="20">
+                     <el-col :span="24">
+                        <el-form-item label="字典名称" prop="dictName">
+                           <el-input v-model="form.dictName" placeholder="请输入字典名称" clearable />
+                        </el-form-item>
+                     </el-col>
+                     <el-col :span="24">
+                        <el-form-item label="字典类型" prop="dictType">
+                           <el-input v-model="form.dictType" placeholder="请输入字典类型" clearable />
+                        </el-form-item>
+                     </el-col>
+                  </el-row>
+               </div>
+            </div>
+
+            <div class="form-card hover-flow">
+               <div class="card-header">
+                  <el-icon>
+                     <Money />
+                  </el-icon>
+                  <span>状态设置</span>
+               </div>
+               <div class="card-body">
+                  <el-row :gutter="20">
+                     <el-col :span="24">
+                        <el-form-item label="状态" prop="status">
+                           <el-radio-group v-model="form.status">
+                              <el-radio-button v-for="dict in sys_normal_disable" :key="dict.value" :label="dict.value">
+                                 {{ dict.label }}
+                              </el-radio-button>
+                           </el-radio-group>
+                        </el-form-item>
+                     </el-col>
+                     <el-col :span="24">
+                        <el-form-item label="备注" prop="remark">
+                           <el-input v-model="form.remark" type="textarea" :rows="3" placeholder="请输入内容" maxlength="200"
+                              show-word-limit></el-input>
+                        </el-form-item>
+                     </el-col>
+                  </el-row>
+               </div>
+            </div>
          </el-form>
          <template #footer>
             <div class="dialog-footer">
-               <el-button type="primary" @click="submitForm">确 定</el-button>
-               <el-button @click="cancel">取 消</el-button>
+               <el-button class="hover-flow" type="primary" @click="submitForm" icon="Check">确 定</el-button>
+               <el-button class="hover-flow" type="danger" @click="cancel" icon="Close">取 消</el-button>
             </div>
          </template>
       </el-dialog>
@@ -104,7 +149,6 @@
 </template>
 
 <script setup name="Dict">
-import useDictStore from '@/store/modules/dict'
 import { listType, getType, delType, addType, updateType } from "@/api/system/dict/type";
 
 const { proxy } = getCurrentInstance();
@@ -182,6 +226,7 @@ function resetQuery() {
 /** 新增按钮操作 */
 function handleAdd() {
    reset();
+      title.value = "新建字典类型";
    open.value = true;
 }
 
@@ -237,3 +282,54 @@ function handleDelete(row) {
 
 getList();
 </script>
+
+<style scoped>
+.dict-form-input {
+   width: 100%;
+}
+
+.form-card {
+   margin-bottom: 20px;
+   border-radius: 8px;
+   box-shadow: var(--el-box-shadow-light);
+   overflow: hidden;
+}
+
+.card-header {
+   display: flex;
+   align-items: center;
+   padding: 12px 15px;
+   background-color: var(--el-color-primary-light-9);
+   border-bottom: 1px solid var(--el-border-color-light);
+   color: var(--el-color-primary);
+   font-weight: 600;
+}
+
+.card-header .el-icon {
+   margin-right: 8px;
+   font-size: 16px;
+}
+
+.card-body {
+   padding: 15px;
+}
+
+.dict-form .el-form-item {
+   margin-bottom: 20px;
+}
+
+.dict-form .el-input,
+.dict-form .el-select,
+.dict-form .el-radio-group {
+   width: 100%;
+}
+
+.dict-form .el-textarea__inner {
+   min-height: 80px;
+   font-family: var(--el-font-family);
+}
+
+.dict-form .el-radio-button {
+   margin-right: 10px;
+}
+</style>

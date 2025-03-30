@@ -74,65 +74,89 @@
     </el-card>
 
     <!-- 添加或修改对话框 -->
-    <el-dialog :show-close="false" v-model="open" width="500px" @opened="refNumberGetFocus"
-      @closed="refNumberFocus = false" append-to-body>
+    <el-dialog :title="title || (form.tagId ? '修改标签' : '新增标签')" v-model="open" width="550px" @opened="refNumberGetFocus"
+      align-center @closed="refNumberFocus = false" destroy-on-close>
       <el-form ref="tagsRef" :model="form" :rules="rules" label-width="80px">
-        <el-form-item label="标签类别" prop="tagOrder">
-          <el-select v-model="form.tagOrder" placeholder="类别" clearable style="width: 240px">
-            <el-option v-for="dict in sys_tag_order" :key="dict.value" :label="dict.label" :value="dict.value" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="标签名称" prop="tagName">
-          <el-input v-model="form.tagName" placeholder="请输入标签名称" />
-        </el-form-item>
-        <el-row>
+        <el-divider content-position="left">
+          <el-icon>
+            <InfoFilled />
+          </el-icon>
+          <span class="divider-title">基本信息</span>
+        </el-divider>
+
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="标签类别" prop="tagOrder">
+              <el-select v-model="form.tagOrder" placeholder="请选择标签类别" clearable class="w-full">
+                <el-option v-for="dict in sys_tag_order" :key="dict.value" :label="dict.label" :value="dict.value" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="标签名称" prop="tagName">
+              <el-input v-model="form.tagName" placeholder="请输入标签名称" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-divider content-position="left">
+          <el-icon>
+            <Setting />
+          </el-icon>
+          <span class="divider-title">附加设置</span>
+        </el-divider>
+
+        <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="使用次数" prop="refNum">
-              <el-input-number v-model="form.refNum" ref="refNum" :min="0" controls-position="right" />
+              <el-input-number v-model="form.refNum" ref="refNum" :min="0" controls-position="right" class="w-full" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="显示顺序" prop="orderNum">
-              <el-input-number v-model="form.orderNum" :min="0" controls-position="right" />
+              <el-input-number v-model="form.orderNum" :min="0" controls-position="right" class="w-full" />
             </el-form-item>
           </el-col>
         </el-row>
+
         <el-form-item label="状态">
           <el-radio-group v-model="form.status">
-            <el-radio v-for="dict in sys_normal_disable" :key="dict.value" :value="dict.value">{{ dict.label
-              }}</el-radio>
+            <el-radio-button v-for="dict in sys_normal_disable" :key="dict.value" :label="dict.value">
+              <template #default>
+                <el-icon v-if="dict.value === '0'">
+                  <Check />
+                </el-icon>
+                <el-icon v-else>
+                  <Close />
+                </el-icon>
+                {{ dict.label }}
+              </template>
+            </el-radio-button>
           </el-radio-group>
         </el-form-item>
+
         <el-form-item label="备注" prop="remark">
-          <el-input v-model="form.remark" type="textarea" placeholder="请输入内容" />
+          <el-input v-model="form.remark" type="textarea" placeholder="请输入内容" :rows="3" />
         </el-form-item>
       </el-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button type="primary" @click="submitForm">确 定</el-button>
-          <el-button @click="cancel">取 消</el-button>
+          <el-button type="primary" @click="submitForm" :icon="Check">确 定</el-button>
+          <el-button type="danger" @click="cancel" :icon="Close">取 消</el-button>
         </div>
       </template>
     </el-dialog>
 
     <!-- 修改使用次数对话框 -->
-    <el-dialog v-model="showUpdateRefNum" width="450px" align-center :show-close="false" append-to-body>
-      <el-form ref="tagNumRef" :model="tagNumForm" :inline="true" :rules="refNumFormRules"
-        style="display: flex; justify-content: space-between;">
-        <el-form-item label="使用次数" prop="refNumber">
-          <el-input-number :min="0" v-model="tagNumForm.refNumber" placeholder="请输入使用次数" />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="updateRefNum">确 定</el-button>
-          <el-button @click="cancelUpdateRefNum">取 消</el-button>
-        </el-form-item>
-      </el-form>
-    </el-dialog>
+    <ref-count-editor v-model="showUpdateRefNum" :initial-value="tagNumForm.refNumber" title="修改使用次数"
+      description="设置标签的使用计数值" @confirm="handleRefNumConfirm" @cancel="cancelUpdateRefNum" />
   </div>
 </template>
 
 <script setup name="Tags">
 import { listTags, getTags, delTags, addTags, updateTags, updateTagsRefNum, changeTagStatus } from "@/api/system/tags";
+import RefCountEditor from "@/components/RefCountEditor/index.vue";
+import { InfoFilled, Setting, Check, Close } from '@element-plus/icons-vue';
 
 const { proxy } = getCurrentInstance();
 const { sys_normal_disable, sys_tag_order } = proxy.useDict("sys_normal_disable", "sys_tag_order");
@@ -167,15 +191,11 @@ const data = reactive({
     ],
     tagName: [
       { required: true, message: "标签名称不能为空", trigger: "blur" }
-    ],
-    orderNum: [{ required: true, message: "标签顺序不能为空", trigger: "blur" }],
-  },
-  refNumFormRules: {
-    refNumber: [{ required: true, message: "使用次数不能为空", trigger: "blur" }],
+    ]
   }
 });
 
-const { queryParams, form, tagNumForm, rules, refNumFormRules } = toRefs(data);
+const { queryParams, form, tagNumForm, rules } = toRefs(data);
 
 /** 查询标签列表 */
 function getList() {
@@ -258,17 +278,17 @@ function handleUpdate(row, focus) {
   });
 }
 
-function updateRefNum() {
-  proxy.$refs["tagNumRef"].validate(valid => {
-    if (valid) {
-      updateTagsRefNum({ tagIds: ids.value, refNum: tagNumForm.value.refNumber }).then(res => {
-        proxy.notify.success("修改成功");
-        showUpdateRefNum.value = false;
-        tagNumForm.value.refNumber = null;
-        getList();
-      })
-    }
-  })
+function handleRefNumConfirm(refNumber) {
+  updateTagsRefNum({ tagIds: ids.value, refNum: refNumber }).then(res => {
+    proxy.notify.success("修改成功");
+    showUpdateRefNum.value = false;
+    tagNumForm.value.refNumber = null;
+    getList();
+  }).catch(() => {
+    // 处理错误情况
+  }).finally(() => {
+    // 无论成功失败都执行
+  });
 }
 
 /** 提交按钮 */
@@ -323,3 +343,42 @@ function selectChange() {
 
 getList();
 </script>
+
+<style scoped>
+.w-full {
+  width: 100%;
+}
+
+.divider-title {
+  margin-left: 8px;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.el-divider {
+  margin: 16px 0;
+}
+
+.el-form-item {
+  margin-bottom: 20px;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+}
+
+.el-radio-button {
+  margin-right: 8px;
+}
+
+.el-textarea {
+  width: 100%;
+}
+
+.el-dialog {
+  border-radius: 8px;
+  overflow: hidden;
+}
+</style>

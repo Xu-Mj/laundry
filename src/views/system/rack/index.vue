@@ -34,25 +34,41 @@
       </el-table>
     </el-card>
     <!-- 添加或修改晾衣架对话框 -->
-    <el-dialog :title="title" v-model="open" width="500px" append-to-body>
+    <el-dialog v-model="open" width="500px" :align-center="true" :show-close="false">
+      <template #header>
+        <div class="dialog-header hover-flow">
+          <span class="dialog-title">{{ title }}</span>
+          <el-button icon="Close" circle @click="cancel" />
+        </div>
+      </template>
       <el-form ref="rackRef" :model="form" :rules="rules" label-width="80px">
-        <el-form-item label="架子名称" prop="name">
-          <el-input v-model="form.name" placeholder="请输入架子名称" />
-        </el-form-item>
-        <el-form-item label="类型" prop="rackType">
-          <el-radio-group v-model="form.rackType">
-            <el-radio :value="'1'">输送线</el-radio>
-            <el-radio :value="'2'">其他</el-radio>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item label="容量" prop="capacity">
-          <el-input-number controls-position="right" v-model="form.capacity" placeholder="请输入容量" />
-        </el-form-item>
+        <div class="form-card hover-flow">
+          <div class="card-header">
+            <el-icon>
+              <Money />
+            </el-icon>
+            <span>基本信息</span>
+          </div>
+          <div class="card-body">
+            <el-form-item label="架子名称" prop="name">
+              <el-input v-model="form.name" placeholder="请输入架子名称" />
+            </el-form-item>
+            <el-form-item label="类型" prop="rackType">
+              <el-radio-group v-model="form.rackType">
+                <el-radio :value="'1'">输送线</el-radio>
+                <el-radio :value="'2'">其他</el-radio>
+              </el-radio-group>
+            </el-form-item>
+            <el-form-item label="容量" prop="capacity">
+              <el-input-number controls-position="right" v-model="form.capacity" placeholder="请输入容量" />
+            </el-form-item>
+          </div>
+        </div>
       </el-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button type="primary" @click="submitForm">确 定</el-button>
-          <el-button @click="cancel">取 消</el-button>
+          <el-button class="hover-flow" type="primary" @click="submitForm" icon="Check">确 定</el-button>
+          <el-button class="hover-flow" type="danger" @click="cancel" icon="Close">取 消</el-button>
         </div>
       </template>
     </el-dialog>

@@ -71,80 +71,132 @@
     </el-card>
 
     <!-- 添加或修改衣物管理对话框 -->
-    <el-dialog :show-close="false" v-model="open" width="500px" append-to-body :align-center="true">
-      <el-form ref="clothingRef" :model="form" :rules="rules" label-width="80px">
-        <el-form-item label="衣物名称" prop="clothingName">
-          <el-input v-model="form.clothingName" placeholder="请输入衣物名称，如：羽绒服、运动鞋、貂等" />
-        </el-form-item>
-        <el-row>
-          <el-col :span="12">
-            <el-form-item label="衣物品类" prop="clothingCategory">
-              <el-select v-model="form.clothingCategory" placeholder="衣物品类" @change="cateChange" clearable
-                style="width: 240px">
-                <el-option v-for="dict in sys_cloth_cate" :key="dict.value" :label="dict.label" :value="dict.value" />
-              </el-select>
+    <el-dialog :title="title" v-model="open" width="650px" append-to-body :align-center="true" :close-on-click-modal="false" :show-close="false" class="clothing-dialog">
+      <el-steps :active="activeStep" finish-status="success" simple class="dialog-steps">
+        <el-step title="基本信息" icon="Document" />
+        <el-step title="价格设置" icon="Money" />
+        <el-step title="其他设置" icon="Setting" />
+      </el-steps>
+      
+      <el-form ref="clothingRef" :model="form" :rules="rules" label-width="100px" class="clothing-form">
+        <!-- 步骤1：基本信息 -->
+        <div v-show="activeStep === 0" class="step-content hover-flow">
+          <div class="form-section">
+            <div class="section-title">基本信息</div>
+            <el-form-item label="衣物名称" prop="clothingName">
+              <el-input v-model="form.clothingName" placeholder="请输入衣物名称，如：羽绒服、运动鞋、貂等" clearable>
+                <template #prefix>
+                  <el-icon><Goods /></el-icon>
+                </template>
+              </el-input>
             </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="所属分类" prop="clothingStyle">
-              <el-select v-model="form.clothingStyle" placeholder="所属分类" no-data-text="请先选择所属品类" clearable
-                style="width: 240px">
-                <el-option v-for="dict in clothStyleList" :key="dict.dictValue" :label="dict.dictLabel"
-                  :value="dict.dictValue" />
-              </el-select>
+            <el-row :gutter="20">
+              <el-col :span="12">
+                <el-form-item label="衣物品类" prop="clothingCategory">
+                  <el-select v-model="form.clothingCategory" placeholder="衣物品类" @change="cateChange" clearable
+                    style="width: 100%">
+                    <el-option v-for="dict in sys_cloth_cate" :key="dict.value" :label="dict.label" :value="dict.value" />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="所属分类" prop="clothingStyle">
+                  <el-select v-model="form.clothingStyle" placeholder="所属分类" no-data-text="请先选择所属品类" clearable
+                    style="width: 100%">
+                    <el-option v-for="dict in clothStyleList" :key="dict.dictValue" :label="dict.dictLabel"
+                      :value="dict.dictValue" />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </div>
+        </div>
+        
+        <!-- 步骤2：价格设置 -->
+        <div v-show="activeStep === 1" class="step-content hover-flow">
+          <div class="form-section">
+            <div class="section-title">价格设置</div>
+            <el-row :gutter="20">
+              <el-col :span="12">
+                <el-form-item label="基准价格" prop="clothingBasePrice">
+                  <el-input-number v-model="form.clothingBasePrice" controls-position="right" :precision="2" :step="0.1" style="width: 100%">
+                    <template #prefix>
+                      <el-icon><PriceTag /></el-icon>
+                    </template>
+                  </el-input-number>
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="最低价格" prop="clothingMinPrice">
+                  <el-input-number v-model="form.clothingMinPrice" controls-position="right" :precision="2" :step="0.1" style="width: 100%">
+                    <template #prefix>
+                      <el-icon><Discount /></el-icon>
+                    </template>
+                  </el-input-number>
+                </el-form-item>
+              </el-col>
+            </el-row>
+            <div class="price-tip" v-if="form.clothingBasePrice && form.clothingMinPrice">
+              <el-alert
+                :title="`价格区间: ${form.clothingMinPrice} ~ ${form.clothingBasePrice} 元`"
+                type="info"
+                :closable="false"
+                show-icon
+              />
+            </div>
+          </div>
+        </div>
+        
+        <!-- 步骤3：其他设置 -->
+        <div v-show="activeStep === 2" class="step-content hover-flow">
+          <div class="form-section">
+            <div class="section-title">其他设置</div>
+            <el-row :gutter="20">
+              <el-col :span="12">
+                <el-form-item label="显示顺序" prop="orderNum">
+                  <el-input-number v-model="form.orderNum" controls-position="right" :min="0" style="width: 100%">
+                    <template #prefix>
+                      <el-icon><Sort /></el-icon>
+                    </template>
+                  </el-input-number>
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="使用计数" prop="clothingDegree">
+                  <el-input-number v-model="form.clothingDegree" controls-position="right" :min="0" style="width: 100%">
+                    <template #prefix>
+                      <el-icon><Odometer /></el-icon>
+                    </template>
+                  </el-input-number>
+                </el-form-item>
+              </el-col>
+            </el-row>
+            <el-form-item label="备注" prop="remark">
+              <el-input v-model="form.remark" type="textarea" placeholder="请输入内容" :rows="3" />
             </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row>
-          <el-col :span="12">
-            <el-form-item label="基准价格" prop="clothingBasePrice">
-              <el-input-number v-model="form.clothingBasePrice" controls-position="right" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="最低价格" prop="clothingMinPrice">
-              <el-input-number v-model="form.clothingMinPrice" controls-position="right" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row>
-          <el-col :span="12">
-            <el-form-item label="显示顺序" prop="orderNum">
-              <el-input-number v-model="form.orderNum" controls-position="right" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="使用计数" prop="clothingDegree">
-              <el-input-number v-model="form.clothingDegree" controls-position="right" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-form-item label="备注" prop="remark">
-          <el-input v-model="form.remark" type="textarea" placeholder="请输入内容" />
-        </el-form-item>
+          </div>
+        </div>
       </el-form>
+      
       <template #footer>
         <div class="dialog-footer">
-          <el-button type="primary" @click="submitForm">确 定</el-button>
-          <el-button @click="cancel">取 消</el-button>
+          <el-button class="hover-flow" v-if="activeStep > 0" icon="ArrowLeft" @click="prevStep">上一步</el-button>
+          <el-button class="hover-flow" v-if="activeStep < 2" type="primary" icon="ArrowRight" @click="nextStep">下一步</el-button>
+          <el-button class="hover-flow" v-if="activeStep === 2" type="primary" icon="Check" @click="submitForm">提交</el-button>
+          <el-button class="hover-flow" icon="Close" type="danger" @click="cancel">取 消</el-button>
         </div>
       </template>
     </el-dialog>
 
     <!-- 修改使用次数对话框 -->
-    <el-dialog title="修改使用次数" v-model="showUpdateRefNum" width="500px" :show-close="false" append-to-body>
-      <el-form ref="tagNumRef" :model="tagNumForm" :rules="refNumFormRules" :align-center="true" label-width="80px">
-        <el-form-item label="使用次数" prop="refNumber">
-          <el-input-number :min="0" required v-model="tagNumForm.refNumber" placeholder="请输入使用次数" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <div class="dialog-footer">
-          <el-button type="primary" @click="updateRefNum">确 定</el-button>
-          <el-button @click="cancelUpdateRefNum">取 消</el-button>
-        </div>
-      </template>
-    </el-dialog>
+    <ref-count-editor
+      v-model="showUpdateRefNum"
+      :initial-value="tagNumForm.refNumber"
+      title="修改使用次数"
+      description="设置衣物的使用计数值,用于在选择衣物界面的排序"
+      @confirm="handleRefNumConfirm"
+      @cancel="cancelUpdateRefNum"
+    />
   </div>
 </template>
 
@@ -153,6 +205,7 @@ import { listClothing, getClothing, delClothing, addClothing, updateClothing, up
 import { getDicts } from '@/api/system/dict/data'
 import useDictStore from '@/store/modules/dict'
 import { onMounted } from "vue";
+import RefCountEditor from "@/components/RefCountEditor/index.vue";
 
 const { proxy } = getCurrentInstance();
 
@@ -171,6 +224,7 @@ const single = ref(true);
 const multiple = ref(true);
 const total = ref(0);
 const title = ref("");
+const activeStep = ref(0); // 当前步骤
 
 const data = reactive({
   form: {},
@@ -255,17 +309,18 @@ function cateChange(value) {
   clothStyleList.value = dictList.value.filter(p => p.dictType === 'sys_cloth_style' + value);
 }
 
-function updateRefNum() {
-  proxy.$refs["tagNumRef"].validate(valid => {
-    if (valid) {
-      updateClothingRefNum({ clothingIds: ids.value, refNum: tagNumForm.value.refNumber }).then(res => {
-        proxy.notify.success("修改成功");
-        showUpdateRefNum.value = false;
-        tagNumForm.value.refNumber = null;
-        getList();
-      })
-    }
-  })
+// 处理引用计数确认事件
+function handleRefNumConfirm(refNumber) {
+  updateClothingRefNum({ clothingIds: ids.value, refNum: refNumber }).then(res => {
+    proxy.notify.success("修改成功");
+    showUpdateRefNum.value = false;
+    tagNumForm.value.refNumber = null;
+    getList();
+  }).catch(() => {
+    // 处理错误情况
+  }).finally(() => {
+    // 无论成功失败都执行
+  });
 }
 
 // 取消按钮
@@ -287,6 +342,7 @@ function getList() {
 // 取消按钮
 function cancel() {
   open.value = false;
+  activeStep.value = 0; // 重置步骤
   reset();
 }
 
@@ -345,6 +401,31 @@ function handleUpdate(row) {
   });
 }
 
+// 下一步按钮操作
+function nextStep() {
+  // 根据当前步骤验证表单
+  if (activeStep.value === 0) {
+    // 验证基本信息
+    proxy.$refs["clothingRef"].validateField(["clothingName", "clothingCategory", "clothingStyle"], valid => {
+      if (!valid) return;
+      activeStep.value++;
+    });
+  } else if (activeStep.value === 1) {
+    // 验证价格信息
+    proxy.$refs["clothingRef"].validateField(["clothingBasePrice", "clothingMinPrice"], valid => {
+      if (!valid) return;
+      activeStep.value++;
+    });
+  }
+}
+
+// 上一步按钮操作
+function prevStep() {
+  if (activeStep.value > 0) {
+    activeStep.value--;
+  }
+}
+
 /** 提交按钮 */
 function submitForm() {
   proxy.$refs["clothingRef"].validate(valid => {
@@ -353,12 +434,14 @@ function submitForm() {
         updateClothing(form.value).then(response => {
           proxy.notify.success("修改成功");
           open.value = false;
+          activeStep.value = 0; // 重置步骤
           getList();
         });
       } else {
         addClothing(form.value).then(response => {
           proxy.notify.success("新增成功");
           open.value = false;
+          activeStep.value = 0; // 重置步骤
           getList();
         });
       }
@@ -388,3 +471,45 @@ onMounted(async () => {
   getList();
 });
 </script>
+
+<style scoped>
+.clothing-dialog :deep(.el-dialog__body) {
+  padding: 20px 30px;
+}
+
+.dialog-steps {
+  margin-bottom: 1rem;
+  box-shadow: var(--el-box-shadow-lighter);
+}
+
+.form-section {
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+}
+
+.step-content{
+  border-radius: .4rem;
+  box-shadow: var(--el-box-shadow-lighter);
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  color: #409EFF;
+  border-bottom: 1px solid #ebeef5;
+  padding-bottom: 10px;
+}
+
+.price-tip {
+  margin-top: 15px;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+</style>

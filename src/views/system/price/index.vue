@@ -33,8 +33,8 @@
         <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
       </el-row>
 
-      <el-table v-loading="loading" :data="priceList" v-model="selectedList" @selection-change="handleSelectionChange" class="modern-table"
-      border stripe>
+      <el-table v-loading="loading" :data="priceList" v-model="selectedList" @selection-change="handleSelectionChange"
+        class="modern-table" border stripe>
         <el-table-column type="selection" width="55" align="center" />
         <el-table-column label="价格编码" align="center" prop="priceNumber" />
         <el-table-column label="订单类别" align="center" prop="orderType">
@@ -72,91 +72,165 @@
     </el-card>
 
     <!-- 添加或修改价格管理对话框 -->
-    <el-dialog v-model="open" :show-close="false" width="500px" @opened="refNumberGetFocus"
-      @closed="refNumberFocus = false" append-to-body>
-      <el-form ref="priceRef" :model="form" :rules="rules" label-width="80px">
-        <el-row>
-          <el-col :span="12">
-            <el-form-item label="价格名称" prop="priceName">
-              <el-input v-model="form.priceName" placeholder="请输入价格名称" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="价格" prop="priceValue">
-              <el-input-number v-model="form.priceValue" controls-position="right" placeholder="请输入价格"
-                :disabled="isPriceValueDisabled" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row>
-          <el-col :span="12">
-            <el-form-item label="订单类别" prop="orderType">
-              <el-select v-model="form.orderType" placeholder="请选择订单类别">
-                <el-option v-for="dict in sys_price_order_type" :key="dict.value" :label="dict.label"
-                  :value="dict.value" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="折扣系数" prop="priceDiscount">
-              <el-input-number v-model="form.priceDiscount" controls-position="right" placeholder="请输入折扣系数"
-                :disabled="isPriceDiscountDisabled" />
-            </el-form-item>
-          </el-col>
-        </el-row>
+    <el-dialog v-model="open" :show-close="false" width="550px" @opened="refNumberGetFocus"
+      @closed="refNumberFocus = false" align-center class="price-dialog">
+      <template #header>
+        <div class="dialog-header hover-flow">
+          <h2 class="dialog-title">{{ form.priceId ? '修改价格' : '新增价格' }}</h2>
+          <el-button circle @click="cancel">
+            <el-icon>
+              <Close />
+            </el-icon>
+          </el-button>
+        </div>
+      </template>
 
-        <el-form-item label="状态">
-          <el-radio-group v-model="form.status">
-            <el-radio v-for="dict in sys_normal_disable" :key="dict.value" :value="dict.value">
-              {{ dict.label }}
-            </el-radio>
-          </el-radio-group>
-        </el-form-item>
-        <el-row>
-          <el-col :span="12">
-            <el-form-item label="显示顺序" prop="orderNum">
-              <el-input-number v-model="form.orderNum" :min="0" controls-position="right" placeholder="请输入显示顺序" />
+      <el-form ref="priceRef" :model="form" :rules="rules" label-width="80px" class="price-form">
+        <!-- 基本信息卡片 -->
+        <div class="form-card hover-flow">
+          <div class="card-header">
+            <el-icon>
+              <InfoFilled />
+            </el-icon>
+            <span>基本信息</span>
+          </div>
+          <div class="card-body">
+            <el-row :gutter="20">
+              <el-col :span="12">
+                <el-form-item label="价格名称" prop="priceName">
+                  <el-input v-model="form.priceName" placeholder="请输入价格名称" class="custom-input" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="订单类别" prop="orderType">
+                  <el-select v-model="form.orderType" placeholder="请选择订单类别" class="custom-select">
+                    <el-option v-for="dict in sys_price_order_type" :key="dict.value" :label="dict.label"
+                      :value="dict.value" />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </div>
+        </div>
+
+        <!-- 价格设置卡片 -->
+        <div class="form-card hover-flow">
+          <div class="card-header">
+            <el-icon>
+              <Money />
+            </el-icon>
+            <span>价格设置</span>
+          </div>
+          <div class="card-body">
+            <el-row :gutter="20">
+              <el-col :span="12">
+                <el-form-item label="价格" prop="priceValue">
+                  <el-input-number v-model="form.priceValue" controls-position="right" placeholder="请输入价格"
+                    :disabled="isPriceValueDisabled" class="custom-input-number">
+                    <template #prefix>
+                      <el-icon>
+                        <Coin />
+                      </el-icon>
+                    </template>
+                  </el-input-number>
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="折扣系数" prop="priceDiscount">
+                  <el-input-number v-model="form.priceDiscount" controls-position="right" placeholder="请输入折扣系数"
+                    :disabled="isPriceDiscountDisabled" class="custom-input-number">
+                    <template #prefix>
+                      <el-icon>
+                        <Discount />
+                      </el-icon>
+                    </template>
+                  </el-input-number>
+                </el-form-item>
+              </el-col>
+            </el-row>
+
+            <div class="price-info" v-if="form.priceValue || form.priceDiscount">
+              <el-alert type="info" :closable="false" show-icon>
+                <template #title>
+                  <span>{{ form.priceValue ? '已设置固定价格' : '已设置折扣系数' }}</span>
+                </template>
+                <template #default>
+                  <p>{{ form.priceValue && form.priceDiscount ? '价格和折扣系数只能设置一个' : '请设置价格或折扣系数其中一项' }}</p>
+                </template>
+              </el-alert>
+            </div>
+          </div>
+        </div>
+
+        <!-- 其他设置卡片 -->
+        <div class="form-card hover-flow">
+          <div class="card-header">
+            <el-icon>
+              <Setting />
+            </el-icon>
+            <span>其他设置</span>
+          </div>
+          <div class="card-body">
+            <el-form-item label="状态" class="status-item">
+              <el-radio-group v-model="form.status" class="custom-radio-group">
+                <el-radio v-for="dict in sys_normal_disable" :key="dict.value" :value="dict.value" class="custom-radio">
+                  {{ dict.label }}
+                </el-radio>
+              </el-radio-group>
             </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="使用计数" prop="refNum">
-              <el-input-number v-model="form.refNum" ref="refNum" :min="0" controls-position="right"
-                placeholder="请输入使用计数" />
+
+            <el-row :gutter="20">
+              <el-col :span="12">
+                <el-form-item label="显示顺序" prop="orderNum">
+                  <el-input-number v-model="form.orderNum" :min="0" controls-position="right" placeholder="请输入显示顺序"
+                    class="custom-input-number">
+                    <template #prefix>
+                      <el-icon>
+                        <Sort />
+                      </el-icon>
+                    </template>
+                  </el-input-number>
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="使用计数" prop="refNum">
+                  <el-input-number v-model="form.refNum" ref="refNum" :min="0" controls-position="right"
+                    placeholder="请输入使用计数" class="custom-input-number">
+                    <template #prefix>
+                      <el-icon>
+                        <Odometer />
+                      </el-icon>
+                    </template>
+                  </el-input-number>
+                </el-form-item>
+              </el-col>
+            </el-row>
+
+            <el-form-item label="备注" prop="remark">
+              <el-input v-model="form.remark" type="textarea" placeholder="请输入内容" class="custom-textarea" :rows="3" />
             </el-form-item>
-          </el-col>
-        </el-row>
-        <el-form-item label="备注" prop="remark">
-          <el-input v-model="form.remark" type="textarea" placeholder="请输入内容" />
-        </el-form-item>
+          </div>
+        </div>
       </el-form>
+
       <template #footer>
         <div class="dialog-footer">
-          <el-button type="primary" @click="submitForm">确 定</el-button>
-          <el-button @click="cancel">取 消</el-button>
+          <el-button class="hover-flow" type="primary" @click="submitForm" icon="Check"> 确 定</el-button>
+          <el-button class="hover-flow"  type="danger"@click="cancel" icon="Close">取 消</el-button>
         </div>
       </template>
     </el-dialog>
 
     <!-- 修改使用次数对话框 -->
-    <el-dialog title="修改使用次数" v-model="showUpdateRefNum" width="500px" :show-close="false" append-to-body>
-      <el-form ref="tagNumRef" :model="tagNumForm" :rules="refNumFormRules" label-width="80px">
-        <el-form-item label="使用次数" prop="refNumber">
-          <el-input-number :min="0" v-model="tagNumForm.refNumber" placeholder="请输入使用次数" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <div class="dialog-footer">
-          <el-button type="primary" @click="updateRefNum">确 定</el-button>
-          <el-button @click="cancelUpdateRefNum">取 消</el-button>
-        </div>
-      </template>
-    </el-dialog>
+    <ref-count-editor v-model="showUpdateRefNum" :initial-value="tagNumForm.refNumber" title="修改使用次数"
+      description="设置价格的使用计数值" @confirm="handleRefNumConfirm" @cancel="cancelUpdateRefNum" />
   </div>
 </template>
 
 <script setup name="Price">
 import { listPricePagination, getPrice, delPrice, addPrice, updatePrice, updatePriceStatus, updatePriceRefNum } from "@/api/system/price";
 import { listClothing } from "@/api/system/clothing";
+import RefCountEditor from "@/components/RefCountEditor/index.vue";
 
 const { proxy } = getCurrentInstance();
 const { sys_price_order_type, sys_normal_disable } = proxy.useDict("sys_price_order_type", "sys_normal_disable");
@@ -243,17 +317,17 @@ function getList() {
   });
 }
 
-function updateRefNum() {
-  proxy.$refs["tagNumRef"].validate(valid => {
-    if (valid) {
-      updatePriceRefNum({ clothPriceIds: ids.value, refNum: tagNumForm.value.refNumber }).then(res => {
-        proxy.notify.success("修改成功");
-        showUpdateRefNum.value = false;
-        tagNumForm.value.refNumber = null;
-        getList();
-      })
-    }
-  })
+function handleRefNumConfirm(refNumber) {
+  updatePriceRefNum({ priceIds: ids.value, refNum: refNumber }).then(res => {
+    proxy.notify.success("修改成功");
+    showUpdateRefNum.value = false;
+    tagNumForm.value.refNumber = null;
+    getList();
+  }).catch(() => {
+    // 处理错误情况
+  }).finally(() => {
+    // 无论成功失败都执行
+  });
 }
 
 // 取消按钮
@@ -399,3 +473,81 @@ function selectChange() {
 
 getList();
 </script>
+
+<style scoped>
+.price-dialog :deep(.el-dialog__header) {
+  margin: 0;
+  padding: 15px 20px;
+  border-bottom: 1px solid var(--el-border-color-light);
+}
+
+.price-form {
+  padding: 10px 0;
+}
+
+.form-card {
+  margin-bottom: 20px;
+  border-radius: 8px;
+  box-shadow: var(--el-box-shadow-light);
+  overflow: hidden;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  padding: 12px 15px;
+  background-color: var(--el-color-primary-light-9);
+  border-bottom: 1px solid var(--el-border-color-light);
+  color: var(--el-color-primary);
+  font-weight: 600;
+}
+
+.card-header .el-icon {
+  margin-right: 8px;
+  font-size: 16px;
+}
+
+.card-body {
+  padding: 15px;
+}
+
+.custom-input :deep(.el-input__wrapper),
+.custom-select :deep(.el-input__wrapper),
+.custom-input-number :deep(.el-input__wrapper) {
+  box-shadow: 0 0 0 1px var(--el-border-color) inset;
+  border-radius: 4px;
+  padding: 0 12px;
+  transition: all 0.3s;
+}
+
+.custom-input :deep(.el-input__wrapper:hover),
+.custom-select :deep(.el-input__wrapper:hover),
+.custom-input-number :deep(.el-input__wrapper:hover) {
+  box-shadow: 0 0 0 1px var(--el-color-primary-light-5) inset;
+}
+
+.custom-input :deep(.el-input__wrapper.is-focus),
+.custom-select :deep(.el-input__wrapper.is-focus),
+.custom-input-number :deep(.el-input__wrapper.is-focus) {
+  box-shadow: 0 0 0 1px var(--el-color-primary) inset;
+}
+
+.custom-textarea :deep(.el-textarea__inner) {
+  box-shadow: 0 0 0 1px var(--el-border-color) inset;
+  border-radius: 4px;
+  transition: all 0.3s;
+}
+
+.custom-textarea :deep(.el-textarea__inner:hover) {
+  box-shadow: 0 0 0 1px var(--el-color-primary-light-5) inset;
+}
+
+.custom-textarea :deep(.el-textarea__inner:focus) {
+  box-shadow: 0 0 0 1px var(--el-color-primary) inset;
+}
+
+.price-info {
+  margin-top: 10px;
+}
+
+</style>

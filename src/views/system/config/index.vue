@@ -66,31 +66,63 @@
          <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum"
             v-model:limit="queryParams.pageSize" @pagination="getList" />
       </el-card>
+
       <!-- 添加或修改参数配置对话框 -->
-      <el-dialog :title="title" v-model="open" :show-close="false" width="500px" append-to-body>
-         <el-form ref="configRef" :model="form" :rules="rules" :align-center="true" label-width="80px">
-            <el-form-item label="参数名称" prop="configName">
-               <el-input v-model="form.configName" placeholder="请输入参数名称" />
-            </el-form-item>
-            <el-form-item label="参数键名" prop="configKey">
-               <el-input v-model="form.configKey" placeholder="请输入参数键名" />
-            </el-form-item>
-            <el-form-item label="参数键值" prop="configValue">
-               <el-input v-model="form.configValue" placeholder="请输入参数键值" />
-            </el-form-item>
-            <el-form-item label="系统内置" prop="configType">
-               <el-radio-group v-model="form.configType">
-                  <el-radio v-for="dict in sys_yes_no" :key="dict.value" :value="dict.value">{{ dict.label }}</el-radio>
-               </el-radio-group>
-            </el-form-item>
-            <el-form-item label="备注" prop="remark">
-               <el-input v-model="form.remark" type="textarea" placeholder="请输入内容" />
-            </el-form-item>
+      <el-dialog v-model="open" :show-close="false" width="550px" align-center destroy-on-close>
+         <template #header>
+            <div class="dialog-header hover-flow">
+               <span class="dialog-title">{{ title }}</span>
+               <el-button icon="Close" circle @click="cancel"/>
+            </div>
+         </template>
+         <el-form ref="configRef" :model="form" :rules="rules" label-width="90px">
+            <div class="form-card hover-flow">
+               <div class="card-header">
+                  <el-icon>
+                     <Money />
+                  </el-icon>
+                  <span>基本信息</span>
+               </div>
+               <div class="card-body">
+                  <el-form-item label="参数名称" prop="configName">
+                     <el-input v-model="form.configName" placeholder="请输入参数名称" clearable prefix-icon="Document" />
+                  </el-form-item>
+                  <el-form-item label="参数键名" prop="configKey">
+                     <el-input v-model="form.configKey" placeholder="请输入参数键名" clearable prefix-icon="Key" />
+                  </el-form-item>
+                  <el-form-item label="参数键值" prop="configValue">
+                     <el-input v-model="form.configValue" placeholder="请输入参数键值" clearable prefix-icon="Edit" />
+                  </el-form-item>
+               </div>
+            </div>
+
+            <div class="form-card hover-flow">
+               <div class="card-header">
+                  <el-icon>
+                     <Money />
+                  </el-icon>
+                  <span>附加信息</span>
+               </div>
+               <div class="card-body">
+                  <el-form-item label="系统内置" prop="configType">
+                     <el-radio-group v-model="form.configType" class="config-radio-group">
+                        <el-radio-button v-for="dict in sys_yes_no" :key="dict.value" :label="dict.value">
+                           {{ dict.label }}
+                        </el-radio-button>
+                     </el-radio-group>
+                  </el-form-item>
+                  <el-form-item label="备注" prop="remark">
+                     <el-input v-model="form.remark" type="textarea" placeholder="请输入内容" :rows="3" maxlength="200"
+                        show-word-limit />
+                  </el-form-item>
+               </div>
+            </div>
          </el-form>
+
          <template #footer>
             <div class="dialog-footer">
-               <el-button type="primary" @click="submitForm">确 定</el-button>
-               <el-button @click="cancel">取 消</el-button>
+               <el-button class="hover-flow" type="primary" @click="submitForm" icon="Check">确 定</el-button>
+               <el-button class="hover-flow" type="danger" @click="cancel" icon="Close">取 消</el-button>
             </div>
          </template>
       </el-dialog>
@@ -98,7 +130,7 @@
 </template>
 
 <script setup name="Config">
-import { listConfig, getConfig, delConfig, addConfig, updateConfig, refreshCache } from "@/api/system/config";
+import { listConfig, getConfig, delConfig, addConfig, updateConfig } from "@/api/system/config";
 
 const { proxy } = getCurrentInstance();
 const { sys_yes_no } = proxy.useDict("sys_yes_no");
@@ -184,6 +216,7 @@ function handleSelectionChange(selection) {
 /** 新增按钮操作 */
 function handleAdd() {
    reset();
+   title.value = "新增参数";
    open.value = true;
 }
 
@@ -232,3 +265,10 @@ function handleDelete(row) {
 
 getList();
 </script>
+
+<style lang="scss" scoped>
+.dict-form-input {
+   width: 100%;
+}
+
+</style>

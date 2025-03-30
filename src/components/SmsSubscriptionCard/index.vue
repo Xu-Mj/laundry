@@ -1,7 +1,7 @@
 <template>
   <el-card class="subscription-card" shadow="hover">
     <template #header>
-      <div class="card-header">
+      <div class="s-card-header">
         <span>{{ title }}</span>
         <el-tag v-if="smsSubscriptionData.plan" :type="getSubscriptionTagType(smsSubscriptionData.plan.planType)"
           effect="dark" size="small">
@@ -165,7 +165,7 @@ const handleSubscribe = () => {
   transition: all 0.3s;
 }
 
-.card-header {
+.s-card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;

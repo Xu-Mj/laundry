@@ -1,237 +1,280 @@
+// src/stores/user.js
+import { defineStore } from 'pinia'
 import { login, logout, getInfo, guestLogin } from '@/api/login'
 import { getToken, setToken, removeToken } from '@/utils/auth'
 import defAva from '@/assets/images/avatar1.png'
 import { convertFileSrc } from '@tauri-apps/api/core'
 import { useStorage } from '@vueuse/core'
 import { updatePwd } from '@/api/system/user'
-// 试用期配置，可以根据需要修改
+import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
+
+// 试用配置
 const TRIAL_DAYS = 7
-const GUEST_TRIAL_DAYS = 2 // 游客模式试用期为2天
+const GUEST_TRIAL_DAYS = 2
 
-// 使用本地存储记录首次使用时间
-const firstUseTime = useStorage('app_first_use_time', null)
+const useUserStore = defineStore({
+  id: 'user',
 
-const useUserStore = defineStore(
-  'user',
-  {
-    state: () => ({
-      token: getToken(),
-      id: '',
-      name: '',
-      account: '',
-      avatar: '',
-      // isGuest: true,
-      // isInTrial: true,
-      roles: [],
-      permissions: [],
-      user: null,
-      sub: {
-        // 订阅信息
-        plan: {},
-        expiryDate: null,
-        status: 'inactive', // active, inactive, trial
-        // 试用期信息
-        trialDays: TRIAL_DAYS,
-        firstUseTime: firstUseTime.value,
-        trialRemaining: 0,
-        isInTrial: true,
-        // 游客模式
-        isGuest: true,
-        // 水印显示控制
-        showWatermark: false,
-        subscription: {},
-        // 所有有效订阅
-        allSubscriptions: [],
-        smsSub: null,
+  state: () => ({
+    token: getToken(),
+    id: '',          // 用户唯一标识
+    name: '',
+    account: '',
+    avatar: '',
+    user: null,
+
+    // 订阅系统状态
+    subscription: {
+      status: 'inactive', // active | inactive
+      expiryDate: null,
+      planType: 'free'
+    },
+
+    // 试用系统状态（运行时状态）
+    trial: {
+      isInTrial: false,
+      days: TRIAL_DAYS,
+      startTime: null,     // 动态加载
+      remainingDays: 0,
+      isGuest: false,
+      isExpired: false,
+    },
+
+    // 其他业务状态
+    showWatermark: false,
+    allSubscriptions: [],
+    smsSub: null
+  }),
+
+  getters: {
+    // 计算剩余试用天数
+    trialRemainingDays: (state) => {
+      if (!state.trial.startTime) return state.trial.days
+      const start = new Date(state.trial.startTime)
+      const now = new Date()
+      const diffDays = Math.floor((now - start) / (1000 * 60 * 60 * 24))
+      return Math.max(0, state.trial.days - diffDays)
+    },
+
+    // 是否显示水印
+    shouldShowWatermark: (state) => {
+      return state.subscription.status !== 'active' && state.trial.isInTrial
+    },
+
+    // 获取用户状态标签
+    userStatus: (state) => {
+      if (state.subscription.status === 'active') return 'active'
+      if (state.trial.isInTrial) return 'trial'
+      return 'inactive'
+    }
+  },
+
+  actions: {
+    // 核心方法：加载用户试用数据
+    async loadUserTrial() {
+      // 游客试用处理
+      if (this.trial.isGuest) {
+        const guestKey = 'guest_trial_start'
+        const storedTime = useStorage(guestKey, null).value
+
+        if (!storedTime) {
+          const newTime = new Date().toISOString()
+          useStorage(guestKey, newTime).value = newTime
+          this.trial.startTime = newTime
+        } else {
+          this.trial.startTime = storedTime
+        }
+        this.trial.days = GUEST_TRIAL_DAYS
       }
-    }),
-    getters: {
-      // 获取试用期剩余天数
-      trialRemainingDays: (state) => {
-        if (!state.firstUseTime) return state.trialDays
+      // 正式用户试用处理
+      else if (this.id) {
+        const userKey = `user_trial_${this.id}`
+        const storedTime = useStorage(userKey, null).value
 
-        const now = new Date()
-        const firstUse = new Date(state.firstUseTime)
-        const diffTime = now - firstUse
-        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+        if (!storedTime) {
+          const newTime = new Date().toISOString()
+          useStorage(userKey, newTime).value = newTime
+          this.trial.startTime = newTime
+        } else {
+          this.trial.startTime = storedTime
+        }
+        this.trial.days = TRIAL_DAYS
+      }
 
-        return Math.max(0, state.trialDays - diffDays)
-      },
-      // 是否应该显示水印
-      shouldShowWatermark: (state) => {
-        // 如果有活跃订阅，不显示水印
-        if (state.status === 'active') return false
-        // 如果在试用期内，显示水印
-        return state.isInTrial
+      // 更新计算状态
+      this.trial.remainingDays = this.trialRemainingDays
+      this.trial.isInTrial = this.trial.remainingDays > 0
+
+      // 订阅状态优先
+      if (this.subscription.status === 'active') {
+        this.trial.isInTrial = false
+      }
+
+      this.showWatermark = this.shouldShowWatermark
+      // 更新到期状态
+      this.trial.isExpired =
+        this.trial.remainingDays <= 0 &&
+        this.subscription.status !== 'active'
+    },
+
+    // 用户登录
+    async login(userInfo) {
+      try {
+        const res = await login(
+          userInfo.account.trim(),
+          userInfo.password,
+          userInfo.code,
+          userInfo.uuid
+        )
+        setToken(res.token)
+        this.$patch({ token: res.token })
+        await this.getInfo() // 触发用户数据加载
+        return res
+      } catch (error) {
+        throw error
       }
     },
-    actions: {
-      // 登录
-      login(userInfo) {
-        const account = userInfo.account.trim()
-        const password = userInfo.password
-        const code = userInfo.code
-        const uuid = userInfo.uuid
-        return new Promise((resolve, reject) => {
-          login(account, password, code, uuid).then(res => {
-            setToken(res.token)
-            this.token = res.token
-            resolve(res)
-          }).catch(error => {
-            reject(error)
+
+    // 获取用户信息（核心入口）
+    async getInfo() {
+      try {
+        const res = await getInfo()
+        const user = res.user
+
+        if (user) {
+          user.avatar = user.avatar ? convertFileSrc(user.avatar) : defAva
+          // 更新基础信息
+          this.$patch({
+            id: user.id,
+            name: user.nickname,
+            account: user.ownerPhone,
+            avatar: user.avatar,
+            trial: {
+              ...this.trial,
+              isGuest: !!user.isGuest
+            },
+            user: user
           })
-        })
-      },
-      guestLogin() {
-        return new Promise((resolve, reject) => {
-          guestLogin().then(res => {
-            setToken(res.token)
-            this.token = res.token
-            this.isGuest = true
-            resolve(res)
-          }).catch(error => {
-            reject(error)
-          })
-        })
-      },
-      // 获取用户信息
-      getInfo() {
-        return new Promise((resolve, reject) => {
-          getInfo().then(res => {
-            const user = res.user;
-            const avatar = (user.avatar == "" || user.avatar == null) ? defAva : convertFileSrc(user.avatar);
-            this.id = user.id
-            this.name = user.nickname
-            this.account = user.ownerPhone
-            this.sub.isGuest = user.isGuest ? user.isGuest : false
-            this.avatar = avatar
-            res.user.avatar = avatar
-            // 需要检查是否已经登录
-            // 检查是否是游客账号
-            if (res.user && res.user.id === 0) {
-              this.sub.isGuest = true
-              this.sub.isInTrial = true
-              // 游客模式使用特殊的试用期天数
-              this.sub.trialDays = GUEST_TRIAL_DAYS
-              this.sub.status = 'trial'
-            } else {
-              this.sub.isGuest = false
-              this.sub.trialDays = TRIAL_DAYS
 
-              // 从本地数据库获取订阅信息
-              if (res.subscription) {
-                this.sub.subscription = res.subscription
-                // this.plan = userInfo.subscription.planType
-                this.sub.expiryDate = res.subscription.expiryDate
+          // 加载试用数据
+          await this.loadUserTrial()
 
-                // 检查订阅是否有效
-                const now = Date.now()
-                const expiry = res.subscription.expiryDate
-
-                if (expiry > now) {
-                  this.sub.status = 'active'
-                  this.sub.isInTrial = false
-                } else {
-                  this.sub.isInTrial = true
-                  this.sub.status = 'inactive'
-                }
-              } else {
-                this.sub.isInTrial = true
-                this.sub.status = 'inactive'
-              }
-
-              this.sub.smsSub = res.smsSub
-              this.sub.allSubscriptions = res.subscriptions
-            }
-            this.user = user;
-
-            // 检查试用期状态
-            this.checkTrialStatus()
-
-            // 更新水印显示状态
-            this.updateWatermarkStatus()
-            console.log('获取订阅信息成功:', this)
-            resolve(res)
-          }).catch(error => {
-            reject(error)
-          })
-        })
-      },// 修改密码
-      updatePassword(params) {
-        return new Promise((resolve, reject) => {
-          updatePwd(params).then(() => {
-            // 密码修改成功后处理逻辑
-            this.token = '';            // 清空token
-            this.roles = [];            // 清空角色
-            this.permissions = [];      // 清空权限
-            removeToken();              // 移除本地token
-            resolve();
-          }).catch(error => {
-            reject(error);
-          });
-        });
-      },
-      setUser(user) {
-        this.user = user
-      },
-      // 退出系统
-      logOut() {
-        return new Promise((resolve, reject) => {
-          logout().then(() => {
-            this.token = ''
-            this.roles = []
-            this.permissions = []
-            removeToken()
-            resolve()
-          }).catch(error => {
-            reject(error)
-          })
-        })
-      },
-
-      // 检查试用期状态
-      checkTrialStatus() {
-        // 如果订阅有效，不需要检查试用期
-        if (this.status === 'active') {
-          this.sub.isInTrial = false
-          return
+          // 处理订阅信息
+          if (res.subscription) {
+            this.updateSubscription(res.subscription)
+          }
         }
 
-        // 如果是首次使用，记录时间并与用户ID关联
-        if (!this.sub.firstUseTime) {
-          this.sub.firstUseTime = new Date().toISOString()
-          firstUseTime.value = this.sub.firstUseTime
-          // 将首次使用时间与用户ID一起存储
-          useStorage(`app_first_use_time_${this.id}`, this.sub.firstUseTime)
-        }
-
-        // 计算试用期剩余天数
-        this.sub.trialRemaining = this.sub.trialRemainingDays
-
-        // 如果试用期剩余天数大于0，则处于试用期
-        this.sub.isInTrial = this.sub.trialRemaining > 0
-      },
-
-      // 更新水印显示状态
-      updateWatermarkStatus() {
-        this.sub.showWatermark = this.sub.isGuest || this.sub.isInTrial
-      },
-
-      // 设置试用期天数（用于开发测试）
-      setTrialDays(days) {
-        this.sub.trialDays = days
-        this.checkTrialStatus()
-        this.updateWatermarkStatus()
-      },
-
-      // 重置试用期（用于开发测试）
-      resetTrial() {
-        this.sub.firstUseTime = null
-        firstUseTime.value = null
-        this.checkTrialStatus()
-        this.updateWatermarkStatus()
+        return res
+      } catch (error) {
+        throw error
       }
+    },
+
+    // 游客登录
+    async guestLogin() {
+      try {
+        const res = await guestLogin()
+        setToken(res.token)
+        this.$patch({
+          token: res.token,
+          trial: {
+            ...this.trial,
+            isGuest: true
+          }
+        })
+        await this.loadUserTrial()
+        return res
+      } catch (error) {
+        throw error
+      }
+    },
+
+    // 更新订阅信息
+    updateSubscription(newSub) {
+      const isActive = newSub.expiryDate > Date.now()
+
+      this.$patch({
+        subscription: {
+          status: isActive ? 'active' : 'inactive',
+          expiryDate: newSub.expiryDate,
+          planType: newSub.planType || 'free'
+        }
+      })
+
+      // 订阅激活时强制结束试用
+      if (isActive) {
+        this.$patch({
+          trial: {
+            ...this.trial,
+            isInTrial: false
+          }
+        })
+      }
+
+      this.showWatermark = this.shouldShowWatermark
+    },
+
+    // 修改密码
+    async updatePassword(params) {
+      try {
+        await updatePwd(params)
+        await this.logOut()
+      } catch (error) {
+        throw error
+      }
+    },
+
+    // 退出登录（关键清理）
+    async logOut() {
+      try {
+        await logout()
+
+        // 清除运行时状态
+        removeToken()
+        this.$reset()
+
+        // 保留持久化存储数据
+        this.$patch({
+          trial: {
+            startTime: null,
+            isInTrial: false,
+            remainingDays: 0
+          }
+        })
+      } catch (error) {
+        throw error
+      }
+    },
+
+    // 重置试用（开发工具）
+    resetTrial() {
+      if (this.trial.isGuest) {
+        useStorage('guest_trial_start', null).value = null
+      } else if (this.id) {
+        const userKey = `user_trial_${this.id}`
+        useStorage(userKey, null).value = null
+      }
+
+      this.$patch({
+        trial: {
+          ...this.trial,
+          startTime: null,
+          isInTrial: false,
+          remainingDays: 0
+        }
+      })
     }
-  })
+  },
+
+  // 持久化配置（仅游客标记）
+  persist: {
+    paths: ['trial.isGuest']
+  }
+})
+
+// 安装持久化插件
+const pinia = createPinia()
+pinia.use(piniaPluginPersistedstate)
 
 export default useUserStore

@@ -17,13 +17,12 @@
     <HangUp :visible="showHangUp" :key="showHangUp" :taggle="() => { showHangUp = !showHangUp }" />
     <Expenditure :visible="showExp" :key="showExp" title="支出录入" :taggle="() => { showExp = !showExp }" />
 
-    <MenuTourGuide :menuRefs="menuRefs" @tour-finished="handleTourFinished" />
+    <MenuTourGuide :menuRefs="menuRefs" />
   </div>
 </template>
 
 <script setup name="Sidebar">
-import { ref, reactive } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import useUserStore from '@/store/modules/user'
 import Logo from './Logo.vue';
 import Navbar from '../Navbar.vue';
@@ -44,7 +43,9 @@ const showAddUserDialog = ref(false);
 const showHangUp = ref(false);
 const showExp = ref(false);
 const isSingleColumn = ref(false);
-const isAdmin = ref(localStorage.getItem('isAdmin') === 'true');
+// 根据当前路由路径判断是否为管理端路由
+const isSystemRoute = route.path.startsWith('/system');
+const isAdmin = ref(isSystemRoute || localStorage.getItem('isAdmin') === 'true');
 const menuRefs = reactive({});
 
 /*
@@ -95,8 +96,23 @@ const menus = computed(() => {
   return isAdmin.value ? manageMenus : normalMenus;
 });
 
+const userStore = useUserStore();
+
 watch(isAdmin, (newValue) => {
   localStorage.setItem('isAdmin', newValue);
+})
+
+// 监听路由变化，自动切换菜单类型
+watch(() => route.path, (newPath) => {
+  if (newPath === '/index') {
+    return;
+  }
+  // 判断是否为管理端路由（以/system开头）
+  const isSystemRoute = newPath.startsWith('/system');
+  // 如果当前路由类型与菜单类型不匹配，则自动切换
+  if (isSystemRoute !== isAdmin.value) {
+    isAdmin.value = isSystemRoute;
+  }
 })
 
 const handleMenuClick = (menu) => {
@@ -112,21 +128,17 @@ const switchAdmin = () => {
 
 function hangupClick() {
   // 判断是否是试用期
-  if (useUserStore().sub.isGuest) {
+  if (userStore.trial.isGuest) {
     proxy.notify.warning('当前处于游客模式，请先注册！');
     return;
   }
-  if (useUserStore().sub.isInTrial) {
+  if (userStore.trial.isInTrial) {
     // 弹窗提醒
     proxy.notify.warning('您当前为试用期用户，请升级为正式用户后使用！');
     return;
   }
   showHangUp.value = true;
 }
-// 引导完成后的处理函数
-const handleTourFinished = () => {
-  console.log('菜单引导已完成');
-};
 </script>
 
 <style scoped>

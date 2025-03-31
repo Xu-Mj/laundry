@@ -6,15 +6,12 @@ import defAva from '@/assets/images/avatar1.png'
 import { convertFileSrc } from '@tauri-apps/api/core'
 import { useStorage } from '@vueuse/core'
 import { updatePwd } from '@/api/system/user'
-import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
 
 // 试用配置
 const TRIAL_DAYS = 7
 const GUEST_TRIAL_DAYS = 2
 
-const useUserStore = defineStore({
-  id: 'user',
-
+const useUserStore = defineStore('user', {
   state: () => ({
     token: getToken(),
     id: '',          // 用户唯一标识
@@ -272,9 +269,5 @@ const useUserStore = defineStore({
     paths: ['trial.isGuest']
   }
 })
-
-// 安装持久化插件
-const pinia = createPinia()
-pinia.use(piniaPluginPersistedstate)
 
 export default useUserStore

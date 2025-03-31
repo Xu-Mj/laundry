@@ -4,69 +4,64 @@
       <h3>当前订阅计划</h3>
       <el-descriptions :column="2" border>
         <el-descriptions-item label="套餐名称">{{ subscriptionData.plan.name }}</el-descriptions-item>
-        <el-descriptions-item label="套餐类型">{{ getSubscriptionTypeName(subscriptionData.plan.planType)
-        }}</el-descriptions-item>
-        <el-descriptions-item label="订阅周期">{{ getPeriodText(subscriptionData.plan.period)
-        }}</el-descriptions-item>
+        <el-descriptions-item label="套餐类型">
+          {{ getSubscriptionTypeName(subscriptionData.plan.planType) }}
+        </el-descriptions-item>
+        <el-descriptions-item label="订阅周期">
+          {{ getPeriodText(subscriptionData.plan.period) }}
+        </el-descriptions-item>
         <el-descriptions-item label="套餐价格">¥{{ subscriptionData.plan.price }}</el-descriptions-item>
-        <el-descriptions-item label="到期时间">{{ formatDate(subscriptionData.expiryDate)
-        }}</el-descriptions-item>
+        <el-descriptions-item label="到期时间">
+          {{ formatDate(subscriptionData.expiryDate) }}
+        </el-descriptions-item>
         <el-descriptions-item label="自动续费">
           <el-switch v-model="subscriptionData.autoRenew" @change="handleAutoRenewChange" />
         </el-descriptions-item>
       </el-descriptions>
     </div>
-    
+
     <!-- 所有有效订阅列表 -->
     <div class="all-subscriptions" v-if="allSubscriptions.length > 0">
       <h3>所有有效订阅</h3>
       <el-table :data="allSubscriptions" style="width: 100%" border>
         <el-table-column prop="plan.name" label="套餐名称" />
         <el-table-column label="套餐类型">
-          <template #default="{row}">
+          <template #default="{ row }">
             <el-tag :type="getSubscriptionTypeTag(row.plan.planType)" effect="plain">
               {{ getSubscriptionTypeName(row.plan.planType) }}
             </el-tag>
           </template>
         </el-table-column>
         <el-table-column label="订阅周期">
-          <template #default="{row}">
+          <template #default="{ row }">
             {{ getPeriodText(row.plan.period) }}
           </template>
         </el-table-column>
         <el-table-column label="套餐价格">
-          <template #default="{row}">
+          <template #default="{ row }">
             ¥{{ row.plan.price }}
           </template>
         </el-table-column>
         <el-table-column label="到期时间">
-          <template #default="{row}">
+          <template #default="{ row }">
             {{ formatDate(row.expiryDate) }}
           </template>
         </el-table-column>
         <el-table-column label="状态">
-          <template #default="{row}">
+          <template #default="{ row }">
             <el-tag :type="row.id === subscriptionData.id ? 'success' : 'info'">
               {{ row.id === subscriptionData.id ? '当前激活' : '未激活' }}
             </el-tag>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="180">
-          <template #default="{row}">
-            <el-button 
-              v-if="row.id !== subscriptionData.id" 
-              type="primary" 
-              size="small"
-              @click="activateSubscription(row)"
-            >
+          <template #default="{ row }">
+            <el-button v-if="row.id !== subscriptionData.id" type="primary" size="small"
+              @click="activateSubscription(row)">
               设为当前
             </el-button>
-            <el-button 
-              v-if="row.id !== subscriptionData.id" 
-              type="danger" 
-              size="small"
-              @click="confirmCancelSubscription(row)"
-            >
+            <el-button v-if="row.id !== subscriptionData.id" type="danger" size="small"
+              @click="confirmCancelSubscription(row)">
               取消订阅
             </el-button>
           </template>
@@ -77,44 +72,48 @@
     <div class="available-plans">
       <h3>可用套餐</h3>
       <el-row :gutter="20" style="row-gap: 20px">
-        <el-col :span="8" v-for="plan in availablePlans" :key="plan.id">
+        <el-col :span="8" v-for="(plan, index) in availablePlans" :key="plan.id || 'plan-' + index">
           <el-card class="plan-card" shadow="hover" :class="{ 'recommended-plan': plan.isRecommended }">
             <!-- 推荐标签 -->
             <div class="plan-ribbon" v-if="plan.isRecommended">推荐</div>
-            
+
             <div class="plan-card-header">
               <h4>{{ plan.name }}</h4>
               <el-tag :type="getSubscriptionTypeTag(plan.planType)" effect="dark" size="small">
                 {{ getSubscriptionTypeName(plan.planType) }}
               </el-tag>
             </div>
-            
+
             <div class="plan-card-price">
               <span class="price-value">¥{{ plan.price }}</span>
               <span class="price-period">/ {{ getPeriodText(plan.period) }}</span>
             </div>
-            
+
             <!-- 套餐描述 -->
             <!-- <div class="plan-description" v-if="plan.description">
               {{ plan.description }}
             </div> -->
-            
+
             <div class="plan-card-features">
               <!-- 当features为null时，显示描述作为特性 -->
               <template v-if="getFeaturesList(plan.features).length > 0">
                 <div v-for="(feature, index) in getFeaturesList(plan.features)" :key="index" class="feature-item">
-                  <el-icon><Check /></el-icon>
+                  <el-icon>
+                    <Check />
+                  </el-icon>
                   <span>{{ feature }}</span>
                 </div>
               </template>
               <template v-else-if="plan.description">
                 <div class="feature-item">
-                  <el-icon><Check /></el-icon>
+                  <el-icon>
+                    <Check />
+                  </el-icon>
                   <span>{{ plan.description }}</span>
                 </div>
               </template>
             </div>
-            
+
             <el-button type="primary" class="subscribe-btn" :disabled="isCurrentPlan(plan.id)"
               @click="showSubscriptionDialog(plan)">
               {{ isCurrentPlan(plan.id) ? '当前套餐' : '选择套餐' }}
@@ -161,14 +160,17 @@ const props = defineProps({
     default: () => []
   }
 });
-console.log('props', props);
 
 const emit = defineEmits(['subscription-updated', 'subscription-activated', 'subscription-cancelled']);
 
+const { proxy } = getCurrentInstance();
 // 计算属性：所有有效订阅
 const allSubscriptions = computed(() => {
-  console.log('allSubscriptions', props.allSubscriptions);
-  return props.allSubscriptions || [];
+  // 移除不必要的日志输出，避免性能问题
+  // 确保返回的是数组且长度合理
+  const subscriptions = props.allSubscriptions || [];
+  // 限制最多显示20个订阅，防止可能的性能问题
+  return Array.isArray(subscriptions) ? subscriptions.slice(0, 20) : [];
 });
 
 // 订阅套餐相关
@@ -214,15 +216,25 @@ const handleCongratsConfirmed = () => {
 
 // 处理支付取消
 const handlePaymentCancel = () => {
-  console.log('支付已取消');
+  proxy.notify.warn('支付已取消');
   subscriptionDialogVisible.value = false;
 };
 
 // 获取可用套餐列表
 onMounted(async () => {
-  getAllPlans().then(res => {
-    availablePlans.value = res;
-  });
+  try {
+    const res = await getAllPlans();
+    // 修复：确保返回的数据是数组，并限制数量，防止渲染过多元素
+    if (Array.isArray(res)) {
+      availablePlans.value = res; // 最多显示10个套餐
+    } else {
+      proxy.notify.error('获取套餐列表失败：返回数据格式不正确');
+      availablePlans.value = [];
+    }
+  } catch (error) {
+    console.error('获取套餐列表失败', error);
+    availablePlans.value = [];
+  }
 });
 
 // 获取订阅类型名称
@@ -300,7 +312,7 @@ const activateSubscription = (subscription) => {
     ...subscription,
     status: 'Active'
   };
-  
+
   // 通知父组件激活指定订阅
   emit('subscription-activated', updatedSubscription);
   ElMessage.success(`已将「${subscription.plan.name}」设为当前激活订阅`);

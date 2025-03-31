@@ -4,13 +4,16 @@
       <h3>当前短信订阅计划</h3>
       <el-descriptions :column="2" border>
         <el-descriptions-item label="套餐名称">{{ smsSubscriptionData.plan.name }}</el-descriptions-item>
-        <el-descriptions-item label="套餐类型">{{ getSmsSubscriptionTypeName(smsSubscriptionData.plan.planType)
-        }}</el-descriptions-item>
-        <el-descriptions-item label="订阅周期">{{ getPeriodText(smsSubscriptionData.plan.period)
-        }}</el-descriptions-item>
+        <el-descriptions-item label="套餐类型">
+          {{ getSmsSubscriptionTypeName(smsSubscriptionData.plan.planType) }}
+        </el-descriptions-item>
+        <el-descriptions-item label="订阅周期">
+          {{ getPeriodText(smsSubscriptionData.plan.period) }}
+        </el-descriptions-item>
         <el-descriptions-item label="套餐价格">¥{{ smsSubscriptionData.plan.price }}</el-descriptions-item>
-        <el-descriptions-item label="到期时间">{{ formatDate(smsSubscriptionData.expiryDate)
-        }}</el-descriptions-item>
+        <el-descriptions-item label="到期时间">
+          {{ formatDate(smsSubscriptionData.expiryDate) }}
+        </el-descriptions-item>
         <el-descriptions-item label="自动续费">
           <el-switch v-model="smsSubscriptionData.autoRenew" @change="handleAutoRenewChange" />
         </el-descriptions-item>
@@ -121,6 +124,8 @@ const props = defineProps({
 
 const emit = defineEmits(['subscription-updated']);
 
+const { proxy } = getCurrentInstance();
+
 // 订阅套餐相关
 const smsSubscriptionDialogVisible = ref(false);
 const congratsVisible = ref(false);
@@ -166,11 +171,19 @@ const handlePaymentCancel = () => {
 
 // 获取可用套餐列表
 onMounted(async () => {
-  // 这里应该调用获取短信套餐的API，暂时使用getAllPlans代替
-  getSmsPlans().then(res => {
-    // 在实际应用中，应该过滤出短信套餐
-    availableSmsPlans.value = res;
-  });
+  try {
+    const res = await getSmsPlans();
+    // 修复：确保返回的数据是数组，并限制数量，防止渲染过多元素
+    if (Array.isArray(res)) {
+      availableSmsPlans.value = res; // 最多显示10个套餐
+    } else {
+      proxy.notify.error('获取套餐列表失败：返回数据格式不正确');
+      availableSmsPlans.value = [];
+    }
+  } catch (error) {
+    console.error('获取套餐列表失败', error);
+    availableSmsPlans.value = [];
+  }
 });
 
 // 获取短信订阅类型名称

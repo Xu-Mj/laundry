@@ -102,7 +102,7 @@
           </el-icon>
         </div>
         <div class="ad-body">
-          <img src="https://placeholder.pics/svg/200x120/DEDEDE/555555/广告展示" alt="广告" />
+          <img src="@/assets/images/ad-placeholder.svg" alt="广告" />
           <div class="ad-text">最新优惠活动，立即查看</div>
           <el-button type="primary" size="small" class="ad-button">了解详情</el-button>
         </div>

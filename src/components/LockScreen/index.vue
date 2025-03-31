@@ -98,7 +98,7 @@ const userInfo = computed(() => {
         name: userStore.name,
         avatar: userStore.avatar,
         account: userStore.account,
-        isGuest: userStore.isGuest,
+        isGuest: userStore.trial.isGuest,
     };
 });
 

@@ -50,8 +50,6 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch, defineProps, defineEmits } from 'vue';
-import { EditPen, Odometer, Check, Close } from '@element-plus/icons-vue';
 
 const props = defineProps({
     // 对话框标题

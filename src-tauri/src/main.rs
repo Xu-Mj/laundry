@@ -43,25 +43,7 @@ async fn main() {
             .with_timer(LocalTimer)
             .init();
     }
-    // if config.log.output != "console" {
-    //     // redirect log to file
-    //     let file_appender = tracing_appender::rolling::daily(&config.log.output, "laundry");
-    //     let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
-    //     // builder = builder.with_writer(non_blocking);
-    //     tracing_subscriber::FmtSubscriber::builder()
-    //         .with_line_number(true)
-    //         .with_max_level(config.log.level())
-    //         .with_writer(non_blocking)
-    //         .with_timer(LocalTimer)
-    //         .init();
-    // } else {
-    //     // log to console
-    //     tracing_subscriber::FmtSubscriber::builder()
-    //         .with_line_number(true)
-    //         .with_max_level(config.log.level())
-    //         .with_timer(LocalTimer)
-    //         .init();
-    // }
+
     // 执行数据迁移
     migrate().await.expect("database migrate failed");
     // 获取应用数据目录
@@ -72,10 +54,6 @@ async fn main() {
         .await
         .expect("Failed to connect to database");
 
-    // // 初始化数据库
-    // initialize_database(&pool)
-    //     .await
-    //     .expect("Failed to initialize database");
     start_cleanup_thread();
 
     create_app(
@@ -84,7 +62,7 @@ async fn main() {
             .plugin(tauri_plugin_dialog::init())
             .plugin(tauri_plugin_process::init())
             .plugin(tauri_plugin_fs::init()),
-        AppState::new(pool, config.base_url),
+        AppState::new(pool, config.get_url()),
     )
     .run(|_app_handle, event| match event {
         tauri::RunEvent::ExitRequested { api, .. } => {

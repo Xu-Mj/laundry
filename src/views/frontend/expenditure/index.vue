@@ -127,7 +127,7 @@
 import { listExpenditure, getExpenditure, delExpenditure } from "@/api/system/expenditure";
 import { getUser, listUserWithNoLimit } from "@/api/system/user";
 import { getOrders } from "@/api/system/orders";
-import UserInfo from '@/views/system/user/info';
+import UserInfo from '@/views/frontend/user/info';
 import Expenditure from '@/views/components/expenditureAdd.vue'
 
 const { proxy } = getCurrentInstance();

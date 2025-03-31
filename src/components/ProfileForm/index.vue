@@ -9,8 +9,8 @@
       <el-col :span="12">
         <el-form-item label="性别">
           <el-radio-group v-model="profileData.ownerGender" class="gender-radio">
-            <el-radio label="male">男</el-radio>
-            <el-radio label="female">女</el-radio>
+            <el-radio value="male">男</el-radio>
+            <el-radio value="female">女</el-radio>
           </el-radio-group>
         </el-form-item>
       </el-col>
@@ -19,7 +19,7 @@
     <el-row :gutter="20">
       <el-col :span="12">
         <el-form-item label="店铺名称" prop="storeName">
-          <el-input v-model="profileData.storeName" placeholder="请输入店铺名称" prefix-icon="Shop" />
+          <el-input v-model="profileData.storeName" disabled placeholder="请输入店铺名称" prefix-icon="Shop" />
         </el-form-item>
       </el-col>
       <el-col :span="12">
@@ -42,8 +42,23 @@
       </el-col>
     </el-row>
 
-    <el-form-item label="店铺地址" prop="storeLocation">
-      <el-input v-model="profileData.storeLocation" placeholder="请输入店铺地址" prefix-icon="Location" />
+    <!-- 店铺地址 - 省市区选择 -->
+    <el-form-item label="店铺地址" prop="addressRegion">
+      <el-cascader
+        v-model="profileData.addressRegion"
+        :options="areaData"
+        placeholder="请选择省/市/区"
+        class="custom-cascader"
+      />
+    </el-form-item>
+    
+    <!-- 详细地址 -->
+    <el-form-item label="详细地址" prop="addressDetail">
+      <el-input 
+        v-model="profileData.addressDetail" 
+        placeholder="请输入详细地址（街道、门牌号等）" 
+        prefix-icon="Location" 
+      />
     </el-form-item>
 
     <el-form-item>
@@ -64,6 +79,8 @@
 <script setup>
 import { ElMessageBox } from 'element-plus';
 import { getProfile, updateProfile } from '@/api/system/profile';
+import { areaData, parseAddress, stringifyAddress } from '@/utils/area-data';
+import { onMounted, watch } from 'vue';
 
 const props = defineProps({
   profileData: {
@@ -107,11 +124,42 @@ const rules = ref({
     { required: false, message: '请输入电子邮箱', trigger: 'blur' },
     { type: 'email', message: '请输入正确的邮箱地址', trigger: ['blur', 'change'] }
   ],
-  storeLocation: [
-    { required: false, message: '请输入店铺地址', trigger: 'blur' },
-    { min: 5, max: 100, message: '店铺地址长度必须介于 5 和 100 之间', trigger: 'blur' }
+  addressRegion: [
+    { required: false, message: '请选择省/市/区', trigger: 'change' },
+    { type: 'array', min: 3, message: '请完整选择省/市/区', trigger: 'change' }
+  ],
+  addressDetail: [
+    { required: false, message: '请输入详细地址', trigger: 'blur' },
+    { min: 3, max: 100, message: '详细地址长度必须介于 3 和 100 之间', trigger: 'blur' }
   ]
 });
+
+// 初始化地址数据
+const initAddressData = () => {
+  if (props.profileData.storeLocation) {
+    const addressData = parseAddress(props.profileData.storeLocation);
+    props.profileData.addressRegion = addressData.selectedOptions;
+    props.profileData.addressDetail = addressData.detailAddress;
+  } else {
+    props.profileData.addressRegion = [];
+    props.profileData.addressDetail = '';
+  }
+};
+
+// 监听地址变化，更新storeLocation字段
+watch(
+  () => [props.profileData.addressRegion, props.profileData.addressDetail],
+  ([newRegion, newDetail]) => {
+    if (newRegion && newRegion.length > 0) {
+      props.profileData.storeLocation = stringifyAddress(newRegion, newDetail);
+    } else if (newDetail) {
+      props.profileData.storeLocation = newDetail;
+    } else {
+      props.profileData.storeLocation = '';
+    }
+  },
+  { deep: true }
+);
 
 // 更新个人信息
 const handleUpdateProfile = async () => {
@@ -128,7 +176,21 @@ const handleUpdateProfile = async () => {
 
     try {
       updating.value = true;
-      const user = await updateProfile(props.profileData);
+      
+      // 处理地址数据，确保storeLocation字段已更新
+      if (props.profileData.addressRegion && props.profileData.addressRegion.length > 0) {
+        props.profileData.storeLocation = stringifyAddress(
+          props.profileData.addressRegion,
+          props.profileData.addressDetail
+        );
+      }
+      
+      // 创建一个不包含中间字段的数据对象
+      const updateData = { ...props.profileData };
+      delete updateData.addressRegion;
+      delete updateData.addressDetail;
+      
+      const user = await updateProfile(updateData);
       props.userStore.setUser(user);
       emit('profile-updated', user);
     } catch (error) {
@@ -149,12 +211,19 @@ const resetForm = () => {
     try {
       const res = await getProfile();
       emit('update:profileData', res.data);
+      // 初始化地址数据
+      initAddressData();
       proxy.notify.success('表单已重置');
     } catch (error) {
       console.error(error);
     }
   }).catch(() => { });
 };
+
+// 组件挂载时初始化地址数据
+onMounted(() => {
+  initAddressData();
+});
 </script>
 
 <style scoped>
@@ -166,5 +235,9 @@ const resetForm = () => {
   display: flex;
   align-items: center;
   height: 40px;
+}
+
+.custom-cascader {
+  width: 100%;
 }
 </style>

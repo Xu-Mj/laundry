@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use base64::prelude::*;
 use serde::{Deserialize, Serialize};

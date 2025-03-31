@@ -120,7 +120,7 @@
                         <el-col :span="24">
                             <el-form-item label="会员住址">
                                 <el-input v-model="form.address" type="textarea" placeholder="请输入会员住址"
-                                    rows="2"></el-input>
+                                    :rows="2"></el-input>
                             </el-form-item>
                         </el-col>
                     </el-row>
@@ -128,7 +128,7 @@
                         <el-col :span="24">
                             <el-form-item label="备注">
                                 <el-input v-model="form.remark" type="textarea" placeholder="请输入备注信息"
-                                    rows="2"></el-input>
+                                    :rows="2"></el-input>
                             </el-form-item>
                         </el-col>
                     </el-row>

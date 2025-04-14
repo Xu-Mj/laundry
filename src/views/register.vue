@@ -59,11 +59,38 @@
           </el-button>
         </el-form-item>
 
-        <!-- 商家地址 -->
-        <el-form-item prop="location" class="custom-form-item">
-          <el-input v-model="registerForm.location" type="text" size="large" auto-complete="off" placeholder="商家地址"
-            class="custom-input">
+        <!-- 商家地址 - 省市区选择 -->
+        <el-form-item prop="addressRegion" class="custom-form-item">
+          <el-cascader
+            v-model="registerForm.addressRegion"
+            :options="areaData"
+            placeholder="请选择省/市/区"
+            class="custom-cascader"
+            size="large"
+            :props="{ 
+              checkStrictly: false,
+              value: 'value',
+              label: 'label',
+              children: 'children',
+              expandTrigger: 'hover'
+            }"
+            clearable
+          >
             <template #prefix><svg-icon icon-class="tree" class="input-icon" /></template>
+          </el-cascader>
+        </el-form-item>
+        
+        <!-- 详细地址 -->
+        <el-form-item prop="addressDetail" class="custom-form-item">
+          <el-input 
+            v-model="registerForm.addressDetail" 
+            type="text" 
+            size="large" 
+            auto-complete="off" 
+            placeholder="请输入详细地址（街道、门牌号等）"
+            class="custom-input"
+          >
+            <template #prefix><el-icon class="input-icon"><Location /></el-icon></template>
           </el-input>
         </el-form-item>
 
@@ -130,10 +157,12 @@
 <script setup>
 import WaveBackground from '@/layout/components/WaveBackground.vue';
 import SunRays from '@/layout/components/SunRays.vue';
-import { getCodeImg, register, getMsgCode } from "@/api/login";
+import { getCodeImg, register, getMsgCode, getDeviceInfo } from "@/api/login";
 import { Window } from "@tauri-apps/api/window";
 import { ElMessageBox } from "element-plus";
-import { convertFileSrc } from '@tauri-apps/api/core'
+import { convertFileSrc } from '@tauri-apps/api/core';
+import { areaData, stringifyAddress } from '@/utils/area-data';
+import { Location } from '@element-plus/icons-vue'
 
 const appWindow = new Window('main');
 const router = useRouter();
@@ -146,7 +175,8 @@ const registerForm = ref({
   ownerName: "",
   ownerPhone: "",
   verificationCode: "",
-  location: "",
+  addressRegion: [], // 省市区选择
+  addressDetail: "", // 详细地址
   password: "",
   confirmPassword: "",
   code: "",
@@ -193,9 +223,13 @@ const registerRules = {
     { required: true, trigger: "blur", message: "请输入短信验证码" },
     { min: 4, max: 6, message: "验证码长度不正确", trigger: "blur" }
   ],
-  location: [
-    { required: true, trigger: "blur", message: "请输入商家地址" },
-    { min: 5, max: 100, message: "地址长度必须介于 5 和 100 之间", trigger: "blur" }
+  addressRegion: [
+    { required: true, trigger: "change", message: "请选择省/市/区" },
+    { type: 'array', min: 3, message: "请完整选择省/市/区", trigger: "change" }
+  ],
+  addressDetail: [
+    { required: true, trigger: "blur", message: "请输入详细地址" },
+    { min: 3, max: 100, message: "详细地址长度必须介于 3 和 100 之间", trigger: "blur" }
   ],
   password: [
     { required: true, trigger: "blur", message: "请输入密码" },
@@ -265,9 +299,25 @@ const handleRegister = () => {
   proxy.$refs.registerRef.validate(valid => {
     if (valid) {
       loading.value = true;
+      
+      // 处理地址数据，将省市区和详细地址合并
+      const formData = { ...registerForm.value };
+      // 将省市区和详细地址合并为一个地址字符串
+      formData.location = stringifyAddress(formData.addressRegion, formData.addressDetail);
+      // 删除中间字段，不需要传给后端
+      delete formData.addressRegion;
+      delete formData.addressDetail;
 
-      // 调用注册API
-      register(registerForm.value).then(res => {
+      // 获取设备信息并添加到注册数据中
+      getDeviceInfo().then(deviceInfo => {
+        // 添加设备信息到注册数据
+        formData.deviceId = deviceInfo.deviceId;
+        formData.deviceName = deviceInfo.deviceName || '';
+        formData.deviceMac = deviceInfo.macAddress || '';
+        
+        // 调用注册API
+        return register(formData);
+      }).then(res => {
         loading.value = false;
         ElMessageBox.alert(
           `<div style="text-align:center; padding: 30px 20px;">
@@ -293,7 +343,8 @@ const handleRegister = () => {
             }
           }
         );
-      }).catch(() => {
+      }).catch((error) => {
+        console.error('注册失败:', error);
         loading.value = false;
         if (captchaEnabled.value) {
           getCode();
@@ -435,10 +486,12 @@ onMounted(async () => {
     }
   }
 
-  .custom-input {
+  .custom-input,
+  .custom-cascader {
     height: 50px;
     border-radius: 8px;
     transition: all 0.3s;
+    width: 100%;
 
     &:hover,
     &:focus {
@@ -455,6 +508,18 @@ onMounted(async () => {
       width: 20px;
       margin: 0 10px 0 0;
       color: #909399;
+    }
+  }
+  
+  // 级联选择器特殊样式
+  .custom-cascader {
+    :deep(.el-input__wrapper) {
+      padding: 0 15px;
+    }
+    
+    :deep(.el-input__inner) {
+      height: 50px;
+      line-height: 50px;
     }
   }
 

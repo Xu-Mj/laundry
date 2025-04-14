@@ -49,6 +49,14 @@
         :options="areaData"
         placeholder="请选择省/市/区"
         class="custom-cascader"
+        :props="{ 
+          checkStrictly: false,
+          value: 'value',
+          label: 'label',
+          children: 'children',
+          expandTrigger: 'hover'
+        }"
+        clearable
       />
     </el-form-item>
     
@@ -136,7 +144,23 @@ const rules = ref({
 
 // 初始化地址数据
 const initAddressData = () => {
-  if (props.profileData.storeLocation) {
+  // 优先使用新的地址字段
+  if (props.profileData.province || props.profileData.city || props.profileData.district) {
+    // 如果有新的地址字段，使用它们
+    const codes = [];
+    if (props.profileData.province) {
+      codes.push(props.profileData.province);
+    }
+    if (props.profileData.city) {
+      codes.push(props.profileData.city);
+    }
+    if (props.profileData.district) {
+      codes.push(props.profileData.district);
+    }
+    props.profileData.addressRegion = codes;
+    props.profileData.addressDetail = props.profileData.addressDetail || '';
+  } else if (props.profileData.storeLocation) {
+    // 兼容旧的storeLocation字段
     const addressData = parseAddress(props.profileData.storeLocation);
     props.profileData.addressRegion = addressData.selectedOptions;
     props.profileData.addressDetail = addressData.detailAddress;
@@ -177,18 +201,37 @@ const handleUpdateProfile = async () => {
     try {
       updating.value = true;
       
-      // 处理地址数据，确保storeLocation字段已更新
+      // 处理地址数据，确保storeLocation字段和新的地址字段都已更新
       if (props.profileData.addressRegion && props.profileData.addressRegion.length > 0) {
+        // 更新storeLocation字段（保持向后兼容）
         props.profileData.storeLocation = stringifyAddress(
           props.profileData.addressRegion,
           props.profileData.addressDetail
         );
+        
+        // 更新新的地址字段
+        if (props.profileData.addressRegion.length >= 1) {
+          props.profileData.province = props.profileData.addressRegion[0];
+        }
+        if (props.profileData.addressRegion.length >= 2) {
+          props.profileData.city = props.profileData.addressRegion[1];
+        }
+        if (props.profileData.addressRegion.length >= 3) {
+          props.profileData.district = props.profileData.addressRegion[2];
+        }
+        props.profileData.addressDetail = props.profileData.addressDetail || '';
+      } else {
+        // 如果没有选择地址，清空地址字段
+        props.profileData.province = null;
+        props.profileData.city = null;
+        props.profileData.district = null;
+        props.profileData.addressDetail = props.profileData.addressDetail || '';
+        props.profileData.storeLocation = props.profileData.addressDetail || '';
       }
       
       // 创建一个不包含中间字段的数据对象
       const updateData = { ...props.profileData };
       delete updateData.addressRegion;
-      delete updateData.addressDetail;
       
       const user = await updateProfile(updateData);
       props.userStore.setUser(user);

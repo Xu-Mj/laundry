@@ -1,5 +1,8 @@
 import { invoke as invokeCommand } from '@tauri-apps/api/core'
 import Notification from '@/utils/notification';
+import { removeToken } from '@/utils/auth';
+import useUserStore from '@/store/modules/user'
+import { ElMessageBox } from 'element-plus'
 
 const errorMessages = {
     UnknownError: "未知错误",
@@ -19,17 +22,53 @@ const errorMessages = {
     default: "未知错误，请联系管理员",
     AccountOrPassword: "用户名或密码错误",
     AccountNotRegister: "该账号未注册",
+    SmsNotSubscribed: "未订阅短信服务，请先订阅",
+    SmsRemainShort: "短信余量不足，请充值",
 };
 
 async function invoke(command, params = {}) {
     try {
         return await invokeCommand(command, params);
     } catch (error) {
+        console.error(`Error invoking command ${command}:`, error);
         const errorMsg = errorMessages[error.kind] || errorMessages.default;
         let details = '';
 
         if (error.kind !== 'ReqwestError') {
             details = error.details ? `: ${error.details}` : '';
+        } 
+
+        // 处理UnAuthorized错误
+        if (error.kind === 'UnAuthorized') {
+            ElMessageBox.confirm('登录状态已过期，您可以继续留在该页面，或者重新登录', '系统提示', {
+                confirmButtonText: '重新登录',
+                cancelButtonText: '取消',
+                type: 'warning'
+              }).then(() => {
+                isRelogin.show = false;
+                useUserStore().logOut().then(() => {
+                  location.href = '/index';
+                });
+              }).catch(() => {
+                isRelogin.show = false;
+              });
+            // Notification.error('登录过期，请重新登录');
+            // // 清除token
+            // removeToken();
+            // // 跳转到登录页面
+            // window.location.href = '/login';
+            return;
+        } else 
+
+        // 处理UnAuthorized错误
+        if (error.kind === 'UnAuthorizedDevice') {
+            details = error.details ? `${error.details}` : '未授权设备';
+            ElMessageBox.alert(details, '警告', {
+                confirmButtonText: '确认',
+              })
+            // 清除token
+            removeToken();
+            return;
         }
 
         // ElMessage({ message: `${errorMsg}${details}`, type: 'error', duration: 5000 });

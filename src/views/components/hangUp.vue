@@ -321,7 +321,39 @@ function hangUp() {
                     open.value = false;
                     props.taggle();
                 }).catch(res => {
-                    proxy.notify.error(res.msg);
+                    // 处理特定的错误类型
+                    if (res.kind === 'SmsNotSubscribed') {
+                        // 未订阅短信服务的处理
+                        proxy.$modal.confirm(
+                            '您尚未订阅短信服务，无法发送短信通知给客户。是否前往订阅？',
+                            '未订阅短信服务',
+                            {
+                                confirmButtonText: '去订阅',
+                                cancelButtonText: '取消',
+                                type: 'warning'
+                            }
+                        ).then(() => {
+                            // 跳转到短信订阅页面
+                            proxy.$router.push('/profile?tab=sms');
+                        }).catch(() => {});
+                    } else if (res.kind === 'SmsRemainShort') {
+                        // 短信余量不足的处理
+                        proxy.$modal.confirm(
+                            '短信余量不足，无法发送短信通知给客户。是否前往充值？',
+                            '短信余量不足',
+                            {
+                                confirmButtonText: '去充值',
+                                cancelButtonText: '取消',
+                                type: 'warning'
+                            }
+                        ).then(() => {
+                            // 跳转到短信充值页面
+                            proxy.$router.push('/profile?tab=sms');
+                        }).catch(() => {});
+                    } else {
+                        // 其他错误的处理
+                        proxy.notify.error(res.msg || '操作失败');
+                    }
                 })
             }
         });

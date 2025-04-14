@@ -8,6 +8,7 @@ use tauri::State;
 use crate::db::Validator;
 use crate::error::{Error, ErrorKind, Result};
 use crate::state::AppState;
+use crate::utils::device::DeviceInfo;
 use crate::utils::request::Token;
 use crate::{captcha, utils};
 
@@ -40,6 +41,14 @@ pub struct LocalUser {
     pub deleted: String,
     pub remark: Option<String>,
     pub nickname: Option<String>,
+    /// 省份
+    pub province: Option<String>,
+    /// 城市
+    pub city: Option<String>,
+    /// 区/县
+    pub district: Option<String>,
+    /// 详细地址
+    pub address_detail: Option<String>,
     /// 已完成引导的页面
     #[serde(skip_serializing_if = "Option::is_none")]
     pub completed_tours: Option<Vec<UserTours>>,
@@ -66,6 +75,10 @@ impl FromRow<'_, SqliteRow> for LocalUser {
             deleted: row.try_get("deleted").unwrap_or_default(),
             remark: row.try_get("remark").unwrap_or_default(),
             nickname: row.try_get("nickname").unwrap_or_default(),
+            province: row.try_get("province").unwrap_or_default(),
+            city: row.try_get("city").unwrap_or_default(),
+            district: row.try_get("district").unwrap_or_default(),
+            address_detail: row.try_get("address_detail").unwrap_or_default(),
             completed_tours: None,
         })
     }
@@ -77,6 +90,59 @@ impl LocalUser {
             owner_name: Some(username.to_string()),
             password: Some(password.to_string()),
             ..Default::default()
+        }
+    }
+
+    /// 解析store_location字段，提取省市区和详细地址信息
+    pub fn parse_store_location(&mut self) {
+        if let Some(location) = &self.store_location {
+            // 尝试解析JSON格式的地址
+            if let Ok(json) = serde_json::from_str::<serde_json::Value>(location) {
+                if let Some(obj) = json.as_object() {
+                    // 提取selectedOptions数组
+                    if let Some(selected_options) =
+                        obj.get("selectedOptions").and_then(|v| v.as_array())
+                    {
+                        // 使用element-china-area-data库的codeToText映射获取省市区文本
+                        // 由于这里是Rust代码，我们需要手动处理
+                        if selected_options.len() >= 1 {
+                            if let Some(code) = selected_options[0].as_str() {
+                                self.province = Some(code.to_string());
+                            }
+                        }
+                        if selected_options.len() >= 2 {
+                            if let Some(code) = selected_options[1].as_str() {
+                                self.city = Some(code.to_string());
+                            }
+                        }
+                        if selected_options.len() >= 3 {
+                            if let Some(code) = selected_options[2].as_str() {
+                                self.district = Some(code.to_string());
+                            }
+                        }
+                    }
+
+                    // 提取详细地址
+                    if let Some(detail) = obj.get("detailAddress").and_then(|v| v.as_str()) {
+                        self.address_detail = Some(detail.to_string());
+                    }
+                }
+            } else {
+                // 如果不是JSON格式，尝试按空格分割
+                let parts: Vec<&str> = location.split(' ').collect();
+                if parts.len() >= 3 {
+                    self.province = Some(parts[0].to_string());
+                    self.city = Some(parts[1].to_string());
+                    self.district = Some(parts[2].to_string());
+
+                    if parts.len() > 3 {
+                        self.address_detail = Some(parts[3..].join(" "));
+                    }
+                } else {
+                    // 如果格式不符合预期，将整个地址作为详细地址
+                    self.address_detail = Some(location.clone());
+                }
+            }
         }
     }
 }
@@ -99,8 +165,10 @@ impl LocalUser {
     pub async fn create(&self, pool: &Pool<Sqlite>) -> Result<Self> {
         let user = sqlx::query_as(
             "INSERT INTO local_users (
-                avatar, store_name, store_location, user_id, owner_name, owner_phone, email, password, owner_gender, store_status, is_guest, created_at, updated_at, deleted, remark, nickname
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *",
+                avatar, store_name, store_location, user_id, owner_name, owner_phone, email, password, owner_gender, 
+                store_status, is_guest, created_at, updated_at, deleted, remark, nickname, 
+                province, city, district, address_detail
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *",
         )
         .bind(&self.avatar)
         .bind(&self.store_name)
@@ -118,6 +186,10 @@ impl LocalUser {
         .bind(&self.deleted)
         .bind(&self.remark)
         .bind(&self.nickname)
+        .bind(&self.province)
+        .bind(&self.city)
+        .bind(&self.district)
+        .bind(&self.address_detail)
         .fetch_one(pool)
         .await?;
         Ok(user)
@@ -172,7 +244,11 @@ impl LocalUser {
                 is_guest = ?,
                 updated_at = ?,
                 remark = ?,
-                nickname = ?
+                nickname = ?,
+                province = ?,
+                city = ?,
+                district = ?,
+                address_detail = ?
             WHERE id = ?",
         )
         .bind(&self.avatar)
@@ -189,6 +265,10 @@ impl LocalUser {
         .bind(self.updated_at)
         .bind(&self.remark)
         .bind(&self.nickname)
+        .bind(&self.province)
+        .bind(&self.city)
+        .bind(&self.district)
+        .bind(&self.address_detail)
         .bind(self.id)
         .execute(pool)
         .await?;
@@ -200,8 +280,9 @@ impl LocalUser {
         let user:LocalUser = sqlx::query_as(
             "INSERT OR REPLACE INTO local_users (
                 id, avatar, store_name, store_location, user_id, owner_name, owner_phone, email, role, password,
-                 owner_gender, store_status, is_guest, created_at, updated_at, deleted, remark, nickname
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *",
+                owner_gender, store_status, is_guest, created_at, updated_at, deleted, remark, nickname,
+                province, city, district, address_detail
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *",
         )
         .bind(self.id)
         .bind(&self.avatar)
@@ -221,6 +302,10 @@ impl LocalUser {
         .bind(&self.deleted)
         .bind(&self.remark)
         .bind(&self.nickname)
+        .bind(&self.province)
+        .bind(&self.city)
+        .bind(&self.district)
+        .bind(&self.address_detail)
         .fetch_one(&mut **pool)
         .await?;
         Ok(user)
@@ -234,6 +319,11 @@ pub struct LoginReq {
     pub password: Option<String>,
     pub code: Option<String>,
     pub uuid: Option<String>,
+    // 设备信息字段
+    pub device_id: Option<String>,
+    pub device_name: Option<String>,
+    pub device_type: Option<String>,
+    pub hardware_fingerprint: Option<String>,
 }
 
 impl Validator for LoginReq {
@@ -293,8 +383,18 @@ impl LoginReq {
         Ok(())
     }
 
-    async fn verify_from_server(&self, state: &State<'_, AppState>) -> Result<Token> {
-        state.http_client.login(self).await
+    async fn verify_from_server(&mut self, state: &State<'_, AppState>) -> Result<Token> {
+        // 如果没有设备信息，尝试获取当前设备信息
+        let device_info = crate::utils::device::DeviceInfo::get();
+        self.device_id = Some(device_info.device_id);
+        self.device_name = Some(device_info.device_name);
+        self.device_type = Some(device_info.device_type);
+        self.hardware_fingerprint = Some(device_info.hardware_fingerprint);
+
+        tracing::debug!("登录信息: {:?}", self);
+
+        // 发送登录请求到服务器，包含设备信息
+        state.http_client.login(&self).await
     }
 
     async fn pull_subs_and_plans(
@@ -314,7 +414,7 @@ impl LoginReq {
     }
 
     // login, return token if success
-    pub async fn login(self, state: &State<'_, AppState>) -> Result<Token> {
+    pub async fn login(mut self, state: &State<'_, AppState>) -> Result<Token> {
         self.validate()?;
 
         // validate captcha
@@ -546,4 +646,10 @@ pub async fn update_local_user(state: State<'_, AppState>, user: LocalUser) -> R
 
     // 返回更新后的用户信息
     Ok(server_user)
+}
+
+// 获取当前设备信息并验证
+#[tauri::command]
+pub async fn get_device_info() -> Result<DeviceInfo> {
+    Ok(DeviceInfo::get())
 }

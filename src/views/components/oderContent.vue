@@ -342,7 +342,7 @@ const data = reactive({
     pickupRules: {},
     queryParams: {
         orderNumber: null,
-        phonenumber: "5638",
+        phonenumber: null,
         pickupCode: null,
     },
 });

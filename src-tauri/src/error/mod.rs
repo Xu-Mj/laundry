@@ -24,6 +24,9 @@ pub enum ErrorKind {
     AccountOrPassword,
     AccountNotRegister,
     UnAuthorized,
+    UnAuthorizedDevice,
+    SmsNotSubscribed,
+    SmsRemainShort,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -190,6 +193,7 @@ impl From<jsonwebtoken::errors::Error> for Error {
 
 impl From<reqwest::Error> for Error {
     fn from(value: reqwest::Error) -> Self {
+        tracing::error!("reqwest error: {:?}", value);
         Self::new(ErrorKind::ReqwestError, value.to_string(), value)
     }
 }

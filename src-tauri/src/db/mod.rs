@@ -4,6 +4,8 @@ pub(crate) mod alipay_config;
 pub(crate) mod cloth_price;
 pub(crate) mod cloth_sequence;
 pub(crate) mod clothing;
+pub(crate) mod clothing_category;
+pub(crate) mod clothing_style;
 pub(crate) mod configs;
 pub(crate) mod coupon_orders;
 pub(crate) mod coupons;
@@ -82,6 +84,7 @@ pub trait Validator {
     fn validate(&self) -> Result<()>;
 }
 
+#[async_trait::async_trait]
 pub trait Curd: Sized + for<'f> FromRow<'f, SqliteRow> + Send + Unpin {
     const COUNT_SQL: &'static str;
     const QUERY_SQL: &'static str;

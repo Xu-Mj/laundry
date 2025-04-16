@@ -18,10 +18,10 @@
                         <el-col :span="3" style="height: 100%;">
                             <el-scrollbar>
                                 <div class="radio-group-column">
-                                    <RadioButton class="radio-button-column" v-model="form.clothingCategory"
-                                        v-for="dict in sys_cloth_cate" :key="dict.value" :value="dict.value"
+                                    <RadioButton class="radio-button-column" v-model="form.categoryId"
+                                        v-for="category in categoryList" :key="category.categoryId" :value="category.categoryId"
                                         @change="cateChange">
-                                        {{ dict.label }}
+                                        {{ category.categoryName }}
                                     </RadioButton>
                                 </div>
                             </el-scrollbar>
@@ -37,14 +37,14 @@
                             <el-scrollbar class="scrollbar-height">
                                 <div class="items-break">
                                     <RadioButton v-for="dict in clothStyleList" :key="dict.dictValue"
-                                        v-model="form.clothingStyle" :value="dict.dictValue" :label="dict.dictLabel"
+                                        v-model="form.styleId" :value="dict.dictValue" :label="dict.dictLabel"
                                         @change="nextStep()" />
                                 </div>
                             </el-scrollbar>
                         </el-col>
                         <el-row class="footer-btn">
                             <el-button type="primary" size="large"
-                                :disabled="!props.userId || !form.clothingCategory || !form.clothingStyle"
+                                :disabled="!props.userId || !form.categoryId || !form.styleId"
                                 @click="nextStep">下一步
                                 <el-icon>
                                     <ArrowRight />
@@ -379,8 +379,9 @@
 import { addCloths, updateCloths } from "@/api/system/cloths";
 import { CoffeeCup, CollectionTag, CopyDocument, PictureRounded, User, WarningFilled } from "@element-plus/icons-vue";
 import { listClothingWithNoLimit, addClothing } from "@/api/system/clothing";
-import { getDicts } from '@/api/system/dict/data'
 import { listTagsNoLimit, addTags } from "@/api/system/tags";
+import { listCategoryAll } from "@/api/system/clothingCategory";
+import { listStyleByCategoryId, addStyle } from "@/api/system/clothingStyle";
 import pinyin from 'pinyin';
 import { ref, reactive, toRefs } from "vue";
 import CheckboxGroup from "../../components/CheckBoxGroup.vue";
@@ -388,8 +389,6 @@ import CheckboxButton from '../../components/CheckboxButton.vue';
 import { ElMessage } from 'element-plus';
 import { invoke } from '@tauri-apps/api/core';
 import { Close } from '@element-plus/icons-vue';
-import { getTypeByType, addType } from "@/api/system/dict/type";
-import { addDataAuto } from "@/api/system/dict/data";
 import RadioButton from '@/components/RadioButton.vue'
 
 const props = defineProps({
@@ -425,15 +424,13 @@ const props = defineProps({
 
 const selectedCloth = inject('selectedCloth');
 const { proxy } = getCurrentInstance();
-const { sys_cloth_cate,
-    sys_service_type,
-    sys_service_requirement,
-} =
+const { sys_service_type, sys_service_requirement } =
     proxy.useDict(
-        "sys_cloth_cate",
         "sys_service_type",
         "sys_service_requirement"
     );
+// 衣物品类列表
+const categoryList = ref([]);
 // 步数
 const maxStepNum = 6;
 // 添加衣物的列表
@@ -473,10 +470,10 @@ const prePictureList2 = ref(new Set());// 洗前图片
 const data = reactive({
     form: {},
     rules: {
-        clothingCategory: [
+        categoryId: [
             { required: true, message: "衣物品类不能为空", trigger: "blur" }
         ],
-        clothingStyle: [
+        styleId: [
             { required: true, message: "衣物类别不能为空", trigger: "blur" }
         ],
         serviceType: [
@@ -652,29 +649,21 @@ async function handleAddCate() {
         proxy.notify.error("请输入分类名称");
         return;
     }
-    const t = "sys_cloth_style" + form.value.clothingCategory;
-    // check if the cate is already exist
-    const cate = await getTypeByType(t);
-    console.log(cate);
-    // if not in the list, add it
-    if (!cate) {
-        console.log("add cate", sys_cloth_cate);
-        const name = sys_cloth_cate.value.find(item => item.value == form.value.clothingCategory).label + "分类";
-        addType({ dictName: name, dictType: t, status: "0" }).then(res => {
-            proxy.notify.success("添加成功");
-        });
+    
+    if (!form.value.categoryId) {
+        proxy.notify.error("请先选择品类");
+        return;
     }
-
-    // create a new style
-    // value need to check the data in database which is already exist and then increase 1
+    
+    // 创建新的分类
     const style = {
-        dictLabel: cateName.value,
-        dictType: t,
-        listClass: "default",
-        dictSort: 0,
-        status: "0",
+        categoryId: form.value.categoryId,
+        styleName: cateName.value,
+        styleCode: "", // 后端会自动生成
+        orderNum: 0
     };
-    addDataAuto(style).then(() => {
+    
+    addStyle(style).then(() => {
         proxy.notify.success("添加成功");
         cateChange();
         cateName.value = "";
@@ -702,9 +691,14 @@ function findClothingName() {
 
 // 当品类发生变化时动态查询子分类列表
 function cateChange() {
-    getDicts("sys_cloth_style" + form.value.clothingCategory).then(res => {
-        clothStyleList.value = res;
-    })
+    if (form.value.categoryId) {
+        listStyleByCategoryId(form.value.categoryId).then(res => {
+            clothStyleList.value = res.map(item => ({
+                dictValue: item.styleId,
+                dictLabel: item.styleName
+            }));
+        })
+    }
 }
 
 // 表单重置
@@ -713,8 +707,8 @@ function reset() {
         clothInfo: {},
         orderId: null,
         clothingId: null,
-        clothingCategory: "000",
-        clothingStyle: "0",
+        categoryId: categoryList.value.length > 0 ? categoryList.value[0].categoryId : null,
+        styleId: null,
         clothingColor: null,
         clothingFlaw: null,
         estimate: null,
@@ -747,6 +741,14 @@ function reset() {
 /* 初始化列表数据 */
 async function initList() {
     const promises = [];
+
+    // 获取品类列表
+    if (categoryList.value.length === 0) {
+        const categoryPromise = listCategoryAll().then(response => {
+            categoryList.value = response;
+        });
+        promises.push(categoryPromise);
+    }
 
     // 获取衣物列表
     if (clothingList.value.length === 0) {
@@ -795,7 +797,10 @@ async function initList() {
 /** 新增按钮操作 */
 function handleAdd() {
     reset();
-    cateChange();
+    // 如果有品类数据，初始化分类列表
+    if (form.value.categoryId) {
+        cateChange();
+    }
 }
 
 /** 提交按钮 */
@@ -899,8 +904,8 @@ function nextStep() {
 
     if (step.value === 1) {
         clothingListFilterResult.value = clothingList.value.filter(item =>
-            item.clothingCategory === form.value.clothingCategory
-            && item.clothingStyle === form.value.clothingStyle);
+            item.categoryId === form.value.categoryId
+            && item.styleId === form.value.styleId);
         console.log(form.value)
         console.log(clothingListFilterResult.value)
     }
@@ -1035,8 +1040,8 @@ function createCloth() {
         return;
     }
     data.clothingMinPrice = data.clothingMinPrice || data.clothingBasePrice;
-    data.clothingCategory = form.value.clothingCategory;
-    data.clothingStyle = form.value.clothingStyle;
+    data.categoryId = form.value.categoryId;
+    data.styleId = form.value.styleId;
     data.clothingName = clothNameInput.value;
 
     addClothing(data).then(async response => {

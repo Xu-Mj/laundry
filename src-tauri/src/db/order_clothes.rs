@@ -29,10 +29,13 @@ const ORDER_STATUS_PAID: &str = "00";
 #[serde(default)]
 pub struct OrderCloth {
     pub cloth_id: Option<i64>,
+    pub store_id: Option<i64>,
     pub order_id: Option<i64>,
     pub clothing_id: Option<i64>,
     pub clothing_category: Option<String>,
+    pub category_id: Option<i64>,
     pub clothing_style: Option<String>,
+    pub style_id: Option<i64>,
     pub clothing_color: Option<i64>,
     pub clothing_flaw: Option<String>,
     pub estimate: Option<String>,
@@ -62,10 +65,13 @@ pub struct OrderCloth {
 impl FromRow<'_, SqliteRow> for OrderCloth {
     fn from_row(row: &SqliteRow) -> std::result::Result<Self, sqlx::Error> {
         let cloth_id = row.try_get("cloth_id").unwrap_or_default();
+        let store_id = row.try_get("store_id").unwrap_or_default();
         let order_id = row.try_get("order_id").unwrap_or_default();
         let clothing_id: Option<i64> = row.try_get("clothing_id").unwrap_or_default();
         let clothing_category = row.try_get("clothing_category").unwrap_or_default();
+        let category_id = row.try_get("category_id").unwrap_or_default();
         let clothing_style = row.try_get("clothing_style").unwrap_or_default();
+        let style_id = row.try_get("style_id").unwrap_or_default();
         let clothing_color = row.try_get("clothing_color").unwrap_or_default();
         let clothing_flaw = row.try_get("clothing_flaw").unwrap_or_default();
         let clothing_brand = row.try_get("clothing_brand").unwrap_or_default();
@@ -94,10 +100,13 @@ impl FromRow<'_, SqliteRow> for OrderCloth {
         }
         Ok(OrderCloth {
             cloth_id,
+            store_id,
             order_id,
             clothing_id,
             clothing_category,
+            category_id,
             clothing_style,
+            style_id,
             clothing_color,
             clothing_flaw,
             estimate,
@@ -138,45 +147,27 @@ pub struct HangReq {
 impl Validator for OrderCloth {
     fn validate(&self) -> Result<()> {
         if self.clothing_id.is_none() {
-            return Err(Error::with_details(
-                ErrorKind::BadRequest,
-                "clothing_id is required",
-            ));
+            return Err(Error::bad_request("clothing_id is required"));
         }
 
-        if self.clothing_category.is_none() {
-            return Err(Error::with_details(
-                ErrorKind::BadRequest,
-                "clothing_category is required",
-            ));
+        if self.category_id.is_none() {
+            return Err(Error::bad_request("clothing_category is required"));
         }
 
-        if self.clothing_style.is_none() {
-            return Err(Error::with_details(
-                ErrorKind::BadRequest,
-                "clothing_style is required",
-            ));
+        if self.style_id.is_none() {
+            return Err(Error::bad_request("clothing_style is required"));
         }
 
         if self.service_type.is_none() {
-            return Err(Error::with_details(
-                ErrorKind::BadRequest,
-                "service_type is required",
-            ));
+            return Err(Error::bad_request("service_type is required"));
         }
 
         if self.hang_type.is_none() {
-            return Err(Error::with_details(
-                ErrorKind::BadRequest,
-                "hang_type is required",
-            ));
+            return Err(Error::bad_request("hang_type is required"));
         }
 
         if self.price_value.is_none() {
-            return Err(Error::with_details(
-                ErrorKind::BadRequest,
-                "price_value is required",
-            ));
+            return Err(Error::bad_request("price_value is required"));
         }
         Ok(())
     }
@@ -193,27 +184,32 @@ const SQL: &str = "SELECT
                c.clothing_min_price,
                c.order_num,
                c.clothing_degree,
-               d.name as hanger_name
+               d.name as hanger_name,
+               ct.category_name as clothing_category,
+               st.style_name as clothing_style
         FROM order_clothes oc
                  left join clothing c on oc.clothing_id = c.clothing_id
-                 left join drying_rack d on oc.hang_location_code = d.id";
+                 left join drying_rack d on oc.hang_location_code = d.id
+                 left join clothing_categories ct on c.category_id = ct.category_id 
+                 left join clothing_styles st on c.style_id = st.style_id";
 
 impl OrderCloth {
     pub async fn add(&self, tr: &mut Transaction<'_, Sqlite>) -> Result<Self> {
         let cloth = sqlx::query_as::<_, Self>(
             "INSERT INTO order_clothes
-        (clothing_id, clothing_category, clothing_style, clothing_color,
+        (clothing_id, store_id, category_id, style_id, clothing_color,
          clothing_flaw, estimate, clothing_brand, service_type, service_requirement,
          before_pics, after_pics, notes, process_markup, price_value,
         hang_type, hang_location_code, hanger_number, hang_cloth_code, hang_remark,
         create_time, pickup_time, pickup_method, clothing_status, remark)
          VALUES
-         (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          RETURNING *",
         )
         .bind(&self.clothing_id)
-        .bind(&self.clothing_category)
-        .bind(&self.clothing_style)
+        .bind(&self.store_id)
+        .bind(&self.category_id)
+        .bind(&self.style_id)
         .bind(&self.clothing_color)
         .bind(&self.clothing_flaw)
         .bind(&self.estimate)
@@ -622,7 +618,7 @@ impl OrderCloth {
         Ok(clothing_number)
     }
 
-    pub async fn insert_order_cloth(&mut self, pool: &Pool<Sqlite>, store_id: i64) -> Result<Self> {
+    pub async fn insert_order_cloth(&mut self, pool: &Pool<Sqlite>) -> Result<Self> {
         let mut tr = pool.begin().await?; // 开启事务
 
         // 设置时间
@@ -640,7 +636,7 @@ impl OrderCloth {
         // 生成衣挂位置
         let drying_rack = DryingRack::get_position(
             pool,
-            store_id,
+            self.store_id.unwrap(),
             self.hang_type.clone().unwrap_or("01".to_string()),
         )
         .await?;
@@ -834,7 +830,9 @@ impl OrderCloth {
         }
 
         // Self::update_order_and_notify(&mut tr, state, &mut order, is_all_hanged).await?;
-        if let Err(err) = Self::update_order_and_notify(&mut tr, state, &mut order, is_all_hanged).await {
+        if let Err(err) =
+            Self::update_order_and_notify(&mut tr, state, &mut order, is_all_hanged).await
+        {
             match err.kind() {
                 // 这些错误类型需要返回给前端，但不应导致事务回滚
                 ErrorKind::SmsNotSubscribed | ErrorKind::SmsRemainShort => {
@@ -843,7 +841,7 @@ impl OrderCloth {
                     tr.commit().await?;
                     // 然后返回错误给前端
                     return Err(err);
-                },
+                }
                 // 其他错误类型仍然返回错误
                 _ => return Err(err),
             }
@@ -917,7 +915,7 @@ impl OrderCloth {
 
         // release mutex
         drop(token);
-        
+
         // 直接构建参数，调用专有接口
         let param = HashMap::from([("code".to_string(), code.to_string())]);
 
@@ -927,11 +925,15 @@ impl OrderCloth {
             phone: tel.to_string(),
             args: Some(param),
         };
-        
+
         tracing::info!("send hangup sms request: {:?}", body);
 
         // 调用专有接口发送短信
-        let result = match state.http_client.post("/sms/hangup", body, Some(&token_str)).await {
+        let result = match state
+            .http_client
+            .post("/sms/hangup", body, Some(&token_str))
+            .await
+        {
             Ok(res) => {
                 if res {
                     String::from("0")
@@ -947,17 +949,17 @@ impl OrderCloth {
                         // 返回特定错误，而不是简单忽略
                         return Err(Error::with_details(
                             ErrorKind::SmsNotSubscribed,
-                            "短信服务未订阅，请先订阅短信服务"
+                            "短信服务未订阅，请先订阅短信服务",
                         ));
-                    },
+                    }
                     ErrorKind::SmsRemainShort => {
                         tracing::warn!("SMS remaining count is low: {:?}", err);
                         // 返回特定错误，而不是简单忽略
                         return Err(Error::with_details(
                             ErrorKind::SmsRemainShort,
-                            "短信余量不足，请及时充值"
+                            "短信余量不足，请及时充值",
                         ));
-                    },
+                    }
                     _ => {
                         tracing::error!("send sms failed: {:?}", err);
                     }
@@ -965,7 +967,7 @@ impl OrderCloth {
                 String::from("1")
             }
         };
-        
+
         // 无论短信是否发送成功，都创建通知记录
         let mut record = NoticeRecord {
             notice_id: None,
@@ -978,12 +980,12 @@ impl OrderCloth {
             result: Some(result),
             ..Default::default()
         };
-        
+
         // 尝试创建记录，但即使失败也不影响主流程
         if let Err(e) = record.create(tx).await {
             tracing::error!("Failed to create notice record: {:?}", e);
         }
-        
+
         Ok(())
     }
 
@@ -1112,7 +1114,8 @@ pub async fn add_order_cloth(
     mut order_cloth: OrderCloth,
 ) -> Result<OrderCloth> {
     let store_id = utils::get_user_id(&state).await?;
-    order_cloth.insert_order_cloth(&state.pool, store_id).await
+    order_cloth.store_id = Some(store_id);
+    order_cloth.insert_order_cloth(&state.pool).await
 }
 
 #[tauri::command]

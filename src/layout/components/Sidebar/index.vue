@@ -90,6 +90,7 @@ const manageMenus = [
   { 'name': '通知记录', 'type': 'primary', show: true, path: '/system/notice-record', onClick: () => router.push('/system/notice-record') },
   { 'name': '参数设置', 'type': 'primary', show: true, path: '/system/config', onClick: () => router.push('/system/config') },
   { 'name': '字典管理', 'type': 'primary', show: true, path: '/system/dict', onClick: () => router.push('/system/dict') },
+  { 'name': '衣物分类', 'type': 'primary', show: true, path: '/system/clothingCategory', onClick: () => router.push('/system/clothingCategory') },
 ];
 
 const menus = computed(() => {

@@ -41,18 +41,8 @@
         <el-table-column type="selection" width="55" align="center" />
         <el-table-column label="衣物名称" align="center" prop="clothingName" />
         <el-table-column label="衣物编码" align="center" prop="clothingNumber" />
-        <el-table-column label="所属品类" align="center" prop="clothingCategory">
-          <template #default="scope">
-            <dict-tag :options="sys_cloth_cate" :value="scope.row.clothingCategory" />
-          </template>
-        </el-table-column>
-        <el-table-column label="所属分类" align="center" prop="clothingStyle">
-          <template #default="scope">
-            <el-tag :type="getStyleCss(scope.row)">
-              {{ getStyle(scope.row) }}
-            </el-tag>
-          </template>
-        </el-table-column>
+        <el-table-column label="所属品类" align="center" prop="clothingCategory"/>
+        <el-table-column label="所属分类" align="center" prop="clothingStyle"/>
         <el-table-column label="基准价格" align="center" prop="clothingBasePrice" />
         <el-table-column label="最低价格" align="center" prop="clothingMinPrice" />
         <el-table-column label="显示顺序" align="center" prop="orderNum" />

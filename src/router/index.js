@@ -238,6 +238,34 @@ export const constantRoutes = [
       {
         path: 'index/:dictId(\\d+)',
         component: () => import('@/views/system/dict/data'),
+        name: 'Data',
+        meta: { title: '字典数据', activeMenu: '/system/dict' }
+      }
+    ]
+  },
+  {
+    path: '/system/clothingCategory',
+    component: Layout,
+    hidden: false,
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/system/clothingCategory/index'),
+        name: 'ClothingCategory',
+        meta: { title: '衣物品类管理', icon: 'list' }
+      }
+    ]
+  },
+  {
+    path: '/system/clothingStyle',
+    component: Layout,
+    hidden: false,
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/system/clothingStyle/index'),
+        name: 'ClothingStyle',
+        meta: { title: '衣物分类管理', icon: 'list' }
       }
     ]
   },

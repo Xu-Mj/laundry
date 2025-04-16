@@ -162,9 +162,10 @@
                     <div class="btn-container">
                         <el-button size="large" icon="Close" type="danger" @click="cancelSelf">{{ form.orderId ? '关 闭' :
                             '取 消'
-                            }}</el-button>
+                        }}</el-button>
                         <el-button size="large" icon="Check" type="primary" color="#626aef" @click="submitForm"
-                            :disabled="notEditable && !(form.source === '03') && (form.priceId || form.source === '02' || form.source === '01')" ref="submitButtonRef">取衣收款</el-button>
+                            :disabled="notEditable && !(form.source === '03') && (form.priceId || form.source === '02' || form.source === '01')"
+                            ref="submitButtonRef">取衣收款</el-button>
                         <el-button size="large" type="success" @click="createAndPay" icon="Money"
                             :disabled="notEditable" ref="payButtonRef">收衣收款</el-button>
                     </div>
@@ -180,7 +181,7 @@
             :toggle="() => { showPaymentDialog = !showPaymentDialog }" />
         <Information :user="currentUser" :visible="showInfoDialog" :key="showInfoDialog"
             :toggle="() => { showInfoDialog = !showInfoDialog }" />
-            
+
         <!-- <OrderTourGuide 
             :memberCardRef="memberCardRef" 
             :orderSourceRef="orderSourceRef"
@@ -210,7 +211,7 @@ import { print } from "@/api/system/printer";
 import Information from "@/views/frontend/user/information.vue";
 import CustomTable from '@/components/CustomTable';
 import Pay from '@/views/components/pay.vue';
-import OrderTourGuide from '@/components/OrderTourGuide/index.vue';
+// import OrderTourGuide from '@/components/OrderTourGuide/index.vue';
 
 const props = defineProps({
     visible: {
@@ -588,13 +589,13 @@ async function submitForm() {
                 }
             }
             if (form.value.orderId != null) {
-                updateOrders(form.value).then(response => {
+                updateOrders(form.value).then(() => {
                     proxy.notify.success("修改成功");
                     props.refresh();
                     props.toggle();
                 });
             } else {
-                addOrders(form.value).then(async response => {
+                addOrders(form.value).then(async () => {
                     proxy.notify.success("新增成功");
                     await printCloth();
                     reset();
@@ -815,6 +816,8 @@ async function printCloth() {
 
         proxy.$modal.loading('正在打印衣物信息...')
         await print(result);
+    } catch (error) {
+        console.error("打印失败:", error);
     } finally {
         proxy.$modal.closeLoading();
     }

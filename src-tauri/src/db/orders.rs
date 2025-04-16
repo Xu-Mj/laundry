@@ -249,7 +249,7 @@ impl Order {
         (order_number, business_type, store_id, user_id, price_id, desire_complete_time, cost_time_alarm,
          pickup_code, complete_time, delivery_mode, source, status, payment_status,
          remark, order_type, create_time, update_time)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         RETURNING *",
         )
         .bind(&self.order_number)

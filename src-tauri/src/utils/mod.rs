@@ -1,4 +1,5 @@
 pub(crate) mod chrono_serde;
+pub(crate) mod device;
 pub(crate) mod request;
 
 use argon2::password_hash::SaltString;

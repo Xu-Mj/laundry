@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 use sqlx::sqlite::SqliteRow;
-use sqlx::types::chrono::{DateTime, FixedOffset};
 use sqlx::{FromRow, Pool, QueryBuilder, Row, Sqlite, Transaction};
 use tauri::State;
 
@@ -12,6 +11,7 @@ use crate::db::user_tags::UserTags;
 use crate::error::{Error, Result};
 use crate::state::AppState;
 use crate::utils;
+use crate::utils::request::Request;
 
 use super::{Curd, PageParams, PageResult};
 
@@ -61,11 +61,11 @@ pub struct User {
     /// 创建者
     pub create_by: Option<String>,
     /// 创建时间
-    pub create_time: Option<DateTime<FixedOffset>>,
+    pub create_time: Option<i64>,
     /// 更新者
     pub update_by: Option<String>,
     /// 更新时间
-    pub update_time: Option<DateTime<FixedOffset>>,
+    pub update_time: Option<i64>,
     /// 备注
     pub remark: Option<String>,
     /// 家庭住址
@@ -187,12 +187,13 @@ impl User {
     pub async fn create(&self, tr: &mut sqlx::Transaction<'_, Sqlite>) -> Result<Self> {
         let row = sqlx::query_as(
             "INSERT INTO users (
-            store_id, open_id, dept_id, user_name, nick_name, user_type, email, phonenumber,
+            user_id, store_id, open_id, dept_id, user_name, nick_name, user_type, email, phonenumber,
             sex, avatar, password, status, integral, identify, login_ip,
             login_date, create_by, create_time, remark, address, del_flag
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '0')
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '0')
         RETURNING *",
         )
+        .bind(&self.user_id)
         .bind(&self.store_id)
         .bind(&self.open_id)
         .bind(&self.dept_id)
@@ -478,7 +479,8 @@ impl User {
         Self::get_by_id(pool, order.user_id.unwrap_or_default()).await
     }
 
-    pub async fn create_user(&mut self, pool: &Pool<Sqlite>) -> Result<Self> {
+    pub async fn create_user(&mut self, state: &State<'_, AppState>) -> Result<Self> {
+        let pool = &state.pool;
         let mut tr = pool.begin().await?;
 
         // validate
@@ -513,14 +515,18 @@ impl User {
         }
 
         self.init();
-        let user = self.create(&mut tr).await?;
+
+        // create user to server
+        let user = self.create_request(state).await?;
+
+        let user = user.create(&mut tr).await?;
         // create user tags
         if let Some(tags) = &user.user_tags {
             UserTags::new(
                 user.user_id.unwrap(),
                 tags.clone(),
                 user.tags_remark.clone(),
-                self.store_id,
+                user.store_id,
             )
             .insert(&mut tr)
             .await?;
@@ -534,7 +540,8 @@ impl User {
         Ok(user)
     }
 
-    pub async fn update_user(&self, pool: &Pool<Sqlite>) -> Result<bool> {
+    pub async fn update_user(&self, state: &State<'_, AppState>) -> Result<bool> {
+        let pool = &state.pool;
         let mut tr = pool.begin().await?;
         // validate
         if self.store_id.is_none() {
@@ -557,6 +564,12 @@ impl User {
             .await?;
         }
 
+        // udpate user to server
+        if !self.update_request(state).await? {
+            return Err(Error::bad_request("update user to server failed"));
+        }
+
+        // update user to database
         let result = self.update(&mut tr).await?;
         tr.commit().await?;
         Ok(result)
@@ -609,17 +622,33 @@ impl User {
     }
 }
 
+impl Request for User {
+    const URL: &'static str = "/users";
+
+    // async fn del_request(&self, state: &State<'_, AppState>) -> Result<bool> {
+    //     let result = state
+    //         .http_client
+    //         .delete(&format!("{}/{}", Self::USER_URL, self.user_id.unwrap()))
+    //         .await?;
+    //     Ok(result)
+    // }
+}
+
 #[tauri::command]
 pub async fn get_users_pagination(
     state: State<'_, AppState>,
     page_params: PageParams,
-    user: User,
+    mut user: User,
 ) -> Result<PageResult<User>> {
+    let store_id = utils::get_user_id(&state).await?;
+    user.store_id = Some(store_id);
     user.pagination(&state.pool, page_params).await
 }
 
 #[tauri::command]
-pub async fn get_all_users(state: State<'_, AppState>, user: User) -> Result<Vec<User>> {
+pub async fn get_all_users(state: State<'_, AppState>, mut user: User) -> Result<Vec<User>> {
+    let store_id = utils::get_user_id(&state).await?;
+    user.store_id = Some(store_id);
     user.get_all(&state.pool).await
 }
 
@@ -656,14 +685,14 @@ pub async fn get_user_by_cloth_code(
 pub async fn create_user(state: State<'_, AppState>, mut user: User) -> Result<User> {
     let store_id = utils::get_user_id(&state).await?;
     user.store_id = Some(store_id);
-    user.create_user(&state.pool).await
+    user.create_user(&state).await
 }
 
 #[tauri::command]
 pub async fn update_user(state: State<'_, AppState>, mut user: User) -> Result<bool> {
     let store_id = utils::get_user_id(&state).await?;
     user.store_id = Some(store_id);
-    user.update_user(&state.pool).await
+    user.update_user(&state).await
 }
 
 #[tauri::command]

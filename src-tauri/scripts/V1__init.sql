@@ -282,7 +282,7 @@ CREATE TABLE user_coupons
     obtain_at       TIMESTAMP DEFAULT NULL,
     available_value DOUBLE    DEFAULT 0,
     uc_count        INTEGER   DEFAULT 1,
-    pay_id          INTEGER   DEFAULT NULL,
+    pay_id          TEXT   DEFAULT NULL,
     uc_type         TEXT      DEFAULT '01',
     status          TEXT      DEFAULT '00',
     remark          TEXT      DEFAULT NULL
@@ -318,7 +318,7 @@ CREATE INDEX idx_coupon_orders_store_id ON coupon_orders (store_id);
 -- 支付记录表
 CREATE TABLE payments
 (
-    pay_id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    pay_id             TEXT PRIMARY KEY,
     store_id           INTEGER NOT NULL,
     pay_number         TEXT   NOT NULL,
     order_type         TEXT   NOT NULL,
@@ -668,7 +668,7 @@ CREATE TABLE sms_subscriptions (
     start_date BIGINT NOT NULL,
     expiry_date BIGINT NOT NULL,
     auto_renew BOOLEAN NOT NULL DEFAULT true,
-    last_payment_id BIGINT REFERENCES payments(pay_id),
+    last_payment_id TEXT REFERENCES payments(pay_id),
     next_billing_date BIGINT,
     price_paid DECIMAL(10,2) NOT NULL,
     total_sms_count INTEGER NOT NULL,
@@ -724,7 +724,7 @@ CREATE INDEX idx_wechat_configs_is_active ON wechat_configs (is_active);
 CREATE TABLE qrcode_payments
 (
     id                INTEGER PRIMARY KEY AUTOINCREMENT,
-    pay_id            INTEGER NOT NULL,                -- 关联的支付记录ID
+    pay_id            TEXT NOT NULL,                -- 关联的支付记录ID
     store_id          INTEGER NOT NULL,                -- 商店ID
     payment_type      TEXT NOT NULL,                   -- 支付类型：alipay/wechat
     auth_code         TEXT,                            -- 授权码（用户付款码）

@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use tauri::State;
 
 use crate::db::Validator;
-use crate::error::{Error, ErrorKind, Result};
+use crate::error::{Error, Result};
 use crate::state::AppState;
 use crate::utils;
 
@@ -17,7 +17,7 @@ use crate::utils;
 #[serde(rename_all = "camelCase")]
 #[serde(default)]
 pub struct Payment {
-    pub pay_id: Option<i64>,
+    pub pay_id: Option<String>,
     pub pay_number: Option<String>,
     pub order_type: Option<String>,
     pub total_amount: Option<f64>,
@@ -47,50 +47,43 @@ pub struct PaymentSummary {
 impl Validator for Payment {
     fn validate(&self) -> Result<()> {
         if self.pay_number.is_none() {
-            return Err(Error::with_details(
-                ErrorKind::BadRequest,
+            return Err(Error::bad_request(
                 "pay_number is required",
             ));
         }
 
         if self.order_type.is_none() {
-            return Err(Error::with_details(
-                ErrorKind::BadRequest,
+            return Err(Error::bad_request(
                 "order_type is required",
             ));
         }
 
         if self.total_amount.is_none() {
-            return Err(Error::with_details(
-                ErrorKind::BadRequest,
+            return Err(Error::bad_request(
                 "total_amount is required",
             ));
         }
 
         if self.payment_amount.is_none() {
-            return Err(Error::with_details(
-                ErrorKind::BadRequest,
+            return Err(Error::bad_request(
                 "payment_amount is required",
             ));
         }
 
         if self.payment_status.is_none() {
-            return Err(Error::with_details(
-                ErrorKind::BadRequest,
+            return Err(Error::bad_request(
                 "payment_status is required",
             ));
         }
 
         if self.payment_method.is_none() {
-            return Err(Error::with_details(
-                ErrorKind::BadRequest,
+            return Err(Error::bad_request(
                 "payment_method is required",
             ));
         }
 
         if self.order_status.is_none() {
-            return Err(Error::with_details(
-                ErrorKind::BadRequest,
+            return Err(Error::bad_request(
                 "order_status is required",
             ));
         }
@@ -125,13 +118,14 @@ impl FromRow<'_, SqliteRow> for Payment {
 impl Payment {
     pub async fn create_payment(&self, tr: &mut Transaction<'_, Sqlite>) -> Result<Payment> {
         let query = r#"
-        INSERT INTO payments (pay_number, order_type, total_amount, payment_amount, payment_amount_vip,
+        INSERT INTO payments (pay_id, pay_number, order_type, total_amount, payment_amount, payment_amount_vip,
                              payment_amount_mv, payment_status, payment_method, transaction_id,
                              uc_order_id, uc_id, create_time, order_status, store_id)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *
     "#;
 
         let result = sqlx::query_as(query)
+            .bind(&self.pay_id)
             .bind(&self.pay_number)
             .bind(&self.order_type)
             .bind(&self.total_amount)

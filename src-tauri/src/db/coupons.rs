@@ -694,7 +694,7 @@ impl Coupon {
         let payment = payment.create_payment(&mut tr).await?;
 
         // update user coupon's payment_id
-        UserCoupon::update_pay_id(&mut tr, store_id, &uc_ids, payment.pay_id.unwrap()).await?;
+        UserCoupon::update_pay_id(&mut tr, store_id, &uc_ids, payment.pay_id.as_ref().unwrap()).await?;
         tr.commit().await?;
         Ok(())
     }

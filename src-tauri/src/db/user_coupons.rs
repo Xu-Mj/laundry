@@ -223,7 +223,7 @@ impl UserCoupon {
         tr: &mut Transaction<'_, Sqlite>,
         store_id: i64,
         uc_ids: &[i64],
-        pay_id: i64,
+        pay_id: &str,
     ) -> Result<()> {
         let mut builder = QueryBuilder::new("UPDATE user_coupons SET pay_id = ");
         builder.push_bind(pay_id);

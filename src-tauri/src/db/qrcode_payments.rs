@@ -5,7 +5,7 @@ use sqlx::{FromRow, Pool, Row, Sqlite, Transaction};
 use tauri::State;
 
 use crate::db::Validator;
-use crate::error::{Error, ErrorKind, Result};
+use crate::error::{Error, Result};
 use crate::state::AppState;
 use crate::utils;
 
@@ -14,7 +14,7 @@ use crate::utils;
 #[serde(default)]
 pub struct QrcodePayment {
     pub id: Option<i64>,
-    pub pay_id: Option<i64>,
+    pub pay_id: Option<String>,
     pub store_id: Option<i64>,
     pub payment_type: Option<String>,
     pub auth_code: Option<String>,
@@ -40,31 +40,19 @@ pub struct QrcodePayment {
 impl Validator for QrcodePayment {
     fn validate(&self) -> Result<()> {
         if self.pay_id.is_none() {
-            return Err(Error::with_details(
-                ErrorKind::BadRequest,
-                "pay_id is required",
-            ));
+            return Err(Error::bad_request("pay_id is required"));
         }
 
         if self.store_id.is_none() {
-            return Err(Error::with_details(
-                ErrorKind::BadRequest,
-                "store_id is required",
-            ));
+            return Err(Error::bad_request("store_id is required"));
         }
 
         if self.payment_type.is_none() {
-            return Err(Error::with_details(
-                ErrorKind::BadRequest,
-                "payment_type is required",
-            ));
+            return Err(Error::bad_request("payment_type is required"));
         }
 
         if self.total_amount.is_none() {
-            return Err(Error::with_details(
-                ErrorKind::BadRequest,
-                "total_amount is required",
-            ));
+            return Err(Error::bad_request("total_amount is required"));
         }
 
         Ok(())

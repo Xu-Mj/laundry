@@ -31,7 +31,7 @@ pub struct SmsSubscription {
     pub auto_renew: bool,
 
     /// 最近一次支付ID
-    pub last_payment_id: Option<i64>,
+    pub last_payment_id: Option<String>,
 
     /// 下次续费时间
     pub next_billing_date: Option<i64>,
@@ -165,7 +165,7 @@ impl SmsSubscription {
         .bind(self.start_date) // $5
         .bind(self.expiry_date) // $6
         .bind(self.auto_renew) // $7
-        .bind(self.last_payment_id) // $8
+        .bind(&self.last_payment_id) // $8
         .bind(self.next_billing_date) // $9
         .bind(&self.price_paid) // $10
         .bind(self.total_sms_count) // $11

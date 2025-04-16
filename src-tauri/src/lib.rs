@@ -16,9 +16,10 @@ use tauri::ipc::Invoke;
 use tauri_plugin_fs::FsExt;
 
 use crate::db::{
-    alipay_config, cloth_price, clothing, configs, coupons, dict_data, dict_type, drying_rack,
-    expenditure, local_users, membership_level, notice_temp, order_clothes, orders, payments,
-    qrcode_payments, subscriptions, tags, user, user_coupons, user_tours, wechat_config,
+    alipay_config, cloth_price, clothing, clothing_category, clothing_style, configs, coupons,
+    dict_data, dict_type, drying_rack, expenditure, local_users, membership_level, notice_temp,
+    order_clothes, orders, payments, qrcode_payments, subscriptions, tags, user, user_coupons,
+    user_tours, wechat_config,
 };
 
 pub fn create_app<R: tauri::Runtime, T: Send + Sync + 'static>(
@@ -48,6 +49,11 @@ pub fn create_app<R: tauri::Runtime, T: Send + Sync + 'static>(
             Ok(())
         })
         .invoke_handler(handle_command)
+        // Add device management handlers
+        // .invoke_handler(tauri::generate_handler![
+        //     db::store_devices::get_device_info,
+        //     db::store_devices::validate_login_device,
+        // ])
         .build(tauri::generate_context!())
         .expect("error while building Tauri application")
 }
@@ -93,6 +99,21 @@ fn handle_command<R: Runtime>(invoke: Invoke<R>) -> bool {
         home::query_count,
         home::query_chart,
         home::fetch_monthly_payment_summary,
+        // clothing category
+        clothing_category::list_clothing_category_pagination,
+        clothing_category::list_clothing_category_all,
+        clothing_category::get_clothing_category_by_id,
+        clothing_category::add_clothing_category,
+        clothing_category::update_clothing_category,
+        clothing_category::delete_clothing_category_batch,
+        // clothing style
+        clothing_style::list_clothing_style_pagination,
+        clothing_style::list_clothing_style_all,
+        clothing_style::get_clothing_style_by_id,
+        clothing_style::get_clothing_style_by_category_id,
+        clothing_style::add_clothing_style,
+        clothing_style::update_clothing_style,
+        clothing_style::delete_clothing_style_batch,
         home::fetch_payment_summary,
         // update_tray_menu,
         user::get_users_pagination,
@@ -215,6 +236,7 @@ fn handle_command<R: Runtime>(invoke: Invoke<R>) -> bool {
         local_users::logout,
         local_users::update_local_user,
         local_users::update_pwd,
+        local_users::get_device_info,
         // expenditure
         expenditure::get_exp_pagination,
         expenditure::get_exp_by_id,

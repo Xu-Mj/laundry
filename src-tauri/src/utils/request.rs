@@ -1,9 +1,32 @@
 use reqwest::Client;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
+use tauri::State;
 
 use crate::error::{Error, ErrorKind, Result};
 use crate::local_users::LocalUser;
+use crate::state::AppState;
+
+const URL_LOGIN: &str = "/stores/login";
+const URL_REFRESH_TOKEN: &str = "/stores/refresh-token";
+
+pub trait Request: Serialize + DeserializeOwned + Send + Sized {
+    const URL: &'static str;
+    async fn create_request(&self, state: &State<'_, AppState>) -> Result<Self> {
+        let result = state
+            .http_client
+            .post(Self::URL, self, Some(&state.try_get_token().await?))
+            .await?;
+        Ok(result)
+    }
+    async fn update_request(&self, state: &State<'_, AppState>) -> Result<bool> {
+        let result = state
+            .http_client
+            .put(Self::URL, self, Some(&state.try_get_token().await?))
+            .await?;
+        Ok(result)
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct HttpClient {
@@ -13,10 +36,11 @@ pub struct HttpClient {
 
 impl HttpClient {
     pub fn new(base_url: String) -> Self {
-        HttpClient {
-            client: Client::new(),
-            base_url,
-        }
+        let client = Client::builder()
+            .danger_accept_invalid_certs(true)
+            .build()
+            .unwrap();
+        HttpClient { client, base_url }
     }
 
     async fn send_request<T: DeserializeOwned>(
@@ -59,7 +83,7 @@ impl HttpClient {
     }
 
     pub async fn login<T: DeserializeOwned, B: Serialize>(&self, body: B) -> Result<T> {
-        let url = format!("{}/stores/login", self.base_url);
+        let url = format!("{}{URL_LOGIN}", self.base_url);
         let request = self.client.post(&url).json(&body);
         self.send_request(request).await
     }
@@ -84,7 +108,10 @@ impl HttpClient {
     }
 
     pub async fn refresh_token(&self, refresh_token: &str) -> Result<String> {
-        let url = format!("{}/stores/refresh-token/{}/true", self.base_url, refresh_token);
+        let url = format!(
+            "{}{URL_REFRESH_TOKEN}/{}/true",
+            self.base_url, refresh_token
+        );
         let request = self.client.get(&url);
         self.send_request(request).await
     }

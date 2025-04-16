@@ -8,11 +8,11 @@ use tauri::State;
 use crate::db::cloth_sequence::ClothSequence;
 use crate::db::clothing::Clothing;
 use crate::db::drying_rack::DryingRack;
-use crate::db::notice_temp::{NoticeRecord, NoticeTemp};
+use crate::db::notice_temp::NoticeRecord;
 use crate::db::order_pictures::OrderPicture;
 use crate::db::orders::Order;
 use crate::db::tags::Tag;
-use crate::db::{Curd, PageParams, PageResult, Validator};
+use crate::db::{PageParams, PageResult, Validator};
 use crate::error::{Error, ErrorKind, Result};
 use crate::state::AppState;
 use crate::utils;
@@ -782,120 +782,6 @@ impl OrderCloth {
         Ok(result)
     }
 
-    /// 上挂操作
-    // pub async fn hang_cloth(pool: &Pool<Sqlite>, hang_req: HangReq) -> Result<()> {
-    //     let mut tr = pool.begin().await?;
-    //     // query cloth information by id
-    //     let mut cloth = OrderCloth::get_by_id(pool, hang_req.cloth_id)
-    //         .await?
-    //         .ok_or(Error::with_kind(ErrorKind::NotFound))?;
-    //
-    //     if cloth.order_id.is_none() {
-    //         return Err(Error::with_details(
-    //             ErrorKind::BadRequest,
-    //             "cloth has no order information",
-    //         ));
-    //     }
-    //
-    //     // change cloth status
-    //     cloth.clothing_status = Some(CLOTH_STATUS_HANGED.to_string());
-    //     cloth.hang_location_code = Some(hang_req.hang_location_id);
-    //     cloth.hanger_number = Some(hang_req.hanger_number);
-    //     cloth.hang_remark = hang_req.hang_remark;
-    //
-    //     // update cloth
-    //     if !cloth.update(&mut tr).await? {
-    //         return Err(Error::with_details(
-    //             ErrorKind::InternalServer,
-    //             "update cloth information failed",
-    //         ));
-    //     }
-    //
-    //     // update hanger remain count
-    //     // let rack = DryingRack::get_by_id(tr, hang_req.hang_location_id)
-    //     //     .await?
-    //     //     .ok_or(Error::with_details(ErrorKind::NotFound, "rack not found"))?;
-    //
-    //     // update pick code in order
-    //     // query order information
-    //     let mut order = Order::get_by_id(pool, cloth.order_id.unwrap())
-    //         .await?
-    //         .ok_or(Error::with_details(ErrorKind::NotFound, "order not found"))?;
-    //
-    //     // set order status to hanged if all clothes are hanged
-    //     let clothes = OrderCloth::get_by_order_id(pool, order.order_id.unwrap()).await?;
-    //     let is_all_hanged = clothes
-    //         .iter()
-    //         .all(|c| c.clothing_status == Some(CLOTH_STATUS_HANGED.to_string()));
-    //
-    //     // pickup code is settled already
-    //     if order.pickup_code.is_some() {
-    //         if is_all_hanged {
-    //             // update order status
-    //             order.status = Some(CLOTH_STATUS_HANGED.to_string());
-    //             if !order.update(&mut tr).await? {
-    //                 return Err(Error::with_details(
-    //                     ErrorKind::InternalServer,
-    //                     "update order information failed",
-    //                 ));
-    //             }
-    //             // send message to user
-    //             if let Some(tel) = &order.phonenumber {
-    //                 if let Some(code) = &order.pickup_code {
-    //                     Self::send_pickup_msg(
-    //                         pool,
-    //                         code,
-    //                         tel,
-    //                         &order.order_number.as_ref().unwrap_or(&String::new()),
-    //                         order.user_id.unwrap_or_default(),
-    //                     )
-    //                     .await?;
-    //                 }
-    //             }
-    //         }
-    //
-    //         tr.commit().await?;
-    //
-    //         return Ok(());
-    //     }
-    //
-    //     // gen pickup code
-    //     let mut code = utils::gen_random_number();
-    //     while Order::check_pickup_code(pool, code.to_string())
-    //         .await?
-    //         .is_some()
-    //     {
-    //         code = utils::gen_random_number();
-    //     }
-    //     let code = code.to_string();
-    //     order.pickup_code = Some(code);
-    //
-    //     if is_all_hanged {
-    //         order.status = Some(CLOTH_STATUS_HANGED.to_string());
-    //         // send message to user
-    //         if let Some(tel) = &order.phonenumber {
-    //             if let Some(code) = &order.pickup_code {
-    //                 Self::send_pickup_msg(
-    //                     pool,
-    //                     code,
-    //                     tel,
-    //                     &order.order_number.as_ref().unwrap_or(&String::new()),
-    //                     order.user_id.unwrap_or_default(),
-    //                 )
-    //                 .await?;
-    //             }
-    //         }
-    //     }
-    //     if !order.update(&mut tr).await? {
-    //         return Err(Error::with_details(
-    //             ErrorKind::InternalServer,
-    //             "update order information failed",
-    //         ));
-    //     }
-    //     tr.commit().await?;
-    //
-    //     Ok(())
-    // }
     pub async fn hang_cloth(state: &State<'_, AppState>, hang_req: HangReq) -> Result<()> {
         let store_id = utils::get_user_id(&state).await?;
         let pool = &state.pool;
@@ -947,7 +833,21 @@ impl OrderCloth {
             order.status = Some(CLOTH_STATUS_HANGED.to_string());
         }
 
-        Self::update_order_and_notify(&mut tr, state, &mut order, is_all_hanged).await?;
+        // Self::update_order_and_notify(&mut tr, state, &mut order, is_all_hanged).await?;
+        if let Err(err) = Self::update_order_and_notify(&mut tr, state, &mut order, is_all_hanged).await {
+            match err.kind() {
+                // 这些错误类型需要返回给前端，但不应导致事务回滚
+                ErrorKind::SmsNotSubscribed | ErrorKind::SmsRemainShort => {
+                    tracing::warn!("SMS service error: {:?}", err);
+                    // 提交事务以确保其他操作成功
+                    tr.commit().await?;
+                    // 然后返回错误给前端
+                    return Err(err);
+                },
+                // 其他错误类型仍然返回错误
+                _ => return Err(err),
+            }
+        }
 
         tr.commit().await?;
         Ok(())
@@ -1006,12 +906,6 @@ impl OrderCloth {
         order_num: &str,
         user_id: i64,
     ) -> Result<()> {
-        // select template
-        let mut rows = NoticeTemp::default()
-            .get_list(&state.pool, PageParams::default())
-            .await?
-            .rows;
-
         let token = state
             .token
             .lock()
@@ -1023,43 +917,21 @@ impl OrderCloth {
 
         // release mutex
         drop(token);
-        if rows.is_empty() {
-            // get temp list from server
-            rows = state
-                .http_client
-                .get("/msg_temps/all", Some(&token_str))
-                .await?;
-            tracing::debug!("{:?}", rows);
-            for ele in rows.iter() {
-                ele.create(tx).await?;
-            }
-        }
-        let temp = rows
-            .into_iter()
-            .next()
-            .ok_or(Error::not_found("通知模板不存在"))?;
-        // let temp = NoticeTemp::default()
-        //     .get_list(&state.pool, PageParams::default())
-        //     .await?
-        //     .rows
-        //     .into_iter()
-        //     .next()
-        //     .ok_or(Error::not_found("通知模板不存在"))?;
-        let content = temp.content.clone().map(|c| c.replace("《取件码》", code));
-
+        
+        // 直接构建参数，调用专有接口
         let param = HashMap::from([("code".to_string(), code.to_string())]);
 
         let body = SendSmsRequest {
-            temp_id: temp.temp_id.unwrap_or_default(),
+            temp_id: 0, // 不再需要模板ID，服务端会处理
             store_id,
             phone: tel.to_string(),
             args: Some(param),
         };
-        // send message through sms server
+        
+        tracing::info!("send hangup sms request: {:?}", body);
 
-        tracing::info!("send sms request: {:?}", body);
-
-        let result = match state.http_client.post("/sms", body, Some(&token_str)).await {
+        // 调用专有接口发送短信
+        let result = match state.http_client.post("/sms/hangup", body, Some(&token_str)).await {
             Ok(res) => {
                 if res {
                     String::from("0")
@@ -1068,10 +940,33 @@ impl OrderCloth {
                 }
             }
             Err(err) => {
-                tracing::error!("send sms failed: {:?}", err);
+                // 检查是否是短信服务相关错误
+                match err.kind() {
+                    ErrorKind::SmsNotSubscribed => {
+                        tracing::warn!("SMS service not subscribed: {:?}", err);
+                        // 返回特定错误，而不是简单忽略
+                        return Err(Error::with_details(
+                            ErrorKind::SmsNotSubscribed,
+                            "短信服务未订阅，请先订阅短信服务"
+                        ));
+                    },
+                    ErrorKind::SmsRemainShort => {
+                        tracing::warn!("SMS remaining count is low: {:?}", err);
+                        // 返回特定错误，而不是简单忽略
+                        return Err(Error::with_details(
+                            ErrorKind::SmsRemainShort,
+                            "短信余量不足，请及时充值"
+                        ));
+                    },
+                    _ => {
+                        tracing::error!("send sms failed: {:?}", err);
+                    }
+                }
                 String::from("1")
             }
         };
+        
+        // 无论短信是否发送成功，都创建通知记录
         let mut record = NoticeRecord {
             notice_id: None,
             user_id,
@@ -1079,11 +974,16 @@ impl OrderCloth {
             notice_method: Some("0".to_string()),
             notice_type: Some("0".to_string()),
             title: Some("取衣通知".to_string()),
-            content,
+            content: Some(format!("取件码：{}", code)),
             result: Some(result),
             ..Default::default()
         };
-        record.create(tx).await?;
+        
+        // 尝试创建记录，但即使失败也不影响主流程
+        if let Err(e) = record.create(tx).await {
+            tracing::error!("Failed to create notice record: {:?}", e);
+        }
+        
         Ok(())
     }
 

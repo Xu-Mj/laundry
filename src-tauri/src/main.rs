@@ -46,9 +46,8 @@ async fn main() {
 
     // 执行数据迁移
     migrate().await.expect("database migrate failed");
-    // 获取应用数据目录
-    let db_url = "sqlite://database.db";
 
+    let db_url = "sqlite://database.db";
     let pool = SqlitePoolOptions::new()
         .connect(&db_url)
         .await

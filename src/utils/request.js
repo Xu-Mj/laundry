@@ -246,6 +246,12 @@ function handleError(error) {
     case 'CodeIsInvalid':
       ElMessage.error(`验证码无效: ${details}`);
       break;
+    case 'SmsNotSubscribed':
+      ElMessage.error(`未订阅短信服务，请先订阅短信服务`);
+      break;
+    case 'SmsRemainShort':
+      ElMessage.error(`短信余量不足，请充值`);
+      break;
     default:
       ElMessage.error(`未知错误类型: ${details}`);
       break;

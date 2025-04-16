@@ -26,6 +26,10 @@ CREATE TABLE IF NOT EXISTS local_users
     store_location  TEXT NOT NULL,
     owner_gender    TEXT,
     store_status    TEXT NOT NULL,
+    province        TEXT,
+    city            TEXT,
+    district        TEXT,
+    address_detail  TEXT,
     created_at      INTEGER,
     updated_at      INTEGER,
     remark          TEXT,
@@ -158,14 +162,59 @@ CREATE TABLE tags
 );
 CREATE INDEX idx_tags_store_id ON tags (store_id);
 
+-- 衣物品类表
+CREATE TABLE clothing_categories
+(
+    category_id   INTEGER PRIMARY KEY AUTOINCREMENT,
+    store_id      INTEGER NOT NULL,
+    category_code TEXT    NOT NULL,
+    category_name TEXT    NOT NULL,
+    order_num     INTEGER DEFAULT 0,
+    remark        TEXT,
+    del_flag      TEXT    DEFAULT '0',
+    created_at    INTEGER NOT NULL,
+    updated_at    INTEGER NOT NULL
+);
+
+-- 创建衣物品类表索引
+CREATE INDEX idx_clothing_categories_store_id ON clothing_categories(store_id);
+CREATE INDEX idx_clothing_categories_code ON clothing_categories(category_code);
+CREATE INDEX idx_clothing_categories_name ON clothing_categories(category_name);
+CREATE INDEX idx_clothing_categories_del_flag ON clothing_categories(del_flag);
+
+-- 衣物分类表
+CREATE TABLE clothing_styles
+(
+    style_id     INTEGER PRIMARY KEY AUTOINCREMENT,
+    store_id     INTEGER NOT NULL,
+    category_id  INTEGER NOT NULL,
+    style_code   TEXT    NOT NULL,
+    style_name   TEXT    NOT NULL,
+    order_num    INTEGER DEFAULT 0,
+    remark       TEXT,
+    del_flag     TEXT    DEFAULT '0',
+    created_at   INTEGER NOT NULL,
+    updated_at   INTEGER NOT NULL,
+    FOREIGN KEY(category_id) REFERENCES clothing_categories(category_id)
+);
+
+-- 创建衣物分类表索引
+CREATE INDEX idx_clothing_styles_store_id ON clothing_styles(store_id);
+CREATE INDEX idx_clothing_styles_category_id ON clothing_styles(category_id);
+CREATE INDEX idx_clothing_styles_code ON clothing_styles(style_code);
+CREATE INDEX idx_clothing_styles_name ON clothing_styles(style_name);
+CREATE INDEX idx_clothing_styles_del_flag ON clothing_styles(del_flag);
+
 -- 衣物管理表
 CREATE TABLE clothing
 (
     clothing_id         INTEGER PRIMARY KEY AUTOINCREMENT,
     store_id            INTEGER NOT NULL,
-    clothing_category   TEXT   NOT NULL,
+    clothing_category   TEXT,
     clothing_number     TEXT   NOT NULL,
-    clothing_style      TEXT   NOT NULL,
+    clothing_style      TEXT,
+    category_id         INTEGER,
+    style_id            INTEGER,
     clothing_name       TEXT   NOT NULL,
     clothing_base_price DOUBLE NOT NULL,
     clothing_min_price  DOUBLE NOT NULL,
@@ -173,14 +222,17 @@ CREATE TABLE clothing
     clothing_degree     INTEGER         DEFAULT 0,
     hang_type           TEXT   NOT NULL DEFAULT '1',
     del_flag            TEXT            DEFAULT '0',
-    remark              TEXT
+    remark              TEXT,
+    FOREIGN KEY(category_id) REFERENCES clothing_categories(category_id),
+    FOREIGN KEY(style_id) REFERENCES clothing_styles(style_id)
 );
 
 -- 创建索引，提高根据衣物类别和衣物名称查询效率
 CREATE INDEX idx_clothing_category ON clothing (clothing_category);
-
 CREATE INDEX idx_clothing_name ON clothing (clothing_name);
 CREATE INDEX idx_clothing_store_id ON clothing (store_id);
+CREATE INDEX idx_clothing_category_id ON clothing(category_id);
+CREATE INDEX idx_clothing_style_id ON clothing(style_id);
 
 -- 卡券管理表
 CREATE TABLE coupons
@@ -390,11 +442,13 @@ CREATE INDEX idx_orders_store_id ON orders (store_id);
 CREATE TABLE order_clothes
 (
     cloth_id            INTEGER PRIMARY KEY AUTOINCREMENT,
-    -- store_id            INTEGER NOT NULL,
+    store_id            INTEGER NOT NULL,
     order_id            INTEGER NULL,
     clothing_id         INTEGER NOT NULL,
-    clothing_category   TEXT    NOT NULL,
-    clothing_style      TEXT    NOT NULL,
+    clothing_category   TEXT,
+    category_id         INTEGER    NOT NULL,
+    clothing_style      TEXT,
+    style_id            INTEGER    NOT NULL,
     clothing_color      INTEGER,
     clothing_flaw       TEXT,
     estimate            TEXT,
@@ -415,7 +469,11 @@ CREATE TABLE order_clothes
     pickup_time         TIMESTAMP,
     pickup_method       TEXT,
     clothing_status     TEXT,
-    remark              TEXT
+    remark              TEXT,
+    
+    FOREIGN KEY(store_id) REFERENCES local_users(id),
+    FOREIGN KEY(category_id) REFERENCES clothing_categories(category_id),
+    FOREIGN KEY(style_id) REFERENCES clothing_styles(style_id)
 );
 
 -- 创建索引

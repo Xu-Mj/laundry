@@ -184,7 +184,7 @@ async function checkRackInitialization() {
   try {
     // 调用API检查衣挂数据是否已初始化
     const isInitialized = await checkRackInitialized();
-    
+
     if (!isInitialized) {
       // 如果未初始化，显示衣挂初始化设置对话框
       showRackInitCheck.value = true;
@@ -236,12 +236,12 @@ function checkSubscriptionStatus() {
   // 检查用户是否有有效的软件订阅和短信订阅
   const hasSoftwareSub = userStore.subscription.status === 'active';
   const hasSmsSub = userStore.smsSub;
-  
+
   // 如果用户没有任何订阅，提示用户
   if (!hasSoftwareSub || !hasSmsSub) {
     let message = '';
     let path = '';
-    
+
     // 根据订阅情况设置提示信息和跳转路径
     if (!hasSoftwareSub && !hasSmsSub) {
       message = '您尚未购买软件订阅和短信订阅，是否前往订阅页面？';
@@ -253,7 +253,7 @@ function checkSubscriptionStatus() {
       message = '您尚未购买短信订阅，是否前往订阅页面？';
       path = '/profile?tab=sms';
     }
-    
+
     // 显示确认对话框
     proxy.$confirm(message, '订阅提示', {
       confirmButtonText: '前往订阅',
@@ -384,9 +384,8 @@ onMounted(async () => {
     margin-bottom: 24px;
   }
 
-  .login-button-item {
-    margin-bottom: 20px;
-    text-align: center;
+  .login-button {
+    outline: none;
   }
 
   .guest-button {
@@ -533,6 +532,5 @@ onMounted(async () => {
         transform: translateY(0);
       }
     }
-  }
-}
+  }}
 </style>

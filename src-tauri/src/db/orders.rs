@@ -22,6 +22,7 @@ use crate::error::{Error, ErrorKind, Result};
 use crate::state::AppState;
 use crate::utils;
 use crate::utils::chrono_serde::deserialize_date;
+use crate::utils::request::Request;
 
 const PAY_STATUS_NOT_PAID: &str = "01";
 const PAY_STATUS_REFUND: &str = "05";
@@ -246,12 +247,13 @@ impl Order {
     pub async fn create(&self, tr: &mut Transaction<'_, Sqlite>) -> Result<Order> {
         let result = sqlx::query_as(
             "INSERT INTO orders
-        (order_number, business_type, store_id, user_id, price_id, desire_complete_time, cost_time_alarm,
+        (order_id, order_number, business_type, store_id, user_id, price_id, desire_complete_time, cost_time_alarm,
          pickup_code, complete_time, delivery_mode, source, status, payment_status,
          remark, order_type, create_time, update_time)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         RETURNING *",
         )
+        .bind(&self.order_id)
         .bind(&self.order_number)
         .bind(&self.business_type)
         .bind(self.store_id)
@@ -520,124 +522,43 @@ impl Order {
     }
 
     pub async fn update(&self, tr: &mut Transaction<'_, Sqlite>) -> Result<bool> {
-        let mut query_builder = QueryBuilder::<Sqlite>::new("UPDATE orders SET");
-        let mut has_updated = false;
+        let result = sqlx::query(
+            r#"
+            UPDATE orders SET
+                order_number = ?,
+                business_type = ?,
+                user_id = ?,
+                price_id = ?,
+                desire_complete_time = ?,
+                delivery_mode = ?,
+                source = ?,
+                status = ?,
+                payment_status = ?,
+                order_type = ?,
+                pickup_code = ?,
+                remark = ?,
+                update_time = ?
+            WHERE order_id = ?
+            "#,
+        )
+        .bind(&self.order_number)
+        .bind(&self.business_type)
+        .bind(&self.user_id)
+        .bind(&self.price_id)
+        .bind(&self.desire_complete_time)
+        .bind(&self.delivery_mode)
+        .bind(&self.source)
+        .bind(&self.status)
+        .bind(&self.payment_status)
+        .bind(&self.order_type)
+        .bind(&self.pickup_code)
+        .bind(&self.remark)
+        .bind(utils::get_timestamp())
+        .bind(&self.order_id)
+        .execute(&mut **tr)
+        .await?;
 
-        // update fields by condition
-        if let Some(order_number) = &self.order_number {
-            query_builder
-                .push(" order_number = ")
-                .push_bind(order_number);
-            has_updated = true;
-        }
-
-        if let Some(business_type) = &self.business_type {
-            if has_updated {
-                query_builder.push(", ");
-            }
-            query_builder
-                .push(" business_type = ")
-                .push_bind(business_type);
-            has_updated = true;
-        }
-
-        if let Some(user_id) = &self.user_id {
-            if has_updated {
-                query_builder.push(", ");
-            }
-            query_builder.push(" user_id = ").push_bind(user_id);
-            has_updated = true;
-        }
-
-        if let Some(price_id) = &self.price_id {
-            if has_updated {
-                query_builder.push(", ");
-            }
-            query_builder.push(" price_id = ").push_bind(price_id);
-            has_updated = true;
-        }
-
-        if let Some(desire_complete_time) = &self.desire_complete_time {
-            if has_updated {
-                query_builder.push(", ");
-            }
-            query_builder
-                .push(" desire_complete_time = ")
-                .push_bind(desire_complete_time);
-            has_updated = true;
-        }
-
-        if let Some(delivery_mode) = &self.delivery_mode {
-            if has_updated {
-                query_builder.push(", ");
-            }
-            query_builder
-                .push(" delivery_mode = ")
-                .push_bind(delivery_mode);
-            has_updated = true;
-        }
-
-        if let Some(source) = &self.source {
-            if has_updated {
-                query_builder.push(", ");
-            }
-            query_builder.push(" source = ").push_bind(source);
-            has_updated = true;
-        }
-
-        if let Some(status) = &self.status {
-            if has_updated {
-                query_builder.push(", ");
-            }
-            query_builder.push(" status = ").push_bind(status);
-            has_updated = true;
-        }
-
-        if let Some(payment_status) = &self.payment_status {
-            if has_updated {
-                query_builder.push(", ");
-            }
-            query_builder
-                .push(" payment_status = ")
-                .push_bind(payment_status);
-            has_updated = true;
-        }
-
-        if let Some(order_type) = &self.order_type {
-            if has_updated {
-                query_builder.push(", ");
-            }
-            query_builder.push(" order_type = ").push_bind(order_type);
-            has_updated = true;
-        }
-
-        if let Some(pickup_code) = &self.pickup_code {
-            if has_updated {
-                query_builder.push(", ");
-            }
-            query_builder.push(" pickup_code = ").push_bind(pickup_code);
-            has_updated = true;
-        }
-
-        if let Some(remark) = &self.remark {
-            if has_updated {
-                query_builder.push(", ");
-            }
-            query_builder.push(" remark = ").push_bind(remark);
-            has_updated = true;
-        }
-
-        if has_updated {
-            query_builder
-                .push(" ,update_time = ")
-                .push_bind(utils::get_now());
-            query_builder
-                .push(" WHERE order_id = ")
-                .push_bind(&self.order_id);
-            let result = query_builder.build().execute(&mut **tr).await?;
-            return Ok(result.rows_affected() > 0);
-        }
-        Ok(false)
+        Ok(result.rows_affected() > 0)
     }
 
     pub async fn delete_batch(tr: &mut Transaction<'_, Sqlite>, ids: &[i64]) -> Result<bool> {
@@ -729,8 +650,19 @@ pub struct SourceDistribution {
 
 const ORDER_NUMBER_PREFIX: &str = "XYFW-";
 
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+struct OrderWithCloth {
+    pub order: Order,
+    pub clothes: Vec<OrderCloth>,
+}
+
+impl Request for OrderWithCloth {
+    const URL: &'static str = "/order";
+}
+
 impl Order {
-    pub async fn add_order(&mut self, pool: &Pool<Sqlite>) -> Result<Order> {
+    pub async fn add_order(&mut self, state: &tauri::State<'_, AppState>) -> Result<Order> {
+        let pool = &state.pool;
         // validate
         if self.cloth_ids.is_none() || self.cloth_ids.as_ref().unwrap().is_empty() {
             return Err(Error::bad_request("cloth_ids is empty"));
@@ -755,6 +687,19 @@ impl Order {
 
         self.initial();
 
+        let cloth_ids = self
+            .cloth_ids
+            .as_deref()
+            .ok_or(Error::bad_request("cloth_ids is empty"))?;
+
+        // add to server
+        let clothes = OrderCloth::get_by_ids(pool, &cloth_ids).await?;
+        let order_with_cloth = OrderWithCloth {
+            order: self.clone(),
+            clothes,
+        };
+        let order_with_cloth = order_with_cloth.create_request(state).await?;
+        self.order_id = order_with_cloth.order.order_id;
         // insert into db
         let order = self.create(&mut tr).await?;
 
@@ -764,17 +709,41 @@ impl Order {
             adjust.create(&mut tr).await?;
         }
 
+        let order_id = order.order_id.unwrap_or_default();
         // update clothes order_id
-        if let Some(ids) = &self.cloth_ids {
-            if !OrderCloth::update_order_id(&mut tr, order.order_id.unwrap_or_default(), ids)
-                .await?
-            {
-                tr.rollback().await?;
-                return Err(Error::internal("update clothes failed"));
-            }
+        if !OrderCloth::update_order_id(&mut tr, order_id, &cloth_ids).await? {
+            tr.rollback().await?;
+            return Err(Error::internal("update clothes failed"));
         }
+
         tr.commit().await?;
         Ok(order)
+    }
+
+    async fn udpate_order(&self, state: &tauri::State<'_, AppState>) -> Result<bool> {
+        let pool = &state.pool;
+        let mut tx = pool.begin().await?;
+
+        // update to server
+        let cloth_ids = self
+            .cloth_ids
+            .as_deref()
+            .ok_or(Error::bad_request("cloth_ids is empty"))?;
+
+        // add to server
+        let clothes = OrderCloth::get_by_ids(pool, &cloth_ids).await?;
+        let order_with_cloth = OrderWithCloth {
+            order: self.clone(),
+            clothes,
+        };
+
+        if !order_with_cloth.update_request(state).await? {
+            return Err(Error::internal("update order failed"));
+        }
+
+        let res = self.update(&mut tx).await?;
+        tx.commit().await?;
+        Ok(res)
     }
 
     fn initial(&mut self) {
@@ -787,10 +756,11 @@ impl Order {
     }
 
     pub async fn pay(
-        pool: &Pool<Sqlite>,
+        state: &tauri::State<'_, AppState>,
         store_id: i64,
         mut payment_req: PaymentReq,
     ) -> Result<()> {
+        let pool = &state.pool;
         let mut tr = pool.begin().await?;
         // 获取多个订单
         let orders = payment_req
@@ -1665,7 +1635,7 @@ impl Order {
 pub async fn create_order(state: tauri::State<'_, AppState>, mut order: Order) -> Result<Order> {
     let store_id = utils::get_user_id(&state).await?;
     order.store_id = Some(store_id);
-    Ok(order.add_order(&state.pool).await?)
+    Ok(order.add_order(&state).await?)
 }
 
 #[tauri::command]
@@ -1719,15 +1689,9 @@ pub async fn get_order_by_id(state: tauri::State<'_, AppState>, id: i64) -> Resu
 
 #[tauri::command]
 pub async fn update_order(state: tauri::State<'_, AppState>, mut order: Order) -> Result<bool> {
-    let mut tr = state.pool.begin().await?;
-
     let store_id = utils::get_user_id(&state).await?;
     order.store_id = Some(store_id);
-    let result = order.update(&mut tr).await?;
-
-    tr.commit().await?;
-
-    Ok(result)
+    order.udpate_order(&state).await
 }
 
 #[tauri::command]
@@ -1753,7 +1717,7 @@ pub async fn update_adjust(state: tauri::State<'_, AppState>, order: Order) -> R
 #[tauri::command]
 pub async fn pay_order(state: tauri::State<'_, AppState>, req: PaymentReq) -> Result<()> {
     let store_id = utils::get_user_id(&state).await?;
-    Order::pay(&state.pool, store_id, req).await
+    Order::pay(&state, store_id, req).await
 }
 
 #[tauri::command]

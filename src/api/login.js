@@ -1,16 +1,31 @@
 import request from '@/utils/request'
 import invoke from '@/utils/invoke'
 
+// 获取设备信息
+export function getDeviceInfo() {
+  return invoke('get_device_info')
+}
+
+// 验证设备是否允许登录
+export function validateLoginDevice(storeId, deviceId) {
+  return invoke('validate_login_device', { storeId, deviceId })
+}
+
 // 登录方法
 export function login(account, pwd, code, uuid) {
   const password = btoa(pwd).replace(/=+$/, '');
-  const data = {
-    account,
-    password,
-    code,
-    uuid
-  }
-  return invoke('login', { req: data })
+  
+  // 获取设备信息
+  return getDeviceInfo().then(deviceInfo => {
+    const data = {
+      account,
+      password,
+      code,
+      uuid,
+      deviceId: deviceInfo.deviceId // 添加设备ID
+    }
+    return invoke('login', { req: data })
+  })
 }
 
 // 注册方法

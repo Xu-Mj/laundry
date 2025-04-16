@@ -7,7 +7,7 @@ use sqlx::{Pool, Sqlite};
 use tokio::sync::Mutex as TokioMutex;
 use tokio::{task::JoinHandle, time::sleep};
 
-use crate::utils::request::{HttpClient, Token};
+use crate::{error::Error, utils::request::{HttpClient, Token}};
 use crate::{error::Result, local_users::LocalUser};
 
 // SQLite 连接池
@@ -138,5 +138,10 @@ impl AppState {
     pub async fn get_token(&self) -> Option<String> {
         let token = self.token.lock().await;
         token.as_ref().map(|t| t.token.clone())
+    }
+
+    pub async fn try_get_token(&self) -> Result<String> {
+        let token = self.token.lock().await;
+        Ok(token.as_ref().ok_or(Error::unauthorized())?.token.clone())
     }
 }

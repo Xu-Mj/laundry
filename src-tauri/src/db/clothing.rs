@@ -6,6 +6,7 @@ use tauri::State;
 use crate::error::{Error, ErrorKind, Result};
 use crate::state::AppState;
 use crate::utils;
+use crate::utils::request::Request;
 
 use super::{Curd, PageParams, PageResult};
 
@@ -113,17 +114,13 @@ impl Curd for Clothing {
                 .push_bind(format!("%{}%", clothing_style))
                 .push(")");
         }
-        
+
         if let Some(category_id) = &self.category_id {
-            builder
-                .push(" AND c.category_id = ")
-                .push_bind(category_id);
+            builder.push(" AND c.category_id = ").push_bind(category_id);
         }
-        
+
         if let Some(style_id) = &self.style_id {
-            builder
-                .push(" AND c.style_id = ")
-                .push_bind(style_id);
+            builder.push(" AND c.style_id = ").push_bind(style_id);
         }
 
         if let Some(clothing_number) = &self.clothing_number {
@@ -242,7 +239,7 @@ impl Clothing {
     /// # Returns
     ///
     /// 返回一个结果类型，包含新添加的衣物信息。
-    pub async fn add(self, pool: &Pool<Sqlite>) -> Result<Clothing> {
+    pub async fn add(self, tx: &mut Transaction<'_, Sqlite>) -> Result<Clothing> {
         let result = sqlx::query_as::<_, Clothing>(
             "INSERT INTO clothing (store_id, clothing_name, clothing_number, clothing_category, clothing_style,
              category_id, style_id, clothing_base_price, clothing_min_price, order_num, clothing_degree, remark, del_flag)
@@ -261,7 +258,7 @@ impl Clothing {
             .bind(&self.order_num)
             .bind(&self.clothing_degree)
             .bind(&self.remark)
-            .fetch_one(pool)
+            .fetch_one(&mut **tx)
             .await?;
 
         Ok(result)
@@ -297,226 +294,48 @@ impl Clothing {
     /// # 返回
     ///
     /// - `Result<Clothing>`: 更新后的衣物对象
-    pub async fn update(self, pool: &Pool<Sqlite>) -> Result<Clothing> {
-        // 获取当前数据库中的衣物信息，用于比较哪些字段需要更新
-        let current_clothing = match self.clothing_id {
-            Some(id) => Clothing::get_by_id(pool, id).await?.unwrap_or_default(),
-            None => return Err(Error::with_details(ErrorKind::BadRequest, "缺少衣物ID")),
-        };
-
-        let mut query_builder = QueryBuilder::<Sqlite>::new("UPDATE clothing SET ");
-        let mut has_update = false;
-
-        // 处理clothing_name字段，无论是更新为新值还是null
-        if self.clothing_name != current_clothing.clothing_name {
-            query_builder
-                .push("clothing_name = ");
-            
-            if let Some(clothing_name) = &self.clothing_name {
-                query_builder.push_bind(clothing_name);
-            } else {
-                query_builder.push("NULL");
-            }
-            has_update = true;
-        }
-
-        // 处理clothing_number字段
-        if self.clothing_number != current_clothing.clothing_number {
-            if has_update {
-                query_builder.push(", ");
-            }
-            query_builder.push("clothing_number = ");
-            
-            if let Some(clothing_number) = &self.clothing_number {
-                query_builder.push_bind(clothing_number);
-            } else {
-                query_builder.push("NULL");
-            }
-            has_update = true;
-        }
-
-        // 处理clothing_category字段
-        if self.clothing_category != current_clothing.clothing_category {
-            if has_update {
-                query_builder.push(", ");
-            }
-            query_builder.push("clothing_category = ");
-            
-            if let Some(clothing_category) = &self.clothing_category {
-                query_builder.push_bind(clothing_category);
-            } else {
-                query_builder.push("NULL");
-            }
-            has_update = true;
-        }
-
-        // 处理clothing_style字段
-        if self.clothing_style != current_clothing.clothing_style {
-            if has_update {
-                query_builder.push(", ");
-            }
-            query_builder.push("clothing_style = ");
-            
-            if let Some(clothing_style) = &self.clothing_style {
-                query_builder.push_bind(clothing_style);
-            } else {
-                query_builder.push("NULL");
-            }
-            has_update = true;
-        }
-        
-        // 处理category_id字段
-        if self.category_id != current_clothing.category_id {
-            if has_update {
-                query_builder.push(", ");
-            }
-            query_builder.push("category_id = ");
-            
-            if let Some(category_id) = &self.category_id {
-                query_builder.push_bind(category_id);
-            } else {
-                query_builder.push("NULL");
-            }
-            has_update = true;
-        }
-        
-        // 处理style_id字段
-        if self.style_id != current_clothing.style_id {
-            if has_update {
-                query_builder.push(", ");
-            }
-            query_builder.push("style_id = ");
-            
-            if let Some(style_id) = &self.style_id {
-                query_builder.push_bind(style_id);
-            } else {
-                query_builder.push("NULL");
-            }
-            has_update = true;
-        }
-
-        // 处理clothing_degree字段
-        if self.clothing_degree != current_clothing.clothing_degree {
-            if has_update {
-                query_builder.push(", ");
-            }
-            query_builder.push("clothing_degree = ");
-            
-            if let Some(clothing_degree) = &self.clothing_degree {
-                query_builder.push_bind(clothing_degree);
-            } else {
-                query_builder.push("NULL");
-            }
-            has_update = true;
-        }
-
-        // 处理order_num字段
-        if self.order_num != current_clothing.order_num {
-            if has_update {
-                query_builder.push(", ");
-            }
-            query_builder.push("order_num = ");
-            
-            if let Some(order_num) = &self.order_num {
-                query_builder.push_bind(order_num);
-            } else {
-                query_builder.push("NULL");
-            }
-            has_update = true;
-        }
-
-        // 处理clothing_base_price字段
-        if self.clothing_base_price != current_clothing.clothing_base_price {
-            if has_update {
-                query_builder.push(", ");
-            }
-            query_builder.push("clothing_base_price = ");
-            
-            if let Some(clothing_base_price) = &self.clothing_base_price {
-                query_builder.push_bind(clothing_base_price);
-            } else {
-                query_builder.push("NULL");
-            }
-            has_update = true;
-        }
-
-        // 处理clothing_min_price字段
-        if self.clothing_min_price != current_clothing.clothing_min_price {
-            if has_update {
-                query_builder.push(", ");
-            }
-            query_builder.push("clothing_min_price = ");
-            
-            if let Some(clothing_min_price) = &self.clothing_min_price {
-                query_builder.push_bind(clothing_min_price);
-            } else {
-                query_builder.push("NULL");
-            }
-            has_update = true;
-        }
-
-        // 处理hang_type字段
-        if self.hang_type != current_clothing.hang_type {
-            if has_update {
-                query_builder.push(", ");
-            }
-            query_builder.push("hang_type = ");
-            
-            if let Some(hang_type) = &self.hang_type {
-                query_builder.push_bind(hang_type);
-            } else {
-                query_builder.push("NULL");
-            }
-            has_update = true;
-        }
-
-        // 处理remark字段
-        if self.remark != current_clothing.remark {
-            if has_update {
-                query_builder.push(", ");
-            }
-            query_builder.push("remark = ");
-            
-            if let Some(remark) = &self.remark {
-                query_builder.push_bind(remark);
-            } else {
-                query_builder.push("NULL");
-            }
-            has_update = true;
-        }
-
-        // 处理del_flag字段
-        if self.del_flag != current_clothing.del_flag {
-            if has_update {
-                query_builder.push(", ");
-            }
-            query_builder.push("del_flag = ");
-            
-            if let Some(del_flag) = &self.del_flag {
-                query_builder.push_bind(del_flag);
-            } else {
-                query_builder.push("NULL");
-            }
-            has_update = true;
-        }
-
-        if has_update {
-            query_builder
-                .push("WHERE store_id = ?")
-                .push_bind(self.store_id.unwrap_or_default())
-                .push(" AND clothing_id = ")
-                .push_bind(self.clothing_id.unwrap_or_default())
-                .push(" RETURNING *");
-            let updated_clothing = query_builder
-                .build_query_as::<Clothing>()
-                .fetch_one(pool)
-                .await?;
-            Ok(updated_clothing)
-        } else {
-            // 如果没有字段需要更新，则返回当前对象
-            Ok(self)
-        }
+    pub async fn update(self, tx: &mut Transaction<'_, Sqlite>) -> Result<bool> {
+        let res = sqlx::query(
+            r#"
+                UPDATE clothing SET
+                    clothing_name = ?,
+                    clothing_number = ?,
+                    clothing_category = ?,
+                    clothing_style = ?,
+                    category_id = ?,
+                    style_id = ?,
+                    clothing_degree = ?,
+                    order_num = ?,
+                    clothing_base_price = ?,
+                    clothing_min_price = ?,
+                    hang_type = ?,
+                    remark = ?
+                WHERE store_id = ? AND clothing_id = ?
+                RETURNING *
+                "#,
+        )
+        .bind(self.clothing_name)
+        .bind(self.clothing_number)
+        .bind(self.clothing_category)
+        .bind(self.clothing_style)
+        .bind(self.category_id)
+        .bind(self.style_id)
+        .bind(self.clothing_degree)
+        .bind(self.order_num)
+        .bind(self.clothing_base_price)
+        .bind(self.clothing_min_price)
+        .bind(self.hang_type)
+        .bind(self.remark)
+        .bind(self.store_id)
+        .bind(self.clothing_id)
+        .execute(&mut **tx)
+        .await?;
+        Ok(res.rows_affected() > 0)
     }
+}
+
+impl Request for Clothing {
+    const URL: &'static str = "/clothing";
 }
 
 /// tauri commands
@@ -558,7 +377,11 @@ pub async fn add_clothing(state: State<'_, AppState>, mut clothing: Clothing) ->
 
     clothing.store_id = Some(utils::get_user_id(&state).await?);
 
-    let clothing = clothing.add(&state.pool).await?;
+    let mut tx = state.pool.begin().await?;
+    let clothing = clothing.create_request(&state).await?;
+
+    let clothing = clothing.add(&mut tx).await?;
+    tx.commit().await?;
 
     Ok(clothing)
 }
@@ -569,8 +392,25 @@ pub async fn get_clothing_by_id(state: State<'_, AppState>, id: i64) -> Result<O
 }
 
 #[tauri::command]
-pub async fn update_clothing(state: State<'_, AppState>, clothing: Clothing) -> Result<Clothing> {
-    clothing.update(&state.pool).await
+pub async fn update_clothing(state: State<'_, AppState>, mut clothing: Clothing) -> Result<bool> {
+    if clothing.clothing_id.is_none() {
+        return Err(Error::bad_request("衣物id不能为空"));
+    }
+    if clothing.clothing_name.is_none()
+        || clothing.clothing_name.as_ref().unwrap().trim().is_empty()
+    {
+        return Err(Error::with_details(ErrorKind::BadRequest, "衣物名不能为空"));
+    }
+
+    clothing.store_id = Some(utils::get_user_id(&state).await?);
+
+    let mut tx = state.pool.begin().await?;
+    if !clothing.update_request(&state).await? {
+        return Err(Error::internal("更新失败"));
+    }
+    let res = clothing.update(&mut tx).await?;
+    tx.commit().await?;
+    Ok(res)
 }
 
 #[tauri::command]

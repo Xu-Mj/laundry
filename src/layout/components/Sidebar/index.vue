@@ -66,7 +66,7 @@ const normalMenus = [
   { 'name': '卡券管理', 'type': 'primary', show: true, path: '/coupon', onClick: () => router.push('/coupon') },
   { 'name': '卡券赠送', 'type': 'primary', show: false, onClick: () => { showCouponGift.value = true } },
   { 'name': '新增会员', 'type': 'primary', show: true, onClick: () => { showAddUserDialog.value = true } },
-  { 'name': '会员管理', 'type': 'primary', show: true, onClick: () => { router.push('/users') } },
+  { 'name': '会员管理', 'type': 'primary', show: true, path: '/users', onClick: () => { router.push('/users') } },
   { 'name': '事故处理', 'type': 'danger', show: false },
   { 'name': '线上预约', 'type': 'success', show: false },
   { 'name': '取件预约', 'type': 'success', show: false },

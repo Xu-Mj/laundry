@@ -101,10 +101,13 @@ impl HttpClient {
         self.send_request(request.json(&body)).await
     }
 
-    pub async fn delete(&self, endpoint: &str) -> Result<()> {
+    pub async fn delete<B: Serialize>(&self, endpoint: &str, body: B, token: Option<&str>) -> Result<bool> {
         let url = format!("{}{}", self.base_url, endpoint);
-        let request = self.client.delete(&url);
-        self.send_request(request).await
+        let mut request = self.client.delete(&url);
+        if let Some(t) = token {
+            request = request.header("Authorization", format!("Bearer {}", t));
+        }
+        self.send_request(request.json(&body)).await
     }
 
     pub async fn refresh_token(&self, refresh_token: &str) -> Result<String> {

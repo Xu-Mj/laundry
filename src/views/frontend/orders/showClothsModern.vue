@@ -55,11 +55,15 @@
                 </div>
                 <div class="cloth-code">
                   <el-tooltip content="衣物编码" placement="top">
-                    <el-tag type="info" effect="plain">
-                      <el-icon>
-                        <Ticket />
-                      </el-icon>
-                      {{ item.hangClothCode }}
+                    <el-tag type="info" effect="plain" class="my-tag">
+                      <template #default>
+                        <span class="tag-content">
+                          <el-icon>
+                            <Ticket />
+                          </el-icon>
+                          {{ item.hangClothCode }}
+                        </span>
+                      </template>
                     </el-tag>
                   </el-tooltip>
                 </div>
@@ -174,10 +178,10 @@
                 @click.stop="handleShowPicture(item, true)">
                 洗前照片
               </el-button>
-              <el-button type="success" :icon="Picture" size="small"
+              <!-- <el-button type="success" :icon="Picture" size="small"
                 :disabled="!item.afterPics || item.afterPics.length === 0" @click.stop="handleShowPicture(item, false)">
                 洗后照片
-              </el-button>
+              </el-button> -->
               <el-button type="warning" :icon="Top" size="small" v-if="item.clothingStatus == '01'"
                 @click.stop="handleShowHangUp(item)">
                 上挂
@@ -190,7 +194,7 @@
 
     <!-- 底部操作栏 -->
     <div class="bottom-actions">
-      <div class="selection-info" v-if="selectionList.length > 0">
+      <div class="selection-info">
         已选择 <span class="selection-count">{{ selectionList.length }}</span> 件衣物
       </div>
       <div class="action-buttons">
@@ -742,6 +746,7 @@ onMounted(async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  border-radius: 4px;
 }
 
 .cloth-info {
@@ -764,6 +769,13 @@ onMounted(async () => {
 
 .cloth-code {
   margin-top: 4px;
+}
+
+.tag-content {
+  display: inline-flex;
+  align-items: center;
+  font-size: 14px;
+  gap: 4px;
 }
 
 /* 卡片内容 */

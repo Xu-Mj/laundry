@@ -91,7 +91,7 @@
         <el-table-column label="订单金额" align="center" prop="paymentAmount" v-if="columns[2].visible">
           <template #default="scope">
             <span class="price-tag">
-              {{ scope.row.paymentAmount }}元
+              {{ scope.row.paymentAmount ? scope.row.paymentAmount + '元' : null }}
             </span>
           </template>
         </el-table-column>

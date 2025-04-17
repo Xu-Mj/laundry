@@ -124,7 +124,7 @@
         </div>
 
         <div class="footer-btn">
-            <el-button size="large" @click="props.taggle()">取消</el-button>
+            <el-button type="danger" size="large" @click="props.taggle()">取消</el-button>
             <el-button type="primary" size="large" @click="buy">立即购买</el-button>
         </div>
     </el-form>
@@ -400,11 +400,16 @@ onMounted(async () => {
 .member-card {
     display: flex;
     align-items: center;
-    background: linear-gradient(135deg, var(--el-fill-color-light) 0%, var(--el-fill-color-dark) 100%);
+    background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-8) 100%);
     border-radius: 12px;
     padding: 16px;
     margin-bottom: 24px;
     box-shadow: var(--el-box-shadow);
+}
+
+:root.dark .member-card {
+    --el-color-primary-light-9: #1d2c40;
+    --el-color-primary-light-8: #2b6095;
 }
 
 .member-avatar {

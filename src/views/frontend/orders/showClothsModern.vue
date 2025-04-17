@@ -55,15 +55,8 @@
                 </div>
                 <div class="cloth-code">
                   <el-tooltip content="衣物编码" placement="top">
-                    <el-tag type="info" effect="plain" class="my-tag">
-                      <template #default>
-                        <span class="tag-content">
-                          <el-icon>
-                            <Ticket />
-                          </el-icon>
-                          {{ item.hangClothCode }}
-                        </span>
-                      </template>
+                    <el-tag type="info" effect="plain">
+                      {{ item.hangClothCode }}
                     </el-tag>
                   </el-tooltip>
                 </div>
@@ -769,13 +762,6 @@ onMounted(async () => {
 
 .cloth-code {
   margin-top: 4px;
-}
-
-.tag-content {
-  display: inline-flex;
-  align-items: center;
-  font-size: 14px;
-  gap: 4px;
 }
 
 /* 卡片内容 */

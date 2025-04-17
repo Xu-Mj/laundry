@@ -121,7 +121,7 @@ impl Payment {
         INSERT INTO payments (pay_id, pay_number, order_type, total_amount, payment_amount, payment_amount_vip,
                              payment_amount_mv, payment_status, payment_method, transaction_id,
                              uc_order_id, uc_id, create_time, order_status, store_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *
     "#;
 
         let result = sqlx::query_as(query)

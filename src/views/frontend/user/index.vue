@@ -2,28 +2,32 @@
    <div class="app-container">
 
       <!-- 搜索区域 -->
-      <el-card class="search-card" v-show="showSearch">
-         <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="68px">
-            <el-form-item label="会员账号" prop="userName" size="large">
-               <el-input size="large" v-model="queryParams.userName" placeholder="请输入会员账号" clearable
-                  style="width: 240px" @keyup.enter="handleQuery" />
-            </el-form-item>
-            <el-form-item label="手机号码" prop="phonenumber" size="large">
-               <el-input size="large" v-model="queryParams.phonenumber" placeholder="请输入手机号码" clearable
-                  style="width: 240px" @keyup.enter="handleQuery" @input="handleTelQuery" />
-            </el-form-item>
-            <el-form-item label="会员等级" prop="levelName" size="large">
-               <el-select size="large" v-model="queryParams.levelId" placeholder="会员等级" clearable style="width: 240px">
-                  <el-option v-for="item in levelOptions" :key="item.levelId" :label="item.levelName"
-                     :value="item.levelId" :disabled="item.status == 1"></el-option>
-               </el-select>
-            </el-form-item>
-            <el-form-item>
-               <el-button type="primary" icon="Search" @click="handleQuery" size="large">搜索</el-button>
-               <el-button icon="Refresh" @click="resetQuery" size="large">重置</el-button>
-            </el-form-item>
-         </el-form>
-      </el-card>
+      <transition name="height-fade">
+         <el-card class="search-card" v-show="showSearch">
+            <el-form :model="queryParams" ref="queryRef" :inline="true" label-width="68px">
+               <el-form-item label="会员账号" prop="userName" size="large">
+                  <el-input size="large" v-model="queryParams.userName" placeholder="请输入会员账号" clearable
+                     style="width: 240px" @keyup.enter="handleQuery" />
+               </el-form-item>
+               <el-form-item label="手机号码" prop="phonenumber" size="large">
+                  <el-input size="large" v-model="queryParams.phonenumber" placeholder="请输入手机号码" clearable
+                     style="width: 240px" @keyup.enter="handleQuery" @input="handleTelQuery" />
+               </el-form-item>
+               <el-form-item label="会员等级" prop="levelName" size="large">
+                  <el-select size="large" v-model="queryParams.levelId" placeholder="会员等级" clearable
+                     style="width: 240px">
+                     <el-option v-for="item in levelOptions" :key="item.levelId" :label="item.levelName"
+                        :value="item.levelId" :disabled="item.status == 1"></el-option>
+                  </el-select>
+               </el-form-item>
+               <el-form-item>
+                  <el-button type="primary" icon="Search" @click="handleQuery" size="large">搜索</el-button>
+                  <el-button icon="Refresh" @click="resetQuery" size="large">重置</el-button>
+               </el-form-item>
+            </el-form>
+         </el-card>
+      </transition>
+
       <el-card class="table-card">
          <el-row :gutter="10" class="mb8">
             <el-col :span="1.5">
@@ -46,7 +50,7 @@
                <template #default="scope">
                   <el-tooltip content="查看会员详情" placement="top">
                      <el-button link type="primary" @click="showUserInfo(scope.row)">{{ scope.row.nickName
-                        }}</el-button>
+                     }}</el-button>
                   </el-tooltip>
                </template>
             </el-table-column>
@@ -77,14 +81,15 @@
                   元
                </template>
             </el-table-column>
-            <el-table-column label="会员积分" align="center" v-if="columns[11].visible">
+            <el-table-column label="会员积分" align="center" prop="integral" v-if="columns[11].visible" />
+            <!-- <el-table-column label="会员积分" align="center" v-if="columns[11].visible">
                <template #default="scope">
                   <el-tooltip content="查看历史记录" placement="top">
                      <el-button type="primary" link @click="queryIntegralList(scope.row.userId)">
                         {{ scope.row.integral }}</el-button>
                   </el-tooltip>
                </template>
-            </el-table-column>
+            </el-table-column> -->
             <el-table-column label="会员等级" align="center" key="levelName" prop="levelName" v-if="columns[7].visible" />
             <el-table-column label="会员画像" align="center" key="userTags" prop="userTags" v-if="columns[12].visible">
                <template #default="scope">

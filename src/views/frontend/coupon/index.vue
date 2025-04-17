@@ -1,40 +1,42 @@
 <template>
   <div class="app-container">
     <!-- 搜索区域 -->
-    <el-card class="search-card" v-show="showSearch">
-      <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="68px">
-        <el-form-item label="卡券编码" prop="couponNumber" size="large">
-          <el-input size="large" v-model="queryParams.couponNumber" placeholder="请输入卡券编码" clearable
-            @keyup.enter="handleQuery" />
-        </el-form-item>
-        <el-form-item label="卡券名称" prop="couponTitle" size="large">
-          <el-input size="large" v-model="queryParams.couponTitle" placeholder="请输入卡券名称" clearable
-            @keyup.enter="handleQuery" />
-        </el-form-item>
-        <el-form-item label="卡券类型" prop="couponType" size="large">
-          <el-select size="large" v-model="queryParams.couponType" @change="selectChange" placeholder="卡券类型" clearable
-            style="width: 120px">
-            <el-option v-for="dict in sys_coupon_type" :key="dict.value" :label="dict.label" :value="dict.value" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="卡券状态" prop="status" size="large">
-          <el-select size="large" v-model="queryParams.status" @change="selectChange" placeholder="卡券状态" clearable
-            style="width: 120px">
-            <el-option v-for="dict in sys_coupon_status" :key="dict.value" :label="dict.label" :value="dict.value" />
-          </el-select>
-        </el-form-item>
-        <!-- <el-form-item label="删除状态" prop="status">
+    <transition name="height-fade">
+      <el-card class="search-card" v-show="showSearch">
+        <el-form :model="queryParams" ref="queryRef" :inline="true" label-width="68px">
+          <el-form-item label="卡券编码" prop="couponNumber" size="large">
+            <el-input size="large" v-model="queryParams.couponNumber" placeholder="请输入卡券编码" clearable
+              @keyup.enter="handleQuery" />
+          </el-form-item>
+          <el-form-item label="卡券名称" prop="couponTitle" size="large">
+            <el-input size="large" v-model="queryParams.couponTitle" placeholder="请输入卡券名称" clearable
+              @keyup.enter="handleQuery" />
+          </el-form-item>
+          <el-form-item label="卡券类型" prop="couponType" size="large">
+            <el-select size="large" v-model="queryParams.couponType" @change="selectChange" placeholder="卡券类型" clearable
+              style="width: 120px">
+              <el-option v-for="dict in sys_coupon_type" :key="dict.value" :label="dict.label" :value="dict.value" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="卡券状态" prop="status" size="large">
+            <el-select size="large" v-model="queryParams.status" @change="selectChange" placeholder="卡券状态" clearable
+              style="width: 120px">
+              <el-option v-for="dict in sys_coupon_status" :key="dict.value" :label="dict.label" :value="dict.value" />
+            </el-select>
+          </el-form-item>
+          <!-- <el-form-item label="删除状态" prop="status">
         <el-select v-model="queryParams.delFlag" @change="selectChange" placeholder="删除状态" clearable
           style="width: 120px">
           <el-option v-for="dict in sys_del_status" :key="dict.value" :label="dict.label" :value="dict.value" />
         </el-select>
       </el-form-item> -->
-        <el-form-item>
-          <el-button size="large" type="primary" icon="Search" @click="handleQuery">搜索</el-button>
-          <el-button size="large" icon="Refresh" @click="resetQuery">重置</el-button>
-        </el-form-item>
-      </el-form>
-    </el-card>
+          <el-form-item>
+            <el-button size="large" type="primary" icon="Search" @click="handleQuery">搜索</el-button>
+            <el-button size="large" icon="Refresh" @click="resetQuery">重置</el-button>
+          </el-form-item>
+        </el-form>
+      </el-card>
+    </transition>
 
     <!-- 表格区域 -->
     <el-card class="table-card">
@@ -100,7 +102,7 @@
         <el-table-column label="限制条件" align="center" prop="usageLimit" v-if="columns[12].visible">
           <template #default="scope">
             {{ scope.row.couponType === '003' ? '最高消费金额限制' + scope.row.usageLimit + '元' :
-      scope.row.usageLimit == 0 ? '无限制' : scope.row.usageLimit }}
+              scope.row.usageLimit == 0 ? '无限制' : scope.row.usageLimit }}
           </template>
         </el-table-column>
         <el-table-column label="卡券状态" align="center" prop="status" v-if="columns[13].visible">
@@ -237,9 +239,9 @@
               <el-table-column label="数量" align="center" width="180">
                 <template #default="scope">
                   <el-input-number v-model="scope.row.count" :min="0" :max="(scope.row.customerSaleCount != -1 && scope.row.customerSaleTotal != -1)
-      ? Math.min(scope.row.customerSaleCount, scope.row.customerSaleTotal)
-      : (scope.row.customerSaleTotal != -1 ? scope.row.customerSaleTotal
-        : (scope.row.customerSaleCount != -1 ? scope.row.customerSaleCount : Infinity))" controls-position="right"
+                    ? Math.min(scope.row.customerSaleCount, scope.row.customerSaleTotal)
+                    : (scope.row.customerSaleTotal != -1 ? scope.row.customerSaleTotal
+                      : (scope.row.customerSaleCount != -1 ? scope.row.customerSaleCount : Infinity))" controls-position="right"
                     class="quantity-input" />
                 </template>
               </el-table-column>

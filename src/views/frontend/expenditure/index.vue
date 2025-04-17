@@ -1,7 +1,8 @@
 <template>
   <div class="app-container">
     <!-- 搜索区域 -->
-    <el-card class="search-card" v-show="showSearch">
+    <transition name="height-fade">
+      <el-card class="search-card" v-show="showSearch">
       <el-form :model="queryParams" ref="queryRef" :inline="true" label-width="68px">
         <el-form-item label="支出账目" prop="expTitle">
           <el-input v-model="queryParams.expTitle" placeholder="请输入支出账目" clearable @keyup.enter="handleQuery" />
@@ -27,6 +28,7 @@
         </el-form-item>
       </el-form>
     </el-card>
+    </transition>
 
     <el-card class="table-card">
       <el-row :gutter="10" class="mb8">

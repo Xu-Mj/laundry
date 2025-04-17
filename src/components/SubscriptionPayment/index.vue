@@ -153,7 +153,7 @@
 
     <template #footer>
       <div class="payment-footer">
-        <el-button size="large" @click="closeDialog" plain>取消</el-button>
+        <el-button size="large" type="danger" @click="closeDialog">取消</el-button>
         <el-button size="large" type="primary" @click="checkPaymentStatus">已完成支付</el-button>
       </div>
     </template>
@@ -661,6 +661,8 @@ onBeforeUnmount(() => {
   width: 200px;
   height: 200px;
   margin-bottom: 8px;
+  border-radius: 4px;
+  overflow: hidden;
 }
 
 .qrcode-image img {

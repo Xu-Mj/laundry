@@ -746,13 +746,6 @@ onMounted(async () => {
     overflow: hidden;
 }
 
-.dialog-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0 1rem;
-}
-
 .order-info {
     display: flex;
     align-items: center;

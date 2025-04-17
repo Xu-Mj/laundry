@@ -19,6 +19,7 @@ use crate::db::user::User;
 use crate::db::user_coupons::UserCoupon;
 use crate::db::{Curd, PageParams, PageResult};
 use crate::error::{Error, ErrorKind, Result};
+use crate::qrcode_payments::QrcodePayment;
 use crate::state::AppState;
 use crate::utils;
 use crate::utils::chrono_serde::deserialize_date;
@@ -134,84 +135,93 @@ pub struct RefundInfoResp {
 
 impl FromRow<'_, SqliteRow> for Order {
     fn from_row(row: &SqliteRow) -> std::result::Result<Self, sqlx::Error> {
-        let payment = Payment::from_row(row)?;
+        // 创建Payment对象，使用别名字段
+        let payment = Payment {
+            pay_id: row.try_get("pay_id").unwrap_or_default(),
+            pay_number: row.try_get("pay_number").unwrap_or_default(),
+            order_type: row.try_get("p_order_type").unwrap_or_default(),
+            total_amount: row.try_get("total_amount").unwrap_or_default(),
+            payment_amount: row.try_get("payment_amount").unwrap_or_default(),
+            payment_amount_vip: row.try_get("payment_amount_vip").unwrap_or_default(),
+            payment_amount_mv: row.try_get("payment_amount_mv").unwrap_or_default(),
+            payment_status: row.try_get("p_payment_status").unwrap_or_default(),
+            payment_method: row.try_get("payment_method").unwrap_or_default(),
+            transaction_id: row.try_get("transaction_id").unwrap_or_default(),
+            uc_order_id: row.try_get("uc_order_id").unwrap_or_default(),
+            uc_id: row.try_get("uc_id").unwrap_or_default(),
+            order_status: row.try_get("order_status").unwrap_or_default(),
+            create_time: row.try_get("p_create_time").unwrap_or_default(),
+            update_time: row.try_get("p_update_time").unwrap_or_default(),
+            store_id: row.try_get("p_store_id").unwrap_or_default(),
+        };
+        
         let order_id = row.try_get("order_id").unwrap_or_default();
-        let order_number = row.try_get("order_number").unwrap_or_default();
-        let business_type = row.try_get("business_type").unwrap_or_default();
-        let user_id = row.try_get("user_id").unwrap_or_default();
-        let price_id = row.try_get("price_id").unwrap_or_default();
-        let desire_complete_time = row.try_get("desire_complete_time").unwrap_or_default();
-        let cost_time_alarm = row.try_get("cost_time_alarm").unwrap_or_default();
-        let pickup_code = row.try_get("pickup_code").unwrap_or_default();
-        let complete_time = row.try_get("complete_time").unwrap_or_default();
-        let delivery_mode = row.try_get("delivery_mode").unwrap_or_default();
-        let source = row.try_get("source").unwrap_or_default();
-        let status = row.try_get("status").unwrap_or_default();
-        let payment_status = row.try_get("payment_status").unwrap_or_default();
-        let remark = row.try_get("remark").unwrap_or_default();
-        let order_type = row.try_get("order_type").unwrap_or_default();
-        let create_time = row.try_get("create_time").unwrap_or_default();
-        let update_time = row.try_get("update_time").unwrap_or_default();
-
-        // user information
-        let nick_name = row.try_get("nick_name").unwrap_or_default();
-        let phonenumber = row.try_get("phonenumber").unwrap_or_default();
 
         // adjust data
         let mut adjust = None;
         let adjust_id: Option<i64> = row.try_get("adjust_id").unwrap_or_default();
         if adjust_id.is_some() {
-            let adjust_value_add = row.try_get("adjust_value_add").unwrap_or_default();
-            let adjust_value_sub = row.try_get("adjust_value_sub").unwrap_or_default();
-            let adjust_total = row.try_get("adjust_total").unwrap_or_default();
-            let adjust_remark = row.try_get("adjust_remark").unwrap_or_default();
             adjust = Some(OrderClothAdjust {
                 adjust_id,
-                order_id: Some(order_id),
-                adjust_value_add,
-                adjust_value_sub,
-                adjust_total,
-                remark: adjust_remark,
+                order_id,
+                adjust_value_add: row.try_get("adjust_value_add").unwrap_or_default(),
+                adjust_value_sub: row.try_get("adjust_value_sub").unwrap_or_default(),
+                adjust_total: row.try_get("adjust_total").unwrap_or_default(),
+                remark: row.try_get("adjust_remark").unwrap_or_default(),
             })
         }
-        let store_id = row.try_get("store_id").unwrap_or_default();
 
         Ok(Order {
-            order_id: Some(order_id),
-            order_number,
-            business_type,
-            user_id,
-            price_id,
-            desire_complete_time,
-            cost_time_alarm,
-            pickup_code,
-            complete_time,
-            delivery_mode,
-            source,
-            status,
-            payment_status,
-            remark,
-            order_type,
-            create_time,
-            update_time,
-            cloth_ids: None,
-            cloth_codes: None,
-            nick_name,
-            phonenumber,
+            order_id,
+            store_id: row.try_get("store_id").unwrap_or_default(),
+            order_number: row.try_get("order_number").unwrap_or_default(),
+            business_type: row.try_get("business_type").unwrap_or_default(),
+            user_id: row.try_get("user_id").unwrap_or_default(),
+            price_id: row.try_get("price_id").unwrap_or_default(),
+            desire_complete_time: row.try_get("desire_complete_time").unwrap_or_default(),
+            cost_time_alarm: row.try_get("cost_time_alarm").unwrap_or_default(),
+            pickup_code: row.try_get("pickup_code").unwrap_or_default(),
+            complete_time: row.try_get("complete_time").unwrap_or_default(),
+            delivery_mode: row.try_get("delivery_mode").unwrap_or_default(),
+            source: row.try_get("source").unwrap_or_default(),
+            status: row.try_get("status").unwrap_or_default(),
+            payment_status: row.try_get("payment_status").unwrap_or_default(),
+            remark: row.try_get("remark").unwrap_or_default(),
+            order_type: row.try_get("order_type").unwrap_or_default(),
+            create_time: row.try_get("create_time").unwrap_or_default(),
+            update_time: row.try_get("update_time").unwrap_or_default(),
+            nick_name: row.try_get("nick_name").unwrap_or_default(),
+            phonenumber: row.try_get("phonenumber").unwrap_or_default(),
             adjust,
             payment: Some(payment),
+            cloth_ids: None,
+            cloth_codes: None,
             payment_bonus_type: None,
             payment_bonus_count: None,
             diff_price: None,
             payment_amount: None,
-            store_id,
         })
     }
 }
 
 const SQL: &str = "SELECT
  o.*,
- p.*,
+ p.pay_id,
+ p.pay_number,
+ p.order_type as p_order_type,
+ p.total_amount,
+ p.payment_amount,
+ p.payment_amount_vip,
+ p.payment_amount_mv,
+ p.payment_status as p_payment_status,
+ p.payment_method,
+ p.transaction_id,
+ p.uc_order_id,
+ p.uc_id,
+ p.order_status,
+ p.create_time as p_create_time,
+ p.update_time as p_update_time,
+ p.store_id as p_store_id,
  u.nick_name,
  u.phonenumber,
  a.adjust_id,
@@ -227,7 +237,22 @@ LEFT JOIN payments p ON o.order_id = p.uc_order_id
 
 const SQL_BY_CLOTHING_NAME: &str = "SELECT
     o.*,
-    p.*,
+    p.pay_id,
+    p.pay_number,
+    p.order_type as p_order_type,
+    p.total_amount,
+    p.payment_amount,
+    p.payment_amount_vip,
+    p.payment_amount_mv,
+    p.payment_status as p_payment_status,
+    p.payment_method,
+    p.transaction_id,
+    p.uc_order_id,
+    p.uc_id,
+    p.order_status,
+    p.create_time as p_create_time,
+    p.update_time as p_update_time,
+    p.store_id as p_store_id,
     u.nick_name,
     u.phonenumber,
     a.adjust_id,
@@ -657,7 +682,7 @@ struct OrderWithCloth {
 }
 
 impl Request for OrderWithCloth {
-    const URL: &'static str = "/order";
+    const URL: &'static str = "/orders";
 }
 
 impl Order {
@@ -775,6 +800,9 @@ impl Order {
             // .as_mut()
             .ok_or(Error::bad_request("payment can not be empty"))?;
 
+        // set store_id 
+        payment.store_id = Some(store_id);
+
         // 获取支付信息和卡券信息
         let mut user_coupons: Vec<UserCoupon> = if let Some(uc_id) = &payment.uc_id {
             let ids: Vec<i64> = uc_id
@@ -872,6 +900,17 @@ impl Order {
 
         tracing::debug!("支付请求信息: {:?}", payment_req);
 
+        #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+        struct OrderWithPayment {
+            order: Order,
+            payment: Payment,
+        }
+
+        impl Request for Vec<OrderWithPayment> {
+            const URL: &'static str = "/orders/payment";
+        }
+
+        let mut orders_with_payments = Vec::with_capacity(orders.len());
         // 如果是扫码支付，调用相应的支付接口
         if is_qr_code_payment {
             let subject_text =
@@ -909,6 +948,7 @@ impl Order {
                                 }
 
                                 // 创建支付记录
+                                payment.pay_id = Some(uuid::Uuid::new_v4().to_string());
                                 payment.order_status = Some("01".to_string());
                                 payment.payment_status = Some("01".to_string());
                                 payment.pay_number = existing_order.order_number.clone();
@@ -920,8 +960,8 @@ impl Order {
                                 let payment = payment.create_payment(&mut tr).await?;
 
                                 // 创建qrcode payment record
-                                let qrcode_payment = crate::db::qrcode_payments::QrcodePayment {
-                                    pay_id: payment.pay_id,
+                                let qrcode_payment = QrcodePayment {
+                                    pay_id: payment.pay_id.clone(),
                                     store_id: Some(store_id),
                                     payment_type: Some("alipay".to_string()),
                                     auth_code: Some(auth_code.clone()),
@@ -943,6 +983,10 @@ impl Order {
                                     ..Default::default()
                                 };
                                 qrcode_payment.create(&mut tr).await?;
+                                orders_with_payments.push(OrderWithPayment {
+                                    order: existing_order,
+                                    payment: payment.clone(),
+                                });
                             }
 
                             // 更新用户积分
@@ -958,7 +1002,10 @@ impl Order {
                                 }
                             }
 
+                            // 同步支付信息到服务端
+                            orders_with_payments.create_request(state).await?;
                             tr.commit().await?;
+
                             return Ok(());
                         } else {
                             // 支付失败
@@ -991,11 +1038,18 @@ impl Order {
                 }
 
                 // 创建支付记录
+                payment.pay_id = Some(uuid::Uuid::new_v4().to_string());
                 payment.order_status = Some("01".to_string());
                 payment.payment_status = Some("01".to_string());
                 payment.pay_number = existing_order.order_number.clone();
                 payment.uc_order_id = Some(*order_id);
                 payment.create_payment(&mut tr).await?;
+
+                // save order and payment
+                orders_with_payments.push(OrderWithPayment {
+                    order: existing_order,
+                    payment: payment.clone(),
+                });
             }
 
             // 更新用户积分
@@ -1004,6 +1058,8 @@ impl Order {
                     return Err(Error::internal("更新用户积分失败"));
                 }
             }
+            // 同步支付信息到服务端
+            orders_with_payments.create_request(state).await?;
         }
 
         tr.commit().await?;

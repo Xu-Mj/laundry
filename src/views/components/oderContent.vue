@@ -248,9 +248,19 @@
         :refresh="() => { selectedCloths = []; getList(); }" :key="showRewashDialog"
         :toggle="() => { showRewashDialog = !showRewashDialog }" />
 
-    <PaymentDialog :visible="showPaymentDialog" :user="currentUser" :orders="orders" :cloths-list="clothsList"
-        :user-coupon-list="userCouponList" :coupon-type-list="couponTypeList" :refresh="() => { getList(); }"
-        :key="showPaymentDialog" :toggle="() => { showPaymentDialog = !showPaymentDialog }" />
+    <PaymentDialog 
+        :visible="showPaymentDialog" 
+        :user="currentUser" 
+        :orders="orders" 
+        :cloths-list="clothsList"
+        :user-coupon-list="userCouponList" 
+        :coupon-type-list="couponTypeList" 
+        :refresh="getList" 
+        :key="showPaymentDialog" 
+        :toggle="() => { showPaymentDialog = !showPaymentDialog }" 
+        @success="handlePaymentSuccess"
+        @pickup="handlePaymentPickup"
+    />
 
 </template>
 
@@ -306,8 +316,6 @@ const estimateList = ref([]);
 const brandList = ref([]);
 const pictureList = ref([]);
 const selectedCloths = ref([]);
-// 选中的储值卡列表
-const couponStorageCardId = ref([]);
 
 const clothsTableRef = ref();
 // 用户卡券列表
@@ -317,20 +325,11 @@ const couponTypeList = ref();
 
 const showPicture = ref(false);
 const showDeliveryDialog = ref(false);
-// 总价格
-const totalPrice = ref(0);
-
-// 选中的次卡数量总数
-const timeCardCount = ref(0);
 // 当前需要处理的衣物列表
 const clothsList = ref([]);
 
 // 当前用户信息
 const currentUser = ref(null);
-
-// 显示更新会员默认地址
-const needSync = ref(false);
-
 
 const rewashOrder = ref(null);
 const rewashClothesId = ref([]);
@@ -339,7 +338,6 @@ const phonenumber = ref();
 const orders = ref([]);
 
 const data = reactive({
-    pickupRules: {},
     queryParams: {
         orderNumber: null,
         phonenumber: null,
@@ -347,7 +345,7 @@ const data = reactive({
     },
 });
 
-const { pickupRules, queryParams } = toRefs(data);
+const { queryParams } = toRefs(data);
 
 async function go2pay(row) {
     orders.value = [row];
@@ -460,13 +458,67 @@ async function pickup(cloth) {
     })
 }
 
+// 处理支付成功事件
+async function handlePaymentSuccess(data) {
+    // 支付成功后刷新订单列表
+    await getList();
+    proxy.notify.success("支付成功");
+    selectedCloths.value = [];
+}
+
+// 处理支付成功并取衣事件
+async function handlePaymentPickup() {
+    // 获取当前选中的衣物ID列表
+    const cloths = selectedCloths.value.filter(item => item.clothingStatus !== '00');
+    if (cloths.length > 0) {
+        const ids = cloths.map(item => item.clothId);
+        try {
+            await pickUp(ids);
+            proxy.notify.success("支付成功并已取走衣物");
+            selectedCloths.value = [];
+            // 刷新订单列表
+            await getList();
+        } catch (err) {
+            proxy.notify.error("取衣失败: " + err.message);
+        }
+    } else {
+        proxy.notify.success("支付成功，没有需要取走的衣物");
+        // 刷新订单列表
+        await getList();
+    }
+}
+
+// 处理派送成功事件
+// async function handleDeliverySuccess() {
+//     showDeliveryDialog.value = false;
+//     selectedCloths.value = [];
+//     await getList();
+//     proxy.notify.success("派送安排成功");
+// }
+
+// 处理派送按钮点击事件
 function handleDelivery() {
-    const ids = selectedCloths.value.filter(item => item.clothingStatus === '02').map(item => item.clothId);
-    if (ids.length == 0) {
-        proxy.notify.warning("没有选中符合条件的衣物");
+    if (selectedCloths.value.length === 0) {
+        proxy.notify.warning("请先选择需要派送的衣物");
         return;
     }
-
+    
+    // 检查选中的衣物是否都已完成洗护
+    const invalidCloths = selectedCloths.value.filter(item => item.clothingStatus !== '02');
+    if (invalidCloths.length > 0) {
+        proxy.notify.warning("选中的衣物中有未完成洗护的衣物，不能派送");
+        return;
+    }
+    
+    // 检查选中的衣物是否都已支付
+    const orderIds = [...new Set(selectedCloths.value.map(item => item.orderId))];
+    const unpaidOrders = ordersList.value.filter(item => orderIds.includes(item.orderId) && item.paymentStatus !== '00');
+    
+    if (unpaidOrders.length > 0) {
+        proxy.notify.warning("选中的衣物中有未支付的订单，请先完成支付");
+        return;
+    }
+    
     showDeliveryDialog.value = true;
 }
 

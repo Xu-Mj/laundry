@@ -223,10 +223,16 @@ const props = defineProps({
     toggle: {
         type: Function,
         required: true,
+        default: () => {}
     },
+    refresh: {
+        type: Function,
+        required: false,
+        default: () => {}
+    }
 });
 
-const emit = defineEmits(['update:visible', 'cancel', 'submit', 'pickup']);
+const emit = defineEmits(['update:visible', 'cancel', 'submit', 'pickup', 'success']);
 
 const { proxy } = getCurrentInstance();
 const { sys_payment_method } = proxy.useDict("sys_payment_method");
@@ -602,8 +608,14 @@ async function submitPaymentForm(isPickup) {
         paymentForm.value.orders.forEach(item => item.paymentStatus = '00');
 
         // 关闭支付对话框
-        emit('update:visible', false);
-
+        props.toggle();
+        
+        // 刷新数据
+        props.refresh();
+        
+        // 发送成功事件，包含是否需要取衣的信息
+        emit('success', { isPickup });
+        
         // 如果选中了衣物，并且需要取走
         if (isPickup) {
             emit('pickup');

@@ -1,6 +1,6 @@
 <template>
     <el-dialog v-model="props.visible" :title="props.user.nickName + '-' + props.user.phonenumber" width="66.66%"
-        top="0" append-to-body class="modern-user-dialog" @closed="props.toggle" :show-close="false">
+        top="0" append-to-body class="modern-user-dialog" @closed="props.toggle" :show-close="false" align-center>
         <template #header>
             <div class="dialog-header">
                 <div class="user-avatar">

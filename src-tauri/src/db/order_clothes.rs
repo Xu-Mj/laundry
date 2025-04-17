@@ -64,71 +64,42 @@ pub struct OrderCloth {
 // todo check the remark attribute if necessary
 impl FromRow<'_, SqliteRow> for OrderCloth {
     fn from_row(row: &SqliteRow) -> std::result::Result<Self, sqlx::Error> {
-        let cloth_id = row.try_get("cloth_id").unwrap_or_default();
-        let store_id = row.try_get("store_id").unwrap_or_default();
-        let order_id = row.try_get("order_id").unwrap_or_default();
         let clothing_id: Option<i64> = row.try_get("clothing_id").unwrap_or_default();
-        let clothing_category = row.try_get("clothing_category").unwrap_or_default();
-        let category_id = row.try_get("category_id").unwrap_or_default();
-        let clothing_style = row.try_get("clothing_style").unwrap_or_default();
-        let style_id = row.try_get("style_id").unwrap_or_default();
-        let clothing_color = row.try_get("clothing_color").unwrap_or_default();
-        let clothing_flaw = row.try_get("clothing_flaw").unwrap_or_default();
-        let clothing_brand = row.try_get("clothing_brand").unwrap_or_default();
-        let service_type = row.try_get("service_type").unwrap_or_default();
-        let hang_type = row.try_get("hang_type").unwrap_or_default();
-        let hang_location_code = row.try_get("hang_location_code").unwrap_or_default();
-        let hanger_number = row.try_get("hanger_number").unwrap_or_default();
-        let hanger_name = row.try_get("hanger_name").unwrap_or_default();
-        let hang_cloth_code = row.try_get("hang_cloth_code").unwrap_or_default();
-        let hang_remark = row.try_get("hang_remark").unwrap_or_default();
-        let pickup_time = row.try_get("pickup_time").unwrap_or_default();
-        let create_time = row.try_get("create_time").unwrap_or_default();
-        let pickup_method = row.try_get("pickup_method").unwrap_or_default();
-        let clothing_status = row.try_get("clothing_status").unwrap_or_default();
-        let service_requirement = row.try_get("service_requirement").unwrap_or_default();
-        let estimate = row.try_get("estimate").unwrap_or_default();
-        let before_pics = row.try_get("before_pics").unwrap_or_default();
-        let after_pics = row.try_get("after_pics").unwrap_or_default();
-        let notes = row.try_get("notes").unwrap_or_default();
-        let process_markup = row.try_get("process_markup").unwrap_or_default();
-        let price_value = row.try_get("price_value").unwrap_or_default();
-        let remark = row.try_get("remark").unwrap_or_default();
         let mut cloth_info = None;
         if clothing_id.is_some() {
             cloth_info = Some(Clothing::from_row(row)?);
         }
         Ok(OrderCloth {
-            cloth_id,
-            store_id,
-            order_id,
-            clothing_id,
-            clothing_category,
-            category_id,
-            clothing_style,
-            style_id,
-            clothing_color,
-            clothing_flaw,
-            estimate,
-            clothing_brand,
-            service_type,
-            service_requirement,
-            before_pics,
-            after_pics,
-            notes,
-            process_markup,
-            price_value,
-            hang_type,
-            hang_location_code,
-            hanger_name,
-            hanger_number,
-            hang_cloth_code,
-            hang_remark,
-            create_time,
-            pickup_time,
-            pickup_method,
-            clothing_status,
-            remark,
+            cloth_id: row.try_get("cloth_id").unwrap_or_default(),
+            store_id: row.try_get("store_id").unwrap_or_default(),
+            order_id: row.try_get("order_id").unwrap_or_default(),
+            clothing_id: row.try_get("clothing_id").unwrap_or_default(),
+            clothing_category: row.try_get("clothing_category").unwrap_or_default(),
+            category_id: row.try_get("category_id").unwrap_or_default(),
+            clothing_style: row.try_get("clothing_style").unwrap_or_default(),
+            style_id: row.try_get("style_id").unwrap_or_default(),
+            clothing_color: row.try_get("clothing_color").unwrap_or_default(),
+            clothing_flaw: row.try_get("clothing_flaw").unwrap_or_default(),
+            estimate: row.try_get("estimate").unwrap_or_default(),
+            clothing_brand: row.try_get("clothing_brand").unwrap_or_default(),
+            service_type: row.try_get("service_type").unwrap_or_default(),
+            service_requirement: row.try_get("service_requirement").unwrap_or_default(),
+            before_pics: row.try_get("before_pics").unwrap_or_default(),
+            after_pics: row.try_get("after_pics").unwrap_or_default(),
+            notes: row.try_get("notes").unwrap_or_default(),
+            process_markup: row.try_get("process_markup").unwrap_or_default(),
+            price_value: row.try_get("price_value").unwrap_or_default(),
+            hang_type: row.try_get("hang_type").unwrap_or_default(),
+            hang_location_code: row.try_get("hang_location_code").unwrap_or_default(),
+            hanger_name: row.try_get("hanger_name").unwrap_or_default(),
+            hanger_number: row.try_get("hanger_number").unwrap_or_default(),
+            hang_cloth_code: row.try_get("hang_cloth_code").unwrap_or_default(),
+            hang_remark: row.try_get("hang_remark").unwrap_or_default(),
+            create_time: row.try_get("create_time").unwrap_or_default(),
+            pickup_time: row.try_get("pickup_time").unwrap_or_default(),
+            pickup_method: row.try_get("pickup_method").unwrap_or_default(),
+            clothing_status: row.try_get("clothing_status").unwrap_or_default(),
+            remark: row.try_get("remark").unwrap_or_default(),
             cloth_info,
         })
     }

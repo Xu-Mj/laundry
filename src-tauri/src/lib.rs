@@ -19,7 +19,7 @@ use crate::db::{
     alipay_config, cloth_price, clothing, clothing_category, clothing_style, configs, coupons,
     dict_data, dict_type, drying_rack, expenditure, local_users, membership_level, notice_temp,
     order_clothes, orders, payments, qrcode_payments, subscriptions, tags, user, user_coupons,
-    user_tours, wechat_config,
+    user_tours, wechat_config, delivery,
 };
 
 pub fn create_app<R: tauri::Runtime, T: Send + Sync + 'static>(
@@ -177,6 +177,10 @@ fn handle_command<R: Runtime>(invoke: Invoke<R>) -> bool {
         order_clothes::pickup_order_cloth,
         order_clothes::remove_pic_from_order_cloth,
         order_clothes::upload_cloth_pic,
+        // New delivery-related commands for order_clothes
+        order_clothes::list_delivery_eligible_clothes,
+        order_clothes::deliver_clothes,
+        order_clothes::get_order_cloths_by_ids,
         // coupons
         coupons::add_coupon,
         coupons::update_coupon,
@@ -268,6 +272,12 @@ fn handle_command<R: Runtime>(invoke: Invoke<R>) -> bool {
         // tours
         user_tours::update_tour_guide,
         user_tours::check_tour_completed,
+        // New delivery commands
+        delivery::create_delivery,
+        delivery::complete_delivery,
+        delivery::cancel_delivery,
+        delivery::get_delivery_by_id,
+        delivery::list_deliveries,
     ];
     handler(invoke);
 

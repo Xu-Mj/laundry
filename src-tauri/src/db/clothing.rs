@@ -241,11 +241,12 @@ impl Clothing {
     /// 返回一个结果类型，包含新添加的衣物信息。
     pub async fn add(self, tx: &mut Transaction<'_, Sqlite>) -> Result<Clothing> {
         let result = sqlx::query_as::<_, Clothing>(
-            "INSERT INTO clothing (store_id, clothing_name, clothing_number, clothing_category, clothing_style,
+            "INSERT INTO clothing (clothing_id, store_id, clothing_name, clothing_number, clothing_category, clothing_style,
              category_id, style_id, clothing_base_price, clothing_min_price, order_num, clothing_degree, remark, del_flag)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '0')
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '0')
              RETURNING *"
         )
+            .bind(&self.clothing_id)
             .bind(&self.store_id)
             .bind(&self.clothing_name)
             .bind(&self.clothing_number)

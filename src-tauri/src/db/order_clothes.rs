@@ -19,6 +19,8 @@ use crate::utils;
 
 const CLOTH_STATUS_HANGED: &str = "02";
 const CLOTH_STATUS_PICKED: &str = "00";
+const CLOTH_STATUS_WASHED: &str = "02";
+const CLOTH_STATUS_DELIVERED: &str = "03";
 const ORDER_STATUS_COMPLETED: &str = "04";
 const ORDER_STATUS_PAID: &str = "00";
 // const CLOTH_STATUS_DELIVERY: &str = "01";
@@ -166,7 +168,7 @@ const SQL: &str = "SELECT
 
 impl OrderCloth {
     pub async fn add(&self, tr: &mut Transaction<'_, Sqlite>) -> Result<Self> {
-        let cloth = sqlx::query_as::<_, Self>(
+        let cloth = sqlx::query_as(
             "INSERT INTO order_clothes
         (clothing_id, store_id, category_id, style_id, clothing_color,
          clothing_flaw, estimate, clothing_brand, service_type, service_requirement,
@@ -345,199 +347,67 @@ impl OrderCloth {
     }
 
     pub async fn update(&self, tr: &mut Transaction<'_, Sqlite>) -> Result<bool> {
-        let mut builder = sqlx::QueryBuilder::new("UPDATE order_clothes SET ");
-        let mut has_updated = false;
-
-        if let Some(order_id) = &self.order_id {
-            builder.push("order_id = ").push_bind(order_id);
-            has_updated = true;
-        }
-
-        if let Some(clothing_id) = &self.clothing_id {
-            if has_updated {
-                builder.push(",");
-            }
-            builder.push("clothing_id = ").push_bind(clothing_id);
-            has_updated = true;
-        }
-
-        if let Some(clothing_category) = &self.clothing_category {
-            if has_updated {
-                builder.push(",");
-            }
-            builder
-                .push("clothing_category = ")
-                .push_bind(clothing_category);
-            has_updated = true;
-        }
-
-        if let Some(clothing_style) = &self.clothing_style {
-            if has_updated {
-                builder.push(",");
-            }
-            builder.push("clothing_style = ").push_bind(clothing_style);
-            has_updated = true;
-        }
-
-        if let Some(clothing_color) = self.clothing_color {
-            if has_updated {
-                builder.push(",");
-            }
-            builder.push("clothing_color = ").push_bind(clothing_color);
-            has_updated = true;
-        }
-
-        if let Some(clothing_flaw) = &self.clothing_flaw {
-            if has_updated {
-                builder.push(",");
-            }
-            builder.push("clothing_flaw = ").push_bind(clothing_flaw);
-            has_updated = true;
-        }
-
-        if let Some(estimate) = &self.estimate {
-            if has_updated {
-                builder.push(",");
-            }
-            builder.push("estimate = ").push_bind(estimate);
-            has_updated = true;
-        }
-
-        if let Some(clothing_brand) = self.clothing_brand {
-            if has_updated {
-                builder.push(",");
-            }
-            builder.push("clothing_brand = ").push_bind(clothing_brand);
-            has_updated = true;
-        }
-
-        if let Some(service_type) = &self.service_type {
-            if has_updated {
-                builder.push(",");
-            }
-            builder.push("service_type = ").push_bind(service_type);
-            has_updated = true;
-        }
-
-        if let Some(req) = &self.service_requirement {
-            if has_updated {
-                builder.push(",");
-            }
-            builder.push("service_requirement = ").push_bind(req);
-            has_updated = true;
-        }
-
-        if let Some(before_pics) = &self.before_pics {
-            if has_updated {
-                builder.push(",");
-            }
-            builder.push("before_pics = ").push_bind(before_pics);
-            has_updated = true;
-        }
-
-        if let Some(after_pics) = &self.after_pics {
-            if has_updated {
-                builder.push(",");
-            }
-            builder.push("after_pics = ").push_bind(after_pics);
-            has_updated = true;
-        }
-
-        if let Some(note) = &self.notes {
-            if has_updated {
-                builder.push(",");
-            }
-            builder.push("notes = ").push_bind(note);
-            has_updated = true;
-        }
-
-        if let Some(process_markup) = self.process_markup {
-            if has_updated {
-                builder.push(",");
-            }
-            builder.push("process_markup = ").push_bind(process_markup);
-            has_updated = true;
-        }
-
-        if let Some(price_value) = self.price_value {
-            if has_updated {
-                builder.push(",");
-            }
-            builder.push("price_value = ").push_bind(price_value);
-            has_updated = true;
-        }
-
-        if let Some(hang_type) = &self.hang_type {
-            if has_updated {
-                builder.push(",");
-            }
-            builder.push("hang_type = ").push_bind(hang_type);
-            has_updated = true;
-        }
-
-        if let Some(code) = &self.hang_location_code {
-            if has_updated {
-                builder.push(",");
-            }
-            builder.push("hang_location_code = ").push_bind(code);
-            has_updated = true;
-        }
-
-        if let Some(number) = self.hanger_number {
-            if has_updated {
-                builder.push(",");
-            }
-            builder.push("hanger_number = ").push_bind(number);
-            has_updated = true;
-        }
-
-        if let Some(code) = &self.hang_cloth_code {
-            if has_updated {
-                builder.push(",");
-            }
-            builder.push("hang_cloth_code = ").push_bind(code);
-            has_updated = true;
-        }
-
-        if let Some(remark) = &self.hang_remark {
-            if has_updated {
-                builder.push(",");
-            }
-            builder.push("hang_remark = ").push_bind(remark);
-            has_updated = true;
-        }
-
-        if let Some(pickup_time) = &self.pickup_time {
-            if has_updated {
-                builder.push(",");
-            }
-            builder.push("pickup_time = ").push_bind(pickup_time);
-            has_updated = true;
-        }
-
-        if let Some(pickup_method) = &self.pickup_method {
-            if has_updated {
-                builder.push(",");
-            }
-            builder.push("pickup_method = ").push_bind(pickup_method);
-            has_updated = true;
-        }
-
-        if let Some(status) = &self.clothing_status {
-            if has_updated {
-                builder.push(",");
-            }
-            builder.push("clothing_status = ").push_bind(status);
-            has_updated = true;
-        }
-
-        if has_updated {
-            builder.push(" WHERE cloth_id = ").push_bind(&self.cloth_id);
-            let result = builder.build().execute(&mut **tr).await?;
-            return Ok(result.rows_affected() > 0);
-        }
-
-        Ok(false)
+        // 确保有 cloth_id
+        let cloth_id = self.cloth_id.ok_or(Error::bad_request("缺少衣物ID"))?;
+    
+        // 执行更新
+        let result = sqlx::query(
+            r#"
+            UPDATE order_clothes SET
+                order_id = ?,
+                clothing_id = ?,
+                clothing_category = ?,
+                clothing_style = ?,
+                clothing_color = ?,
+                clothing_flaw = ?,
+                estimate = ?,
+                clothing_brand = ?,
+                service_type = ?,
+                service_requirement = ?,
+                before_pics = ?,
+                after_pics = ?,
+                notes = ?,
+                process_markup = ?,
+                price_value = ?,
+                hang_type = ?,
+                hang_location_code = ?,
+                hanger_number = ?,
+                hang_cloth_code = ?,
+                hang_remark = ?,
+                pickup_time = ?,
+                pickup_method = ?,
+                clothing_status = ?
+            WHERE cloth_id = ?
+            "#
+        )
+        .bind(&self.order_id)
+        .bind(&self.clothing_id)
+        .bind(&self.clothing_category)
+        .bind(&self.clothing_style)
+        .bind(self.clothing_color)
+        .bind(&self.clothing_flaw)
+        .bind(&self.estimate)
+        .bind(self.clothing_brand)
+        .bind(&self.service_type)
+        .bind(&self.service_requirement)
+        .bind(&self.before_pics)
+        .bind(&self.after_pics)
+        .bind(&self.notes)
+        .bind(self.process_markup)
+        .bind(self.price_value)
+        .bind(&self.hang_type)
+        .bind(&self.hang_location_code)
+        .bind(self.hanger_number)
+        .bind(&self.hang_cloth_code)
+        .bind(&self.hang_remark)
+        .bind(&self.pickup_time)
+        .bind(&self.pickup_method)
+        .bind(&self.clothing_status)
+        .bind(cloth_id)
+        .execute(&mut **tr)
+        .await?;
+    
+        Ok(result.rows_affected() > 0)
     }
 
     pub async fn delete_batch(tr: &mut Transaction<'_, Sqlite>, ids: &[i64]) -> Result<u64> {
@@ -554,6 +424,67 @@ impl OrderCloth {
 
         let result = builder.build().execute(&mut **tr).await?;
         Ok(result.rows_affected())
+    }
+
+    pub async fn update_cloth_status_delivery(
+        tr: &mut Transaction<'_, Sqlite>,
+        cloth_ids: &[i64],
+        status: &str,
+    ) -> Result<bool> {
+        if cloth_ids.is_empty() {
+            return Ok(false);
+        }
+
+        let mut query_builder = QueryBuilder::new("UPDATE order_clothes SET clothing_status = ");
+        query_builder.push_bind(status);
+
+        // Add pickup time if the status is for delivery
+        if status == CLOTH_STATUS_DELIVERED {
+            query_builder.push(", pickup_time = ");
+            query_builder.push_bind(utils::get_now());
+            query_builder.push(", pickup_method = ");
+            query_builder.push_bind("delivery"); // Set pickup method to delivery
+        }
+
+        query_builder.push(" WHERE cloth_id IN (");
+
+        cloth_ids.iter().enumerate().for_each(|(i, id)| {
+            if i > 0 {
+                query_builder.push(", ");
+            }
+            query_builder.push_bind(id);
+        });
+
+        query_builder.push(")");
+
+        let result = query_builder.build().execute(&mut **tr).await?;
+        Ok(result.rows_affected() > 0)
+    }
+
+    pub async fn get_delivery_eligible_clothes(
+        pool: &Pool<Sqlite>,
+        store_id: i64,
+        user_id: Option<i64>,
+    ) -> Result<Vec<Self>> {
+        // Modified to include clothes with status '01' (washing) or '02' (washed)
+        let status_clause = "oc.clothing_status IN ('01', '02')";
+        
+        if let Some(uid) = user_id {
+            sqlx::query_as::<_, Self>(&format!("{} 
+                LEFT JOIN orders o ON oc.order_id = o.order_id 
+                WHERE {} AND oc.store_id = ? AND o.user_id = ?", 
+                SQL, status_clause
+            ))
+            .bind(store_id)
+            .bind(uid)
+            .fetch_all(pool)
+            .await
+        } else {
+            sqlx::query_as::<_, Self>(&format!("{} WHERE {} AND oc.store_id = ?", SQL, status_clause))
+            .bind(store_id)
+            .fetch_all(pool)
+            .await
+        }.map_err(|e| Error::internal(format!("Failed to get delivery eligible clothes: {}", e)))
     }
 }
 
@@ -972,10 +903,7 @@ impl OrderCloth {
 
             // update cloth
             if !cloth.update(&mut tr).await? {
-                return Err(Error::with_details(
-                    ErrorKind::InternalServer,
-                    "update cloth information failed",
-                ));
+                return Err(Error::internal("update cloth information failed"));
             }
 
             // update rack remain count
@@ -984,10 +912,7 @@ impl OrderCloth {
                 .ok_or(Error::with_details(ErrorKind::NotFound, "rack not found"))?;
             rack.remaining_capacity = rack.remaining_capacity.and_then(|i| Some(i - 1));
             if !rack.update(&mut tr).await? {
-                return Err(Error::with_details(
-                    ErrorKind::InternalServer,
-                    "update rack information failed",
-                ));
+                return Err(Error::internal("update rack information failed"));
             }
         }
 
@@ -1162,4 +1087,46 @@ pub async fn upload_cloth_pic(
     }
     tx.commit().await?;
     Ok(picture.picture_id)
+}
+
+#[tauri::command]
+pub async fn list_delivery_eligible_clothes(
+    state: State<'_, AppState>,
+    user_id: Option<i64>,
+) -> Result<Vec<OrderCloth>> {
+    let store_id = utils::get_user_id(&state).await?;
+    OrderCloth::get_delivery_eligible_clothes(&state.pool, store_id, user_id).await
+}
+
+#[tauri::command]
+pub async fn deliver_clothes(state: State<'_, AppState>, cloth_ids: Vec<i64>) -> Result<bool> {
+    let mut tx = state.pool.begin().await?;
+
+    // Update clothes status to delivered
+    let success =
+        OrderCloth::update_cloth_status_delivery(&mut tx, &cloth_ids, CLOTH_STATUS_DELIVERED)
+            .await?;
+
+    tx.commit().await?;
+    Ok(success)
+}
+
+// Add this new Tauri command to retrieve multiple clothes by IDs
+#[tauri::command]
+pub async fn get_order_cloths_by_ids(
+    state: State<'_, AppState>,
+    cloth_ids: Vec<i64>,
+) -> Result<Vec<OrderCloth>> {
+    let store_id = utils::get_user_id(&state).await?;
+
+    // Get clothes by IDs
+    let clothes = OrderCloth::get_by_ids(&state.pool, &cloth_ids).await?;
+
+    // Filter by store ID if needed
+    let filtered_clothes = clothes
+        .into_iter()
+        .filter(|cloth| cloth.store_id.unwrap_or_default() == store_id)
+        .collect();
+
+    Ok(filtered_clothes)
 }

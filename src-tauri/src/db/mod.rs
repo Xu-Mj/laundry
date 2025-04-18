@@ -34,6 +34,7 @@ pub(crate) mod user_membership_level;
 pub(crate) mod user_tags;
 pub(crate) mod user_tours;
 pub(crate) mod wechat_config;
+pub(crate) mod delivery;
 
 use std::collections::HashMap;
 

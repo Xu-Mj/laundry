@@ -121,6 +121,16 @@ export const constantRoutes = [
     ]
   },
   {
+    path: '/delivery',
+    component: Layout,
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/frontend/delivery/index.vue'),
+      }
+    ]
+  },
+  {
     path: '/blogs',
     component: Layout,
     children: [

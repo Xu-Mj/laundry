@@ -501,18 +501,27 @@ CREATE TABLE order_pictures
 );
 
 -- 订单派送信息
-CREATE TABLE order_dispatch
-(
-    dispatch_id   INTEGER PRIMARY KEY AUTOINCREMENT,
-    order_id      TEXT NOT NULL,
-    cloth_id      TEXT NOT NULL,
-    delivery_comp TEXT,
-    delivery_num  TEXT,
-    dispatch_time TIMESTAMP,
-    remark        TEXT,
-    create_time   TIMESTAMP
+CREATE TABLE IF NOT EXISTS deliveries (
+    delivery_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    store_id INTEGER,
+    user_id INTEGER,
+    order_id TEXT,
+    cloth_id TEXT,
+    address TEXT,
+    dispatch_time DATETIME,
+    complete_time DATETIME,
+    remark TEXT,
+    delivery_status TEXT DEFAULT '00',
+    create_time DATETIME,
+    update_time DATETIME,
+    FOREIGN KEY (store_id) REFERENCES local_users(id),
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 
+-- Create index for faster lookups
+CREATE INDEX IF NOT EXISTS idx_deliveries_user_id ON deliveries(user_id);
+CREATE INDEX IF NOT EXISTS idx_deliveries_store_id ON deliveries(store_id);
+CREATE INDEX IF NOT EXISTS idx_deliveries_status ON deliveries(delivery_status);
 -- 支出记录表
 CREATE TABLE expenditure
 (

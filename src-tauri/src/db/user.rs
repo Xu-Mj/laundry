@@ -455,6 +455,22 @@ impl User {
                 .await?;
         Ok(result.rows_affected() > 0)
     }
+
+    /// update address
+    pub async fn update_address(
+        tx: &mut Transaction<'_, Sqlite>,
+        store_id: i64,
+        id: i64,
+        address: &str,
+    ) -> Result<bool> {
+        let result = sqlx::query("UPDATE users SET address =? WHERE store_id = ? AND user_id =?")
+            .bind(address)
+            .bind(store_id)
+            .bind(id)
+            .execute(&mut **tx)
+            .await?;
+        Ok(result.rows_affected() > 0)
+    }
 }
 
 /// Service

@@ -503,10 +503,13 @@ function handleDelivery() {
         return;
     }
     
-    // 检查选中的衣物是否都已完成洗护
-    const invalidCloths = selectedCloths.value.filter(item => item.clothingStatus !== '02');
+    // 检查选中的衣物是否都已完成洗护或正在洗护中
+    const invalidCloths = selectedCloths.value.filter(item => 
+        item.clothingStatus !== '01' && item.clothingStatus !== '02'
+    );
+    
     if (invalidCloths.length > 0) {
-        proxy.notify.warning("选中的衣物中有未完成洗护的衣物，不能派送");
+        proxy.notify.warning("选中的衣物中有不符合派送条件的衣物，只能派送正在洗护或已完成洗护的衣物");
         return;
     }
     

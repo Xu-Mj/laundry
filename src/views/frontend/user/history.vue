@@ -127,7 +127,6 @@ import { listTagsNoLimit } from "@/api/system/tags";
 import { getPrice } from "@/api/system/price";
 import { Money, ShoppingCart, Search, Refresh } from '@element-plus/icons-vue';
 import { formatTime } from '@/utils/ruoyi';
-import vSlideIn from "@/vSlideIn";
 
 const props = defineProps({
     userId: {

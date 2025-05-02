@@ -278,12 +278,19 @@ const applyPromoCode = () => {
   ElMessage.success('优惠码应用成功');
 };
 
-// 生成支付二维码
-const generateQrCode = async () => {
-  isLoading.value = true;
-  paymentError.value = false;
-  // 重置支付状态
-  currentPaymentStatus.value = PAYMENT_STATUS.WAITING;
+// 自动重试配置
+const MAX_RETRY_COUNT = 3; // 最大重试次数
+const INITIAL_RETRY_DELAY = 1000; // 初始重试延迟（毫秒）
+
+// 生成支付二维码（带自动重试机制）
+const generateQrCode = async (retryCount = 0, retryDelay = INITIAL_RETRY_DELAY) => {
+  if (retryCount === 0) {
+    // 首次尝试时重置状态
+    isLoading.value = true;
+    paymentError.value = false;
+    // 重置支付状态
+    currentPaymentStatus.value = PAYMENT_STATUS.WAITING;
+  }
 
   try {
     // 构建支付请求参数
@@ -329,30 +336,59 @@ const generateQrCode = async () => {
 
         } catch (qrError) {
           console.error('二维码生成失败:', qrError);
+          // 尝试重试生成二维码
+          if (retryCount < MAX_RETRY_COUNT) {
+            console.log(`二维码生成失败，正在进行第${retryCount + 1}次重试...`);
+            setTimeout(() => generateQrCode(retryCount + 1, retryDelay * 2), retryDelay);
+            return;
+          }
           paymentError.value = true;
-          paymentErrorMsg.value = '二维码生成失败，请重试';
+          paymentErrorMsg.value = '二维码生成失败，请稍后再试';
           ElMessage.error(paymentErrorMsg.value);
           return;
         }
       } else {
+        // 二维码数据为空，尝试重试
+        if (retryCount < MAX_RETRY_COUNT) {
+          console.log(`二维码数据为空，正在进行第${retryCount + 1}次重试...`);
+          setTimeout(() => generateQrCode(retryCount + 1, retryDelay * 2), retryDelay);
+          return;
+        }
         paymentError.value = true;
-        paymentErrorMsg.value = '支付二维码数据为空，请重试';
+        paymentErrorMsg.value = '获取支付二维码失败，请稍后再试';
         ElMessage.error(paymentErrorMsg.value);
         return;
       }
     } else {
-      // 支付请求失败
+      // 支付请求失败，尝试重试
+      if (retryCount < MAX_RETRY_COUNT) {
+        console.log(`支付请求失败，正在进行第${retryCount + 1}次重试...`);
+        setTimeout(() => generateQrCode(retryCount + 1, retryDelay * 2), retryDelay);
+        return;
+      }
+      // 所有重试都失败
       paymentError.value = true;
-      paymentErrorMsg.value = res?.errorMessage || '生成支付二维码失败，请重试';
+      // 不显示服务端返回的详细错误信息
+      paymentErrorMsg.value = '生成支付二维码失败，请稍后再试';
       ElMessage.error(paymentErrorMsg.value);
     }
   } catch (error) {
     console.error('支付请求异常:', error);
+    // 网络异常，尝试重试
+    if (retryCount < MAX_RETRY_COUNT) {
+      console.log(`网络异常，正在进行第${retryCount + 1}次重试...`);
+      setTimeout(() => generateQrCode(retryCount + 1, retryDelay * 2), retryDelay);
+      return;
+    }
+    // 所有重试都失败
     paymentError.value = true;
-    paymentErrorMsg.value = '网络异常，请重试';
+    paymentErrorMsg.value = '网络连接异常，请检查网络后再试';
     ElMessage.error(paymentErrorMsg.value);
   } finally {
-    isLoading.value = false;
+    // 只有在所有重试都完成后才设置加载状态为false
+    if (retryCount >= MAX_RETRY_COUNT || !paymentError.value) {
+      isLoading.value = false;
+    }
   }
 };
 

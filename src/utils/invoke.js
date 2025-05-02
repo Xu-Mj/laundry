@@ -45,12 +45,11 @@ async function invoke(command, params = {}) {
                 cancelButtonText: '取消',
                 type: 'warning'
               }).then(() => {
-                isRelogin.show = false;
                 useUserStore().logOut().then(() => {
                   location.href = '/index';
                 });
               }).catch(() => {
-                isRelogin.show = false;
+                
               });
             // Notification.error('登录过期，请重新登录');
             // // 清除token

@@ -48,8 +48,6 @@ async function invoke(command, params = {}) {
                 useUserStore().logOut().then(() => {
                   location.href = '/index';
                 });
-              }).catch(() => {
-                
               });
             // Notification.error('登录过期，请重新登录');
             // // 清除token

@@ -378,7 +378,7 @@
 <script setup name="AddCloth">
 import { addCloths, updateCloths } from "@/api/system/cloths";
 import { CoffeeCup, CollectionTag, CopyDocument, PictureRounded, User, WarningFilled } from "@element-plus/icons-vue";
-import { listClothingWithNoLimit, addClothing } from "@/api/system/clothing";
+import { listClothingWithNoLimit, createClothingCreateOrder } from "@/api/system/clothing";
 import { listTagsNoLimit, addTags } from "@/api/system/tags";
 import { listCategoryAll } from "@/api/system/clothingCategory";
 import { listStyleByCategoryId, addStyle } from "@/api/system/clothingStyle";
@@ -1044,7 +1044,7 @@ function createCloth() {
     data.styleId = form.value.styleId;
     data.clothingName = clothNameInput.value;
 
-    addClothing(data).then(async response => {
+    createClothingCreateOrder(data).then(async response => {
         proxy.notify.success("新增衣物成功");
         data.clothingId = response.clothingId;
         // await getClothingList();

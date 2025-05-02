@@ -301,6 +301,14 @@
  	.el-form-item {
  		margin-bottom: 0 !important;
  	}
+
+	.el-form{
+		display: flex;
+		justify-content: flex-start;
+		flex-wrap: wrap;
+		align-content: flex-start;
+		row-gap: 1rem;
+	}
  }
 
  .table-card {

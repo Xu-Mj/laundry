@@ -1,11 +1,11 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use app_lib::update::migrate;
 use sqlx::sqlite::SqlitePoolOptions;
 use tracing_subscriber::fmt::format::Writer;
 use tracing_subscriber::fmt::time::FormatTime;
 
+use app_lib::update::migrate;
 use app_lib::captcha::start_cleanup_thread;
 use app_lib::{config::Config, create_app, state::AppState};
 
@@ -61,6 +61,7 @@ async fn main() {
             .plugin(tauri_plugin_dialog::init())
             .plugin(tauri_plugin_process::init())
             .plugin(tauri_plugin_fs::init()),
+            
         AppState::new(pool, config.get_url()),
     )
     .run(|_app_handle, event| match event {

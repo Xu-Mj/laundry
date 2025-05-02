@@ -17,9 +17,9 @@ use tauri_plugin_fs::FsExt;
 
 use crate::db::{
     alipay_config, cloth_price, clothing, clothing_category, clothing_style, configs, coupons,
-    dict_data, dict_type, drying_rack, expenditure, local_users, membership_level, notice_temp,
-    order_clothes, orders, payments, qrcode_payments, subscriptions, tags, user, user_coupons,
-    user_tours, wechat_config, delivery,
+    delivery, dict_data, dict_type, drying_rack, expenditure, local_users, membership_level,
+    message, notice_temp, order_clothes, orders, payments, qrcode_payments, subscriptions, tags,
+    user, user_coupons, user_tours, wechat_config,
 };
 
 pub fn create_app<R: tauri::Runtime, T: Send + Sync + 'static>(
@@ -144,9 +144,9 @@ fn handle_command<R: Runtime>(invoke: Invoke<R>) -> bool {
         clothing::list_clothing_pagination,
         clothing::list_clothing_all,
         clothing::add_clothing,
+        clothing::create_clothing_4_create_order,
         clothing::get_clothing_by_id,
         clothing::update_clothing,
-        clothing::soft_delete_clothing,
         clothing::delete_clothing_batch,
         clothing::update_clothing_ref_num,
         clothing::clothing_name_exists,
@@ -278,6 +278,13 @@ fn handle_command<R: Runtime>(invoke: Invoke<R>) -> bool {
         delivery::cancel_delivery,
         delivery::get_delivery_by_id,
         delivery::list_deliveries,
+        // messages
+        message::save_message,
+        message::get_messages,
+        message::delete_message,
+        message::get_unread_message_count,
+        message::mark_messages_as_read,
+        message::clear_messages,
     ];
     handler(invoke);
 

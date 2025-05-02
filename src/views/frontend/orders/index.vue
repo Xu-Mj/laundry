@@ -5,7 +5,7 @@
       <el-card class="search-card" v-show="showSearch">
         <el-form :model="queryParams" ref="queryRef" :inline="true" label-width="68px">
           <el-form-item label="订单编码" prop="orderNumber" size="large">
-            <el-input size="large" v-model="queryParams.orderNumber" placeholder="请输入订单编码" clearable
+            <el-input size="large" v-model="queryParams.orderNumber" placeholder="请输入订单编码" clearable v-number-only
               style="width: 220px;" @keyup.enter="handleQuery">
               <template #prefix>
                 <el-icon>
@@ -16,7 +16,8 @@
           </el-form-item>
           <el-form-item label="手机号" prop="phonenumber" size="large">
             <el-input size="large" v-model="queryParams.phonenumber" placeholder="请输入会员手机号" clearable
-              style="width: 160px;" @keyup.enter="handleQuery">
+              style="width: 200px;" @keyup.enter="handleQuery" type="number" class="no-spinner"
+              @mousewheel.native.prevent @DOMMouseScroll.native.prevent>
               <template #prefix>
                 <el-icon>
                   <Phone />
@@ -26,7 +27,8 @@
           </el-form-item>
           <el-form-item label="取件码" prop="pickupCode" size="large">
             <el-input size="large" v-model="queryParams.pickupCode" placeholder="请输入取件码" clearable style="width: 140px;"
-              @keyup.enter="handleQuery">
+              @keyup.enter="handleQuery" type="number" class="no-spinner" @mousewheel.native.prevent
+              @DOMMouseScroll.native.prevent>
               <template #prefix>
                 <el-icon>
                   <Ticket />
@@ -766,5 +768,13 @@ getList();
   justify-content: center;
   align-items: center;
   gap: .2rem;
+}
+</style>
+
+<style>
+/* 隐藏所有浏览器中的增减按钮 */
+.no-spinner input::-webkit-outer-spin-button,
+.no-spinner input::-webkit-inner-spin-button {
+  -webkit-appearance: none !important;
 }
 </style>

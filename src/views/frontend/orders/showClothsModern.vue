@@ -45,7 +45,7 @@
                   <el-icon>
                     <Goods />
                   </el-icon>
-                  <span>{{ item.clothInfo.clothingName }}</span>
+                  <span>{{ item.clothInfo.title }}</span>
                   <el-tag v-if="item.clothingColor" size="small" effect="plain" type="info" class="cloth-tag">
                     {{colorList.find(color => color.tagId == item.clothingColor)?.tagName}}
                   </el-tag>
@@ -230,7 +230,7 @@
             <el-icon>
               <Goods />
             </el-icon>
-            <span class="cloth-title">{{ currentCloth.clothInfo?.clothingName }}</span>
+            <span class="cloth-title">{{ currentCloth.clothInfo?.title }}</span>
             <el-tag v-if="currentCloth.clothingColor" size="small" effect="plain" type="info">
               {{colorList.find(color => color.tagId == currentCloth.clothingColor)?.tagName}}
             </el-tag>
@@ -423,7 +423,7 @@ function searchCloths() {
 
   listCloths({ orderId: props.orderId }).then(response => {
     clothsList.value = response.filter(item => {
-      return item.clothInfo.clothingName.toLowerCase().includes(query) ||
+      return item.clothInfo.title.toLowerCase().includes(query) ||
         item.hangClothCode.toLowerCase().includes(query);
     });
     loading.value = false;
@@ -574,7 +574,7 @@ function closeHangUpDialog(done) {
 function handleCompensate() {
   getUser(props.userId).then(res => {
     showCompensationDialog.value = true;
-    let title = selectionList.value[0].clothInfo.clothingName;
+    let title = selectionList.value[0].clothInfo.title;
     if (selectionList.value.length > 1) {
       title += '...';
     }

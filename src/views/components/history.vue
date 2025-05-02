@@ -74,7 +74,6 @@
 <script setup name="History">
 import { listHistoryCloths } from "@/api/system/cloths";
 import { listTagsNoLimit } from "@/api/system/tags";
-import { onMounted, ref } from 'vue';
 
 const props = defineProps({
     visible: {

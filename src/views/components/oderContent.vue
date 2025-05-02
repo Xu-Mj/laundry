@@ -278,7 +278,6 @@ import { ElMessageBox } from 'element-plus';
 import { invoke } from '@tauri-apps/api/core';
 import PaymentDialog from "./PaymentDialog.vue";
 import DeliveryDialog from "./DeliveryDialog.vue";
-import vSlideIn from "@/vSlideIn";
 
 
 const props = defineProps({

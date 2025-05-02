@@ -208,28 +208,41 @@ CREATE INDEX idx_clothing_styles_del_flag ON clothing_styles(del_flag);
 -- 衣物管理表
 CREATE TABLE clothing
 (
-    clothing_id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    store_id            INTEGER NOT NULL,
-    clothing_category   TEXT,
-    clothing_number     TEXT   NOT NULL,
-    clothing_style      TEXT,
-    category_id         INTEGER,
-    style_id            INTEGER,
-    clothing_name       TEXT   NOT NULL,
+    id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+    store_id           INTEGER NOT NULL,
+    clothing_number    TEXT,
+    category_id        INTEGER,
+    style_id           INTEGER,
+    title              TEXT   NOT NULL,
+    etitle             TEXT,
+    primary_image      TEXT,
+    images             TEXT,
+    description_images TEXT,
+    is_put_on_sale     BOOLEAN DEFAULT FALSE,
+    is_available       BOOLEAN DEFAULT TRUE,
+    is_sold_out        BOOLEAN DEFAULT FALSE,
+    is_default         BOOLEAN DEFAULT FALSE,
     clothing_base_price DOUBLE NOT NULL,
-    clothing_min_price  DOUBLE NOT NULL,
-    order_num           INTEGER         DEFAULT 0,
-    clothing_degree     INTEGER         DEFAULT 0,
-    hang_type           TEXT   NOT NULL DEFAULT '1',
-    del_flag            TEXT            DEFAULT '0',
-    remark              TEXT,
+    sale_price         DOUBLE,
+    clothing_min_price DOUBLE,
+    stock_quantity     INTEGER DEFAULT 0,
+    sold_num           INTEGER DEFAULT 0,
+    sku_list           TEXT,
+    spec_list          TEXT,
+    tag_list           TEXT,
+    hang_type          TEXT   DEFAULT '1',
+    order_num          INTEGER DEFAULT 0,
+    clothing_degree    INTEGER DEFAULT 0,
+    del_flag           TEXT   DEFAULT '0',
+    create_time        INTEGER NOT NULL,
+    update_time        INTEGER NOT NULL,
     FOREIGN KEY(category_id) REFERENCES clothing_categories(category_id),
     FOREIGN KEY(style_id) REFERENCES clothing_styles(style_id)
 );
 
 -- 创建索引，提高根据衣物类别和衣物名称查询效率
 CREATE INDEX idx_clothing_category ON clothing (clothing_category);
-CREATE INDEX idx_clothing_name ON clothing (clothing_name);
+CREATE INDEX idx_clothing_title ON clothing (title);
 CREATE INDEX idx_clothing_store_id ON clothing (store_id);
 CREATE INDEX idx_clothing_category_id ON clothing(category_id);
 CREATE INDEX idx_clothing_style_id ON clothing(style_id);
@@ -761,6 +774,24 @@ CREATE INDEX idx_qrcode_payments_pay_id ON qrcode_payments (pay_id);
 CREATE INDEX idx_qrcode_payments_payment_type ON qrcode_payments (payment_type);
 CREATE INDEX idx_qrcode_payments_trade_no ON qrcode_payments (trade_no);
 CREATE INDEX idx_qrcode_payments_out_trade_no ON qrcode_payments (out_trade_no);
+
+-- 添加WebSocket消息表
+CREATE TABLE IF NOT EXISTS messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sender_id INTEGER NOT NULL,
+    receiver_id INTEGER NOT NULL,
+    message_type VARCHAR(20) NOT NULL,
+    content TEXT NOT NULL,
+    read BOOLEAN NOT NULL DEFAULT FALSE,
+    sent BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+);
+
+-- 创建索引
+CREATE INDEX idx_messages_sender_id ON messages(sender_id);
+CREATE INDEX idx_messages_receiver_id ON messages(receiver_id);
+CREATE INDEX idx_messages_read ON messages(read);
 
 INSERT INTO local_users (id, nickname, owner_name, avatar, owner_phone, password, role, is_guest, store_name, store_location, store_status, created_at, deleted) VALUES (0, 'Guest', 'Guest', 'images/avatars/avatar1.png', '1234567890', '123', 'Guest', 1, 'guest', 'guest fake location', '0', CURRENT_TIMESTAMP, '0');
 

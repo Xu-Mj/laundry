@@ -8,7 +8,9 @@
         {{ menu.name }}
       </button>
     </el-scrollbar>
-    <navbar :switch="switchAdmin" :isAdmin="isAdmin" />
+    <div class="navbar-container">
+      <navbar :switch="switchAdmin" :isAdmin="isAdmin" />
+    </div>
     <CouponSale v-if="showCouponSale" :key="showCouponSale" :visible="showCouponSale"
       :taggle="() => { showCouponSale = !showCouponSale }" />
     <AddUser :visible="showAddUserDialog" :key="showAddUserDialog"
@@ -144,6 +146,23 @@ function hangupClick() {
 </script>
 
 <style scoped>
+.sidebar {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.el-scrollbar {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.navbar-container {
+  width: 100%;
+  margin-top: auto;
+}
+
 .btn {
   height: 4rem;
   border: none;

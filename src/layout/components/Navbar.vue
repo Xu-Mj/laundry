@@ -19,11 +19,7 @@
           </template>
         </el-dropdown>
       </div>
-      <span class="setting-icon">
-        <el-icon size="20">
-          <component is="Message" />
-        </el-icon>
-      </span>
+      <MessageCenter />
     </div>
     <div class="controls-row">
       <ThemeSwitch />
@@ -44,19 +40,19 @@
       </el-dropdown>
     </div>
     <Setting :visible="showSetting" :key="showSetting" :taggle="() => { showSetting = !showSetting }" />
-
-    </div>
     <ChangePwdDialog :visible="showChangePwd" :account="userStore.account"
       @update:visible="(val) => showChangePwd = val" @success="handlePwdSuccess"
       @cancel="() => showChangePwd = false" />
+  </div>
 </template>
 
 <script setup>
-import ThemeSwitch from '@/components/ThemeSwitch.vue';
-import { ElMessageBox } from 'element-plus'
 import useUserStore from '@/store/modules/user'
-import Setting from '@/views/setting/index.vue';
-import ChangePwdDialog from '@/components/ChangePwdDialog/index.vue';
+import { ElMessageBox } from 'element-plus'
+import ThemeSwitch from '@/components/ThemeSwitch.vue'
+import Setting from '@/views/setting/index.vue'
+import ChangePwdDialog from '@/components/ChangePwdDialog/index.vue'
+import MessageCenter from '@/components/MessageCenter/index.vue'
 
 const props = defineProps({
   switch: Function,
@@ -117,14 +113,13 @@ function setLayout() {
 .navbar {
   width: 100%;
   overflow: hidden;
-  position: absolute;
-  bottom: 0;
-  left: 0;
+  position: relative;
   padding: 1rem;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 1rem;
+  height: auto;
 
   .avatar-row {
     width: 100%;

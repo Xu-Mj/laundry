@@ -229,17 +229,21 @@ impl Request for ClothingCategory {
 #[tauri::command]
 pub async fn list_clothing_category_pagination(
     state: State<'_, AppState>,
-    category: ClothingCategory,
+    mut category: ClothingCategory,
     page_params: PageParams,
 ) -> Result<PageResult<ClothingCategory>> {
+    let store_id = utils::get_user_id(&state).await?; // check user is login
+    category.store_id = store_id;
     category.get_list(&state.pool, page_params).await
 }
 
 #[tauri::command]
 pub async fn list_clothing_category_all(
     state: State<'_, AppState>,
-    category: ClothingCategory,
+    mut category: ClothingCategory,
 ) -> Result<Vec<ClothingCategory>> {
+    let store_id = utils::get_user_id(&state).await?; // check user is login
+    category.store_id = store_id;
     category.get_all(&state.pool).await
 }
 

@@ -252,17 +252,21 @@ impl Request for ClothingStyle {
 #[tauri::command]
 pub async fn list_clothing_style_pagination(
     state: State<'_, AppState>,
-    style: ClothingStyle,
+    mut style: ClothingStyle,
     page_params: PageParams,
 ) -> Result<PageResult<ClothingStyle>> {
+    let store_id = utils::get_user_id(&state).await?;
+    style.store_id = store_id;
     style.get_list(&state.pool, page_params).await
 }
 
 #[tauri::command]
 pub async fn list_clothing_style_all(
     state: State<'_, AppState>,
-    style: ClothingStyle,
+    mut style: ClothingStyle,
 ) -> Result<Vec<ClothingStyle>> {
+    let store_id = utils::get_user_id(&state).await?;
+    style.store_id = store_id;
     style.get_all(&state.pool).await
 }
 

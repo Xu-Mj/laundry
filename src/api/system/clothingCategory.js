@@ -16,7 +16,6 @@ export function listCategory(query) {
 // 查询衣物品类列表（不分页）
 export function listCategoryAll(query = {}) {
   const category = {
-    storeId: query.storeId || 0,
     categoryName: query.categoryName || '',
     categoryCode: query.categoryCode || ''
   };

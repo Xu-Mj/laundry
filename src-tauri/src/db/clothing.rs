@@ -1,14 +1,15 @@
 use serde::{Deserialize, Serialize};
 use sqlx::sqlite::SqliteRow;
-use sqlx::{Executor, FromRow, Pool, QueryBuilder, Row, Sqlite, SqlitePool, Transaction};
+use sqlx::{FromRow, Pool, QueryBuilder, Row, Sqlite, Transaction};
 use tauri::State;
 
+use crate::db::PageResult;
 use crate::error::{Error, ErrorKind, Result};
 use crate::state::AppState;
 use crate::utils;
 use crate::utils::request::Request;
 
-use super::{Curd, PageParams, PageResult};
+use super::{Curd, PageParams, Validator};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
@@ -16,61 +17,179 @@ use super::{Curd, PageParams, PageResult};
 pub struct Clothing {
     /// 商家ID，用于数据隔离
     store_id: Option<i64>,
-    /// 衣物唯一标识ID
-    clothing_id: Option<i64>,
-    /// 衣物名称
-    clothing_name: Option<String>,
-    /// 衣物编码
-    clothing_number: Option<String>,
-    /// 衣物品类（字符串，兼容旧数据）
-    clothing_category: Option<String>,
-    /// 所属分类，000上衣，001鞋，002裤子等（字符串，兼容旧数据）
-    clothing_style: Option<String>,
+    /// 衣物商品ID (spuId)
+    id: Option<i64>,
+    pub clothing_number: Option<String>,
     /// 品类ID，关联clothing_categories表
     category_id: Option<i64>,
     /// 分类ID，关联clothing_styles表
     style_id: Option<i64>,
+    /// 衣物名称 (title)
+    title: Option<String>,
+    /// 简介 (etitle)
+    etitle: Option<String>,
+    /// 主图 (primaryImage)
+    primary_image: Option<String>,
+    /// 展示图片列表 (images)
+    images: Option<String>,
+    images_vec: Vec<String>,
+    /// 详情图片列表 (desc)
+    description_images: Option<String>,
+    description_images_vec: Vec<String>,
+    /// 是否上架 (isPutOnSale)
+    is_put_on_sale: Option<bool>,
+    /// 是否可用 (isAvailable)
+    is_available: Option<bool>,
+    /// 是否售罄 (isSoldOut)
+    is_sold_out: Option<bool>,
+    /// 是否是默认参数
+    is_default: Option<bool>,
+    /// 原始价格 (minLinePrice/maxLinePrice)
+    clothing_base_price: Option<f64>,
+    /// 销售价格 (minSalePrice/maxSalePrice)
+    sale_price: Option<f64>,
+    /// 最小利润价格 (minProfitPrice)
+    clothing_min_price: Option<f64>,
+    /// 库存数量 (spuStockQuantity)
+    stock_quantity: Option<i64>,
+    /// 已售数量 (soldNum)
+    sold_num: Option<i64>,
+    /// 关联的SKU列表 (skuList)
+    sku_list: Option<String>,
+    /// 规格列表 (specList)
+    spec_list: Option<String>,
+    /// 标签列表 (spuTagList)
+    tag_list: Option<String>,
+    tag_list_vec: Vec<String>,
+    hang_type: Option<String>,
     /// 显示顺序，默认显示顺序
     order_num: Option<i64>,
     /// 使用次数，实际被使用的次数，当该值不为0时，将优先将按照该值排序，然后才是显示顺序排序
     clothing_degree: Option<i64>,
-    /// 基础价格，用于计算价格
-    clothing_base_price: Option<f64>,
-    /// 最小价格，用于计算价格
-    clothing_min_price: Option<f64>,
-    hang_type: Option<String>,
-    /// 备注
-    remark: Option<String>,
+    /// 软删除标志
     del_flag: Option<String>,
+    create_time: i64,
+    update_time: i64,
+
+    clothing_category: Option<String>,
+    clothing_style: Option<String>,
 }
 
 impl FromRow<'_, SqliteRow> for Clothing {
     fn from_row(row: &'_ SqliteRow) -> std::result::Result<Self, sqlx::Error> {
+        let images: Option<String> = row.try_get("images").unwrap_or_default();
+        let description_images: Option<String> =
+            row.try_get("description_images").unwrap_or_default();
+        let tag_list: Option<String> = row.try_get("tag_list").unwrap_or_default();
+
+        let tag_list_vec = tag_list
+            .as_deref()
+            .map(|s| {
+                if s.is_empty() {
+                    vec![]
+                } else {
+                    s.split(',').map(|s| s.to_string()).collect()
+                }
+            })
+            .unwrap_or_default();
+
+        let images_vec = images
+            .as_deref()
+            .map(|s| {
+                if s.is_empty() {
+                    vec![]
+                } else {
+                    s.split(',').map(|s| s.to_string()).collect()
+                }
+            })
+            .unwrap_or_default();
+
+        let description_images_vec = description_images
+            .as_deref()
+            .map(|s| {
+                if s.is_empty() {
+                    vec![]
+                } else {
+                    s.split(',').map(|s| s.to_string()).collect()
+                }
+            })
+            .unwrap_or_default();
         Ok(Self {
             store_id: row.try_get("store_id").unwrap_or_default(),
-            clothing_id: row.try_get("clothing_id").unwrap_or_default(),
-            clothing_name: row.try_get("clothing_name").unwrap_or_default(),
+            id: row.try_get("id").unwrap_or_default(),
             clothing_number: row.try_get("clothing_number").unwrap_or_default(),
-            clothing_category: row.try_get("clothing_category").unwrap_or_default(),
-            clothing_style: row.try_get("clothing_style").unwrap_or_default(),
             category_id: row.try_get("category_id").unwrap_or_default(),
             style_id: row.try_get("style_id").unwrap_or_default(),
+            title: row.try_get("title").unwrap_or_default(),
+            etitle: row.try_get("etitle").unwrap_or_default(),
+            primary_image: row.try_get("primary_image").unwrap_or_default(),
+            images,
+            description_images,
+            is_put_on_sale: row.try_get("is_put_on_sale").unwrap_or_default(),
+            is_available: row.try_get("is_available").unwrap_or_default(),
+            is_sold_out: row.try_get("is_sold_out").unwrap_or_default(),
+            is_default: row.try_get("is_default").unwrap_or_default(),
+            clothing_base_price: row.try_get("clothing_base_price").unwrap_or_default(),
+            sale_price: row.try_get("sale_price").unwrap_or_default(),
+            clothing_min_price: row.try_get("clothing_min_price").ok(),
+            stock_quantity: row.try_get("stock_quantity").unwrap_or_default(),
+            sold_num: row.try_get("sold_num").unwrap_or_default(),
+            sku_list: row.try_get("sku_list").unwrap_or_default(),
+            spec_list: row.try_get("spec_list").unwrap_or_default(),
+            tag_list,
+            hang_type: row.try_get("hang_type").unwrap_or_default(),
             order_num: row.try_get("order_num").unwrap_or_default(),
             clothing_degree: row.try_get("clothing_degree").unwrap_or_default(),
-            clothing_base_price: row.try_get("clothing_base_price").unwrap_or_default(),
-            clothing_min_price: row.try_get("clothing_min_price").unwrap_or_default(),
-            hang_type: row.try_get("hang_type").unwrap_or_default(),
-            remark: row.try_get("remark").unwrap_or_default(),
             del_flag: row.try_get("del_flag").unwrap_or_default(),
+            create_time: row.try_get("create_time").unwrap_or_default(),
+            update_time: row.try_get("update_time").unwrap_or_default(),
+            clothing_category: row.try_get("clothing_category").unwrap_or_default(),
+            clothing_style: row.try_get("clothing_style").unwrap_or_default(),
+            images_vec,
+            description_images_vec,
+            tag_list_vec,
         })
+    }
+}
+
+impl Validator for Clothing {
+    fn validate(&self) -> Result<()> {
+        if self.title.is_none() || self.title.as_ref().unwrap().trim().is_empty() {
+            return Err(Error::bad_request("衣物商品名称不能为空"));
+        }
+
+        if self.category_id.is_none() {
+            return Err(Error::bad_request("品类ID不能为空"));
+        }
+
+        if self.style_id.is_none() {
+            return Err(Error::bad_request("分类ID不能为空"));
+        }
+
+        if self.primary_image.is_none() || self.primary_image.as_ref().unwrap().trim().is_empty() {
+            return Err(Error::bad_request("衣物主图不能为空"));
+        }
+
+        if self.clothing_base_price.is_none() {
+            return Err(Error::bad_request("原始价格不能为空"));
+        }
+
+        if self.sale_price.is_none() {
+            return Err(Error::bad_request("销售价格不能为空"));
+        }
+
+        if self.stock_quantity.is_none() {
+            return Err(Error::bad_request("库存数量不能为空"));
+        }
+
+        Ok(())
     }
 }
 
 impl Curd for Clothing {
     const COUNT_SQL: &'static str = "SELECT COUNT(*) FROM clothing c 
         LEFT JOIN clothing_categories cc ON c.category_id = cc.category_id 
-        LEFT JOIN clothing_styles cs ON c.style_id = cs.style_id 
-        WHERE c.del_flag = '0' ";
+        LEFT JOIN clothing_styles cs ON c.style_id = cs.style_id  WHERE c.del_flag = '0' ";
     const QUERY_SQL: &'static str = "SELECT c.*, cc.category_name as clothing_category, cs.style_name as clothing_style  FROM clothing c 
         LEFT JOIN clothing_categories cc ON c.category_id = cc.category_id 
         LEFT JOIN clothing_styles cs ON c.style_id = cs.style_id 
@@ -79,64 +198,41 @@ impl Curd for Clothing {
         "SELECT c.*, cc.category_name as clothing_category, cs.style_name as clothing_style FROM clothing c 
         LEFT JOIN clothing_categories cc ON c.category_id = cc.category_id 
         LEFT JOIN clothing_styles cs ON c.style_id = cs.style_id 
-        WHERE c.clothing_id = ? AND c.del_flag = '0' ";
-    const DELETE_BATCH_SQL: &'static str =
-        "UPDATE clothing SET del_flag = '2' WHERE clothing_id IN (";
+        WHERE c.id = ? AND c.del_flag = '0' ";
+    const DELETE_BATCH_SQL: &'static str = "UPDATE clothing SET del_flag = '2' WHERE id IN (";
+    const ORDER_SQL: Option<&'static str> = Some(" ORDER BY order_num DESC, clothing_degree ASC ");
 
     fn apply_filters<'a>(&'a self, builder: &mut QueryBuilder<'a, Sqlite>) {
-        if let Some(store_id) = &self.store_id {
-            builder.push(" AND c.store_id = ").push_bind(store_id);
-        }
-        if let Some(clothing_id) = &self.clothing_id {
-            builder.push(" AND c.clothing_id = ").push_bind(clothing_id);
+        if self.store_id.is_none() {
+            builder.push(" AND store_id = ").push_bind(self.store_id);
         }
 
-        if let Some(clothing_name) = &self.clothing_name {
+        if let Some(id) = &self.id {
+            builder.push(" AND id = ").push_bind(id);
+        }
+
+        if let Some(title) = &self.title {
             builder
-                .push(" AND c.clothing_name LIKE ")
-                .push_bind(format!("%{}%", clothing_name));
+                .push(" AND title ILIKE ")
+                .push_bind(format!("%{}%", title));
         }
 
-        if let Some(clothing_category) = &self.clothing_category {
+        if let Some(is_put_on_sale) = &self.is_put_on_sale {
             builder
-                .push(" AND (c.clothing_category = ")
-                .push_bind(clothing_category)
-                .push(" OR cc.category_name LIKE ")
-                .push_bind(format!("%{}%", clothing_category))
-                .push(")");
+                .push(" AND is_put_on_sale = ")
+                .push_bind(is_put_on_sale);
         }
 
-        if let Some(clothing_style) = &self.clothing_style {
-            builder
-                .push(" AND (c.clothing_style = ")
-                .push_bind(clothing_style)
-                .push(" OR cs.style_name LIKE ")
-                .push_bind(format!("%{}%", clothing_style))
-                .push(")");
+        if let Some(is_available) = &self.is_available {
+            builder.push(" AND is_available = ").push_bind(is_available);
         }
 
-        if let Some(category_id) = &self.category_id {
-            builder.push(" AND c.category_id = ").push_bind(category_id);
+        if let Some(is_sold_out) = &self.is_sold_out {
+            builder.push(" AND is_sold_out = ").push_bind(is_sold_out);
         }
 
-        if let Some(style_id) = &self.style_id {
-            builder.push(" AND c.style_id = ").push_bind(style_id);
-        }
-
-        if let Some(clothing_number) = &self.clothing_number {
-            builder
-                .push(" AND c.clothing_number LIKE ")
-                .push_bind(format!("%{}%", clothing_number));
-        }
-
-        if let Some(clothing_degree) = &self.clothing_degree {
-            builder
-                .push(" AND c.clothing_degree = ")
-                .push_bind(clothing_degree);
-        }
-
-        if let Some(remark) = &self.remark {
-            builder.push(" AND c.remark = ").push_bind(remark);
+        if let Some(del_flag) = &self.del_flag {
+            builder.push(" AND del_flag = ").push_bind(del_flag);
         }
     }
 }
@@ -166,105 +262,16 @@ impl Clothing {
         Ok(next_clothing_number.0)
     }
 
-    // 软删除衣物
-    pub async fn soft_delete(pool: &Pool<Sqlite>, clothing_id: i64) -> Result<u64> {
-        let result = sqlx::query("UPDATE clothing SET del_flag = '2' WHERE clothing_id = ?")
-            .bind(clothing_id)
-            .execute(pool)
-            .await?;
-
-        Ok(result.rows_affected())
-    }
-
-    // 增加ref_num
-    pub async fn increment_ref_num(
-        tx: &mut Transaction<'_, Sqlite>,
-        clothing_id: i64,
-    ) -> Result<bool> {
-        let result = sqlx::query(
-            "UPDATE clothing SET clothing_degree = clothing_degree + 1 WHERE clothing_id = ? RETURNING *",
-        )
-        .bind(clothing_id)
-        .execute(&mut **tx)
-        .await?;
-
-        Ok(result.rows_affected() > 0)
-    }
-
-    // 增加ref_num
-    pub async fn update_ref_num(
-        pool: &Pool<Sqlite>,
-        ref_num: i64,
-        clothing_ids: Vec<i64>,
-    ) -> Result<()> {
-        let mut query_builder =
-            QueryBuilder::<Sqlite>::new("UPDATE clothing SET clothing_degree = ");
-        query_builder
-            .push_bind(ref_num)
-            .push(" WHERE clothing_id IN (");
-
-        let mut separated = query_builder.separated(", ");
-        for clothing_id in &clothing_ids {
-            separated.push_bind(clothing_id);
-        }
-        query_builder.push(")");
-
-        query_builder.build().execute(pool).await?;
-        Ok(())
-    }
-
-    // 检查clothing_name是否已经存在
-    pub async fn exists_by_clothing_name(
-        pool: &Pool<Sqlite>,
-        store_id: i64,
-        clothing_name: &str,
-    ) -> Result<bool> {
-        let result = sqlx::query_scalar(
-            "SELECT EXISTS(SELECT 1 FROM clothing WHERE store_id = ? AND clothing_name = $1 AND del_flag = '0')",
-        )
-        .bind(store_id)
-        .bind(clothing_name)
-        .fetch_one(pool)
-        .await?;
+    // 根据商家ID获取所有商品
+    pub async fn get_by_store_id(pool: &Pool<Sqlite>, store_id: i64) -> Result<Vec<Self>> {
+        let result =
+            sqlx::query_as("SELECT * FROM clothing WHERE store_id = $1 AND del_flag = '0'")
+                .bind(store_id)
+                .fetch_all(pool)
+                .await?;
 
         Ok(result)
     }
-
-    /// 异步向数据库中添加衣物信息，并返回新添加的衣物对象。
-    ///
-    /// # Parameters
-    ///
-    /// * `pool`: 数据库连接池的引用，用于执行数据库操作。
-    ///
-    /// # Returns
-    ///
-    /// 返回一个结果类型，包含新添加的衣物信息。
-    pub async fn add(self, tx: &mut Transaction<'_, Sqlite>) -> Result<Clothing> {
-        let result = sqlx::query_as::<_, Clothing>(
-            "INSERT INTO clothing (clothing_id, store_id, clothing_name, clothing_number, clothing_category, clothing_style,
-             category_id, style_id, clothing_base_price, clothing_min_price, order_num, clothing_degree, remark, del_flag)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '0')
-             RETURNING *"
-        )
-            .bind(&self.clothing_id)
-            .bind(&self.store_id)
-            .bind(&self.clothing_name)
-            .bind(&self.clothing_number)
-            .bind(&self.clothing_category)
-            .bind(&self.clothing_style)
-            .bind(&self.category_id)
-            .bind(&self.style_id)
-            .bind(&self.clothing_base_price)
-            .bind(&self.clothing_min_price)
-            .bind(&self.order_num)
-            .bind(&self.clothing_degree)
-            .bind(&self.remark)
-            .fetch_one(&mut **tx)
-            .await?;
-
-        Ok(result)
-    }
-
     /// 查询所有衣物
     ///
     /// 此函数用于根据提供的衣物参数查询数据库中的所有相关衣物它利用异步SQLITE数据库连接池来执行查询
@@ -283,55 +290,187 @@ impl Clothing {
         self.build_query_builder(pool, None).await
     }
 
-    /// 异步更新衣物信息
-    ///
-    /// 此函数负责将当前衣物对象的更改更新到数据库中的clothing表。它动态构建一个UPDATE SQL语句，
-    /// 包含需要更新的字段，并执行更新操作。支持将字段更新为null值。
-    ///
-    /// # 参数
-    ///
-    /// - `pool`: 数据库连接池引用，用于执行SQL查询
-    ///
-    /// # 返回
-    ///
-    /// - `Result<Clothing>`: 更新后的衣物对象
-    pub async fn update(self, tx: &mut Transaction<'_, Sqlite>) -> Result<bool> {
-        let res = sqlx::query(
-            r#"
-                UPDATE clothing SET
-                    clothing_name = ?,
-                    clothing_number = ?,
-                    clothing_category = ?,
-                    clothing_style = ?,
-                    category_id = ?,
-                    style_id = ?,
-                    clothing_degree = ?,
-                    order_num = ?,
-                    clothing_base_price = ?,
-                    clothing_min_price = ?,
-                    hang_type = ?,
-                    remark = ?
-                WHERE store_id = ? AND clothing_id = ?
-                RETURNING *
-                "#,
+    // 检查clothing_name是否已经存在
+    pub async fn exists_by_clothing_name(
+        pool: &Pool<Sqlite>,
+        store_id: i64,
+        clothing_name: &str,
+    ) -> Result<bool> {
+        let result = sqlx::query_scalar(
+            "SELECT EXISTS(SELECT 1 FROM clothing WHERE store_id = ? AND title = $1 AND del_flag = '0')",
         )
-        .bind(self.clothing_name)
+        .bind(store_id)
+        .bind(clothing_name)
+        .fetch_one(pool)
+        .await?;
+
+        Ok(result)
+    }
+
+    // 添加新商品
+    pub async fn insert(self, tx: &mut Transaction<'_, Sqlite>) -> Result<Self> {
+        let now = utils::get_timestamp();
+
+        let result = sqlx::query_as(
+            r#"
+            INSERT INTO clothing (
+                store_id, clothing_number, category_id, style_id, title, etitle, primary_image, 
+                images, description_images, is_put_on_sale, is_available, 
+                is_sold_out, is_default, clothing_base_price, sale_price, clothing_min_price, 
+                stock_quantity, sold_num, sku_list, spec_list, order_num, clothing_degree,
+                tag_list, del_flag, create_time, update_time
+            ) VALUES (
+                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                ?, ?, ?, ?, ?, '0', ?, ?
+            ) RETURNING *
+            "#,
+        )
+        .bind(self.store_id)
         .bind(self.clothing_number)
-        .bind(self.clothing_category)
-        .bind(self.clothing_style)
         .bind(self.category_id)
         .bind(self.style_id)
-        .bind(self.clothing_degree)
-        .bind(self.order_num)
+        .bind(self.title)
+        .bind(self.etitle)
+        .bind(self.primary_image)
+        .bind(self.images)
+        .bind(self.description_images)
+        .bind(self.is_put_on_sale)
+        .bind(self.is_available)
+        .bind(self.is_sold_out)
+        .bind(self.is_default)
         .bind(self.clothing_base_price)
+        .bind(self.sale_price)
         .bind(self.clothing_min_price)
-        .bind(self.hang_type)
-        .bind(self.remark)
+        .bind(self.stock_quantity)
+        .bind(self.sold_num)
+        .bind(self.sku_list)
+        .bind(self.spec_list)
+        .bind(self.order_num)
+        .bind(self.clothing_degree)
+        .bind(self.tag_list)
+        .bind(now)
+        .bind(now)
+        .fetch_one(&mut **tx)
+        .await?;
+
+        Ok(result)
+    }
+
+    // 更新商品信息
+    pub async fn update(&self, tx: &mut Transaction<'_, Sqlite>) -> Result<bool> {
+        let now = utils::get_timestamp();
+
+        let result = sqlx::query(
+            r#"
+            UPDATE clothing SET
+                category_id = ?,
+                style_id = ?,
+                title = ?,
+                etitle = ?,
+                primary_image = ?,
+                images = ?,
+                description_images = ?,
+                is_put_on_sale = ?,
+                is_available = ?,
+                is_sold_out = ?,
+                clothing_base_price = ?,
+                sale_price = ?,
+                clothing_min_price = ?,
+                stock_quantity = ?,
+                sold_num = ?,
+                sku_list = ?,
+                spec_list = ?,
+                tag_list = ?,
+                order_num =?,
+                clothing_degree =?,
+                update_time = ?
+            WHERE id = ? AND store_id = ? AND del_flag = '0'
+            "#,
+        )
+        .bind(self.category_id)
+        .bind(&self.style_id)
+        .bind(&self.title)
+        .bind(&self.etitle)
+        .bind(&self.primary_image)
+        .bind(&self.images)
+        .bind(&self.description_images)
+        .bind(self.is_put_on_sale)
+        .bind(self.is_available)
+        .bind(self.is_sold_out)
+        .bind(self.clothing_base_price)
+        .bind(self.sale_price)
+        .bind(self.clothing_min_price)
+        .bind(self.stock_quantity)
+        .bind(self.sold_num)
+        .bind(&self.sku_list)
+        .bind(&self.spec_list)
+        .bind(&self.tag_list)
+        .bind(self.order_num)
+        .bind(self.clothing_degree)
+        .bind(now)
+        .bind(self.id)
         .bind(self.store_id)
-        .bind(self.clothing_id)
         .execute(&mut **tx)
         .await?;
-        Ok(res.rows_affected() > 0)
+
+        Ok(result.rows_affected() > 0)
+    }
+
+    // 增加ref_num
+    pub async fn increment_ref_num(tx: &mut Transaction<'_, Sqlite>, id: i64) -> Result<bool> {
+        let result =
+            sqlx::query("UPDATE clothing SET clothing_degree = clothing_degree + 1 WHERE id = ? ")
+                .bind(id)
+                .execute(&mut **tx)
+                .await?;
+
+        Ok(result.rows_affected() > 0)
+    }
+
+    // 增加ref_num
+    pub async fn update_ref_num(pool: &Pool<Sqlite>, ref_num: i64, ids: Vec<i64>) -> Result<()> {
+        let mut query_builder =
+            QueryBuilder::<Sqlite>::new("UPDATE clothing SET clothing_degree = ");
+        query_builder.push_bind(ref_num).push(" WHERE id IN (");
+
+        let mut separated = query_builder.separated(", ");
+        for id in &ids {
+            separated.push_bind(id);
+        }
+        query_builder.push(")");
+
+        query_builder.build().execute(pool).await?;
+        Ok(())
+    }
+
+    // 更新库存数量
+    pub async fn update_stock(
+        tx: &mut Transaction<'_, Sqlite>,
+        id: i64,
+        quantity: i64,
+    ) -> Result<()> {
+        sqlx::query("UPDATE clothing SET stock_quantity = stock_quantity + ? WHERE id = ?")
+            .bind(quantity)
+            .bind(id)
+            .execute(&mut **tx)
+            .await?;
+
+        Ok(())
+    }
+
+    // 更新已售数量
+    pub async fn update_sold_num(
+        tx: &mut Transaction<'_, Sqlite>,
+        id: i64,
+        quantity: i64,
+    ) -> Result<()> {
+        sqlx::query("UPDATE clothing SET sold_num = sold_num + ? WHERE id = ?")
+            .bind(quantity)
+            .bind(id)
+            .execute(&mut **tx)
+            .await?;
+
+        Ok(())
     }
 }
 
@@ -362,26 +501,87 @@ pub async fn list_clothing_all(
     clothing.query_all_clothing(&state.pool).await
 }
 
+// 上传衣物图片到服务端，返回服务端图片路径
+async fn upload_clothing_images(
+    state: &State<'_, AppState>,
+    local_paths: &[String],
+) -> Result<Vec<String>> {
+    let token = &state.try_get_token().await?;
+    state
+        .http_client
+        .upload_files("/upload/images", local_paths, "file", Some(token))
+        .await
+}
+
 #[tauri::command]
 pub async fn add_clothing(state: State<'_, AppState>, mut clothing: Clothing) -> Result<Clothing> {
-    if clothing.clothing_name.is_none()
-        || clothing.clothing_name.as_ref().unwrap().trim().is_empty()
-    {
+    if clothing.title.is_none() || clothing.title.as_ref().unwrap().trim().is_empty() {
         return Err(Error::with_details(ErrorKind::BadRequest, "衣物名不能为空"));
     }
 
-    // 生成衣物编码
-    let code = utils::gen_code(clothing.clothing_name.as_ref().unwrap());
+    clothing.store_id = Some(utils::get_user_id(&state).await?);
 
+    // gen clothing_number
+    let code = utils::gen_code(clothing.title.as_ref().unwrap());
     clothing.clothing_number =
         Some(Clothing::select_next_num(&state.pool, &format!("{code}-")).await?);
 
-    clothing.store_id = Some(utils::get_user_id(&state).await?);
+    // 确保tag_list字段正确处理
+    if let Some(tag_list) = &clothing.tag_list {
+        clothing.tag_list_vec = if tag_list.is_empty() {
+            vec![]
+        } else {
+            tag_list.split(',').map(|s| s.to_string()).collect()
+        };
+    }
+
+    tracing::debug!("clothing: {:?}", clothing);
+    // 保存本地图片路径的副本
+    let local_primary_image = clothing.primary_image.clone();
+    let local_images = clothing.images_vec.clone();
+
+    // 上传主图到服务端
+    if let Some(primary_path) = &local_primary_image {
+        if !primary_path.is_empty() {
+            tracing::debug!("primary_path: {:?}", primary_path);
+            let server_paths = upload_clothing_images(&state, &[primary_path.clone()]).await?;
+            tracing::debug!("server_paths: {:?}", server_paths);
+            if !server_paths.is_empty() {
+                clothing.primary_image = Some(server_paths[0].clone());
+            }
+        }
+    }
+
+    // 上传图片集合到服务端
+    if !local_images.is_empty() {
+        let server_paths = upload_clothing_images(&state, &local_images).await?;
+        if !server_paths.is_empty() {
+            clothing.images = Some(server_paths.join(","));
+            clothing.images_vec = server_paths;
+        }
+    }
+
+    // 上传详情图片到服务端
+    if !clothing.description_images_vec.is_empty() {
+        let server_paths = upload_clothing_images(&state, &clothing.description_images_vec).await?;
+        if !server_paths.is_empty() {
+            clothing.description_images = Some(server_paths.join(","));
+            clothing.description_images_vec = server_paths;
+        }
+    }
 
     let mut tx = state.pool.begin().await?;
-    let clothing = clothing.create_request(&state).await?;
+    let mut clothing = clothing.create_request(&state).await?;
 
-    let clothing = clothing.add(&mut tx).await?;
+    // 恢复本地图片路径，用于本地存储
+    clothing.primary_image = local_primary_image;
+    if !local_images.is_empty() {
+        clothing.images = Some(local_images.join(","));
+        clothing.images_vec = local_images;
+    }
+
+    let clothing = clothing.insert(&mut tx).await?;
+
     tx.commit().await?;
 
     Ok(clothing)
@@ -394,38 +594,81 @@ pub async fn get_clothing_by_id(state: State<'_, AppState>, id: i64) -> Result<O
 
 #[tauri::command]
 pub async fn update_clothing(state: State<'_, AppState>, mut clothing: Clothing) -> Result<bool> {
-    if clothing.clothing_id.is_none() {
+    if clothing.id.is_none() {
         return Err(Error::bad_request("衣物id不能为空"));
     }
-    if clothing.clothing_name.is_none()
-        || clothing.clothing_name.as_ref().unwrap().trim().is_empty()
-    {
+    if clothing.title.is_none() || clothing.title.as_ref().unwrap().trim().is_empty() {
         return Err(Error::with_details(ErrorKind::BadRequest, "衣物名不能为空"));
     }
 
     clothing.store_id = Some(utils::get_user_id(&state).await?);
 
+    // 确保tag_list字段正确处理
+    if let Some(tag_list) = &clothing.tag_list {
+        clothing.tag_list_vec = if tag_list.is_empty() {
+            vec![]
+        } else {
+            tag_list.split(',').map(|s| s.to_string()).collect()
+        };
+    }
+
+    // 保存本地图片路径的副本
+    let local_primary_image = clothing.primary_image.clone();
+    let local_images = clothing.images_vec.clone();
+
+    // 上传主图到服务端
+    if let Some(primary_path) = &local_primary_image {
+        if !primary_path.is_empty() {
+            let server_paths = upload_clothing_images(&state, &[primary_path.clone()]).await?;
+            if !server_paths.is_empty() {
+                clothing.primary_image = Some(server_paths[0].clone());
+            }
+        }
+    }
+
+    // 上传图片集合到服务端
+    if !local_images.is_empty() {
+        let server_paths = upload_clothing_images(&state, &local_images).await?;
+        if !server_paths.is_empty() {
+            clothing.images = Some(server_paths.join(","));
+            clothing.images_vec = server_paths;
+        }
+    }
+
+    // 上传详情图片到服务端
+    if !clothing.description_images_vec.is_empty() {
+        let server_paths = upload_clothing_images(&state, &clothing.description_images_vec).await?;
+        if !server_paths.is_empty() {
+            clothing.description_images = Some(server_paths.join(","));
+            clothing.description_images_vec = server_paths;
+        }
+    }
+
     let mut tx = state.pool.begin().await?;
     if !clothing.update_request(&state).await? {
         return Err(Error::internal("更新失败"));
     }
+
+    // 恢复本地图片路径，用于本地存储
+    clothing.primary_image = local_primary_image;
+    if !local_images.is_empty() {
+        clothing.images = Some(local_images.join(","));
+        clothing.images_vec = local_images;
+    }
+
     let res = clothing.update(&mut tx).await?;
+
     tx.commit().await?;
     Ok(res)
-}
-
-#[tauri::command]
-pub async fn soft_delete_clothing(state: State<'_, AppState>, id: i64) -> Result<u64> {
-    Clothing::soft_delete(&state.pool, id).await
 }
 
 #[tauri::command]
 pub async fn update_clothing_ref_num(
     state: State<'_, AppState>,
     ref_num: i64,
-    clothing_ids: Vec<i64>,
+    ids: Vec<i64>,
 ) -> Result<()> {
-    Clothing::update_ref_num(&state.pool, ref_num, clothing_ids).await
+    Clothing::update_ref_num(&state.pool, ref_num, ids).await
 }
 
 #[tauri::command]
@@ -442,84 +685,35 @@ pub async fn delete_clothing_batch(state: State<'_, AppState>, ids: Vec<i64>) ->
     Ok(result)
 }
 
-/// 在内存中设置和初始化一个SQLite数据库，用于测试目的。
-///
-/// 此函数会创建一个SQLite数据库连接池，并在该池中执行SQL语句以创建一个名为`clothing`的表。
-/// 表结构包括多个字段，用于存储衣物信息，如衣物名称、衣物编号、显示顺序等。
-/// 此外，函数确保通过在内存中创建数据库来隔离测试环境，避免影响实际数据库。
-///
-/// 返回值:
-/// - `Pool<Sqlite>`: 一个SQLite数据库连接池，用于管理和执行与数据库的异步操作。
-#[allow(dead_code)]
-async fn setup_test_db() -> Pool<Sqlite> {
-    // 创建一个SQLite数据库连接池，连接到内存数据库
-    let pool = SqlitePool::connect(":memory:").await.unwrap();
+#[tauri::command]
+pub async fn create_clothing_4_create_order(
+    state: State<'_, AppState>,
+    mut clothing: Clothing,
+) -> Result<Clothing> {
+    if clothing.title.is_none() || clothing.title.as_ref().unwrap().trim().is_empty() {
+        return Err(Error::with_details(ErrorKind::BadRequest, "衣物名不能为空"));
+    }
 
-    // 在数据库中执行SQL语句以创建`clothing`表，包含多个字段用于存储衣物信息
-    pool.execute(
-        r#"
-            CREATE TABLE IF NOT EXISTS clothing
-            (
-                clothing_id         INTEGER PRIMARY KEY AUTOINCREMENT,
-                clothing_category   VARCHAR(3)  NOT NULL,
-                clothing_number     VARCHAR(30) NOT NULL,
-                clothing_style      VARCHAR(3)  NOT NULL,
-                clothing_name       VARCHAR(50) NOT NULL,
-                clothing_base_price DOUBLE      NOT NULL,
-                clothing_min_price  DOUBLE      NOT NULL,
-                order_num           INTEGER              DEFAULT 0,
-                clothing_degree     INTEGER              DEFAULT 0,
-                hang_type           CHAR(1)     NOT NULL DEFAULT '1',
-                del_flag            CHAR(1)              DEFAULT '0',
-                remark              VARCHAR(500)
-            );
-            "#,
-    )
-    .await
-    .unwrap();
+    clothing.store_id = Some(utils::get_user_id(&state).await?);
+    clothing.is_default = Some(true);
 
-    // 返回SQLite数据库连接池
-    pool
+    // 确保tag_list字段正确处理
+    if let Some(tag_list) = &clothing.tag_list {
+        clothing.tag_list_vec = if tag_list.is_empty() {
+            vec![]
+        } else {
+            tag_list.split(',').map(|s| s.to_string()).collect()
+        };
+    }
+
+    tracing::debug!("clothing: {:?}", clothing);
+
+    let mut tx = state.pool.begin().await?;
+    let clothing = clothing.create_request(&state).await?;
+
+    let clothing = clothing.insert(&mut tx).await?;
+
+    tx.commit().await?;
+
+    Ok(clothing)
 }
-
-// #[cfg(test)]
-// mod command_tests {
-//     use crate::create_app;
-//     use crate::db::clothing::{setup_test_db, Clothing};
-//     use crate::db::DbPool;
-//     use tauri::test::mock_builder;
-
-//     /// there is an issue in windows platform: STATUS_ENTRYPOINT_NOT_FOUND,
-//     /// so we skip it
-//     #[tokio::test]
-//     async fn test_add_clothing() {
-//         // 创建一个新的 clothing 实例
-//         let clothing = Clothing {
-//             clothing_name: "Test clothing".to_string(),
-//             ..Default::default()
-//         };
-
-//         // 验证结果
-//         let app = create_app(mock_builder(), DbPool::new(setup_test_db().await));
-//         let webview = tauri::WebviewWindowBuilder::new(&app, "main", Default::default())
-//             .build()
-//             .unwrap();
-
-//         // run the `ping` command and assert it returns `pong`
-//         let res = tauri::test::get_ipc_response(
-//             &webview,
-//             tauri::webview::InvokeRequest {
-//                 cmd: "add_clothing".into(),
-//                 callback: tauri::ipc::CallbackFn(0),
-//                 error: tauri::ipc::CallbackFn(1),
-//                 url: "http://tauri.localhost".parse().unwrap(),
-//                 body: tauri::ipc::InvokeBody::Json(serde_json::to_value(&clothing).unwrap()),
-//                 headers: Default::default(),
-//                 invoke_key: tauri::test::INVOKE_KEY.to_string(),
-//             },
-//         )
-//             .map(|b| b.deserialize::<Clothing>().unwrap())
-//             .unwrap();
-//         assert_eq!(res.clothing_name, clothing.clothing_name);
-//     }
-// }

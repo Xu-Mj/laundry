@@ -19,7 +19,7 @@ use crate::utils;
 
 const CLOTH_STATUS_HANGED: &str = "02";
 const CLOTH_STATUS_PICKED: &str = "00";
-const CLOTH_STATUS_WASHED: &str = "02";
+// const CLOTH_STATUS_WASHED: &str = "02";
 const CLOTH_STATUS_DELIVERED: &str = "03";
 const ORDER_STATUS_COMPLETED: &str = "04";
 const ORDER_STATUS_PAID: &str = "00";
@@ -148,11 +148,9 @@ impl Validator for OrderCloth {
 
 const SQL: &str = "SELECT
                oc.*,
-               c.clothing_id,
-               c.clothing_category,
+               c.id as clothing_id,
                c.clothing_number,
-               c.clothing_style,
-               c.clothing_name,
+               c.title,
                c.clothing_base_price,
                c.clothing_min_price,
                c.order_num,
@@ -161,7 +159,7 @@ const SQL: &str = "SELECT
                ct.category_name as clothing_category,
                st.style_name as clothing_style
         FROM order_clothes oc
-                 left join clothing c on oc.clothing_id = c.clothing_id
+                 left join clothing c on oc.clothing_id = c.id
                  left join drying_rack d on oc.hang_location_code = d.id
                  left join clothing_categories ct on c.category_id = ct.category_id 
                  left join clothing_styles st on c.style_id = st.style_id";

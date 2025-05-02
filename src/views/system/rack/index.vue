@@ -14,6 +14,9 @@
 
       <el-table v-loading="loading" :data="rackList" @selection-change="handleSelectionChange" class="modern-table"
         border stripe>
+        <template #empty>
+          <el-empty description="暂无数据" />
+        </template>
         <el-table-column type="selection" width="55" align="center" />
         <el-table-column label="架子名称" align="center" prop="name" />
         <el-table-column label="架子类型" align="center" prop="rackType">

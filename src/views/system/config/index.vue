@@ -40,6 +40,9 @@
 
          <el-table v-loading="loading" :data="configList" @selection-change="handleSelectionChange" class="modern-table"
             border stripe>
+            <template #empty>
+               <el-empty description="暂无数据" />
+            </template>
             <el-table-column type="selection" width="55" align="center" />
             <el-table-column label="参数名称" align="center" prop="configName" :show-overflow-tooltip="true" />
             <el-table-column label="参数键名" align="center" prop="configKey" :show-overflow-tooltip="true" />
@@ -72,7 +75,7 @@
          <template #header>
             <div class="dialog-header hover-flow">
                <span class="dialog-title">{{ title }}</span>
-               <el-button icon="Close" circle @click="cancel"/>
+               <el-button icon="Close" circle @click="cancel" />
             </div>
          </template>
          <el-form ref="configRef" :model="form" :rules="rules" label-width="90px">
@@ -270,5 +273,4 @@ getList();
 .dict-form-input {
    width: 100%;
 }
-
 </style>

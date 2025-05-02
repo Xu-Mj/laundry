@@ -44,6 +44,9 @@
 
       <el-table v-loading="loading" :data="tagsList" @selection-change="handleSelectionChange" class="modern-table"
         border stripe>
+        <template #empty>
+          <el-empty description="暂无数据" />
+        </template>
         <el-table-column type="selection" width="55" align="center" />
         <el-table-column label="标签编码" align="center" prop="tagNumber" />
         <el-table-column label="标签类别" align="center" prop="tagOrder">

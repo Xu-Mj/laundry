@@ -53,6 +53,9 @@
 
       <el-table v-loading="loading" :data="couponList" ref="table" class="modern-table"
         @selection-change="handleSelectionChange">
+        <template #empty>
+          <el-empty description="暂无数据"/>
+        </template>
         <el-table-column type="selection" width="55" align="center" />
         <!-- <el-table-column label="卡券唯一标识ID" align="center" prop="couponId" /> -->
         <el-table-column label="卡券名称" align="center" prop="couponTitle" v-if="columns[0].visible" />
@@ -241,8 +244,8 @@
                   <el-input-number v-model="scope.row.count" :min="0" :max="(scope.row.customerSaleCount != -1 && scope.row.customerSaleTotal != -1)
                     ? Math.min(scope.row.customerSaleCount, scope.row.customerSaleTotal)
                     : (scope.row.customerSaleTotal != -1 ? scope.row.customerSaleTotal
-                      : (scope.row.customerSaleCount != -1 ? scope.row.customerSaleCount : Infinity))" controls-position="right"
-                    class="quantity-input" />
+                      : (scope.row.customerSaleCount != -1 ? scope.row.customerSaleCount : Infinity))"
+                    controls-position="right" class="quantity-input" />
                 </template>
               </el-table-column>
             </el-table>

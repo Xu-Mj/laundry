@@ -3,31 +3,31 @@
     <!-- 搜索区域 -->
     <transition name="height-fade">
       <el-card class="search-card" v-show="showSearch">
-      <el-form :model="queryParams" ref="queryRef" :inline="true" label-width="68px">
-        <el-form-item label="支出账目" prop="expTitle">
-          <el-input v-model="queryParams.expTitle" placeholder="请输入支出账目" clearable @keyup.enter="handleQuery" />
-        </el-form-item>
-        <el-form-item label="账户名称" prop="recvAccountTitle">
-          <el-input v-model="queryParams.recvAccountTitle" placeholder="请输入收款账户名称" clearable
-            @keyup.enter="handleQuery" />
-        </el-form-item>
-        <el-form-item label="支出类型" prop="expType">
-          <el-select v-model="queryParams.expType" placeholder="请选择支出类型" clearable style="width: 150px"
-            @change="handleQuery">
-            <el-option v-for="dict in sys_exp_type" :key="dict.value" :label="dict.label"
-              :value="dict.value"></el-option>
-          </el-select>
-        </el-form-item>
-        <el-form-item label="支出时间" style="width: 308px">
-          <el-date-picker v-model="dateRange" value-format="YYYY-MM-DD" type="daterange" range-separator="-"
-            start-placeholder="开始日期" end-placeholder="结束日期" @change="handleQuery"></el-date-picker>
-        </el-form-item>
-        <el-form-item>
-          <el-button class="hover-flow" type="primary" icon="Search" @click="handleQuery">搜索</el-button>
-          <el-button class="hover-flow" icon="Refresh" @click="resetQuery">重置</el-button>
-        </el-form-item>
-      </el-form>
-    </el-card>
+        <el-form :model="queryParams" ref="queryRef" :inline="true" label-width="68px">
+          <el-form-item label="支出账目" prop="expTitle">
+            <el-input v-model="queryParams.expTitle" placeholder="请输入支出账目" clearable @keyup.enter="handleQuery" />
+          </el-form-item>
+          <el-form-item label="账户名称" prop="recvAccountTitle">
+            <el-input v-model="queryParams.recvAccountTitle" placeholder="请输入收款账户名称" clearable
+              @keyup.enter="handleQuery" />
+          </el-form-item>
+          <el-form-item label="支出类型" prop="expType">
+            <el-select v-model="queryParams.expType" placeholder="请选择支出类型" clearable style="width: 150px"
+              @change="handleQuery">
+              <el-option v-for="dict in sys_exp_type" :key="dict.value" :label="dict.label"
+                :value="dict.value"></el-option>
+            </el-select>
+          </el-form-item>
+          <el-form-item label="支出时间" style="width: 308px">
+            <el-date-picker v-model="dateRange" value-format="YYYY-MM-DD" type="daterange" range-separator="-"
+              start-placeholder="开始日期" end-placeholder="结束日期" @change="handleQuery"></el-date-picker>
+          </el-form-item>
+          <el-form-item>
+            <el-button class="hover-flow" type="primary" icon="Search" @click="handleQuery">搜索</el-button>
+            <el-button class="hover-flow" icon="Refresh" @click="resetQuery">重置</el-button>
+          </el-form-item>
+        </el-form>
+      </el-card>
     </transition>
 
     <el-card class="table-card">
@@ -43,6 +43,9 @@
 
       <el-table v-loading="loading" :data="expenditureList" @selection-change="handleSelectionChange"
         class="modern-table" border stripe>
+        <template #empty>
+          <el-empty description="暂无数据" />
+        </template>
         <el-table-column type="selection" width="55" align="center" />
         <el-table-column label="支出账目" align="center" prop="expTitle">
           <template #default="scope">
@@ -294,5 +297,4 @@ getList();
   font-size: 18px;
   font-weight: 600;
 }
-
 </style>

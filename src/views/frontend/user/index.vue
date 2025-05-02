@@ -11,7 +11,8 @@
                </el-form-item>
                <el-form-item label="手机号码" prop="phonenumber" size="large">
                   <el-input size="large" v-model="queryParams.phonenumber" placeholder="请输入手机号码" clearable
-                     style="width: 240px" @keyup.enter="handleQuery" @input="handleTelQuery" />
+                     style="width: 240px" @keyup.enter="handleQuery" @input="handleTelQuery" type="number"
+                     onkeypress="return event.charCode >= 48 && event.charCode <= 57" />
                </el-form-item>
                <el-form-item label="会员等级" prop="levelName" size="large">
                   <el-select size="large" v-model="queryParams.levelId" placeholder="会员等级" clearable
@@ -44,13 +45,16 @@
 
          <el-table v-loading="loading" :show-close="false" :data="userList" @selection-change="handleSelectionChange"
             class="modern-table" stripe>
+            <template #empty>
+               <el-empty description="暂无数据" />
+            </template>
             <el-table-column type="selection" width="50" align="center" />
             <!-- <el-table-column label="会员编号" align="center" key="userId" prop="userId" v-if="columns[0].visible" /> -->
             <el-table-column label="会员姓名" align="center" v-if="columns[1].visible">
                <template #default="scope">
                   <el-tooltip content="查看会员详情" placement="top">
                      <el-button link type="primary" @click="showUserInfo(scope.row)">{{ scope.row.nickName
-                     }}</el-button>
+                        }}</el-button>
                   </el-tooltip>
                </template>
             </el-table-column>

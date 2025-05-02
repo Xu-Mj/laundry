@@ -35,6 +35,9 @@
 
       <el-table v-loading="loading" :data="priceList" v-model="selectedList" @selection-change="handleSelectionChange"
         class="modern-table" border stripe>
+        <template #empty>
+          <el-empty description="暂无数据" />
+        </template>
         <el-table-column type="selection" width="55" align="center" />
         <el-table-column label="价格编码" align="center" prop="priceNumber" />
         <el-table-column label="订单类别" align="center" prop="orderType">
@@ -216,7 +219,7 @@
       <template #footer>
         <div class="dialog-footer">
           <el-button class="hover-flow" type="primary" @click="submitForm" icon="Check"> 确 定</el-button>
-          <el-button class="hover-flow"  type="danger"@click="cancel" icon="Close">取 消</el-button>
+          <el-button class="hover-flow" type="danger" @click="cancel" icon="Close">取 消</el-button>
         </div>
       </template>
     </el-dialog>
@@ -549,5 +552,4 @@ getList();
 .price-info {
   margin-top: 10px;
 }
-
 </style>

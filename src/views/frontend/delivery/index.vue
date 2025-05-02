@@ -33,6 +33,9 @@
       </el-row>
 
       <el-table v-loading="loading" :data="deliveryList" @selection-change="handleSelectionChange">
+        <template #empty>
+          <el-empty description="暂无数据" />
+        </template>
         <el-table-column type="selection" width="55" align="center" />
         <el-table-column label="派送编号" align="center" prop="deliveryId" width="100" />
         <el-table-column label="客户信息" align="center" min-width="180">
@@ -86,7 +89,8 @@
     </el-card>
 
     <!-- 查看派送详情 -->
-    <el-dialog :title="'派送详情 #' + deliveryDetail.deliveryId" v-model="viewVisible" width="600px" append-to-body align-center>
+    <el-dialog :title="'派送详情 #' + deliveryDetail.deliveryId" v-model="viewVisible" width="600px" append-to-body
+      align-center>
       <el-descriptions :column="1" border>
         <el-descriptions-item label="派送编号">{{ deliveryDetail.deliveryId }}</el-descriptions-item>
         <el-descriptions-item label="客户信息">
@@ -130,13 +134,10 @@
     <el-dialog :title="'创建派送'" v-model="addVisible" width="600px" append-to-body>
       <el-form :model="deliveryForm" ref="deliveryFormRef" :rules="rules" label-width="100px">
         <el-form-item label="选择客户" prop="userId">
-          <el-select v-model="deliveryForm.userId" filterable placeholder="请选择客户" style="width: 100%" 
+          <el-select v-model="deliveryForm.userId" filterable placeholder="请选择客户" style="width: 100%"
             @change="handleUserChange">
-            <el-option
-              v-for="user in userOptions"
-              :key="user.userId"
-              :label="user.nickName + ' (' + user.phonenumber + ')'"
-              :value="user.userId">
+            <el-option v-for="user in userOptions" :key="user.userId"
+              :label="user.nickName + ' (' + user.phonenumber + ')'" :value="user.userId">
               <div class="user-info">
                 <el-avatar :size="24" :src="user.avatar" icon="UserFilled"></el-avatar>
                 <div class="user-details">
@@ -151,26 +152,15 @@
           <el-input v-model="deliveryForm.address" placeholder="请输入派送地址" />
         </el-form-item>
         <el-form-item label="派送时间" prop="dispatchTime">
-          <el-date-picker 
-            v-model="deliveryForm.dispatchTime" 
-            type="datetime" 
-            placeholder="选择派送时间"
-            value-format="YYYY-MM-DD HH:mm:ss"
-            style="width: 100%">
+          <el-date-picker v-model="deliveryForm.dispatchTime" type="datetime" placeholder="选择派送时间"
+            value-format="YYYY-MM-DD HH:mm:ss" style="width: 100%">
           </el-date-picker>
         </el-form-item>
         <el-form-item label="选择衣物" prop="clothIds">
-          <el-transfer
-            v-model="deliveryForm.clothIds"
-            :data="availableClothes"
-            :props="{
-              key: 'clothId',
-              label: item => `${item.clothInfo?.clothingName} (${item.hangClothCode})`,
-            }"
-            :titles="['可选衣物', '已选衣物']"
-            filterable
-            filter-placeholder="请输入衣物名称"
-            :filter-method="filterMethod"
+          <el-transfer v-model="deliveryForm.clothIds" :data="availableClothes" :props="{
+            key: 'clothId',
+            label: item => `${item.clothInfo?.clothingName} (${item.hangClothCode})`,
+          }" :titles="['可选衣物', '已选衣物']" filterable filter-placeholder="请输入衣物名称" :filter-method="filterMethod"
             class="cloth-transfer">
           </el-transfer>
         </el-form-item>
@@ -413,8 +403,8 @@ function handleUserChange(userId) {
 
 /** 衣物筛选方法 */
 function filterMethod(query, item) {
-  return item.clothInfo?.clothingName?.toLowerCase().includes(query.toLowerCase()) || 
-         item.hangClothCode?.toLowerCase().includes(query.toLowerCase());
+  return item.clothInfo?.clothingName?.toLowerCase().includes(query.toLowerCase()) ||
+    item.hangClothCode?.toLowerCase().includes(query.toLowerCase());
 }
 
 /** 取消新增 */
@@ -440,7 +430,7 @@ function submitDelivery() {
         proxy.$modal.msgSuccess("创建派送成功");
         addVisible.value = false;
         getList();
-      }).catch(() => {});
+      }).catch(() => { });
     }
   });
 }

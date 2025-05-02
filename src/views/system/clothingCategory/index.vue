@@ -33,6 +33,9 @@
 
       <el-table v-loading="loading" :data="categoryList" @selection-change="handleSelectionChange" class="modern-table"
         border stripe>
+        <template #empty>
+          <el-empty description="暂无数据"/>
+        </template>
         <el-table-column type="selection" width="55" align="center" />
         <el-table-column label="品类名称" align="center" prop="categoryName" />
         <el-table-column label="品类编码" align="center" prop="categoryCode" />

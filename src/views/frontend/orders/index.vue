@@ -82,6 +82,9 @@
         <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" :columns="columns"></right-toolbar>
       </div>
       <el-table v-loading="loading" :data="ordersList" class="modern-table" border="dash" stripe>
+        <template #empty>
+          <el-empty description="暂无数据" />
+        </template>
         <el-table-column label="订单编码" align="center" width="180" prop="orderNumber" v-if="columns[0].visible" />
         <el-table-column label="所属会员" align="center" width="180" v-if="columns[1].visible">
           <template #default="scope">

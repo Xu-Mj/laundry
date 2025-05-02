@@ -93,11 +93,11 @@
     </div>
 
     <!-- 广告展示位 -->
-    <div class="ad-container">
+    <div class="ad-container" v-show="showAD">
       <div class="ad-content">
         <div class="ad-header">
           <h4>推广活动</h4>
-          <el-icon class="close-icon">
+          <el-icon class="close-icon" @click="showAD = false">
             <Close />
           </el-icon>
         </div>
@@ -139,6 +139,8 @@ const chartList = ref([]);
 const chartListRefs = ref([]);
 const codeToLabel = ref({});
 const { width, height } = useWindowSize();
+
+const showAD = ref(true);
 
 // 格式化日期显示
 const formatDate = (date) => {

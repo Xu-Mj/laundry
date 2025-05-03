@@ -15,7 +15,7 @@ use super::user::User;
 
 // Delivery status constants
 const DELIVERY_STATUS_PENDING: &str = "00"; // 待派送
-const DELIVERY_STATUS_DELIVERING: &str = "01"; // 派送中
+// const DELIVERY_STATUS_DELIVERING: &str = "01"; // 派送中
 const DELIVERY_STATUS_COMPLETED: &str = "02"; // 已完成
 const DELIVERY_STATUS_CANCELED: &str = "03"; // 已取消
 
@@ -25,7 +25,7 @@ const CLOTH_STATUS_WASHED: &str = "02"; // 已洗完
 const CLOTH_STATUS_DELIVERED: &str = "03"; // 已派送
 
 // Notice template ID for delivery
-const DELIVERY_NOTICE_TEMPLATE_ID: i64 = 2; // This should match your actual template ID
+// const DELIVERY_NOTICE_TEMPLATE_ID: i64 = 2; // This should match your actual template ID
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

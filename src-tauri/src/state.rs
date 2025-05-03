@@ -7,11 +7,14 @@ use sqlx::{Pool, Sqlite};
 use tokio::sync::Mutex as TokioMutex;
 use tokio::{task::JoinHandle, time::sleep};
 
-use crate::{error::Error, utils::request::{HttpClient, Token}};
+use crate::{
+    error::Error,
+    utils::request::{HttpClient, Token},
+};
 use crate::{error::Result, local_users::LocalUser};
 
 // SQLite 连接池
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct AppState {
     pub pool: Pool<Sqlite>,
     pub http_client: HttpClient,
@@ -119,6 +122,7 @@ impl AppState {
 
     pub async fn logout(&self) {
         self.stop_token_refresh_task();
+        // 清除 token
         let mut token = self.token.lock().await;
         *token = None; // 将 token 置为 None
     }

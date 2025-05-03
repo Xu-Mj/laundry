@@ -2,8 +2,9 @@
     <div class="result-container">
         <el-form :model="queryParams" class="top-bar" ref="queryRef" :inline="true" label-width="68px">
             <el-form-item label="取件码" prop="pickupCode" size="large">
-                <el-input v-model="queryParams.pickupCode" placeholder="请输入取件码" clearable @keyup.enter="handleQuery"
-                    size="large">
+                <el-input style="width: 150px;" v-model="queryParams.pickupCode" placeholder="请输入取件码" clearable
+                    @keyup.enter="handleQuery" size="large" type="number" class="no-spinner" @mousewheel.native.prevent
+                    @DOMMouseScroll.native.prevent>
                     <template #prefix>
                         <el-icon>
                             <Ticket />
@@ -12,8 +13,9 @@
                 </el-input>
             </el-form-item>
             <el-form-item label="手机号" prop="phonenumber" size="large">
-                <el-input ref="phonenumber" v-model="queryParams.phonenumber" placeholder="请输入会员手机号" clearable
-                    @keyup.enter="handleQuery" size="large">
+                <el-input ref="phonenumber" style="width: 200px;" v-model="queryParams.phonenumber"
+                    placeholder="请输入会员手机号" clearable @keyup.enter="handleQuery" size="large" type="number"
+                    class="no-spinner" @mousewheel.native.prevent @DOMMouseScroll.native.prevent>
                     <template #prefix>
                         <el-icon>
                             <Phone />
@@ -22,8 +24,8 @@
                 </el-input>
             </el-form-item>
             <el-form-item label="订单编码" prop="orderNumber" size="large">
-                <el-input v-model="queryParams.orderNumber" placeholder="请输入订单编码" clearable @keyup.enter="handleQuery"
-                    size="large">
+                <el-input style="width: 230px;" v-model="queryParams.orderNumber" placeholder="请输入订单编码" clearable
+                    @keyup.enter="handleQuery" size="large">
                     <template #prefix>
                         <el-icon>
                             <Document />
@@ -235,32 +237,18 @@
         </div>
     </el-dialog>
     <!-- 派送对话框 -->
-    <DeliveryDialog 
-        v-model:visible="showDeliveryDialog" 
-        :user="currentUser" 
-        :selected-cloths="selectedCloths" 
-        @success="handleDeliverySuccess" 
-        @cancel="handleDeliveryCancel" 
-    />
+    <DeliveryDialog v-model:visible="showDeliveryDialog" :user="currentUser" :selected-cloths="selectedCloths"
+        @success="handleDeliverySuccess" @cancel="handleDeliveryCancel" />
 
     <!-- 复洗 -->
     <ReWash :visible="showRewashDialog" :order="rewashOrder" :clothes="rewashClothesId"
         :refresh="() => { selectedCloths = []; getList(); }" :key="showRewashDialog"
         :toggle="() => { showRewashDialog = !showRewashDialog }" />
 
-    <PaymentDialog 
-        :visible="showPaymentDialog" 
-        :user="currentUser" 
-        :orders="orders" 
-        :cloths-list="clothsList"
-        :user-coupon-list="userCouponList" 
-        :coupon-type-list="couponTypeList" 
-        :refresh="getList" 
-        :key="showPaymentDialog" 
-        :toggle="() => { showPaymentDialog = !showPaymentDialog }" 
-        @success="handlePaymentSuccess"
-        @pickup="handlePaymentPickup"
-    />
+    <PaymentDialog :visible="showPaymentDialog" :user="currentUser" :orders="orders" :cloths-list="clothsList"
+        :user-coupon-list="userCouponList" :coupon-type-list="couponTypeList" :refresh="getList"
+        :key="showPaymentDialog" :toggle="() => { showPaymentDialog = !showPaymentDialog }"
+        @success="handlePaymentSuccess" @pickup="handlePaymentPickup" />
 
 </template>
 
@@ -501,26 +489,26 @@ function handleDelivery() {
         proxy.notify.warning("请先选择需要派送的衣物");
         return;
     }
-    
+
     // 检查选中的衣物是否都已完成洗护或正在洗护中
-    const invalidCloths = selectedCloths.value.filter(item => 
+    const invalidCloths = selectedCloths.value.filter(item =>
         item.clothingStatus !== '01' && item.clothingStatus !== '02'
     );
-    
+
     if (invalidCloths.length > 0) {
         proxy.notify.warning("选中的衣物中有不符合派送条件的衣物，只能派送正在洗护或已完成洗护的衣物");
         return;
     }
-    
+
     // 检查选中的衣物是否都已支付
     const orderIds = [...new Set(selectedCloths.value.map(item => item.orderId))];
     const unpaidOrders = ordersList.value.filter(item => orderIds.includes(item.orderId) && item.paymentStatus !== '00');
-    
+
     if (unpaidOrders.length > 0) {
         proxy.notify.warning("选中的衣物中有未支付的订单，请先完成支付");
         return;
     }
-    
+
     showDeliveryDialog.value = true;
 }
 

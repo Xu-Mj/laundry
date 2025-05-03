@@ -29,7 +29,14 @@ const Notification = {
       message,
       offset: 10,
     });
-  }
+  },
+  ws_message(message) {
+    ElNotification({
+      icon: 'Message',
+      message,
+      offset: 10,
+    });
+  },
 };
 
 export default Notification;

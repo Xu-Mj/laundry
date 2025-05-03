@@ -118,6 +118,108 @@ impl HttpClient {
         let request = self.client.get(&url);
         self.send_request(request).await
     }
+
+    /// 上传单个文件
+    /// 
+    /// # 参数
+    /// * `endpoint` - API端点
+    /// * `file_path` - 本地文件路径
+    /// * `field_name` - 表单字段名称，默认为"file"
+    /// * `token` - 认证令牌
+    pub async fn upload_file<T: DeserializeOwned>(
+        &self,
+        endpoint: &str,
+        file_path: &str,
+        field_name: &str,
+        token: Option<&str>,
+    ) -> Result<T> {
+        let url = format!("{}{}", self.base_url, endpoint);
+        
+        // 读取文件内容
+        let file_data = std::fs::read(file_path)
+            .map_err(|e| Error::with_details(
+                ErrorKind::BadRequest, 
+                format!("无法读取文件 {}: {}", file_path, e)
+            ))?;
+        
+        // 获取文件名
+        let file_name = std::path::Path::new(file_path)
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("unknown.file");
+        
+        // 创建multipart表单
+        let part = reqwest::multipart::Part::bytes(file_data)
+            .file_name(file_name.to_string());
+        
+        let form = reqwest::multipart::Form::new()
+            .part(field_name.to_string(), part);
+        
+        // 构建请求
+        let mut request = self.client.post(&url).multipart(form);
+        if let Some(t) = token {
+            request = request.header("Authorization", format!("Bearer {}", t));
+        }
+        
+        self.send_request(request).await
+    }
+    
+    /// 批量上传多个文件
+    /// 
+    /// # 参数
+    /// * `endpoint` - API端点
+    /// * `file_paths` - 本地文件路径列表
+    /// * `field_name` - 表单字段名称，默认为"file"
+    /// * `token` - 认证令牌
+    pub async fn upload_files<T: DeserializeOwned>(
+        &self,
+        endpoint: &str,
+        file_paths: &[String],
+        field_name: &str,
+        token: Option<&str>,
+    ) -> Result<T> {
+        if file_paths.is_empty() {
+            return Err(Error::with_details(
+                ErrorKind::BadRequest,
+                "没有提供文件路径"
+            ));
+        }
+        
+        let url = format!("{}{}", self.base_url, endpoint);
+        
+        // 创建multipart表单
+        let mut form = reqwest::multipart::Form::new();
+        
+        // 添加每个文件到表单
+        for path in file_paths {
+            // 读取文件内容
+            let file_data = std::fs::read(path)
+                .map_err(|e| Error::with_details(
+                    ErrorKind::BadRequest, 
+                    format!("无法读取文件 {}: {}", path, e)
+                ))?;
+            
+            // 获取文件名
+            let file_name = std::path::Path::new(path)
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or("unknown.file");
+            
+            // 创建文件部分并添加到表单
+            let part = reqwest::multipart::Part::bytes(file_data)
+                .file_name(file_name.to_string());
+            
+            form = form.part(field_name.to_string(), part);
+        }
+        
+        // 构建请求
+        let mut request = self.client.post(&url).multipart(form);
+        if let Some(t) = token {
+            request = request.header("Authorization", format!("Bearer {}", t));
+        }
+        
+        self.send_request(request).await
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]

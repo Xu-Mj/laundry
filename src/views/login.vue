@@ -70,6 +70,9 @@ import useUserStore from '@/store/modules/user';
 import { Window } from "@tauri-apps/api/window";
 import { onMounted } from 'vue';
 import { checkRackInitialized } from '@/api/system/rackCheck';
+// WebSocket连接初始化
+import { initDirectWebSocketConnection } from '@/utils/initDirectWebSocket'
+
 const appWindow = new Window('main');
 
 const userStore = useUserStore()
@@ -139,6 +142,12 @@ function handleLogin() {
       userStore.login(loginForm.value).then((res) => {
         // 获取用户信息，检查订阅状态
         userStore.getInfo().then(() => {
+          // 连接websocket
+          // 初始化WebSocket连接
+          initDirectWebSocketConnection().catch(error => {
+            console.error('WebSocket连接初始化失败:', error);
+          });
+
           // 检查订阅状态并提示
           checkSubscriptionStatus();
           loading.value = false;
@@ -532,5 +541,6 @@ onMounted(async () => {
         transform: translateY(0);
       }
     }
-  }}
+  }
+}
 </style>

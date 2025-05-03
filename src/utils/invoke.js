@@ -54,7 +54,7 @@ async function invoke(command, params = {}) {
             // removeToken();
             // // 跳转到登录页面
             // window.location.href = '/login';
-            return;
+            return Promise.reject('无效的会话，或者会话已过期，请重新登录。');
         } else 
 
         // 处理UnAuthorized错误
@@ -65,7 +65,7 @@ async function invoke(command, params = {}) {
               })
             // 清除token
             removeToken();
-            return;
+            return Promise.reject('未授权设备，请联系管理员。');
         }
 
         // ElMessage({ message: `${errorMsg}${details}`, type: 'error', duration: 5000 });

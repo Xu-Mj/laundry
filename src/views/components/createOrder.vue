@@ -12,7 +12,7 @@
                                     <el-select v-model="form.userId" :disabled="notEditable" filterable
                                         :clearable="true" remote reserve-keyword placeholder="请输入手机号码搜索" allow-create
                                         @blur="handleBlur" remote-show-suffix :remote-method="searchUserByTel"
-                                        @visible-change="handleVisibleChange" value-key="userId" style="width: 100%">
+                                        @visible-change="handleVisibleChange" @change="selectUser" value-key="userId" style="width: 100%">
                                         <el-option v-for="item in userListRes" :key="item.userId"
                                             :label="item.nickName + '\t' + item.phonenumber" :value="item.userId" />
                                         <template #prefix>
@@ -35,7 +35,7 @@
                                 </el-form-item>
                             </el-col>
                         </el-row>
-                        <el-row :gutter="20" v-if="form.userId" class="member-info">
+                        <el-row :gutter="20" v-if="form.userId && Object.keys(currentUser).length > 0 && currentUser.userId && !showCreateUser" class="member-info">
                             <el-col :span="8">
                                 <div class="info-item">
                                     <div class="info-label">余额</div>
@@ -692,28 +692,12 @@ function searchUserByTel(tel) {
             status: "0",
         };
     } else {
-        if (userListRes.value.length == 1) {
-            form.value.nickName = userListRes.value[0].nickName;
-            form.value.userId = userListRes.value[0].userId;
-            // 查询会员卡券信息
-            listUserCouponWithValidTime(form.value.userId).then(response => {
-                userCouponList.value = response;
-                userCouponList.value.filter(item => item.coupon.couponType == '002').map(item => {
-                    item.selected = false;
-                    item.count = 1;
-                });
-                couponTypeList.value = new Set(userCouponList.value.map(coupon => coupon.coupon.couponType));
-            });
-        }
+        // 移除自动选择逻辑，要求用户手动点击选择会员
         showCreateUser.value = false;
     }
 }
 function handleVisibleChange(visible) {
-    if (visible && userListRes.value.length === 1) {
-        form.value.userId = userListRes.value[0].userId;
-        form.value.nickName = userListRes.value[0].nickName;
-        selectUser(form.value.userId);
-    }
+    // 移除自动选择逻辑，要求用户手动点击选择会员
 }
 /* 选择会员信息 */
 async function selectUser(userId) {
@@ -735,11 +719,6 @@ async function selectUser(userId) {
         })
         couponTypeList.value = new Set(userCouponList.value.map(coupon => coupon.coupon.couponType));
     });
-}
-
-/* 获取有效期tooltip 的content */
-function getValidTime(validFrom, validTo) {
-    return `有效期：${validFrom} ~ ${validTo}`;
 }
 
 function adjustInputChange() {
@@ -825,12 +804,14 @@ async function printCloth() {
 
 function handleDelete(clothId, name) {
     const title = name ? name : clothId;
-    proxy.$modal.confirm('是否确认删除订单包含的衣物清单编号为"' + title + '"的数据项？').then(function () {
+    proxy.$modal.confirm('是否确认删除订单包含的衣物"' + title + '"？').then(function () {
         return delCloths(clothId);
     }).then(() => {
 
         const index = form.value.cloths.findIndex(item => item.clothId === clothId);
         form.value.cloths.splice(index, 1);
+        // 重新计算总价
+        adjustInput();
         proxy.notify.success("删除成功");
     }).catch(() => { });
 }

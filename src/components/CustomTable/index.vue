@@ -15,7 +15,7 @@
       <div v-if="tableData.length > 0" v-for="item in tableData" :key="item.id" class="row"
         @click="handleRowClick(item)">
         <!-- 上半部分 -->
-        <div class="cell">{{ item.clothInfo.clothingName ? item.clothInfo.clothingName : '-' }}</div>
+        <div class="cell">{{ item.clothInfo.title ? item.clothInfo.title : '-' }}</div>
         <div class="cell">{{ item.priceValue }} 元</div>
         <div class="cell">{{ item.processMarkup }} 元</div>
         <div class="cell">
@@ -23,7 +23,7 @@
         </div> <!-- 洗护要求留空 -->
         <div class="cell">{{ calculateTotalPrice(item) }} 元</div>
         <div class="cell action-cell">
-          <el-button type="danger" icon="Delete" @click="handleDelete(item.clothId, item.clothInfo.clothingName)" />
+          <el-button type="danger" icon="Delete" @click="handleDelete(item.clothId, item.clothInfo.title)" />
         </div>
 
         <!-- 下半部分 -->

@@ -97,8 +97,8 @@
                         <div class="items-break">
 
                             <RadioButton v-for="cloth in clothingListFilterResult" v-model="form.clothingId"
-                                :key="cloth.clothingId" @change="step2ClothChange" :value="cloth.clothingId"
-                                :label="cloth.clothingName" />
+                                :key="cloth.id" @change="step2ClothChange" :value="cloth.id"
+                                :label="cloth.title" />
 
                         </div>
                     </el-scrollbar>
@@ -682,7 +682,7 @@ function findColorName() {
 // 获取衣物名称
 function findClothingName() {
     if (form.value.clothingId) {
-        const color = clothingList.value.find(item => item.clothingId == form.value.clothingId);
+        const color = clothingList.value.find(item => item.id == form.value.clothingId);
         return color ? color.clothingName : '未选择衣物';
     } else {
         return '未选择衣物';
@@ -858,7 +858,7 @@ function submitForm() {
                     form.value = response;
                     form.value.clothingFlawArr = flaw;
                     form.value.estimateArr = estimate;
-                    form.value.clothInfo = clothingList.value.find(item => item.clothingId == submitData.clothingId);
+                    form.value.clothInfo = clothingList.value.find(item => item.id == submitData.clothingId);
                     clothList.value.push(form.value);
                     props.submit(clothList.value);
                     handleAdd();
@@ -954,7 +954,7 @@ function searchCloth(color) {
         showAddClothBtn.value = true;
         form.value.clothingColor = null;
     } else {
-        form.value.clothingId = item.clothingId;
+        form.value.clothingId = item.id;
         showAddClothBtn.value = false;
     }
 }
@@ -1046,13 +1046,13 @@ function createCloth() {
 
     createClothingCreateOrder(data).then(async response => {
         proxy.notify.success("新增衣物成功");
-        data.clothingId = response.clothingId;
+        data.id = response.id;
         // await getClothingList();
         showPriceContent.value = false;
         showAddClothBtn.value = false;
         form.value.clothInfo = {};
         clothNameInput.value = null;
-        form.value.clothingId = data.clothingId;
+        form.value.clothingId = data.id;
         form.value.priceValue = data.clothingBasePrice;
         form.value.hangType = data.hangType;
         // refresh clothingList
@@ -1106,7 +1106,7 @@ function addItemToList(type, item) {
 /* 衣物发生变化时要将最后一步的价格设置为选中衣物中的价格 */
 function step2ClothChange() {
     if (form.value.clothingId) {
-        const cloth = clothingList.value.find(item => item.clothingId == form.value.clothingId);
+        const cloth = clothingList.value.find(item => item.id == form.value.clothingId);
         form.value.priceValue = cloth.clothingBasePrice;
         form.value.hangType = cloth.hangType;
         nextStep();

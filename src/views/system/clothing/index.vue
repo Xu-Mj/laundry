@@ -38,6 +38,9 @@
 
       <el-table v-loading="loading" :data="clothingList" @selection-change="handleSelectionChange" class="modern-table"
         border stripe>
+        <template #empty>
+          <el-empty description="暂无数据" />
+        </template>
         <el-table-column type="selection" width="55" align="center" />
         <el-table-column label="衣物名称" align="center" prop="title" />
         <el-table-column label="所属品类" align="center" prop="clothingCategory" />
@@ -56,7 +59,7 @@
         </el-table-column>
       </el-table>
 
-      <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum"
+      <pagination v-show="total > 0" :total="total" v-model:page="queryParams.page"
         v-model:limit="queryParams.pageSize" @pagination="getList" />
     </el-card>
 
@@ -211,19 +214,23 @@
             </el-row>
             <el-form-item label="主图" prop="primaryImage">
               <el-upload :auto-upload="false" :show-file-list="false" :on-change="handlePrimaryImageChange"
-                :before-upload="beforeImageUpload">
+                list-type="picture-card" :before-upload="beforeImageUpload">
                 <img v-if="form.primaryImage" :src="form.primaryImage" class="avatar" />
-                <el-icon v-else class="avatar-uploader-icon">
+                <el-icon v-else>
                   <Plus />
                 </el-icon>
               </el-upload>
             </el-form-item>
-            <el-form-item label="图片集合" prop="images">
-              <el-upload :auto-upload="false" list-type="picture-card" :on-change="handleImageChange"
-                :on-remove="handleImageRemove" :before-upload="beforeImageUpload">
-                <el-icon>
+            <el-form-item label="图片集合" prop="imagesVec">
+              <el-upload :auto-upload="false" list-type="picture-card" :limit="5" :on-exceed="handleExceed"
+                :on-change="handleImageChange" :on-remove="handleImageRemove" :before-upload="beforeImageUpload"
+                :disabled="imageFiles.length >= 5">
+                <el-icon v-if="imageFiles.length < 5">
                   <Plus />
                 </el-icon>
+                <div v-else class="el-upload__tip">
+                  已达到最大上传数量(5张)
+                </div>
               </el-upload>
             </el-form-item>
             <el-form-item label="备注" prop="remark">
@@ -260,6 +267,7 @@ import RefCountEditor from "@/components/RefCountEditor/index.vue";
 import { ElMessage } from 'element-plus';
 import { invoke } from '@tauri-apps/api/core';
 import { nanoid } from 'nanoid';
+import { convertFileSrc } from '@tauri-apps/api/core'
 
 const { proxy } = getCurrentInstance();
 
@@ -284,7 +292,7 @@ const data = reactive({
   form: {},
   tagNumForm: {},
   queryParams: {
-    pageNum: 1,
+    page: 1,
     pageSize: 10,
     categoryId: null,
     clothingNumber: null,
@@ -396,7 +404,8 @@ function reset() {
     clothingDegree: 0,
     isPutOnSale: true,
     primaryImage: null,
-    images: [],
+    images: null,
+    imagesVec: [],
     tagListVec: [],
     hangType: '1',
     remark: null
@@ -408,7 +417,7 @@ function reset() {
 
 /** 搜索按钮操作 */
 function handleQuery() {
-  queryParams.value.pageNum = 1;
+  queryParams.value.page = 1;
   getList();
 }
 
@@ -439,6 +448,17 @@ function handleUpdate(row) {
   getClothing(_clothingId).then(response => {
     form.value = response;
     initDictList();
+    // handle image file path
+    if (form.value.primaryImage && form.value.primaryImage !== '') {
+      form.value.primaryImage = convertFileSrc(form.value.primaryImage);
+    }
+    if (form.value.images && form.value.images !== '') {
+      form.value.imagesVec = form.value.images.split(',');
+      form.value.imagesVec.forEach((image, index) => {
+        form.value.imagesVec[index] = convertFileSrc(image);
+      });
+      imageFiles.value = form.value.imagesVec;
+    }
     open.value = true;
     title.value = "修改衣物";
   });
@@ -468,7 +488,23 @@ function prevStep() {
     activeStep.value--;
   }
 }
+function getOriginalPath(convertedUrl) {
+  if (!convertedUrl) return '';
+  
+  // 如果是普通路径（未转换的），直接返回
+  if (!convertedUrl.startsWith('http://asset.localhost/')) {
+    return convertedUrl;
+  }
 
+  try {
+    const pathPart = convertedUrl.replace(/^https?:\/\/asset\.localhost\//, '');
+    const decodedPath = decodeURIComponent(pathPart);
+    return decodedPath.replace(/\//g, '\\');
+  } catch (error) {
+    console.error('路径转换失败:', error, convertedUrl);
+    return convertedUrl;
+  }
+}
 /** 提交按钮 */
 async function submitForm() {
   proxy.$refs["clothingRef"].validate(async valid => {
@@ -500,6 +536,9 @@ async function submitForm() {
         if (imagesPath.length > 0) {
           submitData.imagesVec = imagesPath;
           submitData.images = imagesPath.join(',');
+        } else {
+          submitData.images = null;
+          submitData.imagesVec = [];
         }
 
         // 处理标签列表
@@ -509,14 +548,21 @@ async function submitForm() {
 
         console.log('提交数据:', submitData);
         if (form.value.id != null) {
+          submitData.primaryImage = getOriginalPath(submitData.primaryImage);
+          submitData.imagesVec = submitData.imagesVec.map(image => getOriginalPath(image));
+          submitData.images = submitData.imagesVec.join(',');
+          console.log('修改数据:', submitData);
           await updateClothing(submitData);
           proxy.notify.success("修改成功");
+          reset();
           open.value = false;
           activeStep.value = 0; // 重置步骤
           getList();
         } else {
-          await addClothing(submitData);
+          const res = await addClothing(submitData);
+          console.log('新增成功:', res);
           proxy.notify.success("新增成功");
+          reset();
           open.value = false;
           activeStep.value = 0; // 重置步骤
           getList();
@@ -544,7 +590,7 @@ function handleDelete(row) {
 
 /* 衣物类别变化触发查询 */
 function selectChange() {
-  queryParams.value.pageNum = 1;
+  queryParams.value.page = 1;
   getList();
 }
 
@@ -577,6 +623,12 @@ async function handlePrimaryImageChange(file) {
   reader.readAsDataURL(file.raw);
 }
 
+function handleExceed(files, fileList) {
+  proxy.notify.warning(
+    `当前限制选择 5 个文件，本次选择了 ${files.length} 个文件，共选择了 ${files.length + fileList.length} 个文件`
+  )
+}
+
 // 图片集合选择处理
 async function handleImageChange(file) {
   if (!beforeImageUpload(file.raw)) return;
@@ -585,24 +637,24 @@ async function handleImageChange(file) {
   // 显示预览
   const reader = new FileReader();
   reader.onload = (e) => {
-    if (!form.value.images) {
-      form.value.images = [];
+    if (!form.value.imagesVec) {
+      form.value.imagesVec = [];
     }
-    form.value.images.push(e.target.result);
+    form.value.imagesVec.push(e.target.result);
   };
   reader.readAsDataURL(file.raw);
 }
 
 // 移除图片处理
 async function handleImageRemove(file) {
-  const index = form.value.images.indexOf(file.url);
+  const index = form.value.imagesVec.indexOf(file.url);
   if (index !== -1) {
     // 获取该索引下的值
-    const path = form.value.images[index];
+    const path = form.value.imagesVec[index];
     await deleteFile(path).catch(() => {
       proxy.notify.error("删除图片失败");
     });
-    form.value.images.splice(index, 1);
+    form.value.imagesVec.splice(index, 1);
     imageFiles.value.splice(index, 1);
   }
 }
@@ -671,9 +723,9 @@ onMounted(async () => {
   gap: 10px;
 }
 
-.avatar-uploader .avatar {
-  width: 178px;
-  height: 178px;
+.avatar {
+  width: 100%;
+  height: 100%;
   display: block;
 }
 

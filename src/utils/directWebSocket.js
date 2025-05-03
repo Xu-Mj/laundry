@@ -4,6 +4,7 @@ import useUserStore from '@/store/modules/user';
 import { saveMessage, } from '@/api/system/message';
 import { addServerOrders } from '@/api/system/orders';
 import { addUser } from '@/api/system/user';
+import { ElMessageBox } from 'element-plus'
 
 /**
  * 直连WebSocket管理类
@@ -126,7 +127,17 @@ class DirectWebSocketManager {
     handleClose(event) {
         this.isConnected = false;
         console.log('WebSocket连接关闭，代码:', event.code, '原因:', event.reason);
-
+        if (event.code === 4002) {
+            ElMessageBox.alert('登录状态已过期，您必须重新登录，否则无法收到系统消息', '系统提示', {
+                confirmButtonText: '重新登录',
+                callback: () => {
+                    useUserStore().logOut().then(() => {
+                        location.href = '/index';
+                    });
+                },
+            })
+            return;
+        }
         // 只有在非手动关闭的情况下才进行重连
         if (!this.manualClose) {
             this.reconnect();

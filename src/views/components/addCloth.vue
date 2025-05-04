@@ -19,8 +19,8 @@
                             <el-scrollbar>
                                 <div class="radio-group-column">
                                     <RadioButton class="radio-button-column" v-model="form.categoryId"
-                                        v-for="category in categoryList" :key="category.categoryId" :value="category.categoryId"
-                                        @change="cateChange">
+                                        v-for="category in categoryList" :key="category.categoryId"
+                                        :value="category.categoryId" @change="cateChange">
                                         {{ category.categoryName }}
                                     </RadioButton>
                                 </div>
@@ -44,8 +44,7 @@
                         </el-col>
                         <el-row class="footer-btn">
                             <el-button type="primary" size="large"
-                                :disabled="!props.userId || !form.categoryId || !form.styleId"
-                                @click="nextStep">下一步
+                                :disabled="!props.userId || !form.categoryId || !form.styleId" @click="nextStep">下一步
                                 <el-icon>
                                     <ArrowRight />
                                 </el-icon>
@@ -74,15 +73,15 @@
                                         :controls="false" placeholder="请输入基准价格" />
                                     <el-input-number size="large" v-model="form.clothInfo.clothingMinPrice" :min="0"
                                         :controls="false" placeholder="请输入最低价格" />
-                                    <el-input-number size="large" v-model="form.clothInfo.clothingMetuanPrice" :min="0"
+                                    <!-- <el-input-number size="large" v-model="form.clothInfo.clothingMetuanPrice" :min="0"
                                         :controls="false" placeholder="请输入美团价格" />
                                     <el-input-number size="large" v-model="form.clothInfo.clothingDouyinPrice" :min="0"
                                         :controls="false" placeholder="请输入抖音价格" />
                                     <el-input-number size="large" v-model="form.clothInfo.clothingXiaochenxuPrice"
-                                        :min="0" :controls="false" placeholder="请输入小程序价格" />
-                                    <el-button size="large" type="primary" @click="createCloth"
-                                        icon="CircleCheck">确定添加</el-button>
+                                        :min="0" :controls="false" placeholder="请输入小程序价格" /> -->
                                 </div>
+                                <el-button size="large" type="primary" @click="createCloth"
+                                    icon="CircleCheck">确定添加</el-button>
                             </div>
                         </el-form-item>
                         <el-form-item size="large" label="衣挂方式">
@@ -97,8 +96,7 @@
                         <div class="items-break">
 
                             <RadioButton v-for="cloth in clothingListFilterResult" v-model="form.clothingId"
-                                :key="cloth.id" @change="step2ClothChange" :value="cloth.id"
-                                :label="cloth.title" />
+                                :key="cloth.id" @change="step2ClothChange" :value="cloth.id" :label="cloth.title" />
 
                         </div>
                     </el-scrollbar>
@@ -308,7 +306,8 @@
                             </el-radio-group>
                             <div class="section-title">工艺加价</div>
                             <div class="process-markup">
-                                <el-input style="width: 6rem;" type="number" size="large" v-model="form.processMarkup" :min="0" />元
+                                <el-input style="width: 6rem;" type="number" size="large" v-model="form.processMarkup"
+                                    :min="0" />元
                             </div>
                             <div class="section-title">备注信息</div>
                             <div class="step6-card">
@@ -467,6 +466,15 @@ const cateName = ref();
 const clothNameRef = ref();
 const prePictureList2 = ref(new Set());// 洗前图片
 
+// 自定义校验最低价格函数
+function validateMinPrice(rule, value, callback) {
+    if (value && Number(value) > Number(form.value.clothInfo.clothingBasePrice)) {
+        callback(new Error("最低价格不能超过基准价格"));
+    } else {
+        callback();
+    }
+};
+
 const data = reactive({
     form: {},
     rules: {
@@ -484,6 +492,9 @@ const data = reactive({
         ],
         createTime: [
             { required: true, message: "收取时间不能为空", trigger: "blur" }
+        ],
+        'clothInfo.clothingMinPrice': [
+            { validator: validateMinPrice, trigger: 'blur' }
         ]
     }
 });
@@ -649,12 +660,12 @@ async function handleAddCate() {
         proxy.notify.error("请输入分类名称");
         return;
     }
-    
+
     if (!form.value.categoryId) {
         proxy.notify.error("请先选择品类");
         return;
     }
-    
+
     // 创建新的分类
     const style = {
         categoryId: form.value.categoryId,
@@ -662,31 +673,12 @@ async function handleAddCate() {
         styleCode: "", // 后端会自动生成
         orderNum: 0
     };
-    
+
     addStyle(style).then(() => {
         proxy.notify.success("添加成功");
         cateChange();
         cateName.value = "";
     });
-}
-// 获取颜色名称
-function findColorName() {
-    if (form.value.clothingColor) {
-        const color = colorList.value.find(item => item.tagId == form.value.clothingColor);
-        return color ? color.tagName : '未选择颜色';
-    } else {
-        return '未选择颜色';
-    }
-}
-
-// 获取衣物名称
-function findClothingName() {
-    if (form.value.clothingId) {
-        const color = clothingList.value.find(item => item.id == form.value.clothingId);
-        return color ? color.clothingName : '未选择衣物';
-    } else {
-        return '未选择衣物';
-    }
 }
 
 // 当品类发生变化时动态查询子分类列表
@@ -938,7 +930,7 @@ const getPinyinInitials = (word) => {
     return pinyinResult.flat().join('').toUpperCase(); // 转为大写并拼接
 };
 
-/* 搜索颜色 */
+/* 搜索衣物 */
 function searchCloth(color) {
     const upperCaseColor = color.trim().toUpperCase();
     if (upperCaseColor === '') {
@@ -947,7 +939,7 @@ function searchCloth(color) {
 
     // 颜色、瑕疵、洗后预估、品牌是从第3步开始渲染的，因此要-2
     const item = clothingListFilterResult.value.find(item => {
-        return item.clothingName.includes(upperCaseColor) || getPinyinInitials(item.clothingName).includes(upperCaseColor);
+        return item.title.includes(upperCaseColor) || getPinyinInitials(item.title).includes(upperCaseColor);
     });
 
     if (!item) {
@@ -1039,10 +1031,17 @@ function createCloth() {
         proxy.notify.error("请输入衣物价格");
         return;
     }
+
+    // 验证最低价格不能超过基准价格
+    if (data.clothingMinPrice && Number(data.clothingMinPrice) > Number(data.clothingBasePrice)) {
+        proxy.notify.error("最低价格不能超过基准价格");
+        return;
+    }
+
     data.clothingMinPrice = data.clothingMinPrice || data.clothingBasePrice;
     data.categoryId = form.value.categoryId;
     data.styleId = form.value.styleId;
-    data.clothingName = clothNameInput.value;
+    data.title = clothNameInput.value;
 
     createClothingCreateOrder(data).then(async response => {
         proxy.notify.success("新增衣物成功");
@@ -1436,13 +1435,11 @@ onMounted(async () => {
 .price-content {
     width: 100%;
     display: flex;
-    flex-direction: column;
-    gap: 1rem;
 
     .price-wrapper {
         width: 100%;
         display: flex;
-        justify-content: space-around;
+        justify-content: flex-start;
         gap: .25rem;
     }
 }

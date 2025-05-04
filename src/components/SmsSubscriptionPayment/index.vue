@@ -2,7 +2,7 @@
   <el-dialog v-model="dialogVisible" width="600px" append-to-body lock-scroll modal :close-on-click-modal="false"
     :show-close="false" :align-center="true" class="subscription-payment-dialog">
     <template #header>
-      <div class="dialog-header">
+      <div class="dialog-order-header">
         <div class="order-info">
           <el-icon>
             <Ticket />
@@ -480,7 +480,7 @@ onBeforeUnmount(() => {
   background-color: var(--el-bg-color-page);
 }
 
-.dialog-header {
+.dialog-order-header {
   display: flex;
   justify-content: space-between;
   align-items: center;

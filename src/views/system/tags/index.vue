@@ -1,31 +1,33 @@
 <template>
   <div class="app-container">
-    <el-card class="search-card" v-show="showSearch">
-      <el-form :model="queryParams" ref="queryRef" :inline="true" label-width="68px">
-        <el-form-item label="标签编码" prop="tagNumber">
-          <el-input v-model="queryParams.tagNumber" placeholder="请输入标签编码" clearable @keyup.enter="handleQuery" />
-        </el-form-item>
-        <el-form-item label="标签名称" prop="tagName">
-          <el-input v-model="queryParams.tagName" placeholder="请输入标签名称" clearable @keyup.enter="handleQuery" />
-        </el-form-item>
-        <el-form-item label="标签类别" prop="tagOrder">
-          <el-select v-model="queryParams.tagOrder" @change="selectChange" placeholder="标签类别" clearable
-            style="width: 240px">
-            <el-option v-for="dict in sys_tag_order" :key="dict.value" :label="dict.label" :value="dict.value" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="状态" prop="status">
-          <el-select v-model="queryParams.status" @change="selectChange" placeholder="状态" clearable
-            style="width: 240px">
-            <el-option v-for="dict in sys_normal_disable" :key="dict.value" :label="dict.label" :value="dict.value" />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button class="hover-flow" type="primary" icon="Search" @click="handleQuery">搜索</el-button>
-          <el-button class="hover-flow" icon="Refresh" @click="resetQuery">重置</el-button>
-        </el-form-item>
-      </el-form>
-    </el-card>
+    <transition name="height-fade">
+      <el-card class="search-card" v-show="showSearch">
+        <el-form :model="queryParams" ref="queryRef" :inline="true" label-width="68px">
+          <el-form-item label="标签编码" prop="tagNumber">
+            <el-input v-model="queryParams.tagNumber" placeholder="请输入标签编码" clearable @keyup.enter="handleQuery" />
+          </el-form-item>
+          <el-form-item label="标签名称" prop="tagName">
+            <el-input v-model="queryParams.tagName" placeholder="请输入标签名称" clearable @keyup.enter="handleQuery" />
+          </el-form-item>
+          <el-form-item label="标签类别" prop="tagOrder">
+            <el-select v-model="queryParams.tagOrder" @change="selectChange" placeholder="标签类别" clearable
+              style="width: 240px">
+              <el-option v-for="dict in sys_tag_order" :key="dict.value" :label="dict.label" :value="dict.value" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="状态" prop="status">
+            <el-select v-model="queryParams.status" @change="selectChange" placeholder="状态" clearable
+              style="width: 240px">
+              <el-option v-for="dict in sys_normal_disable" :key="dict.value" :label="dict.label" :value="dict.value" />
+            </el-select>
+          </el-form-item>
+          <el-form-item>
+            <el-button class="hover-flow" type="primary" icon="Search" @click="handleQuery">搜索</el-button>
+            <el-button class="hover-flow" icon="Refresh" @click="resetQuery">重置</el-button>
+          </el-form-item>
+        </el-form>
+      </el-card>
+    </transition>
 
     <el-card class="table-card">
       <el-row :gutter="10" class="mb8">

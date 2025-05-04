@@ -96,6 +96,14 @@ pub struct Order {
     pub payment_amount: Option<f64>,
 }
 
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[serde(default)]
+pub struct OrderFromServer {
+    pub order: Order,
+    pub order_clothes: Vec<OrderCloth>,
+}
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
 pub enum PaymentMethod {
     #[default]
@@ -265,7 +273,7 @@ FROM orders o
     LEFT JOIN order_clothes_adjust a ON o.order_id = a.order_id
     LEFT JOIN payments p ON o.order_id = p.uc_order_id
     INNER JOIN order_clothes oc ON o.order_id = oc.order_id
-    INNER JOIN clothing c ON oc.clothing_id = c.clothing_id ";
+    INNER JOIN clothing c ON oc.clothing_id = c.id ";
 
 impl Order {
     // Insert a new Order into the database
@@ -495,7 +503,7 @@ impl Order {
         builder.push(" AND o.user_id = ").push_bind(query.user_id);
         if let Some(cloth_name) = &query.cloth_name {
             builder
-                .push(" AND c.clothing_name LIKE ")
+                .push(" AND c.title LIKE ")
                 .push_bind(format!("%{}%", cloth_name));
         }
         if let Some(start_time) = &query.start_time {
@@ -528,7 +536,7 @@ impl Order {
         builder.push(" AND o.user_id = ").push_bind(query.user_id);
         if let Some(cloth_name) = &query.cloth_name {
             builder
-                .push(" AND c.clothing_name LIKE ")
+                .push(" AND c.title LIKE ")
                 .push_bind(format!("%{}%", cloth_name));
         }
         if let Some(start_time) = &query.start_time {

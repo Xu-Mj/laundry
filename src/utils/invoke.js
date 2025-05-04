@@ -22,6 +22,7 @@ const errorMessages = {
     default: "未知错误，请联系管理员",
     AccountOrPassword: "用户名或密码错误",
     AccountNotRegister: "该账号未注册",
+    RegisterDenied: "该账号注册还未通过审核，请联系管理员",
     SmsNotSubscribed: "未订阅短信服务，请先订阅",
     SmsRemainShort: "短信余量不足，请充值",
 };

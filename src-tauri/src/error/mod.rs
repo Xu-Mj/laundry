@@ -23,6 +23,7 @@ pub enum ErrorKind {
     InvalidPassword,
     AccountOrPassword,
     AccountNotRegister,
+    RegisterDenied,
     UnAuthorized,
     UnAuthorizedDevice,
     SmsNotSubscribed,

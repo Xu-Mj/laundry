@@ -78,8 +78,8 @@
         </el-form-item>
 
         <!-- 详细地址 -->
-        <el-form-item prop="address_detail" class="custom-form-item">
-          <el-input v-model="registerForm.address_detail" type="text" size="large" auto-complete="off"
+        <el-form-item prop="addressdetail" class="custom-form-item">
+          <el-input v-model="registerForm.addressdetail" type="text" size="large" auto-complete="off"
             placeholder="请输入详细地址（街道、门牌号等）" class="custom-input">
             <template #prefix><el-icon class="input-icon">
                 <Location />
@@ -196,7 +196,7 @@ const registerForm = ref({
   province: "", // 省份
   city: "", // 城市
   district: "", // 区/县
-  address_detail: "", // 详细地址
+  addressdetail: "", // 详细地址
   password: "",
   confirmPassword: "",
   code: "",
@@ -247,7 +247,7 @@ const registerRules = {
     { required: true, trigger: "change", message: "请选择省/市/区" },
     { type: 'array', min: 3, message: "请完整选择省/市/区", trigger: "change" }
   ],
-  address_detail: [
+  addressdetail: [
     { required: true, trigger: "blur", message: "请输入详细地址" },
     { min: 3, max: 100, message: "详细地址长度必须介于 3 和 100 之间", trigger: "blur" }
   ],
@@ -323,7 +323,7 @@ const getSmsCode = async () => {
     // await sendSmsCode(registerForm.value.ownerPhone);
   } catch (error) {
     proxy.$notify.error({
-      title: "验证失败",
+      title: "获取验证码失败",
       message: error.message || "请输入正确的手机号码",
       duration: 3000
     });

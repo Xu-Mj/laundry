@@ -59,8 +59,8 @@
         </el-table-column>
       </el-table>
 
-      <pagination v-show="total > 0" :total="total" v-model:page="queryParams.page"
-        v-model:limit="queryParams.pageSize" @pagination="getList" />
+      <pagination v-show="total > 0" :total="total" v-model:page="queryParams.page" v-model:limit="queryParams.pageSize"
+        @pagination="getList" />
     </el-card>
 
     <!-- 添加或修改衣物管理对话框 -->
@@ -195,12 +195,10 @@
             <el-row :gutter="20">
               <el-col :span="12">
                 <el-form-item label="挂衣方式" prop="hangType">
-                  <el-select v-model="form.hangType" placeholder="请选择挂衣方式" style="width: 100%">
-                    <el-option label="普通挂" value="1" />
-                    <el-option label="平铺" value="2" />
-                    <el-option label="叠放" value="3" />
-                    <el-option label="特殊处理" value="4" />
-                  </el-select>
+                  <el-radio-group size="large" v-model="form.hangType">
+                    <el-radio :value="'1'">输送线</el-radio>
+                    <el-radio :value="'2'">其他</el-radio>
+                  </el-radio-group>
                 </el-form-item>
               </el-col>
               <el-col :span="12">
@@ -490,7 +488,7 @@ function prevStep() {
 }
 function getOriginalPath(convertedUrl) {
   if (!convertedUrl) return '';
-  
+
   // 如果是普通路径（未转换的），直接返回
   if (!convertedUrl.startsWith('http://asset.localhost/')) {
     return convertedUrl;

@@ -61,36 +61,25 @@
 
         <!-- 商家地址 - 省市区选择 -->
         <el-form-item prop="addressRegion" class="custom-form-item">
-          <el-cascader
-            v-model="registerForm.addressRegion"
-            :options="areaData"
-            placeholder="请选择省/市/区"
-            class="custom-cascader"
-            size="large"
-            :props="{ 
+          <el-cascader v-model="registerForm.addressRegion" :options="areaData" placeholder="请选择省/市/区"
+            class="custom-cascader" size="large" :props="{
               checkStrictly: false,
               value: 'value',
               label: 'label',
               children: 'children',
               expandTrigger: 'hover'
-            }"
-            clearable
-          >
+            }" clearable>
             <template #prefix><svg-icon icon-class="tree" class="input-icon" /></template>
           </el-cascader>
         </el-form-item>
-        
+
         <!-- 详细地址 -->
         <el-form-item prop="addressDetail" class="custom-form-item">
-          <el-input 
-            v-model="registerForm.addressDetail" 
-            type="text" 
-            size="large" 
-            auto-complete="off" 
-            placeholder="请输入详细地址（街道、门牌号等）"
-            class="custom-input"
-          >
-            <template #prefix><el-icon class="input-icon"><Location /></el-icon></template>
+          <el-input v-model="registerForm.addressDetail" type="text" size="large" auto-complete="off"
+            placeholder="请输入详细地址（街道、门牌号等）" class="custom-input">
+            <template #prefix><el-icon class="input-icon">
+                <Location />
+              </el-icon></template>
           </el-input>
         </el-form-item>
 
@@ -137,17 +126,23 @@
         </div>
       </el-form>
     </div>
-    <el-dialog title="提示" :visible.sync="dialogVisible" width="30%">
+    <el-dialog title="提示" v-model="dialogVisible" width="30%" align-center>
       <div style="text-align:center; padding: 30px 20px;">
         <div style="margin-bottom:30px;">
           <div
             style="display:inline-flex; justify-content:center; align-items:center; width:80px; height:80px; border-radius:50%; background-color:#67C23A; box-shadow:0 6px 16px rgba(103, 194, 58, 0.4);">
-            <i class="el-icon-check" style="font-size:40px; color:white;"></i>
+            <!-- <i class="el-icon-check" style="font-size:40px; color:white;"></i> -->
+            <el-icon class="el-icon-check" style="font-size:98px; color: #fff; width: 100%; height: 100%;">
+              <CircleCheck />
+            </el-icon>
           </div>
         </div>
         <div style="font-size:24px; color:#303133; margin-bottom:20px; font-weight:600">注册申请已提交</div>
         <div style="color:#606266; font-size:16px; line-height:1.8; margin-bottom:8px;">您的注册申请已提交，请等待管理员审核。</div>
         <div style="color:#606266; font-size:16px; line-height:1.8; margin-top:8px;">审核通过后，您将收到短信通知。</div>
+      </div>
+      <div style="display: flex; justify-content: center;">
+        <el-button @click="router.push('/login')" type="primary">确定</el-button>
       </div>
     </el-dialog>
   </div>
@@ -167,6 +162,8 @@ import { Location } from '@element-plus/icons-vue'
 const appWindow = new Window('main');
 const router = useRouter();
 const { proxy } = getCurrentInstance();
+
+const dialogVisible = ref(false);
 
 // 注册表单数据
 const registerForm = ref({
@@ -299,7 +296,7 @@ const handleRegister = () => {
   proxy.$refs.registerRef.validate(valid => {
     if (valid) {
       loading.value = true;
-      
+
       // 处理地址数据，将省市区和详细地址合并
       const formData = { ...registerForm.value };
       // 将省市区和详细地址合并为一个地址字符串
@@ -314,35 +311,12 @@ const handleRegister = () => {
         formData.deviceId = deviceInfo.deviceId;
         formData.deviceName = deviceInfo.deviceName || '';
         formData.deviceMac = deviceInfo.macAddress || '';
-        
+
         // 调用注册API
         return register(formData);
       }).then(res => {
         loading.value = false;
-        ElMessageBox.alert(
-          `<div style="text-align:center; padding: 30px 20px;">
-            <div style="margin-bottom:30px;">
-              <div style="display:inline-flex; justify-content:center; align-items:center; width:80px; height:80px; border-radius:50%; background-color:#67C23A; box-shadow:0 6px 16px rgba(103, 194, 58, 0.4);">
-                <i class="el-icon-check" style="font-size:40px; color:white;"></i>
-              </div>
-            </div>
-            <div style="font-size:24px; color:#303133; margin-bottom:20px; font-weight:600">注册申请已提交</div>
-            <div style="color:#606266; font-size:16px; line-height:1.8; margin-bottom:8px;">您的注册申请已提交，请等待管理员审核。</div>
-            <div style="color:#606266; font-size:16px; line-height:1.8; margin-top:8px;">审核通过后，您将收到短信通知。</div>
-          </div>`,
-          "提示",
-          {
-            dangerouslyUseHTMLString: true,
-            confirmButtonText: "返回登录页",
-            customClass: {
-              container: "register-success-dialog",
-              confirmButton: "register-success-confirm-btn"
-            },
-            callback: () => {
-              router.push("/login");
-            }
-          }
-        );
+        dialogVisible.value = true;
       }).catch((error) => {
         console.error('注册失败:', error);
         loading.value = false;
@@ -510,13 +484,13 @@ onMounted(async () => {
       color: #909399;
     }
   }
-  
+
   // 级联选择器特殊样式
   .custom-cascader {
     :deep(.el-input__wrapper) {
       padding: 0 15px;
     }
-    
+
     :deep(.el-input__inner) {
       height: 50px;
       line-height: 50px;

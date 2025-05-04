@@ -203,10 +203,11 @@ class DirectWebSocketManager {
 
     /**
      * 获取WebSocket服务器地址
-     * 可以从配置中读取或通过API获取
+     * 从环境变量中读取配置
      */
     async getServerUrl() {
-        return 'ws://127.0.0.1:50000/ws';
+        // 从环境变量中获取WebSocket服务器地址
+        return import.meta.env.VITE_APP_WEBSOCKET_URL;
     }
 
     /**

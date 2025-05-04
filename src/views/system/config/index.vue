@@ -1,31 +1,33 @@
 <template>
    <div class="app-container">
-      <el-card class="search-card" v-show="showSearch">
-         <el-form :model="queryParams" ref="queryRef" :inline="true" label-width="68px">
-            <el-form-item label="参数名称" prop="configName">
-               <el-input v-model="queryParams.configName" placeholder="请输入参数名称" clearable style="width: 240px"
-                  @keyup.enter="handleQuery" />
-            </el-form-item>
-            <el-form-item label="参数键名" prop="configKey">
-               <el-input v-model="queryParams.configKey" placeholder="请输入参数键名" clearable style="width: 240px"
-                  @keyup.enter="handleQuery" />
-            </el-form-item>
-            <el-form-item label="系统内置" prop="configType">
-               <el-select v-model="queryParams.configType" placeholder="系统内置" @change="getList" clearable
-                  style="width: 100px">
-                  <el-option v-for="dict in sys_yes_no" :key="dict.value" :label="dict.label" :value="dict.value" />
-               </el-select>
-            </el-form-item><!-- 
+      <transition name="height-fade">
+         <el-card class="search-card" v-show="showSearch">
+            <el-form :model="queryParams" ref="queryRef" :inline="true" label-width="68px">
+               <el-form-item label="参数名称" prop="configName">
+                  <el-input v-model="queryParams.configName" placeholder="请输入参数名称" clearable style="width: 240px"
+                     @keyup.enter="handleQuery" />
+               </el-form-item>
+               <el-form-item label="参数键名" prop="configKey">
+                  <el-input v-model="queryParams.configKey" placeholder="请输入参数键名" clearable style="width: 240px"
+                     @keyup.enter="handleQuery" />
+               </el-form-item>
+               <el-form-item label="系统内置" prop="configType">
+                  <el-select v-model="queryParams.configType" placeholder="系统内置" @change="getList" clearable
+                     style="width: 100px">
+                     <el-option v-for="dict in sys_yes_no" :key="dict.value" :label="dict.label" :value="dict.value" />
+                  </el-select>
+               </el-form-item><!-- 
          <el-form-item label="创建时间" style="width: 308px;">
             <el-date-picker v-model="dateRange" value-format="YYYY-MM-DD" type="daterange" range-separator="-"
                start-placeholder="开始日期" end-placeholder="结束日期"></el-date-picker>
          </el-form-item> -->
-            <el-form-item>
-               <el-button class="hover-flow" type="primary" icon="Search" @click="handleQuery">搜索</el-button>
-               <el-button class="hover-flow" icon="Refresh" @click="resetQuery">重置</el-button>
-            </el-form-item>
-         </el-form>
-      </el-card>
+               <el-form-item>
+                  <el-button class="hover-flow" type="primary" icon="Search" @click="handleQuery">搜索</el-button>
+                  <el-button class="hover-flow" icon="Refresh" @click="resetQuery">重置</el-button>
+               </el-form-item>
+            </el-form>
+         </el-card>
+      </transition>
 
       <el-card class="table-card">
          <el-row :gutter="10" class="mb8">

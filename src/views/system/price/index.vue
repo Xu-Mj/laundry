@@ -1,22 +1,25 @@
 <template>
   <div class="app-container">
-    <el-card class="search-card" v-show="showSearch">
-      <el-form :model="queryParams" ref="queryRef" :inline="true" label-width="68px">
-        <el-form-item label="订单类别" prop="orderType">
-          <el-select v-model="queryParams.orderType" @change="selectChange" placeholder="订单类别" clearable
-            style="width: 100px;">
-            <el-option v-for="dict in sys_price_order_type" :key="dict.value" :label="dict.label" :value="dict.value" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="价格名称" prop="priceName">
-          <el-input v-model="queryParams.priceName" placeholder="请输入价格名称" clearable @keyup.enter="handleQuery" />
-        </el-form-item>
-        <el-form-item>
-          <el-button class="hover-flow" type="primary" icon="Search" @click="handleQuery">搜索</el-button>
-          <el-button class="hover-flow" icon="Refresh" @click="resetQuery">重置</el-button>
-        </el-form-item>
-      </el-form>
-    </el-card>
+    <transition name="height-fade">
+      <el-card class="search-card" v-show="showSearch">
+        <el-form :model="queryParams" ref="queryRef" :inline="true" label-width="68px">
+          <el-form-item label="订单类别" prop="orderType">
+            <el-select v-model="queryParams.orderType" @change="selectChange" placeholder="订单类别" clearable
+              style="width: 100px;">
+              <el-option v-for="dict in sys_price_order_type" :key="dict.value" :label="dict.label"
+                :value="dict.value" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="价格名称" prop="priceName">
+            <el-input v-model="queryParams.priceName" placeholder="请输入价格名称" clearable @keyup.enter="handleQuery" />
+          </el-form-item>
+          <el-form-item>
+            <el-button class="hover-flow" type="primary" icon="Search" @click="handleQuery">搜索</el-button>
+            <el-button class="hover-flow" icon="Refresh" @click="resetQuery">重置</el-button>
+          </el-form-item>
+        </el-form>
+      </el-card>
+    </transition>
 
     <el-card class="table-card">
       <el-row :gutter="10" class="mb8">

@@ -1,29 +1,31 @@
 <template>
    <div class="app-container">
-      <el-card class="search-card" v-show="showSearch">
-         <el-form :model="queryParams" ref="queryRef" :inline="true">
-            <el-form-item label="字典名称" prop="dictType">
-               <el-select v-model="queryParams.dictType" style="width: 200px">
-                  <el-option v-for="item in typeOptions" :key="item.dictId" :label="item.dictName"
-                     :value="item.dictType" />
-               </el-select>
-            </el-form-item>
-            <el-form-item label="字典标签" prop="dictLabel">
-               <el-input v-model="queryParams.dictLabel" placeholder="请输入字典标签" clearable style="width: 200px"
-                  @keyup.enter="handleQuery" />
-            </el-form-item>
-            <el-form-item label="状态" prop="status">
-               <el-select v-model="queryParams.status" placeholder="数据状态" clearable style="width: 200px">
-                  <el-option v-for="dict in sys_normal_disable" :key="dict.value" :label="dict.label"
-                     :value="dict.value" />
-               </el-select>
-            </el-form-item>
-            <el-form-item>
-               <el-button class="hover-flow" type="primary" icon="Search" @click="handleQuery">搜索</el-button>
-               <el-button class="hover-flow" icon="Refresh" @click="resetQuery">重置</el-button>
-            </el-form-item>
-         </el-form>
-      </el-card>
+      <transition name="height-fade">
+         <el-card class="search-card" v-show="showSearch">
+            <el-form :model="queryParams" ref="queryRef" :inline="true">
+               <el-form-item label="字典名称" prop="dictType">
+                  <el-select v-model="queryParams.dictType" style="width: 200px">
+                     <el-option v-for="item in typeOptions" :key="item.dictId" :label="item.dictName"
+                        :value="item.dictType" />
+                  </el-select>
+               </el-form-item>
+               <el-form-item label="字典标签" prop="dictLabel">
+                  <el-input v-model="queryParams.dictLabel" placeholder="请输入字典标签" clearable style="width: 200px"
+                     @keyup.enter="handleQuery" />
+               </el-form-item>
+               <el-form-item label="状态" prop="status">
+                  <el-select v-model="queryParams.status" placeholder="数据状态" clearable style="width: 200px">
+                     <el-option v-for="dict in sys_normal_disable" :key="dict.value" :label="dict.label"
+                        :value="dict.value" />
+                  </el-select>
+               </el-form-item>
+               <el-form-item>
+                  <el-button class="hover-flow" type="primary" icon="Search" @click="handleQuery">搜索</el-button>
+                  <el-button class="hover-flow" icon="Refresh" @click="resetQuery">重置</el-button>
+               </el-form-item>
+            </el-form>
+         </el-card>
+      </transition>
 
       <el-card class="table-card">
          <el-row :gutter="10" class="mb8">
@@ -49,7 +51,7 @@
                <template #default="scope">
                   <span
                      v-if="(scope.row.listClass == '' || scope.row.listClass == 'default') && (scope.row.cssClass == '' || scope.row.cssClass == null)">{{
-         scope.row.dictLabel }}</span>
+                        scope.row.dictLabel }}</span>
                   <el-tag v-else :type="scope.row.listClass == 'primary' ? '' : scope.row.listClass"
                      :class="scope.row.cssClass">{{ scope.row.dictLabel }}</el-tag>
                </template>

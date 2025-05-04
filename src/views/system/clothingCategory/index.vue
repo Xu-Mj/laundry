@@ -1,21 +1,23 @@
 <template>
   <div class="app-container">
-    <el-card class="search-card" v-show="showSearch">
-      <el-form :model="queryParams" ref="queryRef" :inline="true" label-width="68px">
-        <el-form-item label="品类名称" prop="categoryName">
-          <el-input v-model="queryParams.categoryName" placeholder="请输入品类名称" clearable style="width: 240px"
-            @keyup.enter="handleQuery" />
-        </el-form-item>
-        <el-form-item label="品类编码" prop="categoryCode">
-          <el-input v-model="queryParams.categoryCode" placeholder="请输入品类编码" clearable style="width: 240px"
-            @keyup.enter="handleQuery" />
-        </el-form-item>
-        <el-form-item>
-          <el-button class="hover-flow" type="primary" icon="Search" @click="handleQuery">搜索</el-button>
-          <el-button class="hover-flow" icon="Refresh" @click="resetQuery">重置</el-button>
-        </el-form-item>
-      </el-form>
-    </el-card>
+    <transition name="height-fade">
+      <el-card class="search-card" v-show="showSearch">
+        <el-form :model="queryParams" ref="queryRef" :inline="true" label-width="68px">
+          <el-form-item label="品类名称" prop="categoryName">
+            <el-input v-model="queryParams.categoryName" placeholder="请输入品类名称" clearable style="width: 240px"
+              @keyup.enter="handleQuery" />
+          </el-form-item>
+          <el-form-item label="品类编码" prop="categoryCode">
+            <el-input v-model="queryParams.categoryCode" placeholder="请输入品类编码" clearable style="width: 240px"
+              @keyup.enter="handleQuery" />
+          </el-form-item>
+          <el-form-item>
+            <el-button class="hover-flow" type="primary" icon="Search" @click="handleQuery">搜索</el-button>
+            <el-button class="hover-flow" icon="Refresh" @click="resetQuery">重置</el-button>
+          </el-form-item>
+        </el-form>
+      </el-card>
+    </transition>
 
     <el-card class="table-card">
       <el-row :gutter="10" class="mb8">
@@ -34,7 +36,7 @@
       <el-table v-loading="loading" :data="categoryList" @selection-change="handleSelectionChange" class="modern-table"
         border stripe>
         <template #empty>
-          <el-empty description="暂无数据"/>
+          <el-empty description="暂无数据" />
         </template>
         <el-table-column type="selection" width="55" align="center" />
         <el-table-column label="品类名称" align="center" prop="categoryName" />
@@ -62,7 +64,8 @@
     </el-card>
 
     <!-- 添加或修改品类对话框 -->
-    <el-dialog :title="title" v-model="open" width="500px" append-to-body :align-center="true" :close-on-click-modal="false" :show-close="false">
+    <el-dialog :title="title" v-model="open" width="500px" append-to-body :align-center="true"
+      :close-on-click-modal="false" :show-close="false">
       <template #header>
         <div class="dialog-header hover-flow">
           <span class="dialog-title">{{ title }}</span>
@@ -259,12 +262,12 @@ function handleDelete(row) {
     confirmButtonText: "确定",
     cancelButtonText: "取消",
     type: "warning"
-  }).then(function() {
+  }).then(function () {
     return delCategory(ids);
   }).then(() => {
     getList();
     ElMessage.success("删除成功");
-  }).catch(() => {});
+  }).catch(() => { });
 }
 
 onMounted(() => {
@@ -287,5 +290,4 @@ onMounted(() => {
 .mb8 {
   margin-bottom: 8px;
 }
-
 </style>

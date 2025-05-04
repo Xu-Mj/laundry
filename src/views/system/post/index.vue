@@ -1,27 +1,29 @@
 <template>
    <div class="app-container">
-      <el-card class="search-card" v-show="showSearch">
-         <el-form :model="queryParams" ref="queryRef" :inline="true">
-            <el-form-item label="等级编码" prop="levelCode">
-               <el-input v-model="queryParams.levelCode" placeholder="请输入等级编码" clearable style="width: 200px"
-                  @keyup.enter="handleQuery" />
-            </el-form-item>
-            <el-form-item label="等级名称" prop="levelName">
-               <el-input v-model="queryParams.levelName" placeholder="请输入等级名称" clearable style="width: 200px"
-                  @keyup.enter="handleQuery" />
-            </el-form-item>
-            <el-form-item label="状态" prop="status">
-               <el-select v-model="queryParams.status" placeholder="等级状态" clearable style="width: 200px">
-                  <el-option v-for="dict in sys_normal_disable" :key="dict.value" :label="dict.label"
-                     :value="dict.value" />
-               </el-select>
-            </el-form-item>
-            <el-form-item>
-               <el-button class="hover-flow" type="primary" icon="Search" @click="handleQuery">搜索</el-button>
-               <el-button class="hover-flow" icon="Refresh" @click="resetQuery">重置</el-button>
-            </el-form-item>
-         </el-form>
-      </el-card>
+      <transition name="height-fade">
+         <el-card class="search-card" v-show="showSearch">
+            <el-form :model="queryParams" ref="queryRef" :inline="true">
+               <el-form-item label="等级编码" prop="levelCode">
+                  <el-input v-model="queryParams.levelCode" placeholder="请输入等级编码" clearable style="width: 200px"
+                     @keyup.enter="handleQuery" />
+               </el-form-item>
+               <el-form-item label="等级名称" prop="levelName">
+                  <el-input v-model="queryParams.levelName" placeholder="请输入等级名称" clearable style="width: 200px"
+                     @keyup.enter="handleQuery" />
+               </el-form-item>
+               <el-form-item label="状态" prop="status">
+                  <el-select v-model="queryParams.status" placeholder="等级状态" clearable style="width: 200px">
+                     <el-option v-for="dict in sys_normal_disable" :key="dict.value" :label="dict.label"
+                        :value="dict.value" />
+                  </el-select>
+               </el-form-item>
+               <el-form-item>
+                  <el-button class="hover-flow" type="primary" icon="Search" @click="handleQuery">搜索</el-button>
+                  <el-button class="hover-flow" icon="Refresh" @click="resetQuery">重置</el-button>
+               </el-form-item>
+            </el-form>
+         </el-card>
+      </transition>
 
       <el-card class="table-card">
          <el-row :gutter="10" class="mb8">
@@ -81,7 +83,7 @@
             <el-form-item label="等级状态" prop="status">
                <el-radio-group v-model="form.status">
                   <el-radio v-for="dict in sys_normal_disable" :key="dict.value" :value="dict.value">{{ dict.label
-                     }}</el-radio>
+                  }}</el-radio>
                </el-radio-group>
             </el-form-item>
             <el-form-item label="备注" prop="remark">

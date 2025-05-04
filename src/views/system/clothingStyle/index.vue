@@ -1,28 +1,30 @@
 <template>
     <div class="app-container">
-        <el-card class="search-card" v-show="showSearch">
-            <el-form :model="queryParams" ref="queryRef" :inline="true" label-width="68px">
-                <el-form-item label="所属品类" prop="categoryId">
-                    <el-select v-model="queryParams.categoryId" placeholder="请选择所属品类" clearable style="width: 240px"
-                        @change="handleCategoryChange" :disabled="!!categoryName">
-                        <el-option v-for="item in categoryOptions" :key="item.categoryId" :label="item.categoryName"
-                            :value="item.categoryId" />
-                    </el-select>
-                </el-form-item>
-                <el-form-item label="分类名称" prop="styleName">
-                    <el-input v-model="queryParams.styleName" placeholder="请输入分类名称" clearable style="width: 240px"
-                        @keyup.enter="handleQuery" />
-                </el-form-item>
-                <el-form-item label="分类编码" prop="styleCode">
-                    <el-input v-model="queryParams.styleCode" placeholder="请输入分类编码" clearable style="width: 240px"
-                        @keyup.enter="handleQuery" />
-                </el-form-item>
-                <el-form-item>
-                    <el-button class="hover-flow" type="primary" icon="Search" @click="handleQuery">搜索</el-button>
-                    <el-button class="hover-flow" icon="Refresh" @click="resetQuery">重置</el-button>
-                </el-form-item>
-            </el-form>
-        </el-card>
+        <transition name="height-fade">
+            <el-card class="search-card" v-show="showSearch">
+                <el-form :model="queryParams" ref="queryRef" :inline="true" label-width="68px">
+                    <el-form-item label="所属品类" prop="categoryId">
+                        <el-select v-model="queryParams.categoryId" placeholder="请选择所属品类" clearable style="width: 240px"
+                            @change="handleCategoryChange" :disabled="!!categoryName">
+                            <el-option v-for="item in categoryOptions" :key="item.categoryId" :label="item.categoryName"
+                                :value="item.categoryId" />
+                        </el-select>
+                    </el-form-item>
+                    <el-form-item label="分类名称" prop="styleName">
+                        <el-input v-model="queryParams.styleName" placeholder="请输入分类名称" clearable style="width: 240px"
+                            @keyup.enter="handleQuery" />
+                    </el-form-item>
+                    <el-form-item label="分类编码" prop="styleCode">
+                        <el-input v-model="queryParams.styleCode" placeholder="请输入分类编码" clearable style="width: 240px"
+                            @keyup.enter="handleQuery" />
+                    </el-form-item>
+                    <el-form-item>
+                        <el-button class="hover-flow" type="primary" icon="Search" @click="handleQuery">搜索</el-button>
+                        <el-button class="hover-flow" icon="Refresh" @click="resetQuery">重置</el-button>
+                    </el-form-item>
+                </el-form>
+            </el-card>
+        </transition>
 
         <el-card class="table-card">
             <div v-if="categoryName" class="category-title">

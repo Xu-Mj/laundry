@@ -601,6 +601,8 @@ pub async fn update_clothing(state: State<'_, AppState>, mut clothing: Clothing)
         return Err(Error::with_details(ErrorKind::BadRequest, "衣物名不能为空"));
     }
 
+    clothing.is_default = Some(false);
+
     clothing.store_id = Some(utils::get_user_id(&state).await?);
 
     // 确保tag_list字段正确处理
@@ -695,7 +697,23 @@ pub async fn create_clothing_4_create_order(
     }
 
     clothing.store_id = Some(utils::get_user_id(&state).await?);
+
     clothing.is_default = Some(true);
+    clothing.is_put_on_sale = Some(false);
+    clothing.is_available = Some(false);
+    clothing.stock_quantity = Some(0);
+    
+    
+    // gen clothing_number
+    let code = utils::gen_code(clothing.title.as_ref().unwrap());
+    clothing.clothing_number =
+        Some(Clothing::select_next_num(&state.pool, &format!("{code}-")).await?);
+
+    // 如果没有设置主图，使用默认衣物图片
+    if clothing.primary_image.is_none() || clothing.primary_image.as_ref().unwrap().trim().is_empty() {
+        // 使用相对路径，这样在不同平台上都能正确找到图片
+        clothing.primary_image = Some("images/default_cloth.svg".to_string());
+    }
 
     // 确保tag_list字段正确处理
     if let Some(tag_list) = &clothing.tag_list {

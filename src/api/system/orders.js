@@ -64,6 +64,11 @@ export function addOrders(data) {
 }
 
 // 新增洗护服务订单
+export function addServerOrders(data) {
+  return invoke('create_server_order', { data })
+}
+
+// 新增洗护服务订单
 export function addRewashOrder(data) {
   return request({
     url: '/system/orders/rewash',

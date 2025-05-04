@@ -1,6 +1,7 @@
 import directWebSocketManager from '@/utils/directWebSocket';
 import { getToken } from '@/utils/auth';
 import Notification from '@/utils/notification';
+import useUserStore from '@/store/modules/user';
 
 let isInitialized = false;
 
@@ -18,6 +19,13 @@ export async function initDirectWebSocketConnection() {
   const token = getToken();
   if (!token) {
     console.log('未登录，不初始化WebSocket连接');
+    return false;
+  }
+  
+  // 检查是否为游客登录，游客不初始化WebSocket连接
+  const userStore = useUserStore();
+  if (userStore.trial && userStore.trial.isGuest) {
+    console.log('游客登录，不初始化WebSocket连接');
     return false;
   }
 

@@ -49,33 +49,37 @@
         </el-form-item>
 
         <!-- 短信验证码 -->
-        <el-form-item prop="verificationCode" class="custom-form-item sms-code-item">
-          <el-input v-model="registerForm.verificationCode" type="text" size="large" auto-complete="off"
-            placeholder="短信验证码" class="custom-input sms-input">
-            <template #prefix><svg-icon icon-class="validCode" class="input-icon" /></template>
-          </el-input>
-          <el-button :disabled="smsCodeTimer > 0" type="primary" class="sms-code-button" @click="getSmsCode">
-            {{ smsCodeTimer > 0 ? `${smsCodeTimer}秒后重试` : '获取验证码' }}
-          </el-button>
+        <el-form-item prop="verificationCode" class="">
+          <div class="sms-code-item">
+            <el-input v-model="registerForm.verificationCode" type="text" size="large" auto-complete="off"
+              placeholder="短信验证码" class="custom-input sms-input">
+              <template #prefix><svg-icon icon-class="validCode" class="input-icon" /></template>
+            </el-input>
+            <el-button :disabled="smsCodeTimer > 0" type="primary" class="sms-code-button" @click="getSmsCode">
+              {{ smsCodeTimer > 0 ? `${smsCodeTimer}秒后重试` : '获取验证码' }}
+            </el-button>
+          </div>
         </el-form-item>
 
         <!-- 商家地址 - 省市区选择 -->
         <el-form-item prop="addressRegion" class="custom-form-item">
-          <el-cascader v-model="registerForm.addressRegion" :options="areaData" placeholder="请选择省/市/区"
+          <el-cascader v-model="registerForm.addressRegion" :options="regionData" placeholder="请选择省/市/区"
             class="custom-cascader" size="large" :props="{
               checkStrictly: false,
               value: 'value',
               label: 'label',
               children: 'children',
               expandTrigger: 'hover'
-            }" clearable>
-            <template #prefix><svg-icon icon-class="tree" class="input-icon" /></template>
+            }" clearable @change="handleAddressChange">
+            <template #prefix><el-icon>
+                <Location />
+              </el-icon></template>
           </el-cascader>
         </el-form-item>
 
         <!-- 详细地址 -->
-        <el-form-item prop="addressDetail" class="custom-form-item">
-          <el-input v-model="registerForm.addressDetail" type="text" size="large" auto-complete="off"
+        <el-form-item prop="address_detail" class="custom-form-item">
+          <el-input v-model="registerForm.address_detail" type="text" size="large" auto-complete="off"
             placeholder="请输入详细地址（街道、门牌号等）" class="custom-input">
             <template #prefix><el-icon class="input-icon">
                 <Location />
@@ -126,12 +130,11 @@
         </div>
       </el-form>
     </div>
-    <el-dialog title="提示" v-model="dialogVisible" width="30%" align-center>
+    <!-- <el-dialog title="提示" v-model="dialogVisible" width="30%" align-center>
       <div style="text-align:center; padding: 30px 20px;">
         <div style="margin-bottom:30px;">
           <div
             style="display:inline-flex; justify-content:center; align-items:center; width:80px; height:80px; border-radius:50%; background-color:#67C23A; box-shadow:0 6px 16px rgba(103, 194, 58, 0.4);">
-            <!-- <i class="el-icon-check" style="font-size:40px; color:white;"></i> -->
             <el-icon class="el-icon-check" style="font-size:98px; color: #fff; width: 100%; height: 100%;">
               <CircleCheck />
             </el-icon>
@@ -145,6 +148,23 @@
         <el-button @click="router.push('/login')" type="primary">确定</el-button>
       </div>
     </el-dialog>
+     -->
+    <el-dialog title="提示" v-model="dialogVisible" width="30%" align-center>
+      <div style="text-align:center; padding: 30px 20px;">
+        <div style="margin-bottom:30px;">
+          <div
+            style="display:inline-flex; justify-content:center; align-items:center; width:80px; height:80px; border-radius:50%; background-color:#67C23A; box-shadow:0 6px 16px rgba(103, 194, 58, 0.4);">
+            <el-icon class="el-icon-check" style="font-size:98px; color: #fff; width: 100%; height: 100%;">
+              <CircleCheck />
+            </el-icon>
+          </div>
+        </div>
+        <div style="font-size:24px; color:#303133; margin-bottom:20px; font-weight:600">注册成功~</div>
+      </div>
+      <div style="display: flex; justify-content: center;">
+        <el-button @click="router.push('/login')" type="primary">前往登录</el-button>
+      </div>
+    </el-dialog>
   </div>
 
 </template>
@@ -154,9 +174,8 @@ import WaveBackground from '@/layout/components/WaveBackground.vue';
 import SunRays from '@/layout/components/SunRays.vue';
 import { getCodeImg, register, getMsgCode, getDeviceInfo } from "@/api/login";
 import { Window } from "@tauri-apps/api/window";
-import { ElMessageBox } from "element-plus";
 import { convertFileSrc } from '@tauri-apps/api/core';
-import { areaData, stringifyAddress } from '@/utils/area-data';
+import { regionData, codeToText } from 'element-china-area-data';
 import { Location } from '@element-plus/icons-vue'
 
 const appWindow = new Window('main');
@@ -172,8 +191,12 @@ const registerForm = ref({
   ownerName: "",
   ownerPhone: "",
   verificationCode: "",
-  addressRegion: [], // 省市区选择
-  addressDetail: "", // 详细地址
+  addressRegion: [], // 省市区选择（用于级联选择器）
+  // 后端对应的字段
+  province: "", // 省份
+  city: "", // 城市
+  district: "", // 区/县
+  address_detail: "", // 详细地址
   password: "",
   confirmPassword: "",
   code: "",
@@ -224,7 +247,7 @@ const registerRules = {
     { required: true, trigger: "change", message: "请选择省/市/区" },
     { type: 'array', min: 3, message: "请完整选择省/市/区", trigger: "change" }
   ],
-  addressDetail: [
+  address_detail: [
     { required: true, trigger: "blur", message: "请输入详细地址" },
     { min: 3, max: 100, message: "详细地址长度必须介于 3 和 100 之间", trigger: "blur" }
   ],
@@ -254,6 +277,22 @@ const avatars = [
 // 关闭窗口
 const closeWindow = () => {
   appWindow.close();
+};
+
+// 处理地址选择变化
+const handleAddressChange = (value) => {
+  if (value && value.length >= 3) {
+    // 从级联选择器的值中获取省市区文本
+    const [provinceCode, cityCode, districtCode] = value;
+    registerForm.value.province = codeToText[provinceCode];
+    registerForm.value.city = codeToText[cityCode];
+    registerForm.value.district = codeToText[districtCode];
+  } else {
+    // 如果清空选择，也清空对应字段
+    registerForm.value.province = "";
+    registerForm.value.city = "";
+    registerForm.value.district = "";
+  }
 };
 
 // 获取短信验证码
@@ -293,17 +332,26 @@ const getSmsCode = async () => {
 
 // 提交注册
 const handleRegister = () => {
+  console.log("注册表单数据：", registerForm.value);
   proxy.$refs.registerRef.validate(valid => {
     if (valid) {
       loading.value = true;
 
-      // 处理地址数据，将省市区和详细地址合并
+      // 处理地址数据，从级联选择器中提取省市区信息
       const formData = { ...registerForm.value };
-      // 将省市区和详细地址合并为一个地址字符串
-      formData.location = stringifyAddress(formData.addressRegion, formData.addressDetail);
+      
+      // 如果有选择省市区，则更新对应字段
+      if (formData.addressRegion && formData.addressRegion.length >= 3) {
+        // 从级联选择器的值中获取省市区文本
+        const [provinceCode, cityCode, districtCode] = formData.addressRegion;
+        formData.province = codeToText[provinceCode];
+        formData.city = codeToText[cityCode];
+        formData.district = codeToText[districtCode];
+      }
+      
       // 删除中间字段，不需要传给后端
       delete formData.addressRegion;
-      delete formData.addressDetail;
+      delete formData.confirmPassword; // 确认密码不需要传给后端
 
       // 获取设备信息并添加到注册数据中
       getDeviceInfo().then(deviceInfo => {
@@ -312,6 +360,7 @@ const handleRegister = () => {
         formData.deviceName = deviceInfo.deviceName || '';
         formData.deviceMac = deviceInfo.macAddress || '';
 
+        return;
         // 调用注册API
         return register(formData);
       }).then(res => {
@@ -413,9 +462,6 @@ onMounted(async () => {
 }
 
 .register-form {
-  .custom-form-item {
-    margin-bottom: 24px;
-  }
 
   .avatar-selection {
     text-align: center;
@@ -498,8 +544,9 @@ onMounted(async () => {
   }
 
   .sms-code-item {
+    width: 100%;
     display: flex;
-    gap: 10px;
+    gap: 1rem;
 
     .sms-input {
       flex: 1;

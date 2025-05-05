@@ -10,7 +10,7 @@
     </div>
 
     <!-- 消息中心弹窗 -->
-    <el-dialog v-model="dialogVisible" title="消息中心" width="850px" :show-close="false" destroy-on-close append-to-body
+    <el-dialog v-model="dialogVisible" title="消息中心" width="920px" :show-close="false" destroy-on-close append-to-body
       align-center class="message-dialog">
       <template #header>
         <div class="dialog-header">

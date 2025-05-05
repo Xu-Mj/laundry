@@ -371,6 +371,34 @@
             </div>
 
         </el-dialog>
+        <PredefinedCategories
+            v-model="showCategoryDialog"
+            @success="handlePredefinedCategoriesSuccess"
+            @cancel="showCategoryDialog = false"
+        />
+        <el-dialog
+            v-model="showCategoryPrompt"
+            title="提示"
+            width="30%"
+            :close-on-click-modal="false"
+        >
+            <div class="prompt-content">
+                <el-icon class="prompt-icon"><Warning /></el-icon>
+                <span>当前没有分类数据，是否添加预定义分类？</span>
+            </div>
+            <template #footer>
+                <span class="dialog-footer">
+                    <el-button @click="handleCategoryPrompt(false)">暂不添加</el-button>
+                    <el-button type="primary" @click="handleCategoryPrompt(true)">
+                        添加预定义分类
+                    </el-button>
+                </span>
+            </template>
+        </el-dialog>
+        <RackInitCheck 
+            v-model:visible="showRackInitCheck" 
+            @setup-complete="handleRackSetupComplete" 
+        />
     </div>
 </template>
 
@@ -389,6 +417,9 @@ import { ElMessage } from 'element-plus';
 import { invoke } from '@tauri-apps/api/core';
 import { Close } from '@element-plus/icons-vue';
 import RadioButton from '@/components/RadioButton.vue'
+import PredefinedCategories from './PredefinedCategories.vue'
+import { checkRackInitialized } from '@/api/system/rackCheck';
+import RackInitCheck from '@/components/RackInitCheck/index.vue';
 
 const props = defineProps({
     userId: {
@@ -465,6 +496,13 @@ const cateName = ref();
 
 const clothNameRef = ref();
 const prePictureList2 = ref(new Set());// 洗前图片
+
+// 弹窗控制
+const showCategoryDialog = ref(false);
+const showCategoryPrompt = ref(false);
+
+// 衣挂初始化检查相关状态
+const showRackInitCheck = ref(false);
 
 // 自定义校验最低价格函数
 function validateMinPrice(rule, value, callback) {
@@ -655,6 +693,7 @@ function jumpToStep(stepNum) {
 
 }
 
+// 处理添加分类按钮点击
 async function handleAddCate() {
     if (!cateName.value || cateName.value == "") {
         proxy.notify.error("请输入分类名称");
@@ -663,6 +702,12 @@ async function handleAddCate() {
 
     if (!form.value.categoryId) {
         proxy.notify.error("请先选择品类");
+        return;
+    }
+
+    // 检查是否已有分类数据
+    if (categoryList.value.length === 0) {
+        showCategoryPrompt.value = true;
         return;
     }
 
@@ -678,6 +723,15 @@ async function handleAddCate() {
         proxy.notify.success("添加成功");
         cateChange();
         cateName.value = "";
+    });
+}
+
+// 处理预定义分类添加成功
+function handlePredefinedCategoriesSuccess() {
+    // 刷新分类列表
+    listCategoryAll().then(response => {
+        categoryList.value = response;
+        cateChange();
     });
 }
 
@@ -738,6 +792,10 @@ async function initList() {
     if (categoryList.value.length === 0) {
         const categoryPromise = listCategoryAll().then(response => {
             categoryList.value = response;
+            // 如果品类列表为空，显示提示对话框
+            if (categoryList.value.length === 0) {
+                showCategoryPrompt.value = true;
+            }
         });
         promises.push(categoryPromise);
     }
@@ -838,6 +896,24 @@ function submitForm() {
                     }
                     props.submit(clothList.value);
                     handleAdd();
+                }).catch(error => {
+                    // 如果是notfound那么检查是否配置了晾衣架
+                    if (error.kind == "NotFound" && error.details == '没有可用的衣架') {
+                        // 检查衣挂是否已初始化
+                        checkRackInitialized().then(isInitialized => {
+                            if (!isInitialized) {
+                                // 如果未初始化，显示衣挂初始化设置对话框
+                                showRackInitCheck.value = true;
+                            } else {
+                                proxy.notify.error("没有可用的衣架，请检查衣架配置");
+                            }
+                        }).catch(err => {
+                            console.error('检查衣挂初始化状态失败:', err);
+                            proxy.notify.error("检查衣挂状态失败");
+                        });
+                        return;
+                    }
+                    proxy.notify.error("操作失败：" + error);
                 });
             } else {
                 if (props.orderId) {
@@ -854,6 +930,24 @@ function submitForm() {
                     clothList.value.push(form.value);
                     props.submit(clothList.value);
                     handleAdd();
+                }).catch(error => {
+                    // 如果是notfound那么检查是否配置了晾衣架
+                    if (error.kind == "NotFound" && error.details == '没有可用的衣架') {
+                        // 检查衣挂是否已初始化
+                        checkRackInitialized().then(isInitialized => {
+                            if (!isInitialized) {
+                                // 如果未初始化，显示衣挂初始化设置对话框
+                                showRackInitCheck.value = true;
+                            } else {
+                                proxy.notify.error("没有可用的衣架，请检查衣架配置");
+                            }
+                        }).catch(err => {
+                            console.error('检查衣挂初始化状态失败:', err);
+                            proxy.notify.error("检查衣挂状态失败");
+                        });
+                        return;
+                    }
+                    proxy.notify.error("操作失败：" + error);
                 });
             }
         }
@@ -1059,7 +1153,25 @@ function createCloth() {
         clothingList.value.push(data);
         // next step
         nextStep();
-    })
+    }).catch(error => {
+        // 如果是notfound那么检查是否配置了晾衣架
+        if (error.kind == "notfound" && error.details == '没有可用的衣架') {
+            // 检查衣挂是否已初始化
+            checkRackInitialized().then(isInitialized => {
+                if (!isInitialized) {
+                    // 如果未初始化，显示衣挂初始化设置对话框
+                    showRackInitCheck.value = true;
+                } else {
+                    proxy.notify.error("没有可用的衣架，请检查衣架配置");
+                }
+            }).catch(err => {
+                console.error('检查衣挂初始化状态失败:', err);
+                proxy.notify.error("检查衣挂状态失败");
+            });
+            return;
+        }
+        proxy.notify.error("操作失败：" + error);
+    });
 }
 
 /* 新增标签 */
@@ -1111,6 +1223,23 @@ function step2ClothChange() {
         nextStep();
     }
 }
+
+// 处理用户选择是否添加预定义分类
+function handleCategoryPrompt(confirm) {
+    showCategoryPrompt.value = false;
+    if (confirm) {
+        showCategoryDialog.value = true;
+    }
+}
+
+// 处理衣挂初始化检查完成
+const handleRackSetupComplete = (completed) => {
+    showRackInitCheck.value = false;
+    if (completed) {
+        // 如果完成了初始化，可以继续之前的操作
+        proxy.notify.success("衣挂配置完成");
+    }
+};
 
 onMounted(async () => {
     await initList();  // 确保 initList 完成

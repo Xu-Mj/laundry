@@ -19,6 +19,7 @@ lazy_static! {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DeviceInfo {
     pub device_id: String,
     pub device_name: String,

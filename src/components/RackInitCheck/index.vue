@@ -299,7 +299,7 @@ const skipSetup = () => {
     margin-bottom: 10px;
     padding: 15px;
     border-radius: 8px;
-    background-color: #f9f9f9;
+    background-color: var(--el-fill-color-light);
 }
 
 .rack-header {

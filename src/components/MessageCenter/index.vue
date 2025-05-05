@@ -59,9 +59,9 @@
             <div class="message-title">{{ getActiveTypeTitle() }}</div>
             <div class="message-filter">
               <el-radio-group v-model="readStatus" size="small" @change="handleFilterChange">
-                <el-radio-button label="all">全部</el-radio-button>
-                <el-radio-button label="unread">未读</el-radio-button>
-                <el-radio-button label="read">已读</el-radio-button>
+                <el-radio-button value="all">全部</el-radio-button>
+                <el-radio-button value="unread">未读</el-radio-button>
+                <el-radio-button value="read">已读</el-radio-button>
               </el-radio-group>
             </div>
           </div>
@@ -316,7 +316,7 @@ const handleMessageClick = (message) => {
 const markAsRead = async (message) => {
   if (!message.read) {
     try {
-      await tauriWebSocketManager.markMessagesAsRead([message.id]);
+      await TauriWebSocketManager.markMessagesAsRead([message.id]);
       message.read = true;
       unreadCount.value--;
     } catch (error) {
@@ -334,7 +334,7 @@ const markAllAsRead = async () => {
       .map(msg => msg.id);
 
     if (unreadIds.length > 0) {
-      await tauriWebSocketManager.markMessagesAsRead(unreadIds);
+      await TauriWebSocketManager.markMessagesAsRead(unreadIds);
       messages.value.forEach(msg => {
         if (!msg.read) {
           msg.read = true;
@@ -414,7 +414,7 @@ const initMessageSystem = async () => {
     await fetchMessages();
 
     // 添加消息监听器
-    tauriWebSocketManager.addMessageListener('*', handleNewMessage);
+    TauriWebSocketManager.addMessageListener('*', handleNewMessage);
   } catch (error) {
     console.error('初始化消息系统失败:', error);
     Notification.error('初始化消息系统失败');
@@ -428,7 +428,7 @@ onMounted(() => {
 
 // 组件卸载时移除消息监听器
 onUnmounted(() => {
-  tauriWebSocketManager.removeMessageListener('*', handleNewMessage);
+  TauriWebSocketManager.removeMessageListener('*', handleNewMessage);
 });
 </script>
 

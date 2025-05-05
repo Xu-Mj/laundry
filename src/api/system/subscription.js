@@ -115,3 +115,7 @@ export function getStatusDistribution() {
 export function getExpiringSubscriptions() {
   return invoke('get_expiring_subscriptions')
 }
+
+export function saveSubscription(subscription, plan) {
+  return invoke('create_subscription', {subscription, plan})
+}

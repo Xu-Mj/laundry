@@ -4,7 +4,7 @@ import useUserStore from '@/store/modules/user';
 import { saveMessage } from '@/api/system/message';
 import { addServerOrders } from '@/api/system/orders';
 import { addUser } from '@/api/system/user';
-import { WebSocket } from '@tauri-apps/plugin-websocket';
+import WebSocket from '@tauri-apps/plugin-websocket';
 
 /**
  * Tauri WebSocket管理类
@@ -94,7 +94,7 @@ class TauriWebSocketManager {
 
             // 发送队列中的消息
             await this.sendQueuedMessages();
-            
+
             // 启动心跳检测
             this.startHeartbeat();
 
@@ -193,8 +193,13 @@ class TauriWebSocketManager {
             const message = typeof msg === 'string' ? JSON.parse(msg) : msg;
             console.log('接收到WebSocket消息:', message);
 
-            if (message.type === 'pong') {
+            if (message.type === 'Pong') {
                 console.log('收到服务器心跳响应');
+                return;
+            }
+
+            if(message.type === 'Ping') {
+                this.socket.send('Pong');
                 return;
             }
 
@@ -283,11 +288,7 @@ class TauriWebSocketManager {
         this.heartbeatTimer = setInterval(async () => {
             if (this.isConnected && this.socket) {
                 try {
-                    const heartbeatMessage = {
-                        type: 'ping',
-                        timestamp: new Date().getTime()
-                    };
-                    await this.socket.send(JSON.stringify(heartbeatMessage));
+                    await this.socket.send('Ping');
                     console.log('发送心跳消息');
                 } catch (error) {
                     console.error('发送心跳消息失败:', error);

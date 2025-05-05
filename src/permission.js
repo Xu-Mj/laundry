@@ -5,7 +5,7 @@ import 'nprogress/nprogress.css'
 import { getToken } from '@/utils/auth'
 import { isRelogin } from '@/utils/request'
 import useUserStore from '@/store/modules/user'
-import { initDirectWebSocketConnection } from '@/utils/initDirectWebSocket'
+import { initTauriWebSocketConnection } from '@/utils/initTauriWebSocket'
 
 NProgress.configure({ showSpinner: false });
 
@@ -53,7 +53,7 @@ router.beforeEach((to, from, next) => {
           
           // 只在第一次进入非白名单页面时初始化WebSocket
           if (!isWebSocketInitialized) {
-            initDirectWebSocketConnection().then(success => {
+            initTauriWebSocketConnection().then(success => {
               if (success) {
                 isWebSocketInitialized = true;
               }

@@ -1,4 +1,4 @@
-import directWebSocketManager from '@/utils/directWebSocket';
+import tauriWebSocketManager from '@/utils/tauriWebSocket';
 import { getToken } from '@/utils/auth';
 import Notification from '@/utils/notification';
 import useUserStore from '@/store/modules/user';
@@ -6,10 +6,10 @@ import useUserStore from '@/store/modules/user';
 let isInitialized = false;
 
 /**
- * 初始化直连WebSocket连接
- * 在应用启动时调用此函数，直接在Web端建立与服务器的WebSocket连接
+ * 初始化Tauri WebSocket连接
+ * 在应用启动时调用此函数，使用Tauri的WebSocket插件建立与服务器的连接
  */
-export async function initDirectWebSocketConnection() {
+export async function initTauriWebSocketConnection() {
   // 如果已经初始化过，直接返回
   if (isInitialized) {
     return true;
@@ -31,10 +31,10 @@ export async function initDirectWebSocketConnection() {
 
   try {
     // 获取WebSocket服务器地址
-    const serverUrl = await directWebSocketManager.getServerUrl();
+    const serverUrl = await tauriWebSocketManager.getServerUrl();
     
     // 初始化WebSocket连接
-    const connected = await directWebSocketManager.init(serverUrl);
+    const connected = await tauriWebSocketManager.init(serverUrl);
     
     if (connected) {
       console.log('WebSocket连接初始化成功');
@@ -55,9 +55,9 @@ export async function initDirectWebSocketConnection() {
  * 关闭WebSocket连接
  * 在用户登出时调用此函数，关闭WebSocket连接
  */
-export async function closeDirectWebSocketConnection() {
+export async function closeTauriWebSocketConnection() {
   try {
-    await directWebSocketManager.close();
+    await tauriWebSocketManager.close();
     isInitialized = false;
     console.log('WebSocket连接已关闭');
     return true;
@@ -65,4 +65,4 @@ export async function closeDirectWebSocketConnection() {
     console.error('关闭WebSocket连接时发生错误:', error);
     return false;
   }
-}
+} 

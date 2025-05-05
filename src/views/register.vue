@@ -360,7 +360,6 @@ const handleRegister = () => {
         formData.deviceName = deviceInfo.deviceName || '';
         formData.deviceMac = deviceInfo.macAddress || '';
 
-        return;
         // 调用注册API
         return register(formData);
       }).then(res => {

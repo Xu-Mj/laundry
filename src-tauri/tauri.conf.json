@@ -74,9 +74,6 @@
       "windows": {
         "installMode": "passive"
       }
-    },
-    "websocket": {
-      "active": true
     }
   }
 }

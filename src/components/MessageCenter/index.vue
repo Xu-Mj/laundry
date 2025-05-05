@@ -123,7 +123,7 @@
 <script setup>
 import { Check, Delete, Close, MessageBox } from '@element-plus/icons-vue';
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import directWebSocketManager from '@/utils/directWebSocket';
+import TauriWebSocketManager from '@/utils/tauriWebSocket';
 import Notification from '@/utils/notification';
 import { parseTime } from '@/utils/ruoyi';
 import { getUnreadCount, getMessages, deleteMessage, clearMessages } from '@/api/system/message';
@@ -316,7 +316,7 @@ const handleMessageClick = (message) => {
 const markAsRead = async (message) => {
   if (!message.read) {
     try {
-      await directWebSocketManager.markMessagesAsRead([message.id]);
+      await tauriWebSocketManager.markMessagesAsRead([message.id]);
       message.read = true;
       unreadCount.value--;
     } catch (error) {
@@ -334,7 +334,7 @@ const markAllAsRead = async () => {
       .map(msg => msg.id);
 
     if (unreadIds.length > 0) {
-      await directWebSocketManager.markMessagesAsRead(unreadIds);
+      await tauriWebSocketManager.markMessagesAsRead(unreadIds);
       messages.value.forEach(msg => {
         if (!msg.read) {
           msg.read = true;
@@ -414,7 +414,7 @@ const initMessageSystem = async () => {
     await fetchMessages();
 
     // 添加消息监听器
-    directWebSocketManager.addMessageListener('*', handleNewMessage);
+    tauriWebSocketManager.addMessageListener('*', handleNewMessage);
   } catch (error) {
     console.error('初始化消息系统失败:', error);
     Notification.error('初始化消息系统失败');
@@ -428,7 +428,7 @@ onMounted(() => {
 
 // 组件卸载时移除消息监听器
 onUnmounted(() => {
-  directWebSocketManager.removeMessageListener('*', handleNewMessage);
+  tauriWebSocketManager.removeMessageListener('*', handleNewMessage);
 });
 </script>
 

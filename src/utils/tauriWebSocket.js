@@ -4,7 +4,6 @@ import useUserStore from '@/store/modules/user';
 import { saveMessage } from '@/api/system/message';
 import { addServerOrders } from '@/api/system/orders';
 import { addUser } from '@/api/system/user';
-import { ElMessageBox } from 'element-plus';
 import { WebSocket } from '@tauri-apps/plugin-websocket';
 
 /**

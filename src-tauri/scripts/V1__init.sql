@@ -35,7 +35,8 @@ CREATE TABLE IF NOT EXISTS local_users
     remark          TEXT,
     email           TEXT,
     deleted         TEXT,
-    user_id         INTEGER
+    user_id         INTEGER,
+    is_24_7         INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS membership_level (
@@ -241,7 +242,6 @@ CREATE TABLE clothing
 );
 
 -- 创建索引，提高根据衣物类别和衣物名称查询效率
-CREATE INDEX idx_clothing_category ON clothing (clothing_category);
 CREATE INDEX idx_clothing_title ON clothing (title);
 CREATE INDEX idx_clothing_store_id ON clothing (store_id);
 CREATE INDEX idx_clothing_category_id ON clothing(category_id);

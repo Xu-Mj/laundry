@@ -49,6 +49,7 @@ pub struct LocalUser {
     pub district: Option<String>,
     /// 详细地址
     pub address_detail: Option<String>,
+    pub is_24_7: bool,
     /// 已完成引导的页面
     #[serde(skip_serializing_if = "Option::is_none")]
     pub completed_tours: Option<Vec<UserTours>>,
@@ -79,6 +80,7 @@ impl FromRow<'_, SqliteRow> for LocalUser {
             city: row.try_get("city").unwrap_or_default(),
             district: row.try_get("district").unwrap_or_default(),
             address_detail: row.try_get("address_detail").unwrap_or_default(),
+            is_24_7: row.try_get("is_24_7").unwrap_or_default(),
             completed_tours: None,
         })
     }
@@ -90,59 +92,6 @@ impl LocalUser {
             owner_name: Some(username.to_string()),
             password: Some(password.to_string()),
             ..Default::default()
-        }
-    }
-
-    /// 解析store_location字段，提取省市区和详细地址信息
-    pub fn parse_store_location(&mut self) {
-        if let Some(location) = &self.store_location {
-            // 尝试解析JSON格式的地址
-            if let Ok(json) = serde_json::from_str::<serde_json::Value>(location) {
-                if let Some(obj) = json.as_object() {
-                    // 提取selectedOptions数组
-                    if let Some(selected_options) =
-                        obj.get("selectedOptions").and_then(|v| v.as_array())
-                    {
-                        // 使用element-china-area-data库的codeToText映射获取省市区文本
-                        // 由于这里是Rust代码，我们需要手动处理
-                        if selected_options.len() >= 1 {
-                            if let Some(code) = selected_options[0].as_str() {
-                                self.province = Some(code.to_string());
-                            }
-                        }
-                        if selected_options.len() >= 2 {
-                            if let Some(code) = selected_options[1].as_str() {
-                                self.city = Some(code.to_string());
-                            }
-                        }
-                        if selected_options.len() >= 3 {
-                            if let Some(code) = selected_options[2].as_str() {
-                                self.district = Some(code.to_string());
-                            }
-                        }
-                    }
-
-                    // 提取详细地址
-                    if let Some(detail) = obj.get("detailAddress").and_then(|v| v.as_str()) {
-                        self.address_detail = Some(detail.to_string());
-                    }
-                }
-            } else {
-                // 如果不是JSON格式，尝试按空格分割
-                let parts: Vec<&str> = location.split(' ').collect();
-                if parts.len() >= 3 {
-                    self.province = Some(parts[0].to_string());
-                    self.city = Some(parts[1].to_string());
-                    self.district = Some(parts[2].to_string());
-
-                    if parts.len() > 3 {
-                        self.address_detail = Some(parts[3..].join(" "));
-                    }
-                } else {
-                    // 如果格式不符合预期，将整个地址作为详细地址
-                    self.address_detail = Some(location.clone());
-                }
-            }
         }
     }
 }
@@ -167,8 +116,8 @@ impl LocalUser {
             "INSERT INTO local_users (
                 avatar, store_name, store_location, user_id, owner_name, owner_phone, email, password, owner_gender, 
                 store_status, is_guest, created_at, updated_at, deleted, remark, nickname, 
-                province, city, district, address_detail
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *",
+                province, city, district, address_detail, is_24_7
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *",
         )
         .bind(&self.avatar)
         .bind(&self.store_name)
@@ -190,6 +139,7 @@ impl LocalUser {
         .bind(&self.city)
         .bind(&self.district)
         .bind(&self.address_detail)
+        .bind(&self.is_24_7)
         .fetch_one(pool)
         .await?;
         Ok(user)
@@ -248,7 +198,8 @@ impl LocalUser {
                 province = ?,
                 city = ?,
                 district = ?,
-                address_detail = ?
+                address_detail = ?,
+                is_24_7 = ?
             WHERE id = ?",
         )
         .bind(&self.avatar)
@@ -269,6 +220,7 @@ impl LocalUser {
         .bind(&self.city)
         .bind(&self.district)
         .bind(&self.address_detail)
+        .bind(&self.is_24_7)
         .bind(self.id)
         .execute(pool)
         .await?;
@@ -281,8 +233,8 @@ impl LocalUser {
             "INSERT OR REPLACE INTO local_users (
                 id, avatar, store_name, store_location, user_id, owner_name, owner_phone, email, role, password,
                 owner_gender, store_status, is_guest, created_at, updated_at, deleted, remark, nickname,
-                province, city, district, address_detail
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *",
+                province, city, district, address_detail, is_24_7
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *",
         )
         .bind(self.id)
         .bind(&self.avatar)
@@ -306,6 +258,7 @@ impl LocalUser {
         .bind(&self.city)
         .bind(&self.district)
         .bind(&self.address_detail)
+        .bind(&self.is_24_7)
         .fetch_one(&mut **pool)
         .await?;
         Ok(user)
@@ -552,11 +505,6 @@ pub async fn get_info(state: State<'_, AppState>) -> Result<UserInfo> {
         sms_sub,
     })
 }
-
-// #[tauri::command]
-// pub async fn register(state: State<'_, AppState>, req: LoginReq) -> Result<()> {
-//     req.register(&state.pool).await
-// }
 
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(rename_all = "camelCase")]

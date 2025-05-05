@@ -775,7 +775,7 @@ async function printCloth() {
     const length = form.value.cloths.length;
     const user = userList.value.find(user => user.userId == form.value.userId);
     const result = form.value.cloths.map((item, index) => ({
-        cloth_name: item.clothInfo.clothingName,
+        cloth_name: item.clothInfo.title,
         cloth_color: item.clothingColor ? item.clothingColor : 0,
         cloth_flaw: item.clothingFlawArr,
         sum: length,

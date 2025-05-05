@@ -100,7 +100,7 @@
                     <el-table-column label="衣物" align="center" min-width="120">
                         <template #default="scope">
                             <div class="cloth-name">
-                                {{ scope.row.clothInfo.clothingName }}
+                                {{ scope.row.clothInfo.title }}
                                 <span v-if="scope.row.clothingColor" class="cloth-color">
                                     {{colorList.find(item => item.tagId == scope.row.clothingColor).tagName}}
                                 </span>

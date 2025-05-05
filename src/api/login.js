@@ -1,4 +1,3 @@
-import request from '@/utils/request'
 import invoke from '@/utils/invoke'
 
 // 获取设备信息
@@ -14,7 +13,7 @@ export function validateLoginDevice(storeId, deviceId) {
 // 登录方法
 export function login(account, pwd, code, uuid) {
   const password = btoa(pwd).replace(/=+$/, '');
-  
+
   // 获取设备信息
   return getDeviceInfo().then(deviceInfo => {
     const data = {
@@ -30,26 +29,12 @@ export function login(account, pwd, code, uuid) {
 
 // 注册方法
 export function register(data) {
-  return request({
-    url: '/register/store',
-    headers: {
-      isToken: false
-    },
-    method: 'post',
-    data: data
-  })
+  return invoke('register', { req: data })
 }
 
 // 注册方法
 export function getMsgCode(phone) {
-  return request({
-    url: '/register/code',
-    headers: {
-      isToken: false
-    },
-    method: 'post',
-    data: { phone }
-  })
+  return invoke('get_sms_verification_code', { req: { phone } })
 }
 
 // 获取用户详细信息

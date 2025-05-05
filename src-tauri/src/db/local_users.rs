@@ -601,3 +601,43 @@ pub async fn update_local_user(state: State<'_, AppState>, user: LocalUser) -> R
 pub async fn get_device_info() -> Result<DeviceInfo> {
     Ok(DeviceInfo::get())
 }
+
+// register
+#[derive(Debug, Serialize, Deserialize)]
+pub struct StoreRegisterVerifyRequest {
+    pub phone: String,
+}
+
+// 商户注册验证码响应
+#[derive(Debug, Serialize, Deserialize)]
+pub struct StoreRegisterVerifyResponse {
+    pub success: bool,
+    pub message: String,
+}
+
+#[tauri::command]
+pub async fn get_sms_verification_code(
+    state: State<'_, AppState>,
+    req: StoreRegisterVerifyRequest,
+) -> Result<StoreRegisterVerifyResponse> {
+    // send request to server
+    let res = state.http_client.post("/register/code", &req, None).await?;
+    Ok(res)
+}
+// 商户注册响应
+#[derive(Debug, Serialize, Deserialize)]
+pub struct StoreRegisterResponse {
+    pub success: bool,
+    pub message: String,
+    pub store_id: Option<i64>,
+}
+
+#[tauri::command]
+pub async fn register(state: State<'_, AppState>, req: LocalUser) -> Result<StoreRegisterResponse> {
+    // send request to server
+    let res = state
+        .http_client
+        .post("/register/store", &req, None)
+        .await?;
+    Ok(res)
+}

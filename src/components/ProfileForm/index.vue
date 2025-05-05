@@ -85,8 +85,7 @@
 </template>
 
 <script setup>
-import { ElMessageBox } from 'element-plus';
-import { getProfile, updateProfile } from '@/api/system/profile';
+import { updateProfile } from '@/api/system/profile';
 import { areaData, parseAddress, stringifyAddress } from '@/utils/area-data';
 import { onMounted, watch } from 'vue';
 
@@ -242,25 +241,6 @@ const handleUpdateProfile = async () => {
       updating.value = false;
     }
   });
-};
-
-// 重置表单
-const resetForm = () => {
-  ElMessageBox.confirm('确定要重置表单吗？所有未保存的修改将丢失。', '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning'
-  }).then(async () => {
-    try {
-      const res = await getProfile();
-      emit('update:profileData', res.data);
-      // 初始化地址数据
-      initAddressData();
-      proxy.notify.success('表单已重置');
-    } catch (error) {
-      console.error(error);
-    }
-  }).catch(() => { });
 };
 
 // 组件挂载时初始化地址数据

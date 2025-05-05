@@ -1,4 +1,3 @@
-import request from '@/utils/request';
 import invoke from '@/utils/invoke'
 
 // 查询卡券列表

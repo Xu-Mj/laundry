@@ -1,4 +1,3 @@
-import request from '@/utils/request'
 import invoke from '@/utils/invoke'
 
 // 查询参数列表
@@ -34,12 +33,4 @@ export function updateConfig(data) {
 // 删除参数配置
 export function delConfig(configId) {
   return invoke('delete_configs', { ids: [].concat(configId) })
-}
-
-// 刷新参数缓存
-export function refreshCache() {
-  return request({
-    url: '/system/config/refreshCache',
-    method: 'delete'
-  })
 }

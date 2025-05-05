@@ -1,0 +1,156 @@
+use serde::{Deserialize, Serialize};
+use tauri::State;
+
+use crate::{
+    error::Result,
+    state::AppState,
+};
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct SubscriptionPlan {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<i64>,
+    pub name: String,
+    pub plan_type: String,
+    pub period: String,
+    pub price: String,
+    pub description: Option<String>,
+    pub features: Option<serde_json::Value>,
+    pub is_recommended: bool,
+    pub is_active: bool,
+    pub sort_order: i32,
+    pub created_at: i64,
+    pub updated_at: i64,
+    pub remark: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct Subscription {
+    pub id: i64,
+    pub store_id: i64,
+    pub plan_id: i64,
+    pub start_date: Option<i64>,
+    pub expiry_date: Option<i64>,
+    pub status: Option<String>,
+    pub auto_renew: bool,
+    pub price_paid: String,
+    pub promo_code: Option<String>,
+    pub is_first_year_free: bool,
+    pub created_at: Option<i64>,
+    pub updated_at: Option<i64>,
+    pub remark: Option<String>,
+    pub plan: Option<SubscriptionPlan>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateSubscriptionRequest {
+    pub store_id: i64,
+    pub plan_id: i64,
+    pub auto_renew: bool,
+    pub promo_code: Option<String>,
+    pub is_first_year_free: bool,
+    pub payment_id: Option<i64>,
+    pub remark: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateSubscriptionRequest {
+    pub id: i64,
+    pub plan_id: Option<i64>,
+    pub auto_renew: Option<bool>,
+    pub status: Option<String>,
+    pub cancellation_reason: Option<String>,
+    pub remark: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SubsAndPlans {
+    pub subs: Vec<Subscription>,
+    pub plans: Vec<SubscriptionPlan>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PageResult<T> {
+    pub total: u64,
+    pub rows: Vec<T>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PageParams {
+    pub page_size: i64,
+    pub page: i64,
+}
+
+// Forward requests to the backend API
+#[tauri::command]
+pub async fn get_all_plans(state: State<'_, AppState>) -> Result<Vec<SubscriptionPlan>> {
+    let token = state.try_get_token().await?;
+    let plans: Vec<SubscriptionPlan> = state.http_client.get("/plans", Some(&token)).await?;
+    Ok(plans)
+}
+
+#[tauri::command]
+pub async fn get_recommended_plans(state: State<'_, AppState>) -> Result<Vec<SubscriptionPlan>> {
+    let token = state.try_get_token().await?;
+    let plans: Vec<SubscriptionPlan> = state.http_client.get("/plans/recommended", Some(&token)).await?;
+    Ok(plans)
+}
+
+#[tauri::command]
+pub async fn get_plans_by_type(state: State<'_, AppState>, type_: String) -> Result<Vec<SubscriptionPlan>> {
+    let token = state.try_get_token().await?;
+    let plans: Vec<SubscriptionPlan> = state.http_client.get(&format!("/plans/type/{}", type_), Some(&token)).await?;
+    Ok(plans)
+}
+
+#[tauri::command]
+pub async fn get_plan_by_id(state: State<'_, AppState>, id: i64) -> Result<Option<SubscriptionPlan>> {
+    let token = state.try_get_token().await?;
+    let plan: Option<SubscriptionPlan> = state.http_client.get(&format!("/plans/{}", id), Some(&token)).await?;
+    Ok(plan)
+}
+
+#[tauri::command]
+pub async fn get_subscription_by_id(state: State<'_, AppState>, id: i64) -> Result<Subscription> {
+    let token = state.try_get_token().await?;
+    let subscription: Subscription = state.http_client.get(&format!("/subscription/{}", id), Some(&token)).await?;
+    Ok(subscription)
+}
+
+#[tauri::command]
+pub async fn cancel_subscription(
+    state: State<'_, AppState>,
+    id: i64,
+    reason: Option<String>,
+) -> Result<Subscription> {
+    // Create a cancellation reason payload
+    let payload = serde_json::json!({
+        "cancellationReason": reason
+    });
+    
+    let token = state.try_get_token().await?;
+    let result: Subscription = state.http_client.post(&format!("/subscription/{}/cancel", id), payload, Some(&token)).await?;
+    Ok(result)
+}
+
+#[tauri::command]
+pub async fn check_store_subscription(
+    state: State<'_, AppState>,
+    store_id: i64,
+) -> Result<bool> {
+    let token = state.try_get_token().await?;
+    let result: bool = state.http_client.get(&format!("/subscription/check/{}", store_id), Some(&token)).await?;
+    Ok(result)
+}
+
+
+#[tauri::command]
+pub async fn get_sms_plans(state: State<'_, AppState>) -> Result<Vec<SubscriptionPlan>> {
+    let token = state.try_get_token().await?;
+    let plans: Vec<SubscriptionPlan> = state.http_client.get("/sms/plans", Some(&token)).await?;
+    Ok(plans)
+}

@@ -18,8 +18,8 @@ use tauri_plugin_fs::FsExt;
 use crate::db::{
     alipay_config, cloth_price, clothing, clothing_category, clothing_style, configs, coupons,
     delivery, dict_data, dict_type, drying_rack, expenditure, local_users, membership_level,
-    message, notice_temp, order_clothes, orders, payments, qrcode_payments, subscriptions, tags,
-    user, user_coupons, user_tours, wechat_config,
+    message, notice_temp, order_clothes, orders, payments, qrcode_payments, subscription_service,
+    subscriptions, tags, user, user_coupons, user_tours, wechat_config,
 };
 
 pub fn create_app<R: tauri::Runtime, T: Send + Sync + 'static>(
@@ -241,6 +241,8 @@ fn handle_command<R: Runtime>(invoke: Invoke<R>) -> bool {
         local_users::update_local_user,
         local_users::update_pwd,
         local_users::get_device_info,
+        local_users::get_sms_verification_code,
+        local_users::register,
         // expenditure
         expenditure::get_exp_pagination,
         expenditure::get_exp_by_id,
@@ -285,6 +287,15 @@ fn handle_command<R: Runtime>(invoke: Invoke<R>) -> bool {
         message::get_unread_message_count,
         message::mark_messages_as_read,
         message::clear_messages,
+        // Subscription service commands
+        subscription_service::get_all_plans,
+        subscription_service::get_recommended_plans,
+        subscription_service::get_plans_by_type,
+        subscription_service::get_plan_by_id,
+        subscription_service::get_subscription_by_id,
+        subscription_service::cancel_subscription,
+        subscription_service::check_store_subscription,
+        subscription_service::get_sms_plans,
     ];
     handler(invoke);
 

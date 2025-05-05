@@ -6,7 +6,7 @@ import defAva from '@/assets/images/avatar1.png'
 import { convertFileSrc } from '@tauri-apps/api/core'
 import { useStorage } from '@vueuse/core'
 import { updatePwd } from '@/api/system/user'
-import { closeDirectWebSocketConnection } from '@/utils/initDirectWebSocket'
+import { closeTauriWebSocketConnection } from '@/utils/initTauriWebSocket'
 
 // 试用配置
 const TRIAL_DAYS = 7
@@ -229,7 +229,7 @@ const useUserStore = defineStore('user', {
         await logout()
 
         // 关闭WebSocket连接
-        await closeDirectWebSocketConnection()
+        await closeTauriWebSocketConnection()
 
         // 清除运行时状态
         removeToken()

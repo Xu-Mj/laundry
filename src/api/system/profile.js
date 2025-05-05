@@ -1,12 +1,4 @@
-import request from '@/utils/request'
 import invoke from '@/utils/invoke'
-
-export function getProfile() {
-  return request({
-    url: '/api/profile',
-    method: 'get'
-  })
-}
 
 export function updateProfile(user) {
   return invoke('update_local_user', { user })

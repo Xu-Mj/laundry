@@ -630,8 +630,37 @@ pub struct StoreRegisterResponse {
     pub store_id: Option<i64>,
 }
 
+// 商户注册请求
+#[derive(Debug, Default, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+#[serde(default)]
+pub struct RegisterRequest {
+    pub avatar: String,
+    pub name: String,
+    pub nickname: String,
+    pub location: String,
+    // 新增地址字段
+    pub province: Option<String>,
+    pub city: Option<String>,
+    pub district: Option<String>,
+    pub address_detail: Option<String>,
+    pub owner_name: String,
+    pub owner_phone: String,
+    pub owner_gender: Option<String>,
+    pub password: String,
+    pub email: String,
+    pub verification_code: String,
+    pub remark: Option<String>,
+    // 设备信息
+    pub device_id: String,
+    pub device_name: Option<String>,
+    pub device_type: Option<String>,
+    pub mac_address: Option<String>,
+    pub hardware_fingerprint: Option<String>,
+}
+
 #[tauri::command]
-pub async fn register(state: State<'_, AppState>, req: LocalUser) -> Result<StoreRegisterResponse> {
+pub async fn register(state: State<'_, AppState>, req: RegisterRequest) -> Result<StoreRegisterResponse> {
     // send request to server
     let res = state
         .http_client

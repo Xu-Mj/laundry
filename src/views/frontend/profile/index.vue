@@ -50,7 +50,7 @@
                 <Location />
               </el-icon>
               <span class="info-label">店铺地址:</span>
-              <span class="info-value">{{ profileData.storeLocation || '未设置' }}</span>
+              <span class="info-value">{{ profileData.province + '·' + profileData.city + '·' + profileData.district + '·' + profileData.addressDetail }}</span>
             </div>
           </div>
         </el-card>

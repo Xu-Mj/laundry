@@ -488,6 +488,7 @@ function prevStep() {
     activeStep.value--;
   }
 }
+
 function getOriginalPath(convertedUrl) {
   if (!convertedUrl) return '';
 
@@ -505,6 +506,7 @@ function getOriginalPath(convertedUrl) {
     return convertedUrl;
   }
 }
+
 /** 提交按钮 */
 async function submitForm() {
   proxy.$refs["clothingRef"].validate(async valid => {

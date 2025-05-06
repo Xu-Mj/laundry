@@ -44,29 +44,19 @@
 
     <!-- 店铺地址 - 省市区选择 -->
     <el-form-item label="店铺地址" prop="addressRegion">
-      <el-cascader
-        v-model="profileData.addressRegion"
-        :options="areaData"
-        placeholder="请选择省/市/区"
-        class="custom-cascader"
-        :props="{ 
+      <el-cascader v-model="profileData.addressRegion" :options="areaData" placeholder="请选择省/市/区"
+        class="custom-cascader" :props="{
           checkStrictly: false,
           value: 'value',
           label: 'label',
           children: 'children',
           expandTrigger: 'hover'
-        }"
-        clearable
-      />
+        }" clearable />
     </el-form-item>
-    
+
     <!-- 详细地址 -->
     <el-form-item label="详细地址" prop="addressDetail">
-      <el-input 
-        v-model="profileData.addressDetail" 
-        placeholder="请输入详细地址（街道、门牌号等）" 
-        prefix-icon="Location" 
-      />
+      <el-input v-model="profileData.addressDetail" placeholder="请输入详细地址（街道、门牌号等）" prefix-icon="Location" />
     </el-form-item>
 
     <el-form-item>
@@ -87,14 +77,10 @@
 <script setup>
 import { updateProfile } from '@/api/system/profile';
 import { areaData, parseAddress, stringifyAddress } from '@/utils/area-data';
-import { onMounted, watch } from 'vue';
+import useUserStore from '@/store/modules/user';
 
 const props = defineProps({
   profileData: {
-    type: Object,
-    required: true
-  },
-  userStore: {
     type: Object,
     required: true
   },
@@ -105,7 +91,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['update:profileData', 'profile-updated']);
-
+const userStore = useUserStore();
 const { proxy } = getCurrentInstance();
 const updating = ref(false);
 
@@ -141,32 +127,98 @@ const rules = ref({
   ]
 });
 
+// 根据地区名称查找对应的地区代码
+const findAreaCodesByNames = (names) => {
+  if (!names || !Array.isArray(names) || names.length === 0) {
+    return [];
+  }
+
+  const codes = [];
+  let currentLevel = areaData;
+
+  // 省级查找
+  if (names.length >= 1) {
+    const province = currentLevel.find(item => item.label === names[0]);
+    if (province) {
+      codes.push(province.value);
+      currentLevel = province.children || [];
+
+      // 市级查找
+      if (names.length >= 2 && currentLevel.length > 0) {
+        const city = currentLevel.find(item => item.label === names[1]);
+        if (city) {
+          codes.push(city.value);
+          currentLevel = city.children || [];
+
+          // 区县级查找
+          if (names.length >= 3 && currentLevel.length > 0) {
+            const district = currentLevel.find(item => item.label === names[2]);
+            if (district) {
+              codes.push(district.value);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  console.log(`Converting names ${JSON.stringify(names)} to codes ${JSON.stringify(codes)}`);
+  return codes;
+};
+
 // 初始化地址数据
 const initAddressData = () => {
-  // 优先使用新的地址字段
-  if (props.profileData.province || props.profileData.city || props.profileData.district) {
-    // 如果有新的地址字段，使用它们
-    const codes = [];
-    if (props.profileData.province) {
-      codes.push(props.profileData.province);
+  console.log("Initial addressRegion:", props.profileData.addressRegion);
+  console.log("Initial province/city/district:", {
+    province: props.profileData.province,
+    city: props.profileData.city,
+    district: props.profileData.district
+  });
+
+  // 情况1: 如果addressRegion已经是数组，检查是名称数组还是代码数组
+  if (props.profileData.addressRegion && Array.isArray(props.profileData.addressRegion)) {
+    // 检查第一个元素是字符串且不是数字
+    if (props.profileData.addressRegion.length > 0 &&
+      typeof props.profileData.addressRegion[0] === 'string' &&
+      isNaN(Number(props.profileData.addressRegion[0]))) {
+      console.log("Case 1: Converting address names to codes:", props.profileData.addressRegion);
+      props.profileData.addressRegion = findAreaCodesByNames(props.profileData.addressRegion);
+      console.log("Converted to codes:", props.profileData.addressRegion);
+    } else {
+      console.log("Case 1: addressRegion already contains codes:", props.profileData.addressRegion);
     }
-    if (props.profileData.city) {
-      codes.push(props.profileData.city);
-    }
-    if (props.profileData.district) {
-      codes.push(props.profileData.district);
-    }
-    props.profileData.addressRegion = codes;
-    props.profileData.addressDetail = props.profileData.addressDetail || '';
-  } else if (props.profileData.storeLocation) {
-    // 兼容旧的storeLocation字段
+  }
+  // 情况2: 如果有province/city/district字段，使用它们来设置addressRegion
+  else if (props.profileData.province || props.profileData.city || props.profileData.district) {
+    console.log("Case 2: Using province/city/district fields");
+    const regionNames = [];
+
+    if (props.profileData.province) regionNames.push(props.profileData.province);
+    if (props.profileData.city) regionNames.push(props.profileData.city);
+    if (props.profileData.district) regionNames.push(props.profileData.district);
+
+    props.profileData.addressRegion = findAreaCodesByNames(regionNames);
+    console.log("Set addressRegion from names:", regionNames, "to codes:", props.profileData.addressRegion);
+  }
+  // 情况3: 如果有storeLocation字段，解析它
+  else if (props.profileData.storeLocation) {
+    console.log("Case 3: Parsing from storeLocation:", props.profileData.storeLocation);
     const addressData = parseAddress(props.profileData.storeLocation);
     props.profileData.addressRegion = addressData.selectedOptions;
     props.profileData.addressDetail = addressData.detailAddress;
-  } else {
+    console.log("Parsed addressRegion:", props.profileData.addressRegion);
+  }
+  // 情况4: 没有地址数据
+  else {
+    console.log("Case 4: No address data available");
     props.profileData.addressRegion = [];
     props.profileData.addressDetail = '';
   }
+
+  // 确保addressDetail字段存在
+  props.profileData.addressDetail = props.profileData.addressDetail || '';
+
+  console.log("Final addressRegion:", props.profileData.addressRegion);
 };
 
 // 监听地址变化，更新storeLocation字段
@@ -199,7 +251,7 @@ const handleUpdateProfile = async () => {
 
     try {
       updating.value = true;
-      
+
       // 处理地址数据，确保storeLocation字段和新的地址字段都已更新
       if (props.profileData.addressRegion && props.profileData.addressRegion.length > 0) {
         // 更新storeLocation字段（保持向后兼容）
@@ -207,16 +259,35 @@ const handleUpdateProfile = async () => {
           props.profileData.addressRegion,
           props.profileData.addressDetail
         );
-        
+
+        // 获取区域名称而不是代码，用于后端存储
+        let areaNames = [];
+        let currentLevel = areaData;
+
+        // 遍历addressRegion数组（区域代码）并获取对应的名称
+        for (const code of props.profileData.addressRegion) {
+          const found = currentLevel.find(item => item.value === code);
+          if (found) {
+            areaNames.push(found.label);
+            if (found.children) {
+              currentLevel = found.children;
+            } else {
+              break;
+            }
+          } else {
+            break;
+          }
+        }
+
         // 更新新的地址字段
-        if (props.profileData.addressRegion.length >= 1) {
-          props.profileData.province = props.profileData.addressRegion[0];
+        if (areaNames.length >= 1) {
+          props.profileData.province = areaNames[0];
         }
-        if (props.profileData.addressRegion.length >= 2) {
-          props.profileData.city = props.profileData.addressRegion[1];
+        if (areaNames.length >= 2) {
+          props.profileData.city = areaNames[1];
         }
-        if (props.profileData.addressRegion.length >= 3) {
-          props.profileData.district = props.profileData.addressRegion[2];
+        if (areaNames.length >= 3) {
+          props.profileData.district = areaNames[2];
         }
         props.profileData.addressDetail = props.profileData.addressDetail || '';
       } else {
@@ -227,13 +298,15 @@ const handleUpdateProfile = async () => {
         props.profileData.addressDetail = props.profileData.addressDetail || '';
         props.profileData.storeLocation = props.profileData.addressDetail || '';
       }
-      
+
       // 创建一个不包含中间字段的数据对象
       const updateData = { ...props.profileData };
       delete updateData.addressRegion;
-      
+      updateData.avatar = getOriginalPath(updateData.avatar);
+      console.log("Update Data:", updateData);
+
       const user = await updateProfile(updateData);
-      props.userStore.setUser(user);
+      userStore.getInfo();
       emit('profile-updated', user);
     } catch (error) {
       proxy.notify.error('更新失败：' + (error.message || '未知错误'));
@@ -242,6 +315,24 @@ const handleUpdateProfile = async () => {
     }
   });
 };
+
+function getOriginalPath(convertedUrl) {
+  if (!convertedUrl) return '';
+
+  // 如果是普通路径（未转换的），直接返回
+  if (!convertedUrl.startsWith('http://asset.localhost/')) {
+    return convertedUrl;
+  }
+
+  try {
+    const pathPart = convertedUrl.replace(/^https?:\/\/asset\.localhost\//, '');
+    const decodedPath = decodeURIComponent(pathPart);
+    return decodedPath.replace(/\//g, '\\');
+  } catch (error) {
+    console.error('路径转换失败:', error, convertedUrl);
+    return convertedUrl;
+  }
+}
 
 // 组件挂载时初始化地址数据
 onMounted(() => {

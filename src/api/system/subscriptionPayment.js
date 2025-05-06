@@ -3,20 +3,12 @@ import invoke from '@/utils/invoke'
 
 // 发起订阅支付请求
 export function createSubscriptionPaymentWithAlipay(data) {
-  return request({
-    url: '/payment/subscription/alipay',
-    method: 'post',
-    data: data
-  })
+  return invoke('get_alipay_qr_code', { req: data })
 }
 
 // 查询订阅支付状态
 export function querySubscriptionPaymentWithAlipay(data) {
-  return request({
-    url: '/payment/subscription/alipay/query',
-    method: 'post',
-    data: data
-  })
+  return invoke('check_alipay_qr_code_payment_status', { req: data })
 }
 
 // 发起订阅支付请求

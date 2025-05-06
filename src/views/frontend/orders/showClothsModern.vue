@@ -222,49 +222,135 @@
     </el-dialog>
 
     <!-- 上挂对话框 -->
-    <el-dialog title="衣物上挂" v-model="showHangUp" width="450px" :align-center="true" :show-close="false" append-to-body
-      :before-close="closeHangUpDialog" class="hangup-dialog">
-      <div class="hangup-content">
-        <div class="cloth-preview" v-if="currentCloth">
-          <div class="preview-header">
-            <el-icon>
-              <Goods />
-            </el-icon>
-            <span class="cloth-title">{{ currentCloth.clothInfo?.title }}</span>
-            <el-tag v-if="currentCloth.clothingColor" size="small" effect="plain" type="info">
-              {{colorList.find(color => color.tagId == currentCloth.clothingColor)?.tagName}}
-            </el-tag>
-            <el-tag v-if="currentCloth.clothingBrand" size="small" effect="plain" type="success">
-              {{brandList.find(brand => brand.tagId == currentCloth.clothingBrand)?.tagName}}
-            </el-tag>
+    <el-dialog v-model="showHangUp" width="500px" :show-close="false" append-to-body
+      :before-close="closeHangUpDialog" :align-center="true" class="modern-dialog">
+      <template #header>
+        <div class="dialog-header">
+          <h3 class="dialog-title">衣物上挂</h3>
+          <div class="member-info" v-if="currentUser">
+            <el-avatar :size="32" icon="UserFilled" />
+            <span>{{ currentUser.nickName }} <small>{{ currentUser.phonenumber }}</small></span>
           </div>
         </div>
+      </template>
 
-        <el-form ref="hangUpRef" :model="hangForm" :rules="hangRules" label-width="90px" class="hangup-form">
-          <el-form-item label="衣物编码" prop="clothingNumber">
-            <el-input v-model="hangForm.clothingNumber" placeholder="请输入衣物编码" prefix-icon="Ticket" />
-          </el-form-item>
+      <div class="form-container">
+        <el-form ref="hangUpRef" class="modern-form" :model="hangForm" :rules="hangRules" label-width="90px">
+          <!-- 衣物信息卡片 -->
+          <div class="info-section" v-if="currentCloth">
+            <div class="section-divider">
+              <span>衣物信息</span>
+            </div>
+            <div class="info-card hover-flow">
+              <!-- 衣物基本信息 -->
+              <div class="info-header">
+                <div class="cloth-name">
+                  <el-icon>
+                    <Goods />
+                  </el-icon>
+                  {{ currentCloth.clothInfo?.title }}
+                  <span v-if="currentCloth.clothingColor" class="cloth-detail">
+                    <el-tag size="small" effect="plain" type="info">
+                      {{colorList.find(color => color.tagId == currentCloth.clothingColor)?.tagName}}
+                    </el-tag>
+                  </span>
+                  <span v-if="currentCloth.clothingBrand" class="cloth-detail">
+                    <el-tag size="small" effect="plain" type="success">
+                      {{brandList.find(brand => brand.tagId == currentCloth.clothingBrand)?.tagName}}
+                    </el-tag>
+                  </span>
+                </div>
+              </div>
 
-          <el-form-item label="衣挂位置" prop="hangLocationId">
-            <el-select v-model="hangForm.hangLocationId" placeholder="请选择上挂位置" class="full-width">
-              <el-option v-for="item in hangLocationList" :key="item.id" :label="item.name" :value="item.id" />
-            </el-select>
-          </el-form-item>
+              <el-divider class="info-divider" />
 
-          <el-form-item label="衣挂编号" prop="hangerNumber">
-            <el-input v-model="hangForm.hangerNumber" placeholder="请输入上挂衣物编码" prefix-icon="Location" />
-          </el-form-item>
+              <!-- 衣物详细信息 -->
+              <div class="info-content">
+                <!-- 瑕疵信息 -->
+                <div class="info-item" v-if="currentCloth.clothingFlaw">
+                  <div class="item-header">
+                    <el-icon>
+                      <Warning />
+                    </el-icon>
+                    <span class="item-title">瑕疵信息</span>
+                  </div>
+                  <div class="tag-container">
+                    <el-tag v-for="tagId in currentCloth.clothingFlaw.split(',')" :key="tagId" 
+                      type="danger" effect="light" size="small" class="info-tag">
+                      {{flawList.find(item => item.tagId == tagId)?.tagName}}
+                    </el-tag>
+                  </div>
+                </div>
 
-          <el-form-item label="备注信息" prop="hangRemark">
-            <el-input type="textarea" v-model="hangForm.hangRemark" placeholder="请输入上挂描述信息" rows="3" />
-          </el-form-item>
+                <!-- 洗后预估信息 -->
+                <div class="info-item" v-if="currentCloth.estimate">
+                  <div class="item-header">
+                    <el-icon>
+                      <InfoFilled />
+                    </el-icon>
+                    <span class="item-title">洗后预估</span>
+                  </div>
+                  <div class="tag-container">
+                    <el-tag v-for="tagId in currentCloth.estimate.split(',')" :key="tagId" 
+                      type="warning" effect="light" size="small" class="info-tag">
+                      {{estimateList.find(item => item.tagId == tagId)?.tagName}}
+                    </el-tag>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 挂衣信息 -->
+          <div class="hang-section">
+            <div class="section-divider">
+              <span>衣挂信息</span>
+            </div>
+            <div class="info-card hover-flow">
+              <el-form-item label="衣物编码" prop="clothingNumber">
+                <el-input v-model="hangForm.clothingNumber" placeholder="请输入衣物编码">
+                  <template #prefix>
+                    <el-icon>
+                      <Ticket />
+                    </el-icon>
+                  </template>
+                </el-input>
+              </el-form-item>
+
+              <el-form-item label="衣挂位置" prop="hangLocationId">
+                <el-select v-model="hangForm.hangLocationId" placeholder="请选择上挂位置编码" class="modern-select">
+                  <el-option v-for="item in hangLocationList" :key="item.id" :label="item.name"
+                    :value="item.id">
+                  </el-option>
+                </el-select>
+              </el-form-item>
+
+              <el-form-item label="衣挂编号" prop="hangerNumber">
+                <el-input v-model="hangForm.hangerNumber" placeholder="请输入上挂衣物编码">
+                  <template #prefix>
+                    <el-icon>
+                      <Location />
+                    </el-icon>
+                  </template>
+                </el-input>
+              </el-form-item>
+
+              <el-form-item label="备注信息" prop="hangRemark">
+                <el-input type="textarea" v-model="hangForm.hangRemark" placeholder="请输入上挂描述信息" rows="2" />
+              </el-form-item>
+            </div>
+          </div>
         </el-form>
       </div>
 
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="showHangUp = false" plain>取消</el-button>
-          <el-button type="primary" @click="hangUp">确认上挂</el-button>
+          <el-button @click="showHangUp = false" plain>
+            取消
+          </el-button>
+          <el-button type="primary" @click="hangUp">
+            确认上挂
+          </el-button>
         </div>
       </template>
     </el-dialog>
@@ -324,7 +410,7 @@ const props = defineProps({
     required: true,
   },
   userId: {
-    type: String,
+    type: Number,
     required: true,
   },
   toggle: {
@@ -343,6 +429,7 @@ const selectionList = ref([]);
 const clothsList = ref([]);
 const pictureList = ref([]);
 const currentCloth = ref({});
+const currentUser = ref(null);
 const showPicture = ref(false);
 const showCompensationDialog = ref(false);
 const showClothesDialog = ref(false);
@@ -537,6 +624,14 @@ function handleShowHangUp(row) {
     hangerNumber: row.hangerNumber,
     hangRemark: null
   };
+  
+  // 获取会员信息
+  getUser(props.userId).then(res => {
+    currentUser.value = res;
+  }).catch(error => {
+    console.error('获取会员信息失败:', error);
+    currentUser.value = null;
+  });
 }
 
 // 上挂操作
@@ -986,44 +1081,165 @@ onMounted(async () => {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* 上挂对话框 */
-.hangup-dialog :deep(.el-dialog__header) {
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
+/* 现代对话框样式 */
+.modern-dialog :deep(.el-dialog__header) {
+  margin: 0;
+  padding: 0;
 }
 
-.hangup-content {
-  padding: 10px 0;
+.modern-dialog :deep(.el-dialog__body) {
+  padding: 20px;
 }
 
-.cloth-preview {
+/* 对话框头部样式 */
+.dialog-header {
   background-color: var(--el-fill-color-light);
-  padding: 16px;
-  border-radius: 4px;
+  padding: 16px 20px;
+  border-radius: 8px 8px 0 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: var(--el-box-shadow-light);
+}
+
+.dialog-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.member-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.member-info span {
+  font-size: 14px;
+}
+
+/* 表单容器样式 */
+.form-container {
+  padding: 0;
+}
+
+.modern-form {
+  margin-top: 10px;
+}
+
+/* 信息卡片样式 */
+.info-card {
+  background-color: var(--el-fill-color);
+  border-radius: 8px;
+  padding: 15px;
+  box-shadow: var(--el-box-shadow-light);
   margin-bottom: 20px;
 }
 
-.preview-header {
+.hover-flow {
+  transition: all 0.3s;
+}
+
+.hover-flow:hover {
+  box-shadow: var(--el-box-shadow);
+  transform: translateY(-2px);
+}
+
+.info-header {
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+}
+
+.cloth-name {
+  font-size: 15px;
+  margin-bottom: 0;
+  color: var(--el-text-color-primary);
+  font-weight: 500;
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
 }
 
-.cloth-title {
-  font-weight: 500;
+.cloth-name .el-icon {
+  color: var(--el-color-primary);
+}
+
+.cloth-detail {
+  font-weight: normal;
+  margin-left: 5px;
+}
+
+.info-divider {
+  margin: 12px 0;
+}
+
+.info-item {
+  margin-bottom: 16px;
+}
+
+.info-item:last-child {
+  margin-bottom: 0;
+}
+
+.item-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.item-header .el-icon {
   font-size: 16px;
 }
 
-.hangup-form {
-  margin-top: 20px;
+.item-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--el-text-color-secondary);
 }
 
-.full-width {
+.tag-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-left: 24px;
+}
+
+.info-tag {
+  margin-right: 0;
+}
+
+/* 分隔线样式 */
+.section-divider {
+  position: relative;
+  text-align: left;
+  margin: 15px 0;
+  color: var(--el-text-color-primary);
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.section-divider::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -5px;
+  width: 4rem;
+  height: 3px;
+  background-color: var(--el-color-primary);
+  border-radius: 3px;
+}
+
+/* 挂衣信息区域样式 */
+.hang-section {
+  margin-top: 10px;
+}
+
+.modern-select {
   width: 100%;
 }
 
-/* 对话框底部 */
+/* 底部按钮样式 */
 .dialog-footer {
   display: flex;
   justify-content: flex-end;

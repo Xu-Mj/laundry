@@ -81,7 +81,7 @@
       <div class="table-operations">
         <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" :columns="columns"></right-toolbar>
       </div>
-      <el-table v-loading="loading" :data="ordersList" class="modern-table" border="dash" stripe>
+      <el-table v-loading="loading" :data="ordersList" class="modern-table" border stripe>
         <template #empty>
           <el-empty description="暂无数据" />
         </template>
@@ -128,7 +128,7 @@
         <el-table-column label="衣物编码" align="center" v-if="columns[6].visible">
           <template #default="scope">
             <div class="cloth-code-container">
-              <el-tag v-for="item in scope.row.clothCodes" :key="item" size="small" effect="plain">{{ item }}</el-tag>
+              <el-tag type="primary" v-for="item in scope.row.clothCodes" :key="item" size="small" effect="plain">{{ item }}</el-tag>
             </div>
           </template>
         </el-table-column>

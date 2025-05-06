@@ -471,7 +471,7 @@ pub async fn validate_pwd(state: State<'_, AppState>, account: &str, pwd: &str) 
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct UserInfo {
-    pub user: Option<LocalUser>,
+    pub user: LocalUser,
     pub subscription: Option<Subscription>, // 保留单个订阅字段以保持向后兼容
     pub subscriptions: Vec<Subscription>,   // 新增字段，存储所有有效订阅
     pub sms_sub: Option<SmsSubscription>,
@@ -479,22 +479,20 @@ pub struct UserInfo {
 
 #[tauri::command]
 pub async fn get_info(state: State<'_, AppState>) -> Result<UserInfo> {
-    let user = state.get_user_info().await;
+    let store_id = utils::get_user_id(&state).await?;
+    let user = LocalUser::get_by_id(&state.pool, store_id).await?;
     let mut subscription = None;
     let mut subscriptions = Vec::new();
     let mut sms_sub = None;
 
-    // 如果用户存在，获取其订阅信息
-    if let Some(user_data) = &user {
-        if let Some(id) = user_data.id {
-            if id > 0 {
-                // 获取当前激活的订阅（保持向后兼容）
-                subscription = Subscription::get_active_by_user_id(&state.pool, id).await?;
-                // 获取所有有效订阅
-                subscriptions = Subscription::get_all_active_by_user_id(&state.pool, id).await?;
+    if let Some(id) = user.id {
+        if id > 0 {
+            // 获取当前激活的订阅（保持向后兼容）
+            subscription = Subscription::get_active_by_user_id(&state.pool, id).await?;
+            // 获取所有有效订阅
+            subscriptions = Subscription::get_all_active_by_user_id(&state.pool, id).await?;
 
-                sms_sub = SmsSubscription::get_active_subscription(&state.pool, id).await?;
-            }
+            sms_sub = SmsSubscription::get_active_subscription(&state.pool, id).await?;
         }
     }
 

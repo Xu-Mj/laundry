@@ -1,132 +1,169 @@
 <template>
-  <div class="message-center">
-    <!-- 消息图标和未读消息数量徽章 -->
-    <div class="message-icon-container" @click="openMessageDialog">
-      <el-badge :value="unreadCount" :hidden="unreadCount === 0" :max="99">
-        <el-icon class="message-icon">
-          <Message />
-        </el-icon>
-      </el-badge>
-    </div>
+  <div>
+    <div class="message-center">
+      <!-- 消息图标和未读消息数量徽章 - 根据连接状态切换图标 -->
+      <div class="message-icon-container" @click="wsConnected ? openMessageDialog() : showNetworkStatusDialog()">
+        <el-badge :value="unreadCount" :hidden="unreadCount === 0" :max="99">
+          <el-icon class="message-icon" :class="{ 'disconnect': !wsConnected }">
+            <Message v-if="wsConnected" />
+            <Connection v-else />
+          </el-icon>
+        </el-badge>
+      </div>
 
-    <!-- 消息中心弹窗 -->
-    <el-dialog v-model="dialogVisible" title="消息中心" width="920px" :show-close="false" destroy-on-close append-to-body
-      align-center class="message-dialog">
-      <template #header>
-        <div class="dialog-header">
-          <h3 class="dialog-title">消息中心</h3>
-          <div class="dialog-actions">
-            <el-button type="primary" plain size="small" @click="markAllAsRead">全部已读</el-button>
-            <el-button circle @click="dialogVisible = false">
-              <el-icon>
-                <Close />
-              </el-icon>
-            </el-button>
-          </div>
-        </div>
-      </template>
-
-      <div class="message-container">
-        <!-- 左侧消息类型导航 -->
-        <div class="message-nav">
-          <el-menu :default-active="activeTab" class="message-menu" mode="horizontal" @select="handleTypeSelect">
-            <el-menu-item index="all">
-              <el-icon>
-                <MessageBox />
-              </el-icon>
-              <template #title>
-                <span>全部消息</span>
-                <el-badge :value="unreadCount" :max="99" :hidden="unreadCount === 0" class="menu-badge" />
-              </template>
-            </el-menu-item>
-
-            <el-menu-item v-for="(typeId, index) in Object.keys(typeConfig)" :key="index" :index="typeId">
-              <el-icon :style="{ color: getTypeConfig(typeId).color }">
-                <component :is="getTypeConfig(typeId).icon"></component>
-              </el-icon>
-              <template #title>
-                <span>{{ getTypeConfig(typeId).title }}</span>
-                <el-badge :value="getUnreadCountByType(typeId)" :max="99" :hidden="getUnreadCountByType(typeId) === 0"
-                  class="menu-badge" />
-              </template>
-            </el-menu-item>
-          </el-menu>
-        </div>
-
-        <!-- 右侧消息列表 -->
-        <div class="message-content-wrapper">
-          <div class="message-header">
-            <div class="message-title">{{ getActiveTypeTitle() }}</div>
-            <div class="message-filter">
-              <el-radio-group v-model="readStatus" size="small" @change="handleFilterChange">
-                <el-radio-button value="all">全部</el-radio-button>
-                <el-radio-button value="unread">未读</el-radio-button>
-                <el-radio-button value="read">已读</el-radio-button>
-              </el-radio-group>
+      <!-- 消息中心弹窗 -->
+      <el-dialog v-model="dialogVisible" title="消息中心" width="920px" :show-close="false" destroy-on-close append-to-body
+        align-center class="message-dialog">
+        <template #header>
+          <div class="dialog-header">
+            <h3 class="dialog-title">消息中心</h3>
+            <div class="dialog-actions">
+              <el-button type="primary" plain size="small" @click="markAllAsRead">全部已读</el-button>
+              <el-button circle @click="dialogVisible = false">
+                <el-icon>
+                  <Close />
+                </el-icon>
+              </el-button>
             </div>
           </div>
+        </template>
 
-          <div class="message-list-container">
-            <div class="empty-wrapper" v-if="filteredMessages.length === 0">
-              <el-empty description="暂无消息" />
-            </div>
+        <div class="message-container">
+          <!-- 左侧消息类型导航 -->
+          <div class="message-nav">
+            <el-menu :default-active="activeTab" class="message-menu" mode="horizontal" @select="handleTypeSelect">
+              <el-menu-item index="all">
+                <el-icon>
+                  <MessageBox />
+                </el-icon>
+                <template #title>
+                  <span>全部消息</span>
+                  <el-badge :value="unreadCount" :max="99" :hidden="unreadCount === 0" class="menu-badge" />
+                </template>
+              </el-menu-item>
 
-            <div v-else class="message-list">
-              <div v-for="message in filteredMessages" :key="message.id" class="message-item"
-                :class="{ 'unread': !message.read }" @click="handleMessageClick(message)">
-                <div class="message-item-header">
-                  <div class="message-icon-wrapper">
-                    <el-icon :size="20" :color="getTypeConfig(message.type).color">
-                      <component :is="getTypeConfig(message.type).icon"></component>
-                    </el-icon>
-                  </div>
-                  <div class="message-meta">
-                    <div class="message-title">{{ message.title }}</div>
-                    <div class="message-time">{{ formatTime(message.time) }}</div>
-                  </div>
-                </div>
+              <el-menu-item v-for="(typeId, index) in Object.keys(typeConfig)" :key="index" :index="typeId">
+                <el-icon :style="{ color: getTypeConfig(typeId).color }">
+                  <component :is="getTypeConfig(typeId).icon"></component>
+                </el-icon>
+                <template #title>
+                  <span>{{ getTypeConfig(typeId).title }}</span>
+                  <el-badge :value="getUnreadCountByType(typeId)" :max="99" :hidden="getUnreadCountByType(typeId) === 0"
+                    class="menu-badge" />
+                </template>
+              </el-menu-item>
+            </el-menu>
+          </div>
 
-                <div class="message-text">{{ message.content }}</div>
-
-                <div class="message-actions">
-                  <el-button type="primary" plain size="small" @click.stop="markAsRead(message)" v-if="!message.read">
-                    <el-icon>
-                      <Check />
-                    </el-icon>
-                    <span>标为已读</span>
-                  </el-button>
-                  <el-button type="danger" plain size="small" @click.stop="delMsg(message)">
-                    <el-icon>
-                      <Delete />
-                    </el-icon>
-                    <span>删除</span>
-                  </el-button>
-                </div>
+          <!-- 右侧消息列表 -->
+          <div class="message-content-wrapper">
+            <div class="message-header">
+              <div class="message-title">{{ getActiveTypeTitle() }}</div>
+              <div class="message-filter">
+                <el-radio-group v-model="readStatus" size="small" @change="handleFilterChange">
+                  <el-radio-button value="all">全部</el-radio-button>
+                  <el-radio-button value="unread">未读</el-radio-button>
+                  <el-radio-button value="read">已读</el-radio-button>
+                </el-radio-group>
               </div>
             </div>
 
-            <el-pagination v-show="pagination.total > 0" v-model:current-page="pagination.page"
-              v-model:page-size="pagination.pageSize" :total="pagination.total" :page-sizes="[10, 20, 30, 50]"
-              layout="total, sizes, prev, pager, next" @size-change="handlePaginationChange"
-              @current-change="handlePaginationChange" />
+            <div class="message-list-container">
+              <div class="empty-wrapper" v-if="filteredMessages.length === 0">
+                <el-empty description="暂无消息" />
+              </div>
 
-            <div v-if="filteredMessages.length > 0" class="message-actions-footer">
-              <el-button type="danger" plain @click="clearTypeMessages(activeTab)">清空消息</el-button>
+              <div v-else class="message-list">
+                <div v-for="message in filteredMessages" :key="message.id" class="message-item"
+                  :class="{ 'unread': !message.read }" @click="handleMessageClick(message)">
+                  <div class="message-item-header">
+                    <div class="message-icon-wrapper">
+                      <el-icon :size="20" :color="getTypeConfig(message.type).color">
+                        <component :is="getTypeConfig(message.type).icon"></component>
+                      </el-icon>
+                    </div>
+                    <div class="message-meta">
+                      <div class="message-title">{{ message.title }}</div>
+                      <div class="message-time">{{ formatTime(message.time) }}</div>
+                    </div>
+                  </div>
+
+                  <div class="message-text">{{ message.content }}</div>
+
+                  <div class="message-actions">
+                    <el-button type="primary" plain size="small" @click.stop="markAsRead(message)" v-if="!message.read">
+                      <el-icon>
+                        <Check />
+                      </el-icon>
+                      <span>标为已读</span>
+                    </el-button>
+                    <el-button type="danger" plain size="small" @click.stop="delMsg(message)">
+                      <el-icon>
+                        <Delete />
+                      </el-icon>
+                      <span>删除</span>
+                    </el-button>
+                  </div>
+                </div>
+              </div>
+
+              <el-pagination v-show="pagination.total > 0" v-model:current-page="pagination.page"
+                v-model:page-size="pagination.pageSize" :total="pagination.total" :page-sizes="[10, 20, 30, 50]"
+                layout="total, sizes, prev, pager, next" @size-change="handlePaginationChange"
+                @current-change="handlePaginationChange" />
+
+              <div v-if="filteredMessages.length > 0" class="message-actions-footer">
+                <el-button type="danger" plain @click="clearTypeMessages(activeTab)">清空消息</el-button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </el-dialog>
+      </el-dialog>
+
+      <!-- 网络状态对话框 -->
+      <el-dialog v-model="networkStatusDialogVisible" 
+        width="360px" 
+        append-to-body
+        :show-close="false"
+        :modal="true"
+        class="modern-dialog network-status-dialog"
+        align-center
+        top="25vh">
+        <div class="network-status-content">
+          <div class="status-icon">
+            <el-icon :size="40" color="#F56C6C">
+              <WarningFilled />
+            </el-icon>
+          </div>
+          <div class="status-message">
+            <h3>连接已断开</h3>
+            <p>{{ disconnectReason || '与服务器的连接已断开，请检查网络连接。' }}</p>
+          </div>
+          <div class="dialog-actions">
+            <el-button type="primary" @click="attemptReconnect" :loading="reconnecting" size="large" round>
+              <el-icon>
+                <RefreshRight />
+              </el-icon>
+              重新连接
+            </el-button>
+            <el-button @click="networkStatusDialogVisible = false" plain size="large" round>
+              关闭
+            </el-button>
+          </div>
+        </div>
+      </el-dialog>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { Check, Delete, Close, MessageBox } from '@element-plus/icons-vue';
+// import { Check, Delete, Close, MessageBox, Connection, WarningFilled, RefreshRight } from '@element-plus/icons-vue';
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import TauriWebSocketManager from '@/utils/tauriWebSocket';
 import Notification from '@/utils/notification';
 import { parseTime } from '@/utils/ruoyi';
 import { getUnreadCount, getMessages, deleteMessage, clearMessages } from '@/api/system/message';
+import { Check, Delete, Close, MessageBox, Connection, WarningFilled, RefreshRight } from '@element-plus/icons-vue';
 
 // 消息类型常量
 const MESSAGE_TYPES = {
@@ -147,6 +184,10 @@ const pagination = ref({
   pageSize: 10,
   total: 0
 });
+const wsConnected = ref(true);
+const disconnectReason = ref(null);
+const reconnecting = ref(false);
+const networkStatusDialogVisible = ref(false);
 
 // 消息类型配置
 const typeConfig = {
@@ -392,6 +433,19 @@ const clearTypeMessages = async (type) => {
   }
 };
 
+// 处理WebSocket连接状态变化
+const handleConnectionChange = (connected, reason = null) => {
+  console.log('WebSocket连接状态变化:', connected, reason);
+  wsConnected.value = connected;
+  if (!connected) {
+    disconnectReason.value = reason || '与服务器的连接已断开，请检查网络连接';
+    console.log('WebSocket连接已断开:', disconnectReason.value);
+  } else {
+    disconnectReason.value = null;
+    console.log('WebSocket连接已恢复');
+  }
+};
+
 // 处理新消息
 const handleNewMessage = (message) => {
   // 添加到消息列表
@@ -415,6 +469,12 @@ const initMessageSystem = async () => {
 
     // 添加消息监听器
     TauriWebSocketManager.addMessageListener('*', handleNewMessage);
+
+    // 监听WebSocket连接状态
+    TauriWebSocketManager.addConnectionStateListener(handleConnectionChange);
+
+    // 初始连接状态
+    wsConnected.value = TauriWebSocketManager.isConnected;
   } catch (error) {
     console.error('初始化消息系统失败:', error);
     Notification.error('初始化消息系统失败');
@@ -429,7 +489,30 @@ onMounted(() => {
 // 组件卸载时移除消息监听器
 onUnmounted(() => {
   TauriWebSocketManager.removeMessageListener('*', handleNewMessage);
+  TauriWebSocketManager.removeConnectionStateListener(handleConnectionChange);
 });
+
+// 显示网络状态对话框
+const showNetworkStatusDialog = () => {
+  console.log('显示网络状态对话框'); // 添加这一行日志信息
+  networkStatusDialogVisible.value = true;
+};
+
+// 尝试重新连接
+const attemptReconnect = async () => {
+  reconnecting.value = true;
+  try {
+    await TauriWebSocketManager.attemptReconnect();
+    wsConnected.value = true;
+    disconnectReason.value = null;
+    Notification.success('已重新连接到服务器');
+  } catch (error) {
+    console.error('重新连接失败:', error);
+    Notification.error('重新连接失败');
+  } finally {
+    reconnecting.value = false;
+  }
+};
 </script>
 
 <style lang="scss" scoped>
@@ -454,16 +537,33 @@ onUnmounted(() => {
       font-size: 20px;
       color: var(--el-color-primary);
       transition: all 0.3s;
+
+      &.disconnect {
+        color: var(--el-color-danger);
+        animation: blink 1.5s infinite;
+      }
     }
   }
-
-
 
   .message-pagination {
     display: flex;
     justify-content: center;
     padding: 16px 0;
     border-top: 1px solid var(--el-border-color-lighter);
+  }
+}
+
+@keyframes blink {
+  0% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+
+  100% {
+    opacity: 1;
   }
 }
 
@@ -683,6 +783,71 @@ onUnmounted(() => {
           border-top: 1px solid var(--el-border-color-lighter);
         }
       }
+    }
+  }
+}
+
+// 现代化对话框通用样式
+.modern-dialog {
+  :deep(.el-dialog__header) {
+    display: none;
+  }
+  
+  :deep(.el-dialog__body) {
+    padding: 0;
+  }
+  
+  :deep(.el-dialog) {
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  }
+}
+
+// 网络状态对话框样式
+.network-status-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 30px 20px;
+  text-align: center;
+
+  .status-icon {
+    margin-bottom: 24px;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background-color: rgba(245, 108, 108, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .status-message {
+    margin-bottom: 30px;
+
+    h3 {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 10px;
+      color: var(--el-text-color-primary);
+    }
+
+    p {
+      font-size: 14px;
+      color: var(--el-text-color-secondary);
+      line-height: 1.6;
+      margin: 0;
+      max-width: 280px;
+    }
+  }
+
+  .dialog-actions {
+    display: flex;
+    gap: 12px;
+    
+    .el-button {
+      min-width: 120px;
     }
   }
 }

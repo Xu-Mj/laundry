@@ -24,6 +24,7 @@ class TauriWebSocketManager {
         this.messageQueue = [];
         this.lastMessageId = 0;
         this.manualClose = false;
+        this.connectionStateListeners = [];
 
         // 支持的消息类型
         this.messageTypes = {
@@ -92,6 +93,9 @@ class TauriWebSocketManager {
             this.reconnectAttempts = 0;
             console.log('WebSocket连接成功，连接已建立');
 
+            // 通知连接状态变化
+            this.notifyConnectionStateChange(true);
+
             // 发送队列中的消息
             await this.sendQueuedMessages();
 
@@ -101,6 +105,10 @@ class TauriWebSocketManager {
             return true;
         } catch (error) {
             console.error('WebSocket初始化异常:', error);
+            
+            // 通知连接状态变化
+            this.notifyConnectionStateChange(false, error.message);
+            
             this.reconnect();
             return false;
         }
@@ -120,6 +128,9 @@ class TauriWebSocketManager {
             }
 
             this.isConnected = false;
+            
+            // 通知连接状态变化
+            this.notifyConnectionStateChange(false, '连接已手动关闭');
 
             if (this.reconnectTimer) {
                 clearTimeout(this.reconnectTimer);
@@ -251,6 +262,10 @@ class TauriWebSocketManager {
         if (this.reconnectAttempts >= this.maxReconnectAttempts) {
             console.error('WebSocket重连次数超过最大限制，停止重连');
             Notification.error('消息系统连接已断开，请刷新页面重试');
+            
+            // 通知连接状态变化
+            this.notifyConnectionStateChange(false, '重连次数超过最大限制，请刷新页面');
+            
             return;
         }
 
@@ -356,6 +371,70 @@ class TauriWebSocketManager {
 
         if (listeners.length === 0) {
             this.messageListeners.delete(type);
+        }
+    }
+
+    /**
+     * 添加连接状态监听器
+     * @param {Function} listener - 连接状态变化监听器函数
+     */
+    addConnectionStateListener(listener) {
+        if (typeof listener === 'function' && !this.connectionStateListeners.includes(listener)) {
+            this.connectionStateListeners.push(listener);
+            
+            // 立即通知当前状态
+            listener(this.isConnected, null);
+        }
+    }
+
+    /**
+     * 移除连接状态监听器
+     * @param {Function} listener - 连接状态变化监听器函数
+     */
+    removeConnectionStateListener(listener) {
+        const index = this.connectionStateListeners.indexOf(listener);
+        if (index !== -1) {
+            this.connectionStateListeners.splice(index, 1);
+        }
+    }
+
+    /**
+     * 通知所有监听器连接状态变化
+     * @param {boolean} connected - 连接状态
+     * @param {string} reason - 连接断开原因
+     */
+    notifyConnectionStateChange(connected, reason = null) {
+        this.connectionStateListeners.forEach(listener => {
+            try {
+                listener(connected, reason);
+            } catch (error) {
+                console.error('执行连接状态监听器时出错:', error);
+            }
+        });
+    }
+
+    /**
+     * 尝试重新连接
+     * 手动触发重新连接
+     */
+    async attemptReconnect() {
+        if (this.isConnected) {
+            console.log('WebSocket已连接，无需重连');
+            return true;
+        }
+
+        try {
+            this.reconnectAttempts = 0;
+            const serverUrl = await this.getServerUrl();
+            if (!serverUrl) {
+                throw new Error('获取WebSocket服务器地址失败');
+            }
+            
+            return await this.init(serverUrl);
+        } catch (error) {
+            console.error('手动重连失败:', error);
+            this.notifyConnectionStateChange(false, error.message);
+            throw error;
         }
     }
 }

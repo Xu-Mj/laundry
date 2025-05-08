@@ -51,7 +51,7 @@
 
                     <!-- 支出金额 -->
                     <el-form-item label="支出金额" prop="expAmount" class="amount-item">
-                        <el-input-number v-model="form.expAmount" :min="0" controls-position="right"
+                        <el-input-number v-model="form.expAmount" :min="0" :max="92233720368.54" controls-position="right"
                             placeholder="请输入支出金额" class="amount-input" :precision="2" :step="10" style="width: 100%">
                             <template #prefix>
                                 <el-icon>
@@ -62,6 +62,7 @@
                         <div class="amount-display" v-if="form.expAmount">
                             {{ formatCurrency(form.expAmount) }}
                         </div>
+                        <div class="amount-hint">金额单位：元</div>
                     </el-form-item>
 
                     <!-- 备注信息 -->
@@ -131,10 +132,16 @@ const rules = ref({
     ],
 });
 
-const form = ref({ ...props.data })
+// 初始化表单数据，如果是编辑模式，需要将后端返回的金额（分）转换为前端显示的金额（元）
+const form = ref({
+    ...props.data,
+    // 如果是编辑模式且金额存在，将分转换为元
+    expAmount: props.data && props.data.expAmount ? props.data.expAmount / 100 : null
+})
 
 // 格式化货币显示
 const formatCurrency = (value) => {
+    // 前端显示时使用原始输入值（元）
     return new Intl.NumberFormat('zh-CN', {
         style: 'currency',
         currency: 'CNY',
@@ -195,6 +202,12 @@ function submitForm() {
     proxy.$refs["expenditureRef"].validate(valid => {
         if (valid) {
             submitting.value = true;
+            
+            // 将金额转换为整数（单位：分），因为后端使用i64类型存储
+            if (form.value.expAmount !== null && form.value.expAmount !== undefined) {
+                // 将元转换为分（乘以100并取整）
+                form.value.expAmount = Math.round(form.value.expAmount * 100);
+            }
 
             if (notACount.value) {
                 form.value.recvAccountTitle = form.value.recvAccount;
@@ -304,6 +317,12 @@ onMounted(() => {
     font-size: 14px;
     color: var(--el-color-success);
     font-weight: 500;
+}
+
+.amount-hint {
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+    margin-top: 4px;
 }
 
 .dialog-footer {

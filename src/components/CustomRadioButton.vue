@@ -70,5 +70,6 @@ const handleChange = (event) => {
 
 .button-content {
     font-size: 14px;
+    padding: .5rem;
 }
 </style>

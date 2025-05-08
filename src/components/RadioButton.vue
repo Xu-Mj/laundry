@@ -1,7 +1,14 @@
 <template>
     <label :class="[{ 'custom-radio-button': true }, className, { 'is-checked': isSelected }]">
         <input type="radio" :value="value" hidden @change="onChange" :checked="isSelected">
-        <span>{{ label }}<slot></slot></span>
+        <el-tooltip
+            :content="label"
+            placement="top"
+            :show-after="200"
+            :disabled="!isTextOverflow"
+        >
+            <span ref="textSpan">{{ label }}</span>
+        </el-tooltip>
     </label>
 </template>
 
@@ -25,6 +32,11 @@ export default {
             required: true
         }
     },
+    data() {
+        return {
+            isTextOverflow: false
+        }
+    },
     computed: {
         isSelected() {
             return this.modelValue === this.value;
@@ -33,7 +45,18 @@ export default {
     methods: {
         onChange() {
             this.$emit('update:modelValue', this.value);
+        },
+        checkTextOverflow() {
+            if (this.$refs.textSpan) {
+                this.isTextOverflow = this.$refs.textSpan.scrollWidth > this.$refs.textSpan.clientWidth;
+            }
         }
+    },
+    mounted() {
+        this.checkTextOverflow();
+    },
+    updated() {
+        this.checkTextOverflow();
     }
 }
 </script>
@@ -54,6 +77,15 @@ export default {
     &:hover {
         transform: translateY(-2px);
         box-shadow: var(--el-box-shadow-light);
+    }
+
+    span {
+        padding: .5rem;
+        width: 100%;
+        text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 }
 

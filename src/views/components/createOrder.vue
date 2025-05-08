@@ -179,6 +179,7 @@
                             }}</el-button>
                         <el-button size="large" icon="Check" type="primary" color="#626aef" @click="submitForm"
                             :disabled="notEditable && !(form.source === '03') && (form.priceId || form.source === '02' || form.source === '01')"
+                            v-if="form.source !== '01' && form.source !== '02'"
                             ref="submitButtonRef">取衣收款</el-button>
                         <el-button size="large" type="success" @click="createAndPay" icon="Money"
                             :disabled="notEditable" ref="payButtonRef">收衣收款</el-button>

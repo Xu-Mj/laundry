@@ -243,14 +243,13 @@ const handleRowClick = (row) => {
 }
 
 .empty-state {
-    display: flex;
-    justify-content: center;
+  display: flex;
+  justify-content: center;
 }
 
 .empty-info-card {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-
 </style>

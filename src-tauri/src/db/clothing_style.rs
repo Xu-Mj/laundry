@@ -137,86 +137,61 @@ impl ClothingStyle {
 
     /// 更新衣物分类
     pub async fn update(self, pool: &Pool<Sqlite>) -> Result<bool> {
-        let mut query_builder = QueryBuilder::<Sqlite>::new("UPDATE clothing_styles SET ");
-        let mut has_update = false;
-
-        // 始终更新style_name，即使是空字符串也会更新
-        if has_update {
-            query_builder.push(", ");
-        }
-        query_builder
-            .push("style_name = ")
-            .push_bind(&self.style_name);
-        has_update = true;
-
-        // 始终更新style_code，即使是空字符串也会更新
-        if has_update {
-            query_builder.push(", ");
-        }
-        query_builder
-            .push("style_code = ")
-            .push_bind(&self.style_code);
-        has_update = true;
-
-        // 处理可空字段，无论是Some还是None都会更新
-        if has_update {
-            query_builder.push(", ");
-        }
-        query_builder
-            .push("order_num = ")
-            .push_bind(&self.order_num);
-        has_update = true;
-
-        if has_update {
-            query_builder.push(", ");
-        }
-        query_builder.push("remark = ").push_bind(&self.remark);
-        has_update = true;
-
-        if has_update {
-            query_builder.push(", ");
-        }
-        query_builder.push("del_flag = ").push_bind(&self.del_flag);
-        has_update = true;
-
-        // 添加更新时间
-        if has_update {
-            query_builder
-                .push(", updated_at = ")
-                .push_bind(utils::get_timestamp());
-        }
-
-        if has_update {
-            query_builder
-                .push(" WHERE store_id = ")
-                .push_bind(self.store_id);
-
-            if let Some(style_id) = self.style_id {
-                query_builder.push(" AND style_id = ").push_bind(style_id);
-            } else {
-                return Err(Error::with_details(ErrorKind::BadRequest, "缺少分类ID"));
-            }
-
-            let result = query_builder.build().execute(pool).await?;
-            Ok(result.rows_affected() > 0)
-        } else {
-            Ok(false)
-        }
+        // 验证style_id是否存在
+        let style_id = match self.style_id {
+            Some(id) => id,
+            None => return Err(Error::with_details(ErrorKind::BadRequest, "缺少分类ID")),
+        };
+        
+        // 使用单一SQL语句更新所有字段
+        let now = utils::get_timestamp();
+        let result = sqlx::query(
+            "UPDATE clothing_styles SET 
+             category_id =?,
+             style_name = ?, 
+             style_code = ?, 
+             order_num = ?, 
+             remark = ?, 
+             updated_at = ? 
+             WHERE store_id = ? AND style_id = ?"
+        )
+        .bind(&self.category_id)
+        .bind(&self.style_name)
+        .bind(&self.style_code)
+        .bind(&self.order_num)
+        .bind(&self.remark)
+        .bind(now)
+        .bind(self.store_id)
+        .bind(style_id)
+        .execute(pool)
+        .await?;
+        
+        Ok(result.rows_affected() > 0)
     }
 
     /// 检查分类名称是否已经存在
+    /// 
+    /// 如果提供了style_id，则会排除该ID的记录，用于更新时检查
     pub async fn exists_by_name(
         pool: &Pool<Sqlite>,
         store_id: i64,
         style_name: &str,
+        exclude_style_id: Option<i64>,
     ) -> Result<bool> {
-        let result = sqlx::query_scalar(
-            "SELECT EXISTS(SELECT 1 FROM clothing_styles WHERE store_id = ? AND style_name = ? AND del_flag = '0')",
-        )
-        .bind(store_id)
-        .bind(style_name)
-        .fetch_one(pool)
-        .await?;
+        let sql = match exclude_style_id {
+            Some(_) => "SELECT EXISTS(SELECT 1 FROM clothing_styles WHERE store_id = ? AND style_name = ? AND style_id != ? AND del_flag = '0')",
+            None => "SELECT EXISTS(SELECT 1 FROM clothing_styles WHERE store_id = ? AND style_name = ? AND del_flag = '0')",
+        };
+        
+        let mut query = sqlx::query_scalar(sql)
+            .bind(store_id)
+            .bind(style_name);
+            
+        if let Some(id) = exclude_style_id {
+            query = query.bind(id);
+        }
+        
+        let result = query.fetch_one(pool).await?;
 
         Ok(result)
     }
@@ -298,7 +273,7 @@ pub async fn add_clothing_style(
     let pool = &state.pool;
     style.validate()?;
     // check if style name exists
-    if ClothingStyle::exists_by_name(pool, style.store_id, &style.style_name).await? {
+    if ClothingStyle::exists_by_name(pool, style.store_id, &style.style_name, None).await? {
         return Err(Error::bad_request("分类名称已存在"));
     }
 
@@ -315,8 +290,8 @@ pub async fn update_clothing_style(
 ) -> Result<bool> {
     let pool = &state.pool;
     style.validate()?;
-    // check if style name exists
-    if ClothingStyle::exists_by_name(pool, style.store_id, &style.style_name).await? {
+    // check if style name exists, 排除当前正在更新的记录
+    if ClothingStyle::exists_by_name(pool, style.store_id, &style.style_name, style.style_id).await? {
         return Err(Error::bad_request("分类名称已存在"));
     }
 

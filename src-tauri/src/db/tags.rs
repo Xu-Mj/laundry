@@ -273,7 +273,7 @@ impl Tag {
                 .push_bind(self.tag_id)
                 .push(" RETURNING *");
             let updated_tag = query_builder
-                .build_query_as::<Tag>()
+                .build_query_as()
                 .fetch_one(pool)
                 .await?;
             Ok(updated_tag)
@@ -356,6 +356,9 @@ pub async fn add_tag(state: State<'_, AppState>, mut tag: Tag) -> Result<Tag> {
     if tag.tag_name.is_none() || tag.tag_name.as_ref().unwrap().trim().is_empty() {
         return Err(Error::with_details(ErrorKind::BadRequest, "标签名不能为空"));
     }
+
+    let store_id = utils::get_user_id(&state).await?;
+    tag.store_id = Some(store_id);
 
     let pool = &state.pool;
     tag.init_default(pool).await?;

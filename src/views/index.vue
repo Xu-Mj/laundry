@@ -73,6 +73,8 @@
           <div class="chart-card">
             <div class="chart-header">
               <h3>订单来源分布</h3>
+              <el-date-picker class="date-picker" v-model="selectedSourceDate" type="month" placeholder="选择年月"
+                @change="handleSourceDateChange" size="small" />
             </div>
             <v-chart class="chart" :option="item" :ref="(el) => setChartRef(el, index)" />
           </div>
@@ -126,6 +128,7 @@ import { getCountList, getChartList, getOrderTotalCount, fetchPaymentSummary, fe
 use([CanvasRenderer, PieChart, LineChart, TitleComponent, TooltipComponent, LegendComponent, GridComponent]);
 
 const selectedDate = ref(new Date());
+const selectedSourceDate = ref(new Date());
 const countList = ref([]);
 const orderTotalCount = ref(0);
 const chart = ref();
@@ -211,17 +214,36 @@ const parseData = (data) => {
 };
 
 const generateChartOptions = (data, type) => {
-  return data.map(item => ({
-    tooltip: { trigger: 'item' },
-    legend: { orient: 'vertical', bottom: 0, left: 'left' },
-    series: [{
-      name: item.name,
-      type: type,
-      radius: '50%',
-      data: item.data,
-      label: { show: true, formatter: '{b}: {c}' },
-    }],
-  }));
+  return data.map(item => {
+    // 检查数据是否为空
+    const isEmpty = !item.data || item.data.length === 0;
+    
+    return {
+      tooltip: { trigger: 'item', formatter: '{a} <br/>{b}: {c} ({d}%)' },
+      legend: { orient: 'vertical', bottom: 0, left: 'left' },
+      series: [{
+        name: item.name,
+        type: type,
+        radius: ['40%', '60%'],
+        data: isEmpty ? [{ value: 1, name: '暂无数据', itemStyle: { color: '#f5f7fa' } }] : item.data,
+        label: { 
+          show: true, 
+          formatter: isEmpty ? '暂无数据' : '{b}: {c} ({d}%)',
+          position: isEmpty ? 'center' : 'outside',
+          fontSize: isEmpty ? 14 : 12,
+          color: isEmpty ? '#909399' : 'inherit'
+        },
+        emphasis: {
+          disabled: isEmpty,
+          itemStyle: {
+            shadowBlur: 10,
+            shadowOffsetX: 0,
+            shadowColor: 'rgba(0, 0, 0, 0.5)'
+          }
+        }
+      }],
+    };
+  });
 };
 
 const getCountData = async () => {
@@ -230,7 +252,9 @@ const getCountData = async () => {
 };
 
 const getChartData = async () => {
-  const res = await getChartList();
+  const year = selectedSourceDate.value.getFullYear();
+  const month = selectedSourceDate.value.getMonth() + 1;
+  const res = await getChartList({ year, month });
   chart.value = res;
 };
 
@@ -306,6 +330,10 @@ const handleDateChange = (date) => {
   initLineChart(year, month);
 };
 
+const handleSourceDateChange = (date) => {
+  initSourceCharts();
+};
+
 const resizeCharts = () => {
   if (lineChartRef.value && lineChartRef.value.resize) {
     lineChartRef.value.resize();
@@ -322,7 +350,6 @@ const resizeCharts = () => {
 const initCharts = async () => {
   await fetchCodeToLabelData();
   await getCountData();
-  await getChartData();
   const data = await fetchPaymentSummary();
   paymentData.value = data.reduce((acc, item) => {
     acc[item.label.toLowerCase()] = {
@@ -335,12 +362,22 @@ const initCharts = async () => {
   }, {});
 
   orderTotalCount.value = await getOrderTotalCount();
-  chartData.value = countList.value.map(item => ({ value: item.count, name: item.title }));
-  const parsedData = parseData(chart.value);
-  chartList.value = generateChartOptions(parsedData, 'pie');
   const year = selectedDate.value.getFullYear();
   const month = selectedDate.value.getMonth() + 1;
   await initLineChart(year, month);
+  await initSourceCharts();
+  nextTick(() => {
+    resizeCharts();
+  });
+};
+
+async function initSourceCharts() {
+  await getChartData();
+
+  chartData.value = countList.value.map(item => ({ value: item.count, name: item.title }));
+  const parsedData = parseData(chart.value);
+  chartList.value = generateChartOptions(parsedData, 'pie');
+
   pieChartOptions.value = {
     tooltip: { trigger: 'item', formatter: '{a} <br/>{b}: {c} ({d}%)' },
     legend: { orient: 'vertical', bottom: 0, left: 'left' },
@@ -353,11 +390,7 @@ const initCharts = async () => {
       emphasis: { itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0, 0, 0, 0.5)' } },
     }],
   };
-
-  nextTick(() => {
-    resizeCharts();
-  });
-};
+}
 
 onMounted(async () => {
   await initCharts();

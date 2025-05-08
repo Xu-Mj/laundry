@@ -78,7 +78,7 @@
     </el-card>
 
     <!-- 添加或修改价格管理对话框 -->
-    <el-dialog v-model="open" :show-close="false" width="550px" @opened="refNumberGetFocus"
+    <el-dialog v-model="open" :show-close="false" width="560px" @opened="refNumberGetFocus"
       @closed="refNumberFocus = false" align-center class="price-dialog">
       <template #header>
         <div class="dialog-header hover-flow">
@@ -522,8 +522,9 @@ getList();
 .custom-input-number :deep(.el-input__wrapper) {
   box-shadow: 0 0 0 1px var(--el-border-color) inset;
   border-radius: 4px;
-  padding: 0 12px;
+  /* padding: 0 12px; */
   transition: all 0.3s;
+  width: 100%;
 }
 
 .custom-input :deep(.el-input__wrapper:hover),

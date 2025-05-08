@@ -180,6 +180,10 @@ impl Curd for User {
         self.store_id.filter(|l| *l != 0).map(|l| {
             builder.push(" AND u.store_id = ").push_bind(l);
         });
+
+        self.status.as_ref().filter(|s| !s.is_empty()).map(|s| {
+            builder.push(" AND u.status = ").push_bind(s);
+        });
     }
 }
 
@@ -220,165 +224,54 @@ impl User {
     }
 
     pub async fn update(&self, tr: &mut Transaction<'_, Sqlite>) -> Result<bool> {
-        let mut query_builder = QueryBuilder::<Sqlite>::new("UPDATE users SET ");
-        let mut has_update = false;
+        let result = sqlx::query(
+            "UPDATE users SET 
+            open_id = ?, 
+            dept_id = ?, 
+            user_name = ?, 
+            nick_name = ?, 
+            user_type = ?, 
+            email = ?, 
+            phonenumber = ?, 
+            sex = ?, 
+            avatar = ?, 
+            password = ?, 
+            status = ?, 
+            integral = ?, 
+            identify = ?, 
+            login_ip = ?, 
+            login_date = ?, 
+            update_by = ?, 
+            remark = ?, 
+            address = ?, 
+            update_time = ? 
+            WHERE store_id = ? AND user_id = ?",
+        )
+        .bind(&self.open_id)
+        .bind(&self.dept_id)
+        .bind(&self.user_name)
+        .bind(&self.nick_name)
+        .bind(&self.user_type)
+        .bind(&self.email)
+        .bind(&self.phonenumber)
+        .bind(&self.sex)
+        .bind(&self.avatar)
+        .bind(&self.password)
+        .bind(&self.status)
+        .bind(&self.integral)
+        .bind(&self.identify)
+        .bind(&self.login_ip)
+        .bind(&self.login_date)
+        .bind(&self.update_by)
+        .bind(&self.remark)
+        .bind(&self.address)
+        .bind(utils::get_now())
+        .bind(self.store_id)
+        .bind(self.user_id)
+        .execute(&mut **tr)
+        .await?;
 
-        if let Some(open_id) = &self.open_id {
-            query_builder.push("open_id = ").push_bind(open_id);
-            has_update = true;
-        }
-
-        if let Some(dept_id) = &self.dept_id {
-            if has_update {
-                query_builder.push(", ");
-            }
-            query_builder.push("dept_id = ").push_bind(dept_id);
-            has_update = true;
-        }
-
-        if let Some(user_name) = &self.user_name {
-            if has_update {
-                query_builder.push(", ");
-            }
-            query_builder.push("user_name = ").push_bind(user_name);
-            has_update = true;
-        }
-
-        if let Some(nick_name) = &self.nick_name {
-            if has_update {
-                query_builder.push(", ");
-            }
-            query_builder.push("nick_name = ").push_bind(nick_name);
-            has_update = true;
-        }
-
-        if let Some(user_type) = &self.user_type {
-            if has_update {
-                query_builder.push(", ");
-            }
-            query_builder.push("user_type = ").push_bind(user_type);
-            has_update = true;
-        }
-
-        if let Some(email) = &self.email {
-            if has_update {
-                query_builder.push(", ");
-            }
-            query_builder.push("email = ").push_bind(email);
-            has_update = true;
-        }
-
-        if let Some(phonenumber) = &self.phonenumber {
-            if has_update {
-                query_builder.push(", ");
-            }
-            query_builder.push("phonenumber = ").push_bind(phonenumber);
-            has_update = true;
-        }
-
-        if let Some(sex) = &self.sex {
-            if has_update {
-                query_builder.push(", ");
-            }
-            query_builder.push("sex = ").push_bind(sex);
-            has_update = true;
-        }
-
-        if let Some(avatar) = &self.avatar {
-            if has_update {
-                query_builder.push(", ");
-            }
-            query_builder.push("avatar = ").push_bind(avatar);
-            has_update = true;
-        }
-
-        if let Some(password) = &self.password {
-            if has_update {
-                query_builder.push(", ");
-            }
-            query_builder.push("password = ").push_bind(password);
-            has_update = true;
-        }
-
-        if let Some(status) = &self.status {
-            if has_update {
-                query_builder.push(", ");
-            }
-            query_builder.push("status = ").push_bind(status);
-            has_update = true;
-        }
-
-        if let Some(integral) = &self.integral {
-            if has_update {
-                query_builder.push(", ");
-            }
-            query_builder.push("integral = ").push_bind(integral);
-            has_update = true;
-        }
-
-        if let Some(identify) = &self.identify {
-            if has_update {
-                query_builder.push(", ");
-            }
-            query_builder.push("identify = ").push_bind(identify);
-            has_update = true;
-        }
-
-        if let Some(login_ip) = &self.login_ip {
-            if has_update {
-                query_builder.push(", ");
-            }
-            query_builder.push("login_ip = ").push_bind(login_ip);
-            has_update = true;
-        }
-
-        if let Some(login_date) = &self.login_date {
-            if has_update {
-                query_builder.push(", ");
-            }
-            query_builder.push("login_date = ").push_bind(login_date);
-            has_update = true;
-        }
-
-        if let Some(update_by) = &self.update_by {
-            if has_update {
-                query_builder.push(", ");
-            }
-            query_builder.push("update_by = ").push_bind(update_by);
-            has_update = true;
-        }
-
-        if let Some(remark) = &self.remark {
-            if has_update {
-                query_builder.push(", ");
-            }
-            query_builder.push("remark = ").push_bind(remark);
-            has_update = true;
-        }
-
-        if let Some(address) = &self.address {
-            if has_update {
-                query_builder.push(", ");
-            }
-            query_builder.push("address = ").push_bind(address);
-            has_update = true;
-        }
-
-        if has_update {
-            query_builder
-                .push(" ,update_time = ")
-                .push_bind(utils::get_now());
-            query_builder
-                .push(" WHERE store_id = ?")
-                .push_bind(self.store_id);
-            query_builder
-                .push(" AND user_id = ")
-                .push_bind(self.user_id);
-            let result = query_builder.build().execute(&mut **tr).await?;
-            Ok(result.rows_affected() > 0)
-        } else {
-            Ok(true)
-        }
+        Ok(result.rows_affected() > 0)
     }
 
     // list by ids
@@ -665,6 +558,7 @@ pub async fn get_users_pagination(
 pub async fn get_all_users(state: State<'_, AppState>, mut user: User) -> Result<Vec<User>> {
     let store_id = utils::get_user_id(&state).await?;
     user.store_id = Some(store_id);
+    user.status = Some("0".to_string());
     user.get_all(&state.pool).await
 }
 
@@ -712,10 +606,18 @@ pub async fn update_user(state: State<'_, AppState>, mut user: User) -> Result<b
 }
 
 #[tauri::command]
-pub async fn change_user_status(state: State<'_, AppState>, mut user: User) -> Result<bool> {
+pub async fn change_user_status(
+    state: State<'_, AppState>,
+    user_id: i64,
+    status: &str,
+) -> Result<bool> {
+    let mut user = User::get_by_id(&state.pool, user_id)
+        .await?
+        .ok_or(Error::not_found("用户未找到"))?;
+
+    user.status = Some(status.to_string());
     let mut tr = state.pool.begin().await?;
-    let store_id = utils::get_user_id(&state).await?;
-    user.store_id = Some(store_id);
+
     let result = user.update(&mut tr).await?;
     tr.commit().await?;
     Ok(result)

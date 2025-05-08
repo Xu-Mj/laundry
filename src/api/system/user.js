@@ -65,11 +65,7 @@ export function resetUserPwd(userId, password) {
 
 // 用户状态修改
 export function changeUserStatus(userId, status) {
-  const data = {
-    userId,
-    status
-  }
-  return invoke('change_user_status', { user: data })
+  return invoke('change_user_status', { userId, status })
 }
 
 // 查询用户个人信息

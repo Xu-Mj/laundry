@@ -6,18 +6,13 @@
                 <div>
                     <h2 class="dialog-title">衣挂信息设置</h2>
                 </div>
-                <el-button circle @click="cancel">
-                    <el-icon>
-                        <Close />
-                    </el-icon>
-                </el-button>
             </div>
         </template>
         <div class="rack-init-content">
             <el-alert title="您尚未设置衣挂信息" type="warning" description="衣挂信息是系统正常运行的必要数据，否则无法收取衣物。" :closable="false"
                 show-icon />
             <div class="rack-init-image">
-                <el-image src="/src/assets/images/rack-setup.svg" fit="contain">
+                <el-image :src="rackSetupImage" fit="contain">
                     <template #error>
                         <div class="image-placeholder">
                             <el-icon>
@@ -75,6 +70,8 @@ import { ref, reactive, toRefs } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { addRack } from '@/api/system/rack';
 import { useRouter } from 'vue-router';
+import { Picture } from '@element-plus/icons-vue';
+import rackSetupImage from '@/assets/images/rack-setup.svg';
 
 const props = defineProps({
     visible: {

@@ -64,9 +64,13 @@ pub async fn query_total_count(state: State<'_, AppState>) -> Result<i64> {
 
 // 获取首页统计数据
 #[tauri::command]
-pub async fn query_chart(state: State<'_, AppState>) -> Result<Chart> {
+pub async fn query_chart(
+    state: State<'_, AppState>,
+    year: Option<i32>,
+    month: Option<u32>,
+) -> Result<Chart> {
     let store_id = utils::get_user_id(&state).await?;
-    let source = Order::count_by_source(&state.pool, store_id).await?;
+    let source = Order::count_by_source(&state.pool, store_id, year, month).await?;
     Ok(Chart { source })
 }
 

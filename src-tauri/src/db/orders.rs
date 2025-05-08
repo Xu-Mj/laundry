@@ -654,13 +654,26 @@ impl Order {
     pub async fn count_by_source(
         pool: &Pool<Sqlite>,
         store_id: i64,
+        year: Option<i32>,
+        month: Option<u32>,
     ) -> Result<Vec<SourceDistribution>> {
-        let result = sqlx::query_as(
-            "SELECT source, COUNT(1) AS count FROM orders WHERE store_id = ? GROUP BY source",
-        )
-        .bind(store_id)
-        .fetch_all(pool)
-        .await?;
+        let mut query = String::from(
+            "SELECT source, COUNT(1) AS count FROM orders WHERE store_id = ?",
+        );
+        
+        if let (Some(year), Some(month)) = (year, month) {
+            query.push_str(&format!(
+                " AND strftime('%Y', create_time) = '{}' AND strftime('%m', create_time) = '{:02}'",
+                year, month
+            ));
+        }
+        
+        query.push_str(" GROUP BY source");
+
+        let result = sqlx::query_as(&query)
+            .bind(store_id)
+            .fetch_all(pool)
+            .await?;
 
         Ok(result)
     }

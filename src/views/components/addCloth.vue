@@ -20,9 +20,8 @@
                                 <div class="radio-group-column">
                                     <RadioButton class="radio-button-column" v-model="form.categoryId"
                                         v-for="category in categoryList" :key="category.categoryId"
-                                        :value="category.categoryId" @change="cateChange">
-                                        {{ category.categoryName }}
-                                    </RadioButton>
+                                        :label="category.categoryName" :value="category.categoryId"
+                                        @change="cateChange" />
                                 </div>
                             </el-scrollbar>
                         </el-col>
@@ -94,10 +93,8 @@
                     <!-- 展示衣物标签 -->
                     <el-scrollbar class="scrollbar-height">
                         <div class="items-break">
-
                             <RadioButton v-for="cloth in clothingListFilterResult" v-model="form.clothingId"
                                 :key="cloth.id" @change="step2ClothChange" :value="cloth.id" :label="cloth.title" />
-
                         </div>
                     </el-scrollbar>
                     <el-row class="footer-btn">
@@ -129,11 +126,7 @@
                         <el-scrollbar class="scrollbar-height">
                             <div class="items-break">
                                 <RadioButton v-for="color in colorList" :key="color.tagId" :value="color.tagId"
-                                    v-model="form.clothingColor" @change="nextStep">
-                                    <el-tooltip :content="color.tagNumber">
-                                        {{ color.tagName }}
-                                    </el-tooltip>
-                                </RadioButton>
+                                    v-model="form.clothingColor" @change="nextStep" :label="color.tagName"/>
                             </div>
                         </el-scrollbar>
                     </el-row>
@@ -307,7 +300,7 @@
                             <div class="section-title">工艺加价</div>
                             <div class="process-markup">
                                 <el-input style="width: 6rem;" type="number" size="large" v-model="form.processMarkup"
-                                    :min="0" />元
+                                    :min="0" :max="6000" />元
                             </div>
                             <div class="section-title">备注信息</div>
                             <div class="step6-card">
@@ -371,19 +364,13 @@
             </div>
 
         </el-dialog>
-        <PredefinedCategories
-            v-model="showCategoryDialog"
-            @success="handlePredefinedCategoriesSuccess"
-            @cancel="showCategoryDialog = false"
-        />
-        <el-dialog
-            v-model="showCategoryPrompt"
-            title="提示"
-            width="30%"
-            :close-on-click-modal="false"
-        >
+        <PredefinedCategories v-model="showCategoryDialog" @success="handlePredefinedCategoriesSuccess"
+            @cancel="showCategoryDialog = false" />
+        <el-dialog v-model="showCategoryPrompt" title="提示" width="30%" :close-on-click-modal="false">
             <div class="prompt-content">
-                <el-icon class="prompt-icon"><Warning /></el-icon>
+                <el-icon class="prompt-icon">
+                    <Warning />
+                </el-icon>
                 <span>当前没有分类数据，是否添加预定义分类？</span>
             </div>
             <template #footer>
@@ -395,10 +382,7 @@
                 </span>
             </template>
         </el-dialog>
-        <RackInitCheck 
-            v-model:visible="showRackInitCheck" 
-            @setup-complete="handleRackSetupComplete" 
-        />
+        <RackInitCheck v-model:visible="showRackInitCheck" @setup-complete="handleRackSetupComplete" />
     </div>
 </template>
 
@@ -420,6 +404,9 @@ import RadioButton from '@/components/RadioButton.vue'
 import PredefinedCategories from './PredefinedCategories.vue'
 import { checkRackInitialized } from '@/api/system/rackCheck';
 import RackInitCheck from '@/components/RackInitCheck/index.vue';
+import { onMounted, inject } from 'vue';
+import eventBus from "@/utils/eventBus";
+
 
 const props = defineProps({
     userId: {
@@ -1241,9 +1228,18 @@ const handleRackSetupComplete = (completed) => {
     }
 };
 
+// 监听衣物删除事件
 onMounted(async () => {
     await initList();  // 确保 initList 完成
     handleAdd();
+
+    // 监听衣物删除事件
+    eventBus.on('cloth-deleted', (clothId) => {
+        // 如果当前正在编辑被删除的衣物，则重置表单
+        if (form.value.clothId === clothId) {
+            reset();
+        }
+    });
 });
 </script>
 <style></style>

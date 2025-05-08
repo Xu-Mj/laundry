@@ -2,11 +2,13 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use sqlx::sqlite::SqlitePoolOptions;
+use tokio_native_tls::native_tls;
+use tokio_tungstenite::Connector;
 use tracing_subscriber::fmt::format::Writer;
 use tracing_subscriber::fmt::time::FormatTime;
 
-use app_lib::update::migrate;
 use app_lib::captcha::start_cleanup_thread;
+use app_lib::update::migrate;
 use app_lib::{config::Config, create_app, state::AppState};
 
 const DEFAULT_CONFIG_PATH: &str = "./config.yml";
@@ -32,6 +34,7 @@ async fn main() {
             .with_max_level(config.log.level())
             .with_timer(LocalTimer)
             .init();
+        tracing::debug!("debug mode"); // 输出日志到控制台上
     } else {
         // 在 release 模式下，日志输出到文件
         let file_appender = tracing_appender::rolling::daily(&config.log.output, "laundry");
@@ -42,6 +45,7 @@ async fn main() {
             .with_writer(non_blocking)
             .with_timer(LocalTimer)
             .init();
+        tracing::debug!("release mode"); // 输出日志到文件
     }
 
     // 执行数据迁移
@@ -55,14 +59,25 @@ async fn main() {
 
     start_cleanup_thread();
 
+    // 配置 TLS 连接器
+    let tls_connector = native_tls::TlsConnector::builder()
+        .danger_accept_invalid_certs(true) // 允许自签名证书
+        .build()
+        .unwrap();
+
+    let connector = Connector::from(Connector::NativeTls(tls_connector.into()));
+
+    let ws_plugin = tauri_plugin_websocket::Builder::new()
+        .tls_connector(connector)
+        .build();
+    
     create_app(
         tauri::Builder::default()
             .plugin(tauri_plugin_updater::Builder::new().build())
             .plugin(tauri_plugin_dialog::init())
             .plugin(tauri_plugin_process::init())
             .plugin(tauri_plugin_fs::init())
-            .plugin(tauri_plugin_websocket::init()),
-            
+            .plugin(ws_plugin),
         AppState::new(pool, config.get_url()),
     )
     .run(|_app_handle, event| match event {

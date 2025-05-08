@@ -29,27 +29,12 @@
                             </el-form-item>
                         </el-col>
                         <el-col :span="12">
-                            <el-form-item label="会员类型" class="highlight-item">
-                                <el-select v-model="form.userType" placeholder="请选择" class="full-width">
-                                    <el-option v-for="item in sys_user_type" :key="item.value" :label="item.label"
-                                        :value="item.value"></el-option>
-                                </el-select>
-                            </el-form-item>
-                        </el-col>
-                    </el-row>
-                    <el-row :gutter="20">
-                        <el-col :span="12">
                             <el-form-item label="手机号码" prop="phonenumber" class="highlight-item">
                                 <el-input v-model="form.phonenumber" placeholder="请输入手机号码" maxlength="11">
                                     <template #prefix>
                                         <i class="el-icon-mobile"></i>
                                     </template>
                                 </el-input>
-                            </el-form-item>
-                        </el-col>
-                        <el-col :span="12">
-                            <el-form-item v-if="form.userId == undefined" label="会员账号" prop="userName">
-                                <el-input v-model="form.userName" placeholder="请输入会员账号" maxlength="30" />
                             </el-form-item>
                         </el-col>
                     </el-row>
@@ -146,8 +131,10 @@
 
 <script setup name="AddUser">
 import { addUser, getUser, updateUser, } from "@/api/system/user";
+import eventBus from "@/utils/eventBus";
 
 const { proxy } = getCurrentInstance();
+const emit = defineEmits(['refresh']);
 
 const props = defineProps({
     visible: {
@@ -191,7 +178,7 @@ function reset() {
         deptId: undefined,
         userName: undefined,
         nickName: undefined,
-        userType: "01",
+        userType: "01", // 默认设置为'01'会员类型
         password: undefined,
         phonenumber: undefined,
         email: undefined,
@@ -237,8 +224,10 @@ function submitForm() {
 
                 updateUser(form.value).then(response => {
                     proxy.notify.success("修改成功")
-                    open.value = false;
-                    getList();
+                    // 触发userUpdated事件
+                    eventBus.emit('userUpdated');
+                    emit('refresh');
+                    props.taggle();
                 });
             } else {
                 if (form.value.userTagsArr && form.value.userTagsArr.length > 0) {
@@ -246,13 +235,14 @@ function submitForm() {
                     delete form.value.userTagsArr;
                 }
 
-                // 如果没有填写会员账号，那么默认使用手机号
-                if (form.value.userName == undefined || form.value.userName.trim().length == 0) {
-                    form.value.userName = form.value.phonenumber;
-                }
+                // 默认使用手机号作为会员账号
+                form.value.userName = form.value.phonenumber;
 
                 addUser(form.value).then(response => {
                     proxy.notify.success("新增成功");
+                    // 触发userAdded事件
+                    eventBus.emit('userAdded');
+                    emit('refresh');
                     props.taggle();
                 });
             }

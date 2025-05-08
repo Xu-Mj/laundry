@@ -14,7 +14,7 @@
     <CouponSale v-if="showCouponSale" :key="showCouponSale" :visible="showCouponSale"
       :taggle="() => { showCouponSale = !showCouponSale }" />
     <AddUser :visible="showAddUserDialog" :key="showAddUserDialog"
-      :taggle="() => { showAddUserDialog = !showAddUserDialog }" />
+      :taggle="() => { showAddUserDialog = !showAddUserDialog }" @refresh="refreshUsersList" />
     <CouponGift :visible="showCouponGift" :key="showCouponGift" :taggle="() => { showCouponGift = !showCouponGift }" />
     <HangUp :visible="showHangUp" :key="showHangUp" :taggle="() => { showHangUp = !showHangUp }" />
     <Expenditure :visible="showExp" :key="showExp" title="支出录入" :taggle="() => { showExp = !showExp }" />
@@ -34,6 +34,7 @@ import AddUser from '@/views/components/addUser.vue'
 import CouponGift from '@/views/components/couponGift.vue';
 import HangUp from '@/views/components/hangUp.vue';
 import MenuTourGuide from '@/components/MenuTourGuide/index.vue';
+import eventBus from '@/utils/eventBus';
 
 const router = useRouter();
 const route = useRoute();
@@ -143,6 +144,11 @@ function hangupClick() {
   }
   showHangUp.value = true;
 }
+
+const refreshUsersList = () => {
+  // 通过EventBus通知用户列表刷新
+  eventBus.emit('userAdded');
+};
 </script>
 
 <style scoped>

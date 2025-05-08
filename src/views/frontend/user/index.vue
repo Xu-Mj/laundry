@@ -156,7 +156,7 @@
 
       <!-- 添加或修改会员配置对话框 -->
       <AddUser :visible="open" :key="open" :userId="needUpdateUserId"
-         :taggle="() => { needUpdateUserId = 0; open = !open }" />
+         :taggle="() => { needUpdateUserId = 0; open = !open }" @refresh="getList" />
       <!-- 会员积分历史记录 -->
       <el-dialog v-model="integralListOpen" width="600px" append-to-body>
          <el-table v-loading="integralLoading" :data="integralList">
@@ -183,6 +183,7 @@ import { listRecord } from "@/api/system/record";
 import { listPostAll } from "@/api/system/post";
 import Information from "@/views/frontend/user/information.vue";
 import AddUser from '@/views/components/addUser.vue';
+import eventBus from '@/utils/eventBus';
 
 const { proxy } = getCurrentInstance();
 const {
@@ -421,9 +422,23 @@ function showUserInfo(info) {
    userInfo.value = info;
 };
 
-loadColumnVisibility();
-getPostList();
-getList();
+// 监听eventBus中的会员添加和更新事件
+onMounted(() => {
+  // 注册事件监听
+  eventBus.on('userAdded', getList);
+  eventBus.on('userUpdated', getList);
+
+  // 初始加载
+  loadColumnVisibility();
+  getPostList();
+  getList();
+});
+
+// 组件卸载时移除事件监听
+onUnmounted(() => {
+  eventBus.off('userAdded', getList);
+  eventBus.off('userUpdated', getList);
+});
 </script>
 
 <style scoped>

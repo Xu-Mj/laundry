@@ -12,19 +12,16 @@ export function validateLoginDevice(storeId, deviceId) {
 
 // 登录方法
 export function login(account, pwd, code, uuid) {
+  console.log(account, pwd, code, uuid)
   const password = btoa(pwd).replace(/=+$/, '');
-
   // 获取设备信息
-  return getDeviceInfo().then(deviceInfo => {
-    const data = {
-      account,
-      password,
-      code,
-      uuid,
-      deviceId: deviceInfo.deviceId // 添加设备ID
-    }
-    return invoke('login', { req: data })
-  })
+  const data = {
+    account,
+    password,
+    code,
+    uuid,
+  }
+  return invoke('login', { req: data })
 }
 
 // 注册方法

@@ -5,14 +5,38 @@
             <div class="left">
                 <el-form ref="ordersRef" :model="form" :rules="rules" label-width="90px" class="modern-form">
                     <div class="member-card" ref="memberCardRef">
-                        <h3 class="section-title">会员信息</h3>
+                        <el-row :gutter="20" class="member-info">
+                            <el-col :span="6">
+                                <h3 class="section-title1">会员信息</h3>
+                            </el-col>
+                            <el-col :span="6"
+                                v-if="form.userId && Object.keys(currentUser).length > 0 && currentUser.userId && !showCreateUser">
+                                <div class="info-item">
+                                    <div class="info-label">余额</div>
+                                    <div class="info-value">{{ currentUser.balance ? currentUser.balance : 0 }}元</div>
+                                </div>
+                            </el-col>
+                            <el-col :span="6"
+                                v-if="form.userId && Object.keys(currentUser).length > 0 && currentUser.userId && !showCreateUser">
+                                <div class="info-item">
+                                    <div class="info-label">积分</div>
+                                    <div class="info-value">{{ currentUser.integral ? currentUser.integral : 0 }}分</div>
+                                </div>
+                            </el-col>
+                            <el-col :span="6" class="info-action"
+                                v-if="form.userId && Object.keys(currentUser).length > 0 && currentUser.userId && !showCreateUser">
+                                <el-button type="primary" plain icon="DArrowRight"
+                                    @click="showInfoDialog = true">详情</el-button>
+                            </el-col>
+                        </el-row>
                         <el-row :gutter="20">
                             <el-col :span="12">
                                 <el-form-item size="large" label="会员：" prop="userId">
                                     <el-select v-model="form.userId" :disabled="notEditable" filterable
                                         :clearable="true" remote reserve-keyword placeholder="请输入手机号码搜索" allow-create
                                         @blur="handleBlur" remote-show-suffix :remote-method="searchUserByTel"
-                                        @visible-change="handleVisibleChange" @change="selectUser" value-key="userId" style="width: 100%">
+                                        @visible-change="handleVisibleChange" @change="selectUser" value-key="userId"
+                                        style="width: 100%">
                                         <el-option v-for="item in userListRes" :key="item.userId"
                                             :label="item.nickName + '\t' + item.phonenumber" :value="item.userId" />
                                         <template #prefix>
@@ -35,24 +59,7 @@
                                 </el-form-item>
                             </el-col>
                         </el-row>
-                        <el-row :gutter="20" v-if="form.userId && Object.keys(currentUser).length > 0 && currentUser.userId && !showCreateUser" class="member-info">
-                            <el-col :span="8">
-                                <div class="info-item">
-                                    <div class="info-label">余额</div>
-                                    <div class="info-value">{{ currentUser.balance ? currentUser.balance : 0 }}元</div>
-                                </div>
-                            </el-col>
-                            <el-col :span="8">
-                                <div class="info-item">
-                                    <div class="info-label">积分</div>
-                                    <div class="info-value">{{ currentUser.integral ? currentUser.integral : 0 }}分</div>
-                                </div>
-                            </el-col>
-                            <el-col :span="8" class="info-action">
-                                <el-button type="primary" plain icon="DArrowRight"
-                                    @click="showInfoDialog = true">详情</el-button>
-                            </el-col>
-                        </el-row>
+
                     </div>
                     <div class="order-source-card" ref="orderSourceRef">
                         <h3 class="section-title">订单来源</h3>
@@ -87,11 +94,11 @@
                             </el-radio-group>
                         </el-form-item>
                         <div class="price-section" v-if="form.priceId || priceList.length > 0">
-                            <div style="font-size: small;">价格方案</div>
+                            <!-- <div style="font-size: small;">价格方案</div> -->
                             <el-form-item props="priceId">
                                 <el-radio-group v-model="form.priceId" :disabled="notEditable"
-                                    class="modern-radio-group">
-                                    <el-radio v-for="item in priceList"
+                                    class="modern-radio-group price-list">
+                                    <el-radio v-for="item in priceList" class="payment-method-radio"
                                         @click="(event) => priceChange(event, item.priceId)" :key="item.priceId"
                                         :label="item.priceName" :value="item.priceId">
                                         <div class="payment-method-card"
@@ -99,7 +106,14 @@
                                             <el-icon>
                                                 <Money />
                                             </el-icon>
-                                            <span>{{ item.priceName }}</span>
+                                            <el-tooltip
+                                                :content="item.priceName"
+                                                placement="top"
+                                                :show-after="200"
+                                                :disabled="!isTextOverflow(item.priceName)"
+                                            >
+                                                <span ref="priceNameSpan">{{ item.priceName }}</span>
+                                            </el-tooltip>
                                         </div>
                                     </el-radio>
                                 </el-radio-group>
@@ -162,7 +176,7 @@
                     <div class="btn-container">
                         <el-button size="large" icon="Close" type="danger" @click="cancelSelf">{{ form.orderId ? '关 闭' :
                             '取 消'
-                        }}</el-button>
+                            }}</el-button>
                         <el-button size="large" icon="Check" type="primary" color="#626aef" @click="submitForm"
                             :disabled="notEditable && !(form.source === '03') && (form.priceId || form.source === '02' || form.source === '01')"
                             ref="submitButtonRef">取衣收款</el-button>
@@ -211,6 +225,7 @@ import { print } from "@/api/system/printer";
 import Information from "@/views/frontend/user/information.vue";
 import CustomTable from '@/components/CustomTable';
 import Pay from '@/views/components/pay.vue';
+import eventBus from "@/utils/eventBus";
 // import OrderTourGuide from '@/components/OrderTourGuide/index.vue';
 
 const props = defineProps({
@@ -340,6 +355,10 @@ function submitClothes(list) {
 function priceChange(event, priceId) {
     event.preventDefault();
     form.value.priceId = form.value.priceId === priceId ? null : priceId;
+    // 清空调整金额
+    form.value.adjust.adjustValueSub = null;
+    form.value.adjust.adjustValueAdd = null;
+    form.value.adjust.adjustTotal = null;
     adjustInput();
 }
 
@@ -812,6 +831,8 @@ function handleDelete(clothId, name) {
         form.value.cloths.splice(index, 1);
         // 重新计算总价
         adjustInput();
+        eventBus.emit('cloth-deleted', clothId);
+
         proxy.notify.success("删除成功");
     }).catch(() => { });
 }
@@ -883,6 +904,23 @@ onMounted(async () => {
 defineExpose({
     cancel,
 });
+
+// 添加文字溢出检测函数
+const isTextOverflow = (text) => {
+    const span = document.createElement('span');
+    span.style.visibility = 'hidden';
+    span.style.position = 'absolute';
+    span.style.whiteSpace = 'nowrap';
+    span.style.fontSize = '14px';
+    span.style.padding = '0 4px';
+    span.textContent = text;
+    document.body.appendChild(span);
+    
+    const isOverflow = span.offsetWidth > 100; // 100px 是 payment-method-card 的宽度
+    
+    document.body.removeChild(span);
+    return isOverflow;
+};
 </script>
 
 <style scoped>
@@ -1132,14 +1170,13 @@ defineExpose({
     background-color: var(--el-color-primary-light-9);
 }
 
-h3 {
+/* h3 {
     font-size: 20px;
     padding-bottom: 0.75rem;
     margin-bottom: 1.25rem;
-    border-bottom: 1px solid var(--el-border-color-light);
     color: var(--el-color-primary-dark-2);
     font-weight: 600;
-}
+} */
 
 /* 新增卡片样式 */
 .member-card,
@@ -1166,15 +1203,20 @@ h3 {
 
 /* 会员信息卡片样式 */
 .member-info {
-    margin-top: 1rem;
-    background-color: var(--el-fill-color-light);
-    border-radius: 8px;
-    padding: 1rem;
+    border-bottom: 1px solid var(--el-border-color-light);
+    margin-bottom: 1.25rem;
+
+    .section-title1 {
+        font-size: 18px;
+        font-weight: 600;
+        padding-bottom: 0.75rem;
+        margin: 0;
+        color: var(--el-color-primary-dark-2);
+    }
 }
 
 .info-item {
     display: flex;
-    flex-direction: column;
     align-items: center;
     gap: 0.5rem;
 }
@@ -1194,6 +1236,16 @@ h3 {
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+.price-list {
+    width: 100%;
+    max-height: 12rem;
+    overflow-y: auto;
+    background-color: var(--el-fill-color-lighter);
+    padding: 0.5rem 0;
+    border-radius: 8px;
+    margin-bottom: 0.75rem;
 }
 
 /* 订单摘要样式 */
@@ -1223,6 +1275,7 @@ h3 {
     font-size: 18px;
     font-weight: 600;
     color: var(--el-text-color-primary);
+    overflow: hidden;
 }
 
 /* 总价样式 */
@@ -1252,7 +1305,9 @@ h3 {
 .section-title {
     font-size: 18px;
     font-weight: 600;
+    padding-bottom: 0.75rem;
     margin-bottom: 1.25rem;
+    border-bottom: 1px solid var(--el-border-color-light);
     color: var(--el-color-primary-dark-2);
 }
 
@@ -1297,5 +1352,11 @@ h3 {
 .payment-method-card span {
     font-size: 14px;
     line-height: 14px;
+    width: 100%;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 0 4px;
 }
 </style>

@@ -463,11 +463,10 @@ impl Order {
                     .push_bind(format!("%{}%", remark));
             });
 
-        query_builder.push("GROUP BY o.order_id");
     }
 
     async fn count(&self, pool: &Pool<Sqlite>) -> Result<u64> {
-        let mut query_builder = QueryBuilder::<Sqlite>::new(
+        let mut query_builder = QueryBuilder::new(
             "SELECT COUNT(*) FROM orders o
                     LEFT JOIN users u ON o.user_id = u.user_id
                     LEFT JOIN order_clothes_adjust a ON o.order_id = a.order_id WHERE 1=1",
@@ -483,11 +482,13 @@ impl Order {
         condition_prefix: &str,
         page_params: Option<PageParams>,
     ) -> Result<Vec<Order>> {
-        let mut query_builder = QueryBuilder::<Sqlite>::new(SQL);
+        let mut query_builder = QueryBuilder::new(SQL);
 
         query_builder.push(condition_prefix);
 
         self.apply_filters(&mut query_builder);
+
+        query_builder.push(" GROUP BY o.order_id");
 
         // sort
         query_builder.push(" ORDER BY o.create_time DESC");
@@ -1489,7 +1490,7 @@ impl Order {
                 order.cloth_codes = Some(cloth_codes);
 
                 // 处理支付方式和金额计算
-                if order.payment.is_some() {
+                if order.payment.is_some() && order.payment.as_ref().unwrap().pay_id.is_some() {
                     // 先克隆 payment 以避免多重借用
                     let mut payment_clone = order.payment.clone().unwrap();
                     Self::cal_payment_method(order, &mut payment_clone);
@@ -1841,7 +1842,6 @@ pub async fn update_adjust(state: tauri::State<'_, AppState>, order: Order) -> R
             ));
         }
     }
-
     Ok(true)
 }
 

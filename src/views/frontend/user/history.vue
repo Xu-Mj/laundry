@@ -28,7 +28,7 @@
     <!-- 搜索表单 -->
     <el-form :inline="true" class="search-form">
         <el-form-item label="衣物名称">
-            <el-input v-model="queryParams.clothingName" placeholder="请输入衣物名称" clearable @keyup.enter="handleQuery"
+            <el-input v-model="queryParams.title" placeholder="请输入衣物名称" clearable @keyup.enter="handleQuery"
                 prefix-icon="Search" />
         </el-form-item>
         <el-form-item label="消费日期">
@@ -79,7 +79,7 @@
                 </el-table-column>
                 <el-table-column label="衣物" align="center">
                     <template #default="scope">
-                        {{ scope.row.clothInfo.clothingName }}
+                        {{ scope.row.clothInfo.title }}
 
                     </template>
                 </el-table-column>
@@ -123,10 +123,10 @@
 import { selectListHistory, getCountByUserId } from "@/api/system/orders";
 import { getTotalAmountAndAvgConsume } from "@/api/system/payment";
 import { listCloths } from "@/api/system/cloths";
-import { listTagsNoLimit } from "@/api/system/tags";
 import { getPrice } from "@/api/system/price";
 import { Money, ShoppingCart, Search, Refresh } from '@element-plus/icons-vue';
 import { formatTime } from '@/utils/ruoyi';
+import useTagsStore from '@/store/modules/tags';
 
 const props = defineProps({
     userId: {
@@ -145,6 +145,8 @@ const {
         "sys_service_requirement"
     );
 
+const tagsStore = useTagsStore();
+
 const show = ref(false);
 const loading = ref(true);
 
@@ -153,17 +155,16 @@ const dateRange = ref([]);
 const totalAmount = ref(0);
 const avgPrice = ref(0);
 
-const colorList = ref([]);
-const flawList = ref([]);
-const estimateList = ref([]);
-const brandList = ref([]);
+const colorList = computed(() => tagsStore.colorList);
+const flawList = computed(() => tagsStore.flawList);
+const estimateList = computed(() => tagsStore.estimateList);
+const brandList = computed(() => tagsStore.brandList);
 const total = ref(0);
 
 const queryParams = ref({
     pageNum: 1,
     pageSize: 10,
 });
-
 
 /** 搜索按钮操作 */
 function handleQuery() {
@@ -181,42 +182,7 @@ function resetQuery() {
 
 /* 初始化列表数据 */
 async function initList() {
-    const promises = [];
-
-    // 获取颜色列表
-    if (colorList.value.length === 0) {
-        const colorPromise = listTagsNoLimit({ tagOrder: '003', status: "0" }).then(response => {
-            colorList.value = response;
-        });
-        promises.push(colorPromise);
-    }
-
-    // 获取瑕疵列表
-    if (flawList.value.length === 0) {
-        const flawPromise = listTagsNoLimit({ tagOrder: '001', status: "0" }).then(response => {
-            flawList.value = response;
-        });
-        promises.push(flawPromise);
-    }
-
-    // 获取预估列表
-    if (estimateList.value.length === 0) {
-        const estimatePromise = listTagsNoLimit({ tagOrder: '002', status: "0" }).then(response => {
-            estimateList.value = response;
-        });
-        promises.push(estimatePromise);
-    }
-
-    // 获取品牌列表
-    if (brandList.value.length === 0) {
-        const brandPromise = listTagsNoLimit({ tagOrder: '004', status: "0" }).then(response => {
-            brandList.value = response;
-        });
-        promises.push(brandPromise);
-    }
-
-    // 等待所有异步操作完成防止衣物列表数据加载完后这里的数据没有准备好而出错
-    await Promise.all(promises);
+    await tagsStore.initTags();
 }
 
 function close() {
@@ -227,10 +193,33 @@ function close() {
 
 // 提取出价格计算逻辑
 async function calculatePrice(item) {
-    if (item.priceId) {
-        const { data: priceItem } = await getPrice(item.priceId);
-        return priceItem ? priceItem.priceValue : 0;
-    } else {
+    // 处理价格方案数组情况
+    if (item.priceIds && item.priceIds.length > 0) {
+        let totalPrice = 0;
+        for (const priceId of item.priceIds) {
+            try {
+                const priceItem = await getPrice(priceId);
+                if (priceItem && priceItem.priceValue) {
+                    totalPrice += priceItem.priceValue;
+                }
+            } catch (error) {
+                console.error(`获取价格方案${priceId}失败:`, error);
+            }
+        }
+        return totalPrice;
+    } 
+    // 处理单一价格方案（遗留代码兼容）
+    else if (item.priceId) {
+        try {
+            const priceItem = await getPrice(item.priceId);
+            return priceItem ? priceItem.priceValue : 0;
+        } catch (error) {
+            console.error(`获取价格方案${item.priceId}失败:`, error);
+            return 0;
+        }
+    } 
+    // 没有价格方案时按衣物计算
+    else {
         return item.clothList.reduce((acc, cur) => {
             let priceValue = cur.priceValue;
             if (cur.serviceRequirement === '001') {
@@ -270,23 +259,26 @@ async function getList() {
         item.clothList = await listCloths({ orderId: item.orderId });
         item.loading = false;
 
-        let price = 0;
-
         // 优先处理 `adjust` 的情况
         if (item.adjust) {
             if (item.adjust.adjustTotal) {
                 item.mount = item.adjust.adjustTotal;
             } else {
-                price = await calculatePrice(item);
-                price +=
+                const price = await calculatePrice(item);
+                const adjustedPrice = price +
                     Number(item.adjust.adjustValueAdd || 0) -
                     Number(item.adjust.adjustValueSub || 0);
-                item.mount = price > 0 ? price : 0;
+                item.mount = adjustedPrice > 0 ? adjustedPrice : 0;
             }
         } else {
             // 没有 `adjust` 的情况下计算价格
-            price = await calculatePrice(item);
+            const price = await calculatePrice(item);
             item.mount = price > 0 ? price : 0;
+        }
+
+        // 如果有totalPrice属性（通过createOrder.vue传递过来的），直接使用它
+        if (item.totalPrice !== undefined && item.totalPrice > 0) {
+            item.mount = item.totalPrice;
         }
     }
 
@@ -298,7 +290,6 @@ async function getList() {
     if (orderCount > 0) {
         avgPrice.value = (totalAmount.value / orderCount).toFixed(2);
     }
-
 }
 
 // 处理衣物选择变化

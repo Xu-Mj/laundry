@@ -23,7 +23,7 @@ export function selectListExceptCompleted(query) {
 export function selectListHistory(param) {
   const pageParams = { pageSize: param.pageSize, page: param.pageNum, params: param.params };
   const query = {
-    clothName: param.clothingName,
+    clothName: param.title,
     startTime: param.startTime,
     endTime: param.endTime,
     userId: param.userId

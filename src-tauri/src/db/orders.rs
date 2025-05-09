@@ -64,7 +64,7 @@ pub struct Order {
     pub order_number: Option<String>,
     pub business_type: Option<String>,
     pub user_id: Option<i64>,
-    pub price_id: Option<i64>,
+    pub price_ids: Option<Vec<i64>>,
     pub desire_complete_time: Option<NaiveDate>,
     pub cost_time_alarm: Option<String>,
     pub pickup_code: Option<String>,
@@ -162,7 +162,7 @@ impl FromRow<'_, SqliteRow> for Order {
             update_time: row.try_get("p_update_time").unwrap_or_default(),
             store_id: row.try_get("p_store_id").unwrap_or_default(),
         };
-        
+
         let order_id = row.try_get("order_id").unwrap_or_default();
 
         // adjust data
@@ -179,13 +179,21 @@ impl FromRow<'_, SqliteRow> for Order {
             })
         }
 
+        // Parse price_ids from the concatenated string
+        let price_ids: Option<String> = row.try_get("price_ids").unwrap_or_default();
+        let price_ids = price_ids.map(|s| {
+            s.split(',')
+                .filter_map(|id| id.parse::<i64>().ok())
+                .collect::<Vec<i64>>()
+        });
+
         Ok(Order {
             order_id,
             store_id: row.try_get("store_id").unwrap_or_default(),
             order_number: row.try_get("order_number").unwrap_or_default(),
             business_type: row.try_get("business_type").unwrap_or_default(),
             user_id: row.try_get("user_id").unwrap_or_default(),
-            price_id: row.try_get("price_id").unwrap_or_default(),
+            price_ids,
             desire_complete_time: row.try_get("desire_complete_time").unwrap_or_default(),
             cost_time_alarm: row.try_get("cost_time_alarm").unwrap_or_default(),
             pickup_code: row.try_get("pickup_code").unwrap_or_default(),
@@ -214,6 +222,7 @@ impl FromRow<'_, SqliteRow> for Order {
 
 const SQL: &str = "SELECT
  o.*,
+ GROUP_CONCAT(opr.price_id) as price_ids,
  p.pay_id,
  p.pay_number,
  p.order_type as p_order_type,
@@ -241,10 +250,11 @@ FROM orders o
 LEFT JOIN users u ON o.user_id = u.user_id
 LEFT JOIN order_clothes_adjust a ON o.order_id = a.order_id
 LEFT JOIN payments p ON o.order_id = p.uc_order_id
-";
+LEFT JOIN order_price_relations opr ON o.order_id = opr.order_id";
 
 const SQL_BY_CLOTHING_NAME: &str = "SELECT
     o.*,
+    GROUP_CONCAT(opr.price_id) as price_ids,
     p.pay_id,
     p.pay_number,
     p.order_type as p_order_type,
@@ -273,17 +283,18 @@ FROM orders o
     LEFT JOIN order_clothes_adjust a ON o.order_id = a.order_id
     LEFT JOIN payments p ON o.order_id = p.uc_order_id
     INNER JOIN order_clothes oc ON o.order_id = oc.order_id
-    INNER JOIN clothing c ON oc.clothing_id = c.id ";
+    INNER JOIN clothing c ON oc.clothing_id = c.id 
+    LEFT JOIN order_price_relations opr ON o.order_id = opr.order_id";
 
 impl Order {
     // Insert a new Order into the database
-    pub async fn create(&self, tr: &mut Transaction<'_, Sqlite>) -> Result<Order> {
-        let result = sqlx::query_as(
+    pub async fn create(&self, tr: &mut Transaction<'_, Sqlite>) -> Result<Self> {
+        let result: Self = sqlx::query_as(
             "INSERT INTO orders
-        (order_id, order_number, business_type, store_id, user_id, price_id, desire_complete_time, cost_time_alarm,
+        (order_id, order_number, business_type, store_id, user_id, desire_complete_time, cost_time_alarm,
          pickup_code, complete_time, delivery_mode, source, status, payment_status,
          remark, order_type, create_time, update_time)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         RETURNING *",
         )
         .bind(&self.order_id)
@@ -291,7 +302,6 @@ impl Order {
         .bind(&self.business_type)
         .bind(self.store_id)
         .bind(self.user_id)
-        .bind(self.price_id)
         .bind(self.desire_complete_time)
         .bind(&self.cost_time_alarm)
         .bind(&self.pickup_code)
@@ -307,6 +317,21 @@ impl Order {
         .fetch_one(&mut **tr)
         .await?;
 
+        // Insert price relations
+        if let Some(price_ids) = &self.price_ids {
+            for price_id in price_ids {
+                sqlx::query(
+                    "INSERT INTO order_price_relations (order_id, price_id, create_time)
+                    VALUES (?, ?, ?)",
+                )
+                .bind(result.order_id)
+                .bind(price_id)
+                .bind(utils::get_now())
+                .execute(&mut **tr)
+                .await?;
+            }
+        }
+
         Ok(result)
     }
 
@@ -316,12 +341,13 @@ impl Order {
         store_id: i64,
         order_id: i64,
     ) -> Result<Option<Self>> {
-        let result =
-            sqlx::query_as::<_, Order>(&format!("{SQL} WHERE o.store_id = ? AND o.order_id = ?"))
-                .bind(store_id)
-                .bind(order_id)
-                .fetch_optional(pool)
-                .await?;
+        let result = sqlx::query_as::<_, Order>(&format!(
+            "{SQL} WHERE o.store_id = ? AND o.order_id = ? GROUP BY o.order_id"
+        ))
+        .bind(store_id)
+        .bind(order_id)
+        .fetch_optional(pool)
+        .await?;
         Ok(result)
     }
 
@@ -424,9 +450,9 @@ impl Order {
                     .push_bind(cost_time_alarm);
             });
 
-        if let Some(price_id) = &self.price_id {
-            query_builder.push(" AND o.price_id = ").push_bind(price_id);
-        }
+        // if let Some(price_ids) = &self.price_ids {
+        //     query_builder.push(" AND o.price_ids IN (").push_bind(price_ids.join(",")).push(")");
+        // }
 
         self.remark
             .as_ref()
@@ -436,6 +462,8 @@ impl Order {
                     .push(" AND o.remark LIKE ")
                     .push_bind(format!("%{}%", remark));
             });
+
+        query_builder.push("GROUP BY o.order_id");
     }
 
     async fn count(&self, pool: &Pool<Sqlite>) -> Result<u64> {
@@ -446,7 +474,7 @@ impl Order {
         );
         self.apply_filters(&mut query_builder);
         let query = query_builder.build_query_scalar::<u64>();
-        Ok(query.fetch_one(pool).await?)
+        Ok(query.fetch_optional(pool).await?.unwrap_or_default())
     }
 
     async fn build_query(
@@ -561,7 +589,6 @@ impl Order {
                 order_number = ?,
                 business_type = ?,
                 user_id = ?,
-                price_id = ?,
                 desire_complete_time = ?,
                 delivery_mode = ?,
                 source = ?,
@@ -577,7 +604,6 @@ impl Order {
         .bind(&self.order_number)
         .bind(&self.business_type)
         .bind(&self.user_id)
-        .bind(&self.price_id)
         .bind(&self.desire_complete_time)
         .bind(&self.delivery_mode)
         .bind(&self.source)
@@ -590,6 +616,30 @@ impl Order {
         .bind(&self.order_id)
         .execute(&mut **tr)
         .await?;
+
+        // Update price relations
+        if let Some(order_id) = self.order_id {
+            // Delete existing relations
+            sqlx::query("DELETE FROM order_price_relations WHERE order_id = ?")
+                .bind(order_id)
+                .execute(&mut **tr)
+                .await?;
+
+            // Insert new relations
+            if let Some(price_ids) = &self.price_ids {
+                for price_id in price_ids {
+                    sqlx::query(
+                        "INSERT INTO order_price_relations (order_id, price_id, create_time)
+                        VALUES (?, ?, ?)",
+                    )
+                    .bind(order_id)
+                    .bind(price_id)
+                    .bind(utils::get_now())
+                    .execute(&mut **tr)
+                    .await?;
+                }
+            }
+        }
 
         Ok(result.rows_affected() > 0)
     }
@@ -630,6 +680,8 @@ impl Order {
         // 关闭括号
         builder.push(")");
 
+        builder.push("GROUP BY o.order_id");
+
         // 执行查询
         let result = builder.build_query_as().fetch_all(pool).await?;
 
@@ -657,17 +709,16 @@ impl Order {
         year: Option<i32>,
         month: Option<u32>,
     ) -> Result<Vec<SourceDistribution>> {
-        let mut query = String::from(
-            "SELECT source, COUNT(1) AS count FROM orders WHERE store_id = ?",
-        );
-        
+        let mut query =
+            String::from("SELECT source, COUNT(1) AS count FROM orders WHERE store_id = ?");
+
         if let (Some(year), Some(month)) = (year, month) {
             query.push_str(&format!(
                 " AND strftime('%Y', create_time) = '{}' AND strftime('%m', create_time) = '{:02}'",
                 year, month
             ));
         }
-        
+
         query.push_str(" GROUP BY source");
 
         let result = sqlx::query_as(&query)
@@ -821,7 +872,7 @@ impl Order {
             // .as_mut()
             .ok_or(Error::bad_request("payment can not be empty"))?;
 
-        // set store_id 
+        // set store_id
         payment.store_id = Some(store_id);
 
         // 获取支付信息和卡券信息
@@ -1377,25 +1428,28 @@ impl Order {
             })
             .sum::<Decimal>();
 
-        if let Some(price_id) = order.price_id {
-            // query price obj
-            let cloth_price =
-                ClothPrice::get_by_id(pool, price_id)
-                    .await?
-                    .ok_or(Error::with_details(
-                        ErrorKind::NotFound,
-                        "cloth price not found",
-                    ))?;
+        if let Some(price_ids) = &order.price_ids {
+            for price_id in price_ids {
+                // query price obj
+                let cloth_price =
+                    ClothPrice::get_by_id(pool, *price_id)
+                        .await?
+                        .ok_or(Error::with_details(
+                            ErrorKind::NotFound,
+                            "cloth price not found",
+                        ))?;
 
-            if let Some(price_value) = cloth_price.price_value {
-                price = Decimal::from_f64(price_value).unwrap_or_default();
-            } else if let Some(price_discount) = cloth_price.price_discount {
-                // Apply discount to price
-                let discount = Decimal::from_f64(price_discount).unwrap_or_default() / dec!(100);
-                let discount_value = price * discount;
-                price -= discount_value.round_dp(2);
-            } else {
-                return Err(Error::internal("Price tag configuration error"));
+                if let Some(price_value) = cloth_price.price_value {
+                    price = Decimal::from_f64(price_value).unwrap_or_default();
+                } else if let Some(price_discount) = cloth_price.price_discount {
+                    // Apply discount to price
+                    let discount =
+                        Decimal::from_f64(price_discount).unwrap_or_default() / dec!(100);
+                    let discount_value = price * discount;
+                    price -= discount_value.round_dp(2);
+                } else {
+                    return Err(Error::internal("Price tag configuration error"));
+                }
             }
         }
 

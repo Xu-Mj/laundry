@@ -36,7 +36,6 @@ const closeWindow = () => {
 <style scoped>
 .close-bar {
     position: fixed;
-    left: 0;
     right: 0;
     top: 0;
     display: flex;
@@ -44,7 +43,7 @@ const closeWindow = () => {
     align-items: center;
     padding-right: 1rem;
     height: 30px;
-    width: 100%;
+    width: calc(100% - var(--sidebar-width));
     z-index: 9999;
 }
 </style>

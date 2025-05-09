@@ -462,7 +462,6 @@ impl Order {
                     .push(" AND o.remark LIKE ")
                     .push_bind(format!("%{}%", remark));
             });
-
     }
 
     async fn count(&self, pool: &Pool<Sqlite>) -> Result<u64> {
@@ -1558,13 +1557,7 @@ impl Order {
         let mut tx = pool.begin().await?;
 
         // update clothes status to refund
-        if !OrderCloth::update_status_by_order_id(
-            &mut tx,
-            order.order_id.unwrap(),
-            CLOTH_STATUS_REFUND,
-        )
-        .await?
-        {
+        if !OrderCloth::refound_by_order_id(&mut tx, order.order_id.unwrap()).await? {
             return Err(Error::internal("update clothes status failed"));
         }
 

@@ -305,13 +305,11 @@ impl OrderCloth {
         Ok(numbers)
     }
 
-    pub async fn update_status_by_order_id(
+    pub async fn refound_by_order_id(
         tr: &mut Transaction<'_, Sqlite>,
         order_id: i64,
-        status: &str,
     ) -> Result<bool> {
-        let result = sqlx::query("UPDATE order_clothes SET clothing_status = ? WHERE order_id = ?")
-            .bind(status)
+        let result = sqlx::query("UPDATE order_clothes SET clothing_status = '03', pickup_method = '00' WHERE order_id = ?")
             .bind(order_id)
             .execute(&mut **tr)
             .await?;
@@ -347,7 +345,7 @@ impl OrderCloth {
     pub async fn update(&self, tr: &mut Transaction<'_, Sqlite>) -> Result<bool> {
         // 确保有 cloth_id
         let cloth_id = self.cloth_id.ok_or(Error::bad_request("缺少衣物ID"))?;
-    
+
         // 执行更新
         let result = sqlx::query(
             r#"
@@ -376,7 +374,7 @@ impl OrderCloth {
                 pickup_method = ?,
                 clothing_status = ?
             WHERE cloth_id = ?
-            "#
+            "#,
         )
         .bind(&self.order_id)
         .bind(&self.clothing_id)
@@ -404,7 +402,7 @@ impl OrderCloth {
         .bind(cloth_id)
         .execute(&mut **tr)
         .await?;
-    
+
         Ok(result.rows_affected() > 0)
     }
 
@@ -466,11 +464,12 @@ impl OrderCloth {
     ) -> Result<Vec<Self>> {
         // Modified to include clothes with status '01' (washing) or '02' (washed)
         let status_clause = "oc.clothing_status IN ('01', '02')";
-        
+
         if let Some(uid) = user_id {
-            sqlx::query_as::<_, Self>(&format!("{} 
+            sqlx::query_as::<_, Self>(&format!(
+                "{} 
                 LEFT JOIN orders o ON oc.order_id = o.order_id 
-                WHERE {} AND oc.store_id = ? AND o.user_id = ?", 
+                WHERE {} AND oc.store_id = ? AND o.user_id = ?",
                 SQL, status_clause
             ))
             .bind(store_id)
@@ -478,11 +477,15 @@ impl OrderCloth {
             .fetch_all(pool)
             .await
         } else {
-            sqlx::query_as::<_, Self>(&format!("{} WHERE {} AND oc.store_id = ?", SQL, status_clause))
+            sqlx::query_as::<_, Self>(&format!(
+                "{} WHERE {} AND oc.store_id = ?",
+                SQL, status_clause
+            ))
             .bind(store_id)
             .fetch_all(pool)
             .await
-        }.map_err(|e| Error::internal(format!("Failed to get delivery eligible clothes: {}", e)))
+        }
+        .map_err(|e| Error::internal(format!("Failed to get delivery eligible clothes: {}", e)))
     }
 }
 

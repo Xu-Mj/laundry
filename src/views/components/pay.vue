@@ -400,8 +400,18 @@ async function initPaymentForm() {
     }
 
     let price;
-    // 如果选择了价格套餐，那么使用套餐内价格,使用了价格标签了就不能再进行调价了（顾客可能已经在其他渠道付完款了）
-    if (props.order.priceId) {
+    // 如果订单已经带有从createOrder.vue传递的总价
+    if (props.order.totalPrice !== undefined && props.order.totalPrice > 0) {
+        price = props.order.totalPrice;
+    }
+    // 如果选择了价格方案，以前是根据priceId计算的，但现在应该考虑priceIds数组
+    else if (props.order.priceIds && props.order.priceIds.length > 0) {
+        // 这里的总价已经在createOrder.vue中计算好并通过totalPrice传递，
+        // 所以这个条件可能永远不会执行，但我们保留它作为后备
+        price = props.order.totalPrice || 0;
+    }
+    // 使用了单一价格方案的遗留代码
+    else if (props.order.priceId) {
         const item = await getPrice(props.order.priceId);
         price = item ? item.priceValue : 0;
     } else if (props.order.adjust.adjustTotal && props.order.adjust.adjustTotal > 0) {
@@ -475,7 +485,7 @@ function submitPaymentForm() {
         } else {
             // 什么卡券都没用
             paymentForm.value.ucId = null;
-            paymentForm.value.paymentAmountMv = totalPrice.value;
+            paymentForm.value.paymentAmountMv = paymentForm.value.paymentAmount;
         }
     } else {
         const coupon = userCouponList.value.find(item => item.ucId == paymentForm.value.couponId);

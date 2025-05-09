@@ -435,7 +435,6 @@ impl User {
                 user.user_id.unwrap(),
                 tags.clone(),
                 user.tags_remark.clone(),
-                user.store_id,
             )
             .insert(&mut tr)
             .await?;
@@ -467,7 +466,6 @@ impl User {
                 self.user_id.unwrap(),
                 tags.clone(),
                 self.tags_remark.clone(),
-                self.store_id,
             )
             .update(&mut tr)
             .await?;

@@ -115,6 +115,9 @@ const calculateTotalPrice = (cloth) => {
   } else if (cloth.serviceRequirement == '002') {
     priceValue *= 1.5;
   }
+  if (cloth.processMarkup) {
+    priceValue += cloth.processMarkup;
+  }
   return parseFloat(priceValue);
 };
 

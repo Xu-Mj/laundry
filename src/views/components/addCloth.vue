@@ -28,7 +28,7 @@
                         <el-col :span="21" style="height: 100%; padding-left: .5rem;">
                             <el-form-item label="">
                                 <div class="input-btn-row">
-                                    <el-input size="large" v-model="cateName" placeholder="请输入分类名称" />
+                                    <el-input size="large" v-model="cateName" placeholder="请输入分类名称" maxlength="20" show-word-limit />
                                     <el-button size="large" type="primary" icon="Plus"
                                         @click="handleAddCate">新增</el-button>
                                 </div>
@@ -57,7 +57,7 @@
                             <el-form-item label="衣物名称" size="large">
                                 <div class="input-btn-row">
                                     <el-input size="large" v-model="clothNameInput" ref="clothNameRef"
-                                        @input="searchCloth" placeholder="请输衣物名称首字母或衣物名称" />
+                                        @input="searchCloth" placeholder="请输衣物名称首字母或衣物名称" maxlength="30" show-word-limit />
                                     <el-button size="large" v-if="showAddClothBtn" type="primary" icon="Plus"
                                         @click="handleAddCloth">新增</el-button>
                                 </div>
@@ -114,7 +114,7 @@
                             <el-form-item size="large" label="颜色名称">
                                 <div class="input-btn-row">
                                     <el-input size="large" v-model="clothColorInput" @input="searchColor"
-                                        placeholder="请输颜色名称首字母或者颜色名称" />
+                                        placeholder="请输颜色名称首字母或者颜色名称" maxlength="10" show-word-limit />
                                     <el-button size="large" v-if="showAddColorBtn" type="primary" icon="Plus"
                                         @click="addTag('003', clothColorInput)">新增</el-button>
                                 </div>
@@ -125,7 +125,7 @@
                     <el-row class="item-list-area">
                         <el-scrollbar class="scrollbar-height">
                             <div class="items-break">
-                                <RadioButton v-for="color in colorList" :key="color.tagId" :value="color.tagId"
+                                <RadioButton v-for="color in tagsStore.colorList" :key="color.tagId" :value="color.tagId"
                                     v-model="form.clothingColor" @change="nextStep" :label="color.tagName"/>
                             </div>
                         </el-scrollbar>
@@ -148,7 +148,7 @@
                             <el-form-item size="large" label="瑕疵名称">
                                 <div class="input-btn-row">
                                     <el-input size="large" v-model="flawInput" @input="searchColor"
-                                        placeholder="请输名称首字母或者名称" />
+                                        placeholder="请输名称首字母或者名称" maxlength="15" show-word-limit />
                                     <el-button size="large" v-if="showAddFlawBtn" type="primary" icon="Plus"
                                         @click="addTag('001', flawInput)">新增</el-button>
                                 </div>
@@ -158,7 +158,7 @@
                     <!-- 展示瑕疵 -->
                     <el-scrollbar class="scrollbar-height">
                         <CheckboxGroup class="items-break" v-model="form.clothingFlawArr">
-                            <CheckboxButton v-for="item in flawList" :key="item.tagId" :value="item.tagId">
+                            <CheckboxButton v-for="item in tagsStore.flawList" :key="item.tagId" :value="item.tagId">
                                 <el-tooltip :content="item.tagNumber">
                                     {{ item.tagName }}
                                 </el-tooltip>
@@ -183,7 +183,7 @@
                             <el-form-item size="large" label="洗后预估">
                                 <div class="input-btn-row">
                                     <el-input size="large" v-model="estimateInput" @input="searchColor"
-                                        placeholder="请输名称首字母或者名称" />
+                                        placeholder="请输名称首字母或者名称" maxlength="15" show-word-limit />
                                     <el-button size="large" v-if="showAddEstimateBtn" type="primary" icon="Plus"
                                         @click="addTag('002', estimateInput)">新增</el-button>
                                 </div>
@@ -193,7 +193,7 @@
                     <!-- 展示洗后预估标签 -->
                     <el-scrollbar class="scrollbar-height">
                         <CheckboxGroup class="items-break" v-model="form.estimateArr">
-                            <CheckboxButton v-for="item in estimateList" :key="item.tagId" :value="item.tagId">
+                            <CheckboxButton v-for="item in tagsStore.estimateList" :key="item.tagId" :value="item.tagId">
                                 <el-tooltip :content="item.tagNumber">
                                     {{ item.tagName }}
                                 </el-tooltip>
@@ -218,7 +218,7 @@
                             <el-form-item size="large" label="品牌名称">
                                 <div class="input-btn-row">
                                     <el-input size="large" v-model="brandInput" @input="searchColor"
-                                        placeholder="请输品牌名称首字母或者品牌名称" />
+                                        placeholder="请输品牌名称首字母或者品牌名称" maxlength="20" show-word-limit />
                                     <el-button size="large" v-if="showAddBrandBtn" type="primary" icon="Plus"
                                         @click="addTag('004', brandInput)">新增</el-button>
                                 </div>
@@ -228,12 +228,8 @@
                     <!-- 展示品牌 -->
                     <el-scrollbar>
                         <div class="items-break">
-                            <RadioButton v-for="brand in brandList" v-model="form.clothingBrand" :key="brand.tagId"
-                                :value="brand.tagId" @change="nextStep">
-                                <el-tooltip :content="brand.tagNumber">
-                                    {{ brand.tagName }}
-                                </el-tooltip>
-                            </RadioButton>
+                            <RadioButton v-for="brand in tagsStore.brandList" v-model="form.clothingBrand" :key="brand.tagId"
+                                :value="brand.tagId" @change="nextStep" :label="brand.tagName" />
                         </div>
                     </el-scrollbar>
                     <el-row class="footer-btn">
@@ -299,14 +295,14 @@
                             </el-radio-group>
                             <div class="section-title">工艺加价</div>
                             <div class="process-markup">
-                                <el-input style="width: 6rem;" type="number" size="large" v-model="form.processMarkup"
-                                    :min="0" :max="6000" />元
+                                <el-input-number style="width: 14rem;" size="large" v-model="form.processMarkup"
+                                    :min="0" :max="6000" :precision="2" />元
                             </div>
                             <div class="section-title">备注信息</div>
                             <div class="step6-card">
                                 <textarea v-model="form.remark"
                                     style="flex-grow: 1; outline: none; border: 1px solid #d1d1d1; padding: .5rem; font-size: large; border-radius: .4rem;"
-                                    rows="5" placeholder="点击输入备注信息"></textarea>
+                                    rows="5" placeholder="点击输入备注信息" maxlength="200"></textarea>
                             </div>
                             <div class="pictures">
                                 <div class="pictures-title">
@@ -394,7 +390,7 @@ import { listTagsNoLimit, addTags } from "@/api/system/tags";
 import { listCategoryAll } from "@/api/system/clothingCategory";
 import { listStyleByCategoryId, addStyle } from "@/api/system/clothingStyle";
 import pinyin from 'pinyin';
-import { ref, reactive, toRefs } from "vue";
+import { ref, reactive, toRefs, nextTick } from "vue";
 import CheckboxGroup from "@/components/CheckBoxGroup.vue";
 import CheckboxButton from '@/components/CheckboxButton.vue';
 import { ElMessage } from 'element-plus';
@@ -406,6 +402,7 @@ import { checkRackInitialized } from '@/api/system/rackCheck';
 import RackInitCheck from '@/components/RackInitCheck/index.vue';
 import { onMounted, inject } from 'vue';
 import eventBus from "@/utils/eventBus";
+import useTagsStore from '@/store/modules/tags';
 
 
 const props = defineProps({
@@ -446,6 +443,15 @@ const { sys_service_type, sys_service_requirement } =
         "sys_service_type",
         "sys_service_requirement"
     );
+
+const tagsStore = useTagsStore();
+const featureList = [
+    { get value() { return tagsStore.colorList } },
+    { get value() { return tagsStore.flawList } },
+    { get value() { return tagsStore.estimateList } },
+    { get value() { return tagsStore.brandList } }
+];
+
 // 衣物品类列表
 const categoryList = ref([]);
 // 步数
@@ -473,16 +479,6 @@ const clothColorInput = ref(null);
 const flawInput = ref(null);
 const estimateInput = ref(null);
 const brandInput = ref(null);
-const colorList = ref([]);
-const flawList = ref([]);
-const estimateList = ref([]);
-const brandList = ref([]);
-const currentCloth = ref();
-const featureList = [colorList, flawList, estimateList, brandList]
-const cateName = ref();
-
-const clothNameRef = ref();
-const prePictureList2 = ref(new Set());// 洗前图片
 
 // 弹窗控制
 const showCategoryDialog = ref(false);
@@ -490,6 +486,12 @@ const showCategoryPrompt = ref(false);
 
 // 衣挂初始化检查相关状态
 const showRackInitCheck = ref(false);
+
+// 添加这些缺少的变量声明
+const currentCloth = ref();
+const cateName = ref();
+const clothNameRef = ref();
+const prePictureList2 = ref(new Set()); // 洗前图片
 
 // 自定义校验最低价格函数
 function validateMinPrice(rule, value, callback) {
@@ -672,12 +674,16 @@ function jumpToStep(stepNum) {
     if (stepNum < 0 || stepNum > maxStepNum) {
         return;
     }
+    // 检查从其他步骤跳转到步骤1时，是否已选择了样式
+    if (stepNum == 1 && !form.value.styleId) {
+        proxy.notify.error("请先选择衣物类别");
+        return;
+    }
     if (stepNum != 1 && !form.value.clothingId) {
         proxy.notify.error("请先选择衣物");
         return;
     }
     step.value = stepNum;
-
 }
 
 // 处理添加分类按钮点击
@@ -769,6 +775,9 @@ function reset() {
     prePictureList2.value.clear();
     images.value = [];
     proxy.resetForm("clothsRef");
+    if (form.value.categoryId) {
+        cateChange();
+    }
 }
 
 /* 初始化列表数据 */
@@ -795,39 +804,10 @@ async function initList() {
         promises.push(clothingPromise);
     }
 
-    // 获取颜色列表
-    if (colorList.value.length === 0) {
-        const colorPromise = listTagsNoLimit({ tagOrder: '003', status: "0" }).then(response => {
-            colorList.value = response;
-        });
-        promises.push(colorPromise);
-    }
+    // 使用store初始化标签数据
+    promises.push(tagsStore.initTags());
 
-    // 获取瑕疵列表
-    if (flawList.value.length === 0) {
-        const flawPromise = listTagsNoLimit({ tagOrder: '001', status: "0" }).then(response => {
-            flawList.value = response;
-        });
-        promises.push(flawPromise);
-    }
-
-    // 获取预估列表
-    if (estimateList.value.length === 0) {
-        const estimatePromise = listTagsNoLimit({ tagOrder: '002', status: "0" }).then(response => {
-            estimateList.value = response;
-        });
-        promises.push(estimatePromise);
-    }
-
-    // 获取品牌列表
-    if (brandList.value.length === 0) {
-        const brandPromise = listTagsNoLimit({ tagOrder: '004', status: "0" }).then(response => {
-            brandList.value = response;
-        });
-        promises.push(brandPromise);
-    }
-
-    // 等待所有异步操作完成防止衣物列表数据加载完后这里的数据没有准备好而出错
+    // 等待所有异步操作完成
     await Promise.all(promises);
 }
 
@@ -955,19 +935,18 @@ function nextStep() {
         return;
     }
 
+    // 如果需要添加标签但未添加，则提示用户先添加标签
     if (step.value === 2 && showAddColorBtn.value) {
-        // 如果颜色不存在那么自动创建
-        addTag("003", clothColorInput.value);
+        proxy.notify.warning("请先添加颜色标签");
         return;
     } else if (step.value === 3 && showAddFlawBtn.value) {
-        // 如果瑕疵不存在那么自动创建
-        addTag("001", flawInput.value);
+        proxy.notify.warning("请先添加瑕疵标签");
         return;
     } else if (step.value === 4 && showAddEstimateBtn.value) {
-        addTag("002", estimateInput.value);
+        proxy.notify.warning("请先添加预估标签");
         return;
     } else if (step.value === 5 && showAddBrandBtn.value) {
-        addTag("004", brandInput.value);
+        proxy.notify.warning("请先添加品牌标签");
         return;
     }
 
@@ -1061,7 +1040,8 @@ function searchColor(color) {
                 showAddFlawBtn.value = true;
                 form.value.clothingFlaw = null;
             } else {
-                form.value.clothingFlawArr = [...item1.map(item => item.tagId)];
+                // 确保使用字符串类型的值以匹配CheckboxButton中的实现
+                form.value.clothingFlawArr = item1.map(item => String(item.tagId));
                 showAddFlawBtn.value = false;
             }
             break;
@@ -1070,11 +1050,11 @@ function searchColor(color) {
                 return item.tagName.includes(upperCaseColor) || getPinyinInitials(item.tagName).includes(upperCaseColor);
             });
             if (item2.length === 0) {
-
                 showAddEstimateBtn.value = true;
                 form.value.estimate = null;
             } else {
-                form.value.estimateArr = [...item2.map(item => item.tagId)];
+                // 确保使用字符串类型的值以匹配CheckboxButton中的实现
+                form.value.estimateArr = item2.map(item => String(item.tagId));
                 showAddEstimateBtn.value = false;
             }
             break;
@@ -1126,27 +1106,51 @@ function createCloth() {
 
     createClothingCreateOrder(data).then(async response => {
         proxy.notify.success("新增衣物成功");
-        data.id = response.id;
-        // await getClothingList();
+        
+        // 创建一个完整的衣物对象
+        const newCloth = {
+            id: response.id,
+            categoryId: data.categoryId,
+            styleId: data.styleId,
+            title: data.title,
+            clothingBasePrice: data.clothingBasePrice,
+            clothingMinPrice: data.clothingMinPrice,
+            hangType: data.hangType || '1'
+        };
+        
+        // 清理状态
         showPriceContent.value = false;
         showAddClothBtn.value = false;
-        form.value.clothInfo = {};
         clothNameInput.value = null;
-        form.value.clothingId = data.id;
-        form.value.priceValue = data.clothingBasePrice;
-        form.value.hangType = data.hangType;
-        // refresh clothingList
-        clothingListFilterResult.value.push(data);
-        clothingList.value.push(data);
-        // next step
+        
+        // 更新表单值
+        form.value.clothingId = newCloth.id;
+        form.value.priceValue = newCloth.clothingBasePrice;
+        form.value.hangType = newCloth.hangType;
+        form.value.clothInfo = {};
+        
+        // 更新衣物列表
+        clothingListFilterResult.value.push(newCloth);
+        clothingList.value.push(newCloth);
+        
+        // 确保新添加的衣物被选中 - 强制触发一次更新
+        nextTick(() => {
+            // 这里添加一个小延迟，确保UI能正确反映选中状态
+            setTimeout(() => {
+                const selectedCloth = clothingListFilterResult.value.find(item => item.id === newCloth.id);
+                if (selectedCloth) {
+                    console.log("已选中衣物:", selectedCloth.title);
+                }
+            }, 100);
+        });
+        
+        // 自动进入下一步
         nextStep();
     }).catch(error => {
-        // 如果是notfound那么检查是否配置了晾衣架
+        // 错误处理（保持不变）
         if (error.kind == "notfound" && error.details == '没有可用的衣架') {
-            // 检查衣挂是否已初始化
             checkRackInitialized().then(isInitialized => {
                 if (!isInitialized) {
-                    // 如果未初始化，显示衣挂初始化设置对话框
                     showRackInitCheck.value = true;
                 } else {
                     proxy.notify.error("没有可用的衣架，请检查衣架配置");
@@ -1162,42 +1166,61 @@ function createCloth() {
 }
 
 /* 新增标签 */
-function addTag(type, tagName) {
-    addTags({ tagName: tagName, tagOrder: type }).then(res => {
+async function addTag(type, tagName) {
+    try {
+        const tagsStore = useTagsStore();
+        const newTag = await tagsStore.addTag(type, tagName);
         proxy.notify.success("新增成功");
-        addItemToList(type, res);
-        nextStep();
-    });
-}
-
-function addItemToList(type, item) {
-    switch (type) {
-        case "003":
-            colorList.value.push(item);
-            form.value.clothingColor = item.tagId;
-            showAddColorBtn.value = false;
-            clothColorInput.value = '';
-            break;
-        case "001":
-            flawList.value.push(item);
-            form.value.clothingFlawArr = [item.tagId];
-            showAddFlawBtn.value = false;
-            flawInput.value = '';
-            break;
-        case "002":
-            estimateList.value.push(item);
-            form.value.estimateArr = [item.tagId];
-            showAddEstimateBtn.value = false;
-            estimateInput.value = '';
-            break;
-        case "004":
-            brandList.value.push(item);
-            form.value.clothingBrand = item.tagId;
-            showAddBrandBtn.value = false;
-            brandInput.value = '';
-            break;
-        default:
-            ;
+        
+        // 根据标签类型进行选中
+        switch (type) {
+            case "001": // 瑕疵
+                // 确保使用字符串类型的值以匹配CheckboxButton中的实现
+                form.value.clothingFlawArr = [String(newTag.tagId)];
+                showAddFlawBtn.value = false;
+                flawInput.value = '';
+                break;
+            case "002": // 预估
+                // 确保使用字符串类型的值以匹配CheckboxButton中的实现 
+                form.value.estimateArr = [String(newTag.tagId)];
+                showAddEstimateBtn.value = false;
+                estimateInput.value = '';
+                break;
+            case "003": // 颜色
+                form.value.clothingColor = newTag.tagId;
+                showAddColorBtn.value = false;
+                clothColorInput.value = '';
+                break;
+            case "004": // 品牌
+                form.value.clothingBrand = newTag.tagId;
+                showAddBrandBtn.value = false;
+                brandInput.value = '';
+                break;
+        }
+        
+        // 打印表单状态以便调试
+        console.log("新增标签:", type, "tagId:", newTag.tagId, "选中状态:", type === "001" ? form.value.clothingFlawArr : (type === "002" ? form.value.estimateArr : null));
+        
+        // 确保UI更新
+        nextTick(() => {
+            // 这里通过强制重新渲染来确保选中状态显示
+            if (type === "001" || type === "002") {
+                const temp = [...(type === "001" ? form.value.clothingFlawArr : form.value.estimateArr)];
+                if (type === "001") {
+                    form.value.clothingFlawArr = [];
+                    setTimeout(() => {
+                        form.value.clothingFlawArr = temp;
+                    }, 0);
+                } else {
+                    form.value.estimateArr = [];
+                    setTimeout(() => {
+                        form.value.estimateArr = temp;
+                    }, 0);
+                }
+            }
+        });
+    } catch (error) {
+        proxy.notify.error("添加标签失败: " + error);
     }
 }
 

@@ -3,8 +3,8 @@
     <el-dialog v-model="showPaymentDialog" width="600px" append-to-body lock-scroll modal :align-center="true"
         :close-on-click-modal="false" :show-close="false" @closed="close" class="payment-dialog">
         <!-- 扫码支付弹窗 -->
-        <el-dialog v-model="showScannerDialog" title="扫描二维码" width="500px" append-to-body lock-scroll modal
-            :align-center="true" :close-on-click-modal="false" :show-close="true" class="scanner-dialog">
+        <el-dialog v-model="showScannerDialog" title="扫描二维码" width="500px" lock-scroll modal :align-center="true"
+            :close-on-click-modal="false" :show-close="true" class="scanner-dialog">
             <QrCodeScanner :onScanSuccess="handleScanResult" :autoStart="true" @scan-error="handleScanError"
                 @scan-timeout="handleScanTimeout" />
         </el-dialog>
@@ -109,7 +109,8 @@
                     </el-radio-group>
 
                     <!-- 扫码支付按钮 -->
-                    <el-button type="primary" @click="startScanPayment" class="scan-code-btn">
+                    <el-button type="primary" @click="startScanPayment" class="scan-code-btn"
+                        v-if="paymentForm.paymentMethod === '01' || paymentForm.paymentMethod === '02'">
                         <el-icon>
                             <ScanningFilled />
                         </el-icon>
@@ -188,9 +189,15 @@
 
             <!-- 价格信息区域 -->
             <div class="price-summary-card">
+                <!-- 显示原价 -->
+                <!-- <div class="price-row">
+                    <span class="price-label">衣物原价</span>
+                    <span class="price-value">¥ {{ props.order.originalPrice }}</span>
+                </div> -->
                 <div class="price-row">
                     <span class="price-label">订单金额</span>
-                    <span class="price-value">¥ {{ paymentForm.totalAmount }}</span>
+                    <span class="price-value">¥ {{ props.order.originalPrice ? props.order.originalPrice :
+                        paymentForm.totalAmount }}</span>
                 </div>
                 <!-- 店主调价信息 -->
                 <template
@@ -379,8 +386,23 @@ function handleScanResult(result) {
     }
 }
 
-/* 初始化支付表单数据 */
-async function initPaymentForm() {
+// 初始化表单数据
+function initForm() {
+    // 获取用户信息
+    getUser(props.order.userId).then(res => {
+        user.value = res;
+    });
+
+    // 获取用户卡券列表
+    listUserCouponWithValidTime(props.order.userId).then(response => {
+        userCouponList.value = response;
+        userCouponList.value.filter(item => item.coupon.couponType == '002').map(item => {
+            item.selected = false;
+            item.count = 1;
+        });
+        couponTypeList.value = new Set(userCouponList.value.map(coupon => coupon.coupon.couponType));
+    });
+
     paymentForm.value = {
         orders: [props.order],
         ucOrderId: props.order.orderId,
@@ -391,6 +413,7 @@ async function initPaymentForm() {
         totalAmount: 0,
         paymentAmount: 0,
     };
+
     if (props.order.source == '01') {
         paymentForm.value.paymentMethod = '03';
         showCoupons.value = false;
@@ -399,8 +422,37 @@ async function initPaymentForm() {
         showCoupons.value = false;
     }
 
-    let price;
-    // 如果订单已经带有从createOrder.vue传递的总价
+    // 计算原价和总价
+    let price = 0;
+
+    // 如果没有传入originalPrice，需要计算原价
+    if (!props.order.originalPrice) {
+        // 计算衣物原价（不包含调价）
+        let originalPrice = 0;
+
+        // 如果选择了价格方案，那么使用所有选中价格方案的总和
+        if (props.order.priceIds && props.order.priceIds.length > 0) {
+            // 这种情况下，原价就是价格方案的总和，但我们没有价格方案的详细信息
+            // 所以如果有totalPrice，我们就用totalPrice作为原价
+            originalPrice = props.order.totalPrice || 0;
+        } else {
+            // 计算衣物的原始价格总和
+            originalPrice = props.order.cloths.reduce((acc, cur) => {
+                let priceValue = cur.priceValue;
+                if (cur.serviceRequirement == '001') {
+                    priceValue *= 2;
+                } else if (cur.serviceRequirement == '002') {
+                    priceValue *= 1.5;
+                }
+                return acc + priceValue + cur.processMarkup
+            }, 0);
+        }
+
+        // 设置计算出的原价
+        props.order.originalPrice = originalPrice > 0 ? originalPrice : 0;
+    }
+
+    // 使用传递过来的总价，这已经包含了调价
     if (props.order.totalPrice !== undefined && props.order.totalPrice > 0) {
         price = props.order.totalPrice;
     }
@@ -412,12 +464,16 @@ async function initPaymentForm() {
     }
     // 使用了单一价格方案的遗留代码
     else if (props.order.priceId) {
-        const item = await getPrice(props.order.priceId);
-        price = item ? item.priceValue : 0;
+        getPrice(props.order.priceId).then(item => {
+            price = item ? item.priceValue : 0;
+            paymentForm.value.totalAmount = price > 0 ? price : 0;
+            paymentForm.value.paymentAmount = paymentForm.value.totalAmount;
+        });
     } else if (props.order.adjust.adjustTotal && props.order.adjust.adjustTotal > 0) {
         // 如果存在店主调价总价格，那么使用总价格
         price = props.order.adjust.adjustTotal;
     } else {
+        // 如果没有传递总价，则计算价格
         price = props.order.cloths.reduce((acc, cur) => {
             // 计算总价
             // 如果服务要求为加急
@@ -434,11 +490,13 @@ async function initPaymentForm() {
             Number(props.order.adjust.adjustValueAdd ? props.order.adjust.adjustValueAdd : 0) -
             Number(props.order.adjust.adjustValueSub ? props.order.adjust.adjustValueSub : 0);
     }
+
     paymentForm.value.totalAmount = price > 0 ? price : 0;
     paymentForm.value.paymentAmount = paymentForm.value.totalAmount;
     couponStorageCardId.value = [];
     checkCoupon();
 }
+
 /* 收款 */
 function submitPaymentForm() {
     // 判断是否使用了优惠券
@@ -724,7 +782,7 @@ function changeCouponCount() {
 
 onMounted(async () => {
     if (props.visible) {
-        await initPaymentForm();
+        await initForm();
         await listUserCouponWithValidTime(props.order.userId).then(response => {
             userCouponList.value = response;
             userCouponList.value.filter(item => item.coupon.couponType == '002').map(item => {

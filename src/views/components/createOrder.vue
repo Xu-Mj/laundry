@@ -32,18 +32,11 @@
                         <el-row :gutter="20">
                             <el-col :span="12">
                                 <el-form-item size="large" label="会员：" prop="userId">
-                                    <UserSelect
-                                        v-model="form.userInfo"
-                                        :disabled="notEditable"
-                                        :search-method="searchUserMethod"
-                                        @change="selectUser"
-                                        @blur="handleBlur"
-                                        @need-create-user="handleNeedCreateUser"
-                                        @update-phone="handleUpdatePhone"
-                                        @validate="handleUserValidate"
-                                        @clear-validation="clearUserValidation"
-                                        ref="userSelectRef"
-                                    />
+                                    <UserSelect v-model="form.userInfo" :disabled="notEditable"
+                                        :search-method="searchUserMethod" @change="selectUser" @blur="handleBlur"
+                                        @need-create-user="handleNeedCreateUser" @update-phone="handleUpdatePhone"
+                                        @validate="handleUserValidate" @clear-validation="clearUserValidation"
+                                        ref="userSelectRef" />
                                 </el-form-item>
                             </el-col>
                             <el-col :span="12">
@@ -92,7 +85,7 @@
                                 </el-radio>
                             </el-radio-group>
                         </el-form-item>
-                        <div class="price-section" v-if="form.priceIds.length > 0 || priceList.length > 0">
+                        <div class="price-section" v-if="(form.priceIds && form.priceIds.length > 0) || priceList.length > 0">
                             <!-- <div style="font-size: small;">价格方案</div> -->
                             <el-form-item props="priceIds">
                                 <el-checkbox-group v-model="form.priceIds" :disabled="notEditable"
@@ -101,12 +94,18 @@
                                         @change="(event) => priceChange(event, item.priceId)" :key="item.priceId"
                                         :label="item.priceId">
                                         <div class="payment-method-card"
-                                            :class="{ 'selected': form.priceIds.includes(item.priceId) }">
-                                            <el-icon>
+                                            :class="{ 
+                                                'selected': form.priceIds && form.priceIds.includes(item.priceId),
+                                                'discount-type': isPriceDiscount(item),
+                                                'fixed-price-type': !isPriceDiscount(item)
+                                            }">
+                                            <el-icon v-if="isPriceDiscount(item)">
+                                                <Discount />
+                                            </el-icon>
+                                            <el-icon v-else>
                                                 <Money />
                                             </el-icon>
-                                            <el-tooltip :content="item.priceName" placement="top" :show-after="200"
-                                                :disabled="!isTextOverflow(item.priceName)">
+                                            <el-tooltip :content="getPriceTooltip(item)" placement="top" :show-after="200">
                                                 <span ref="priceNameSpan">{{ item.priceName }}</span>
                                             </el-tooltip>
                                         </div>
@@ -117,26 +116,26 @@
                     </div>
                     <div class="order-list-card" ref="clothListRef">
                         <h3 class="section-title">衣物列表</h3>
-                        <CustomTable :table-data="form.cloths" @delete="handleDelete" />
+                        <CustomTable :table-data="form.cloths" @delete="handleDelete" :disabled="notEditable" />
                     </div>
                     <div class="order-list-card" ref="adjustPriceRef">
                         <h3 class="section-title">店主调价</h3>
 
                         <div class="adjust-price-group">
-                            <div class="adjust-price-group-mask" v-if="form.priceIds.length > 0">使用了价格方案后不能调价</div>
-                            <el-input-number size="large" type="number" :min="0" :max="1000" @input="adjustInput"
+                            <div class="adjust-price-group-mask" v-if="form.priceIds && form.priceIds.length > 0">使用了价格方案后不能调价</div>
+                            <el-input size="large" type="number" :min="0" :max="1000" @input="adjustInput" clearable
                                 controls-position="right" @change="adjustInputChange"
                                 v-model="form.adjust.adjustValueSub" placeholder="请输入调减金额"
-                                :disabled="form.priceIds.length > 0" />
-                            <el-input-number size="large" type="number" :min="0" :max="1000" @input="adjustInput"
+                                :disabled="(form.priceIds && form.priceIds.length > 0) || notEditable" />
+                            <el-input size="large" type="number" :min="0" :max="1000" @input="adjustInput" clearable
                                 controls-position="right" @change="adjustInputChange"
                                 v-model="form.adjust.adjustValueAdd" placeholder="请输入调增金额"
-                                :disabled="form.priceIds.length > 0" />
-                            <el-input-number size="large" type="number" :min="0" :max="Infinity" @input="adjustInput"
+                                :disabled="(form.priceIds && form.priceIds.length > 0) || notEditable" />
+                            <el-input size="large" type="number" :min="0" :max="Infinity" @input="adjustInput" clearable
                                 controls-position="right" @change="adjustInputChange" v-model="form.adjust.adjustTotal"
-                                placeholder="请输入总金额" :disabled="form.priceIds.length > 0" />
+                                placeholder="请输入总金额" :disabled="(form.priceIds && form.priceIds.length > 0) || notEditable" />
                             <el-input size="large" v-model="form.adjust.remark" placeholder="备注信息"
-                                @change="adjustInputChange" :disabled="form.priceIds.length > 0" />
+                                @change="adjustInputChange" :disabled="(form.priceIds && form.priceIds.length > 0) || notEditable" />
                         </div>
                     </div>
                     <div class="order-summary-card" ref="orderSummaryRef">
@@ -173,9 +172,9 @@
                     <div class="btn-container">
                         <el-button size="large" icon="Close" type="danger" @click="cancelSelf">{{ form.orderId ? '关 闭' :
                             '取 消'
-                        }}</el-button>
+                            }}</el-button>
                         <el-button size="large" icon="Check" type="primary" color="#626aef" @click="submitForm"
-                            :disabled="notEditable && !(form.source === '03') && (form.priceIds.length === 0)"
+                            :disabled="notEditable || (!(form.source === '03') && (!form.priceIds || form.priceIds.length === 0))"
                             v-if="form.source !== '01' && form.source !== '02'" ref="submitButtonRef">取衣收款</el-button>
                         <el-button size="large" type="success" @click="createAndPay" icon="Money"
                             :disabled="notEditable" ref="payButtonRef">收衣收款</el-button>
@@ -183,7 +182,14 @@
                 </div>
             </div>
             <div class="right" :span="14" ref="addClothRef">
-                <AddCloth :userId="form.userId" :orderId="form.orderId" :submit="submitClothes" :disabled="notEditable"
+                <div v-if="notEditable" class="non-editable-container">
+                    <OrderNonEditableMessage 
+                        :order="form" 
+                        :totalClothes="form.cloths.length" 
+                        :totalPrice="totalPrice" 
+                    />
+                </div>
+                <AddCloth v-else :userId="form.userId" :orderId="form.orderId" :submit="submitClothes" :disabled="notEditable"
                     :key="form.userId" />
             </div>
         </div>
@@ -224,6 +230,7 @@ import CustomTable from '@/components/CustomTable';
 import Pay from '@/views/components/pay.vue';
 import eventBus from "@/utils/eventBus";
 import UserSelect from '@/components/UserSelect.vue';
+import OrderNonEditableMessage from '@/components/OrderNonEditableMessage.vue';
 import { nextTick } from 'vue';
 // import OrderTourGuide from '@/components/OrderTourGuide/index.vue';
 
@@ -326,15 +333,15 @@ const data = reactive({
             { required: true, message: "业务类型不能为空", trigger: "change" }
         ],
         userId: [
-            { 
+            {
                 validator: (rule, value, callback) => {
                     // 获取当前输入值
                     const currentInput = userSelectRef.value?.getInputValue() || '';
-                    
+
                     // 如果是需要创建用户的情况且手机号有效，不报错
                     if (showCreateUser.value && currentUser.value?.phonenumber && phoneRegex.test(currentUser.value.phonenumber)) {
                         callback();
-                    } 
+                    }
                     // 如果有输入但不是有效手机号
                     else if (currentInput && currentInput.length > 0) {
                         // 如果输入的不是11位，或者不是有效手机号
@@ -347,7 +354,7 @@ const data = reactive({
                     // 如果没有输入任何内容且触发了表单提交
                     else if (!value && !currentInput && rule.trigger === 'submit') {
                         callback(new Error("所属会员不能为空"));
-                    } 
+                    }
                     // 其他情况通过验证
                     else {
                         callback();
@@ -386,10 +393,77 @@ function submitClothes(list) {
     adjustInput();
 }
 
+// 判断价格项是否为折扣类型
+function isPriceDiscount(item) {
+    return item.priceDiscount !== null && item.priceDiscount !== undefined;
+}
+
+// 获取价格项的提示文本
+function getPriceTooltip(item) {
+    if (isPriceDiscount(item)) {
+        return `${item.priceName}（折扣：${item.priceDiscount}%）`;
+    } else {
+        return `${item.priceName}（固定价格：${item.priceValue}元）`;
+    }
+}
+
 // 处理价格radio 选中事件
 function priceChange(event, priceId) {
+    // 获取当前选择的价格项
+    const currentPriceItem = priceList.value.find(item => item.priceId === priceId);
+    
+    // 如果找不到价格项，直接返回
+    if (!currentPriceItem) return;
+    
+    // 判断当前价格项是固定价格还是折扣系数
+    const isDiscount = isPriceDiscount(currentPriceItem);
+    
     if (event) {
-        // 如果选中，添加到数组
+        // 如果选中
+        
+        // 检查当前已选择的价格项中是否有折扣类型
+        const hasDiscountSelected = form.value.priceIds.some(id => {
+            const item = priceList.value.find(p => p.priceId === id);
+            return item && isPriceDiscount(item);
+        });
+        
+        // 检查当前已选择的价格项中是否有固定价格类型
+        const hasFixedPriceSelected = form.value.priceIds.some(id => {
+            const item = priceList.value.find(p => p.priceId === id);
+            return item && !isPriceDiscount(item);
+        });
+        
+        // 如果当前选择的是折扣类型
+        if (isDiscount) {
+            // 如果已经选择了其他折扣，则先移除所有折扣
+            if (hasDiscountSelected) {
+                // 移除所有折扣类型的价格项
+                form.value.priceIds = form.value.priceIds.filter(id => {
+                    const item = priceList.value.find(p => p.priceId === id);
+                    return !(item && isPriceDiscount(item));
+                });
+            }
+            
+            // 如果已经选择了固定价格，则移除所有固定价格
+            if (hasFixedPriceSelected) {
+                // 移除所有固定价格类型的价格项
+                form.value.priceIds = form.value.priceIds.filter(id => {
+                    const item = priceList.value.find(p => p.priceId === id);
+                    return !(item && !isPriceDiscount(item));
+                });
+            }
+        } else {
+            // 如果当前选择的是固定价格，但已经选择了折扣，则移除所有折扣
+            if (hasDiscountSelected) {
+                // 移除所有折扣类型的价格项
+                form.value.priceIds = form.value.priceIds.filter(id => {
+                    const item = priceList.value.find(p => p.priceId === id);
+                    return !(item && isPriceDiscount(item));
+                });
+            }
+        }
+        
+        // 添加到选中数组
         if (!form.value.priceIds.includes(priceId)) {
             form.value.priceIds.push(priceId);
         }
@@ -400,6 +474,7 @@ function priceChange(event, priceId) {
             form.value.priceIds.splice(index, 1);
         }
     }
+    
     // 清空调整金额
     form.value.adjust.adjustValueSub = null;
     form.value.adjust.adjustValueAdd = null;
@@ -414,7 +489,7 @@ const handleUserValidate = (valid, message) => {
         if (showCreateUser.value && currentUser.value?.phonenumber && phoneRegex.test(currentUser.value.phonenumber)) {
             return;
         }
-        
+
         // 触发表单验证，而不是使用notify
         if (ordersRef.value) {
             // 使用nextTick确保在DOM更新后再触发验证
@@ -436,48 +511,6 @@ const handleBlur = () => {
         ordersRef.value.validateField('userId');
     }
 };
-
-// 取消按钮
-function cancelSelf() {
-    // 检查是否有未保存的数据
-    if (!form.value.userId) {
-        reset();
-        showDialog.value = false;
-        props.toggle();
-        return;
-    }
-
-    // 修改操作不允许反悔
-    if (form.value.orderId) {
-        reset();
-        showDialog.value = false;
-        props.toggle();
-        return;
-    }
-
-    // 弹出确认对话框
-    ElMessageBox.confirm('确认取消创建订单？此操作不可逆！')
-        .then(() => {
-            // 用户确认取消，处理逻辑
-            if (!form.value.orderId && form.value.cloths.length > 0) {
-                // 删除添加的衣物列表
-                delCloths(form.value.cloths.map(item => item.clothId))
-                    .then(() => {
-                        reset();
-                        props.toggle();
-                    })
-                    .catch(res => {
-                        console.error(res);
-                    });
-            } else {
-                reset();
-                props.toggle();
-            }
-        })
-        .catch(() => {
-            // 用户取消操作，不关闭对话框
-        });
-}
 
 // 取消按钮
 function cancel() {
@@ -509,6 +542,7 @@ function cancel() {
                         .then(() => {
                             reset();
                             showDialog.value = true;
+                            props.toggle();
                             resolve(true); // 允许关闭
                         })
                         .catch(res => {
@@ -600,13 +634,19 @@ async function handleUpdate() {
     await getOrders(currentOrderId.value).then(response => {
         form.value = response;
         form.value.cloths = [];
-        if (form.value.paymentStatus == '00' || form.value.status == '05') {
+        // 如果订单已支付或已退单，设置为不可编辑状态
+        if (form.value.paymentStatus === '00' || form.value.status === '05') {
             notEditable.value = true;
         }
         if (!form.value.adjust) {
             form.value.adjust = {};
         }
+        // 确保priceIds字段是数组
+        if (!form.value.priceIds) {
+            form.value.priceIds = [];
+        }
     });
+    
     // 获取衣物列表
     await listCloths({ orderId: props.orderId }).then(res => {
         res.map(item => {
@@ -619,10 +659,10 @@ async function handleUpdate() {
         })
         form.value.cloths = res;
     })
+    
     // 获取价格列表
     await listPrice({ orderType: form.value.source }).then(res => {
         priceList.value = res;
-        console.log('create order price list', res)
     });
 
     // 获取用户信息
@@ -655,7 +695,13 @@ async function handleUpdate() {
 async function submitForm() {
     // 手动设置验证触发类型为submit
     const validateOptions = { trigger: 'submit' };
-    
+
+    // 检查订单是否已支付或退单
+    if (form.value.orderId && (form.value.paymentStatus === '00' || form.value.status === '05')) {
+        proxy.notify.error("订单已支付或已退单，不能修改信息");
+        return;
+    }
+
     proxy.$refs["ordersRef"].validate(async valid => {
         if (valid) {
             if (!form.value.cloths || form.value.cloths.length == 0) {
@@ -706,7 +752,13 @@ async function submitForm() {
 function createAndPay() {
     // 手动设置验证触发类型为submit
     const validateOptions = { trigger: 'submit' };
-    
+
+    // 检查订单是否已支付或退单
+    if (form.value.orderId && (form.value.paymentStatus === '00' || form.value.status === '05')) {
+        proxy.notify.error("订单已支付或已退单，不能修改信息");
+        return;
+    }
+
     // 提交订单
     proxy.$refs["ordersRef"].validate(async valid => {
         if (valid) {
@@ -716,13 +768,13 @@ function createAndPay() {
             }
             // 如果选择了美团或者抖音，那么需要选择价格标签
             if (form.value.source == '01' || form.value.source == '02') {
-                if (form.value.priceIds.length === 0) {
+                if (!form.value.priceIds || form.value.priceIds.length === 0) {
                     proxy.notify.error("请选择价格标签");
                     return;
                 }
             }
 
-            if (form.value.priceIds.length > 0) {
+            if (form.value.priceIds && form.value.priceIds.length > 0) {
                 showCoupons.value = false;
             }
             if (showCreateUser.value) {
@@ -802,7 +854,7 @@ const searchUserMethod = (query) => {
             resolve(limitedUsers);
             return;
         }
-        
+
         // 确保输入是数字
         if (query && typeof query === 'string') {
             query = query.replace(/\D/g, ''); // 移除所有非数字字符
@@ -822,7 +874,7 @@ const searchUserMethod = (query) => {
         const filteredUsers = userList.value.filter(user =>
             user.phonenumber && user.phonenumber.includes(query)
         );
-        
+
         userListRes.value = filteredUsers;
         resolve(filteredUsers);
     });
@@ -836,14 +888,14 @@ const handleNeedCreateUser = (phoneNumber) => {
         phonenumber: phoneNumber,
         status: "0",
     };
-    
+
     // 设置用户ID为临时值，确保右侧添加衣物组件能够正确显示
     // 使用一个特殊的标记值，表示这是一个待创建的用户
     form.value.userId = -999; // 临时ID，表示待创建用户
-    
+
     // 清除验证提示
     clearUserValidation();
-    
+
     // 触发事件，通知其他组件刷新
     eventBus.emit('user-selected', { isNewUser: true, phonenumber: phoneNumber });
 };
@@ -886,7 +938,7 @@ async function selectUser(val) {
             });
             couponTypeList.value = new Set(userCouponList.value.map(coupon => coupon.coupon.couponType));
         });
-        
+
         // 清除验证提示
         clearUserValidation();
     }
@@ -904,27 +956,58 @@ function adjustInputChange() {
 /* 调价输入框输入事件 */
 function adjustInput() {
     // 强制转换调价字符串为数字
-    if (form.value.adjust.adjustValueAdd) {
-        form.value.adjust.adjustValueAdd = Number(form.value.adjust.adjustValueAdd);
-    }
+    form.value.adjust.adjustValueAdd = form.value.adjust.adjustValueAdd ?
+        Number(form.value.adjust.adjustValueAdd.trim()) : null;
 
-    if (form.value.adjust.adjustValueSub) {
-        form.value.adjust.adjustValueSub = Number(form.value.adjust.adjustValueSub);
-    }
+    form.value.adjust.adjustValueSub = form.value.adjust.adjustValueSub ?
+        Number(form.value.adjust.adjustValueSub) : null;
+
+    console.log('adjust input', form.value.adjust);
+
+    // 处理 adjustTotal
+    form.value.adjust.adjustTotal = form.value.adjust.adjustTotal ?
+        Number(form.value.adjust.adjustTotal) : null;
 
     if (form.value.adjust.adjustTotal) {
-        totalPrice.value = Number(form.value.adjust.adjustTotal);
-        form.value.adjust.adjustTotal = Number(form.value.adjust.adjustTotal);
+        totalPrice.value = form.value.adjust.adjustTotal;
     } else {
         // 计算原始价格
         let originalPrice = 0;
-        // 如果选择了价格方案，那么使用所有选中价格方案的总和
+        
+        // 如果选择了价格方案
         if (form.value.priceIds && form.value.priceIds.length > 0) {
-            originalPrice = form.value.priceIds.reduce((acc, priceId) => {
-                const item = priceList.value.find(item => item.priceId === priceId);
-                return acc + (item ? item.priceValue : 0);
-            }, 0);
+            // 检查是否选择了折扣类型的价格方案
+            const discountPriceItem = priceList.value.find(item => 
+                form.value.priceIds.includes(item.priceId) && 
+                isPriceDiscount(item)
+            );
+            
+            if (discountPriceItem) {
+                // 如果是折扣类型，先计算衣物的原始价格总和
+                originalPrice = form.value.cloths.reduce((acc, cur) => {
+                    // 计算总价
+                    // 如果服务要求为加急
+                    let priceValue = cur.priceValue;
+                    if (cur.serviceRequirement == '001') {
+                        priceValue *= 2;
+                    } else if (cur.serviceRequirement == '002') {
+                        priceValue *= 1.5;
+                    }
+                    return acc + priceValue + cur.processMarkup;
+                }, 0);
+                
+                // 然后应用折扣
+                const discountFactor = discountPriceItem.priceDiscount / 100; // 将百分比转换为小数
+                originalPrice = originalPrice * discountFactor;
+            } else {
+                // 如果是固定价格类型，使用所有选中价格方案的总和
+                originalPrice = form.value.priceIds.reduce((acc, priceId) => {
+                    const item = priceList.value.find(item => item.priceId === priceId);
+                    return acc + (item && item.priceValue ? item.priceValue : 0);
+                }, 0);
+            }
         } else {
+            // 如果没有选择价格方案，计算衣物的原始价格总和
             originalPrice = form.value.cloths.reduce((acc, cur) => {
                 // 计算总价
                 // 如果服务要求为加急
@@ -934,10 +1017,10 @@ function adjustInput() {
                 } else if (cur.serviceRequirement == '002') {
                     priceValue *= 1.5;
                 }
-                return acc +
-                    priceValue + cur.processMarkup
+                return acc + priceValue + cur.processMarkup;
             }, 0);
         }
+        
         // 保存原始价格
         form.value.originalPrice = originalPrice > 0 ? originalPrice : 0;
 
@@ -952,7 +1035,7 @@ function adjustInput() {
 async function printCloth() {
     const length = form.value.cloths.length;
     let userData;
-    
+
     // Handle the case when a new user is being created (temporary ID)
     if (form.value.userId === -999 && showCreateUser.value) {
         userData = {
@@ -962,7 +1045,7 @@ async function printCloth() {
     } else {
         // Find existing user in userList
         userData = userList.value.find(user => user.userId == form.value.userId);
-        
+
         // If user not found but we have enough information, create a temporary user object
         if (!userData && form.value.nickName) {
             userData = {
@@ -971,7 +1054,7 @@ async function printCloth() {
             };
         }
     }
-    
+
     // Ensure we have at least a name to display
     if (!userData) {
         userData = {
@@ -979,7 +1062,7 @@ async function printCloth() {
             phonenumber: ""
         };
     }
-    
+
     const result = form.value.cloths.map((item, index) => ({
         cloth_name: item.clothInfo.title,
         cloth_color: item.clothingColor ? item.clothingColor : 0,
@@ -1008,11 +1091,16 @@ async function printCloth() {
 }
 
 function handleDelete(clothId, name) {
+    // If the order is not editable (paid or refunded), don't allow deletion
+    if (notEditable.value) {
+        proxy.notify.error("订单已支付或已退单，不能删除衣物");
+        return;
+    }
+
     const title = name ? name : clothId;
     proxy.$modal.confirm('是否确认删除订单包含的衣物"' + title + '"？').then(function () {
         return delCloths(clothId);
     }).then(() => {
-
         const index = form.value.cloths.findIndex(item => item.clothId === clothId);
         form.value.cloths.splice(index, 1);
         // 重新计算总价
@@ -1121,15 +1209,57 @@ const handleUpdatePhone = (phoneNumber) => {
     // 只更新手机号，保留其他信息
     if (showCreateUser.value && currentUser.value) {
         currentUser.value.phonenumber = phoneNumber;
-        
+
         // 触发事件，通知其他组件更新手机号
-        eventBus.emit('user-phone-updated', { 
-            isNewUser: true, 
+        eventBus.emit('user-phone-updated', {
+            isNewUser: true,
             phonenumber: phoneNumber,
             nickName: form.value.nickName
         });
     }
 };
+
+// 取消按钮
+function cancelSelf() {
+    // 检查是否有未保存的数据
+    if (!form.value.userId) {
+        reset();
+        showDialog.value = true;
+        props.toggle();
+        return;
+    }
+
+    // 修改操作不允许反悔
+    if (form.value.orderId) {
+        reset();
+        showDialog.value = true;
+        props.toggle();
+        return;
+    }
+
+    // 弹出确认对话框
+    ElMessageBox.confirm('确认取消创建订单？此操作不可逆！')
+        .then(() => {
+            // 用户确认取消，处理逻辑
+            if (!form.value.orderId && form.value.cloths.length > 0) {
+                // 删除添加的衣物列表
+                delCloths(form.value.cloths.map(item => item.clothId))
+                    .then(() => {
+                        reset();
+                        props.toggle();
+                    })
+                    .catch(res => {
+                        console.error(res);
+                    });
+            } else {
+                reset();
+                props.toggle();
+            }
+        })
+        .catch(() => {
+            // 用户取消操作，不关闭对话框
+        });
+}
 </script>
 
 <style scoped>
@@ -1552,6 +1682,23 @@ const handleUpdatePhone = (phoneNumber) => {
     box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
 }
 
+/* 新增样式：折扣类型和固定价格类型的视觉区分 */
+.payment-method-card.discount-type {
+    border-left: 4px solid var(--el-color-warning);
+}
+
+.payment-method-card.fixed-price-type {
+    border-left: 4px solid var(--el-color-success);
+}
+
+.payment-method-card.discount-type .el-icon {
+    color: var(--el-color-warning);
+}
+
+.payment-method-card.fixed-price-type .el-icon {
+    color: var(--el-color-success);
+}
+
 .payment-method-card .el-icon {
     font-size: 24px;
     margin-bottom: 8px;
@@ -1567,5 +1714,16 @@ const handleUpdatePhone = (phoneNumber) => {
     overflow: hidden;
     text-overflow: ellipsis;
     padding: 0 4px;
+}
+
+/* 新增不可编辑订单的消息样式 */
+.non-editable-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    background-color: var(--el-bg-color-page);
+    overflow: auto;
+    padding: 1rem;
 }
 </style>

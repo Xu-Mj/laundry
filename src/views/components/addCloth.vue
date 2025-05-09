@@ -28,7 +28,8 @@
                         <el-col :span="21" style="height: 100%; padding-left: .5rem;">
                             <el-form-item label="">
                                 <div class="input-btn-row">
-                                    <el-input size="large" v-model="cateName" placeholder="请输入分类名称" maxlength="20" show-word-limit />
+                                    <el-input size="large" v-model="cateName" placeholder="请输入分类名称" maxlength="20"
+                                        show-word-limit />
                                     <el-button size="large" type="primary" icon="Plus"
                                         @click="handleAddCate">新增</el-button>
                                 </div>
@@ -57,7 +58,8 @@
                             <el-form-item label="衣物名称" size="large">
                                 <div class="input-btn-row">
                                     <el-input size="large" v-model="clothNameInput" ref="clothNameRef"
-                                        @input="searchCloth" placeholder="请输衣物名称首字母或衣物名称" maxlength="30" show-word-limit />
+                                        @input="searchCloth" placeholder="请输衣物名称首字母或衣物名称" maxlength="30"
+                                        show-word-limit />
                                     <el-button size="large" v-if="showAddClothBtn" type="primary" icon="Plus"
                                         @click="handleAddCloth">新增</el-button>
                                 </div>
@@ -125,8 +127,9 @@
                     <el-row class="item-list-area">
                         <el-scrollbar class="scrollbar-height">
                             <div class="items-break">
-                                <RadioButton v-for="color in tagsStore.colorList" :key="color.tagId" :value="color.tagId"
-                                    v-model="form.clothingColor" @change="nextStep" :label="color.tagName"/>
+                                <RadioButton v-for="color in tagsStore.colorList" :key="color.tagId"
+                                    :value="color.tagId" v-model="form.clothingColor" @change="nextStep"
+                                    :label="color.tagName" />
                             </div>
                         </el-scrollbar>
                     </el-row>
@@ -193,7 +196,8 @@
                     <!-- 展示洗后预估标签 -->
                     <el-scrollbar class="scrollbar-height">
                         <CheckboxGroup class="items-break" v-model="form.estimateArr">
-                            <CheckboxButton v-for="item in tagsStore.estimateList" :key="item.tagId" :value="item.tagId">
+                            <CheckboxButton v-for="item in tagsStore.estimateList" :key="item.tagId"
+                                :value="item.tagId">
                                 <el-tooltip :content="item.tagNumber">
                                     {{ item.tagName }}
                                 </el-tooltip>
@@ -228,8 +232,8 @@
                     <!-- 展示品牌 -->
                     <el-scrollbar>
                         <div class="items-break">
-                            <RadioButton v-for="brand in tagsStore.brandList" v-model="form.clothingBrand" :key="brand.tagId"
-                                :value="brand.tagId" @change="nextStep" :label="brand.tagName" />
+                            <RadioButton v-for="brand in tagsStore.brandList" v-model="form.clothingBrand"
+                                :key="brand.tagId" :value="brand.tagId" @change="nextStep" :label="brand.tagName" />
                         </div>
                     </el-scrollbar>
                     <el-row class="footer-btn">
@@ -354,7 +358,8 @@
                 </div>
             </div>
             <div class="camera-controls">
-                <el-button type="primary" @click="capturePhoto" :disabled="capturedImages.length >= 16">拍照</el-button>
+                <el-button type="primary" @click="capturePhoto"
+                    :disabled="takePhotoBtnDisabled || capturedImages.length >= 16">拍照</el-button>
                 <el-button type="primary" @click="savePhotos" :disabled="capturedImages.length === 0">保存</el-button>
                 <el-button @click="closeCamera">关闭</el-button>
             </div>
@@ -362,7 +367,7 @@
         </el-dialog>
         <PredefinedCategories v-model="showCategoryDialog" @success="handlePredefinedCategoriesSuccess"
             @cancel="showCategoryDialog = false" />
-        <el-dialog v-model="showCategoryPrompt" title="提示" width="30%" :close-on-click-modal="false">
+        <el-dialog v-model="showCategoryPrompt" title="提示" width="30%" :close-on-click-modal="false" align-center>
             <div class="prompt-content">
                 <el-icon class="prompt-icon">
                     <Warning />
@@ -386,7 +391,6 @@
 import { addCloths, updateCloths } from "@/api/system/cloths";
 import { CoffeeCup, CollectionTag, CopyDocument, PictureRounded, User, WarningFilled } from "@element-plus/icons-vue";
 import { listClothingWithNoLimit, createClothingCreateOrder } from "@/api/system/clothing";
-import { listTagsNoLimit, addTags } from "@/api/system/tags";
 import { listCategoryAll } from "@/api/system/clothingCategory";
 import { listStyleByCategoryId, addStyle } from "@/api/system/clothingStyle";
 import pinyin from 'pinyin';
@@ -532,6 +536,7 @@ const showCameraModal = ref(false); // 是否显示拍照对话框
 const video = ref(null);
 const canvas = ref(null);
 const capturedImages = ref([]);
+const takePhotoBtnDisabled = ref(true);
 
 // 监听 selectedCloth 的变化
 watch(selectedCloth, (newVal) => {
@@ -552,6 +557,7 @@ watch(step, (newStep, oldStep) => {
         transitionName.value = 'slide-right';
     }
 });
+
 // 打开摄像头
 const openCamera = async () => {
     showCameraModal.value = true;
@@ -571,16 +577,18 @@ const openCamera = async () => {
             }
         });
         video.value.srcObject = stream;
+        takePhotoBtnDisabled.value = false;
     } catch (error) {
-        proxy.notify.error('无法访问摄像头: ' + error);
+        proxy.notify.error('无法访问摄像头');
         console.error('无法访问摄像头:', error);
         try {
             const stream = await navigator.mediaDevices.getDisplayMedia({
                 video: true
             });
             video.value.srcObject = stream;
+            takePhotoBtnDisabled.value = false;
         } catch (error) {
-            proxy.notify.error('无法访问桌面: ' + error);
+            proxy.notify.error('无法访问桌面');
             console.error('无法访问桌面:', error);
         }
     }
@@ -1106,7 +1114,7 @@ function createCloth() {
 
     createClothingCreateOrder(data).then(async response => {
         proxy.notify.success("新增衣物成功");
-        
+
         // 创建一个完整的衣物对象
         const newCloth = {
             id: response.id,
@@ -1117,22 +1125,22 @@ function createCloth() {
             clothingMinPrice: data.clothingMinPrice,
             hangType: data.hangType || '1'
         };
-        
+
         // 清理状态
         showPriceContent.value = false;
         showAddClothBtn.value = false;
         clothNameInput.value = null;
-        
+
         // 更新表单值
         form.value.clothingId = newCloth.id;
         form.value.priceValue = newCloth.clothingBasePrice;
         form.value.hangType = newCloth.hangType;
         form.value.clothInfo = {};
-        
+
         // 更新衣物列表
         clothingListFilterResult.value.push(newCloth);
         clothingList.value.push(newCloth);
-        
+
         // 确保新添加的衣物被选中 - 强制触发一次更新
         nextTick(() => {
             // 这里添加一个小延迟，确保UI能正确反映选中状态
@@ -1143,7 +1151,7 @@ function createCloth() {
                 }
             }, 100);
         });
-        
+
         // 自动进入下一步
         nextStep();
     }).catch(error => {
@@ -1171,7 +1179,7 @@ async function addTag(type, tagName) {
         const tagsStore = useTagsStore();
         const newTag = await tagsStore.addTag(type, tagName);
         proxy.notify.success("新增成功");
-        
+
         // 根据标签类型进行选中
         switch (type) {
             case "001": // 瑕疵
@@ -1197,10 +1205,10 @@ async function addTag(type, tagName) {
                 brandInput.value = '';
                 break;
         }
-        
+
         // 打印表单状态以便调试
         console.log("新增标签:", type, "tagId:", newTag.tagId, "选中状态:", type === "001" ? form.value.clothingFlawArr : (type === "002" ? form.value.estimateArr : null));
-        
+
         // 确保UI更新
         nextTick(() => {
             // 这里通过强制重新渲染来确保选中状态显示

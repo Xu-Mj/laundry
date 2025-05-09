@@ -407,7 +407,7 @@ watch([width, height], () => {
   height: 100%;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1rem;
   padding: 1.5rem;
   background-color: var(--el-bg-color-page, #f5f7fa);
   overflow-y: auto;

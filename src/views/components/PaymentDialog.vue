@@ -568,7 +568,7 @@ async function submitPaymentForm(isPickup) {
         } else {
             // 什么卡券都没用
             paymentForm.value.ucId = null;
-            paymentForm.value.paymentAmountMv = totalPrice.value;
+            paymentForm.value.paymentAmountMv = paymentForm.value.paymentAmount;
         }
     } else {
         const coupon = userCouponList.value.find(item => item.ucId == paymentForm.value.couponId);

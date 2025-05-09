@@ -174,13 +174,13 @@
                                         <Picture />
                                     </el-icon> 洗前
                                 </el-button>
-                                <el-button link type="primary" size="small"
+                                <!-- <el-button link type="primary" size="small"
                                     :disabled="scope.row.afterPics == null || scope.row.afterPics.length == 0"
                                     @click="handleShowPicture(scope.row, false)">
                                     <el-icon>
                                         <Picture />
                                     </el-icon> 洗后
-                                </el-button>
+                                </el-button> -->
                             </div>
                         </template>
                     </el-table-column>
@@ -610,23 +610,26 @@ async function getList() {
         item.clothList = await listCloths({ orderId: item.orderId });
         item.loading = false;
 
-        let price = 0;
-
         // 优先处理 `adjust` 的情况
         if (item.adjust) {
             if (item.adjust.adjustTotal) {
                 item.mount = item.adjust.adjustTotal;
             } else {
-                price = await calculatePrice(item);
-                price +=
+                const price = await calculatePrice(item);
+                const adjustedPrice = price +
                     Number(item.adjust.adjustValueAdd || 0) -
                     Number(item.adjust.adjustValueSub || 0);
-                item.mount = price > 0 ? price : 0;
+                item.mount = adjustedPrice > 0 ? adjustedPrice : 0;
             }
         } else {
             // 没有 `adjust` 的情况下计算价格
-            price = await calculatePrice(item);
+            const price = await calculatePrice(item);
             item.mount = price > 0 ? price : 0;
+        }
+
+        // 如果有totalPrice属性（通过createOrder.vue传递过来的），直接使用它
+        if (item.totalPrice !== undefined && item.totalPrice > 0) {
+            item.mount = item.totalPrice;
         }
 
         // 过滤已取走的衣物
@@ -638,10 +641,33 @@ async function getList() {
 
 // 提取出价格计算逻辑
 async function calculatePrice(item) {
-    if (item.priceId) {
-        const { data: priceItem } = await getPrice(item.priceId);
-        return priceItem ? priceItem.priceValue : 0;
-    } else {
+    // 处理价格方案数组情况
+    if (item.priceIds && item.priceIds.length > 0) {
+        let totalPrice = 0;
+        for (const priceId of item.priceIds) {
+            try {
+                const priceItem = await getPrice(priceId);
+                if (priceItem && priceItem.priceValue) {
+                    totalPrice += priceItem.priceValue;
+                }
+            } catch (error) {
+                console.error(`获取价格方案${priceId}失败:`, error);
+            }
+        }
+        return totalPrice;
+    } 
+    // 处理单一价格方案（遗留代码兼容）
+    else if (item.priceId) {
+        try {
+            const priceItem = await getPrice(item.priceId);
+            return priceItem ? priceItem.priceValue : 0;
+        } catch (error) {
+            console.error(`获取价格方案${item.priceId}失败:`, error);
+            return 0;
+        }
+    } 
+    // 没有价格方案时按衣物计算
+    else {
         return item.clothList.reduce((acc, cur) => {
             let priceValue = cur.priceValue;
             if (cur.serviceRequirement === '001') {

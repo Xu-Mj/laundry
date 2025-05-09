@@ -45,7 +45,9 @@
                   <el-icon>
                     <Goods />
                   </el-icon>
-                  <span>{{ item.clothInfo.title }}</span>
+                  <el-tooltip :content="item.clothInfo.title" placement="top" :show-after="200">
+                    <span class="truncated-name">{{ item.clothInfo.title }}</span>
+                  </el-tooltip>
                   <el-tag v-if="item.clothingColor" size="small" effect="plain" type="info" class="cloth-tag">
                     {{colorList.find(color => color.tagId == item.clothingColor)?.tagName}}
                   </el-tag>
@@ -211,7 +213,7 @@
         <el-empty v-if="pictureList.length === 0" description="暂无照片" />
         <el-carousel v-else :interval="4000" type="card" height="300px">
           <el-carousel-item v-for="(item, index) in pictureList" :key="index">
-            <el-image :src="item" fit="contain" :preview-src-list="pictureList" class="carousel-image" />
+            <el-image :src="item" fit="contain" :preview-src-list="pictureList" preview-teleported class="carousel-image" />
           </el-carousel-item>
         </el-carousel>
         <div class="picture-grid" v-if="pictureList.length > 0">
@@ -222,8 +224,8 @@
     </el-dialog>
 
     <!-- 上挂对话框 -->
-    <el-dialog v-model="showHangUp" width="500px" :show-close="false" append-to-body
-      :before-close="closeHangUpDialog" :align-center="true" class="modern-dialog">
+    <el-dialog v-model="showHangUp" width="500px" :show-close="false" append-to-body :before-close="closeHangUpDialog"
+      :align-center="true" class="modern-dialog">
       <template #header>
         <div class="dialog-header">
           <h3 class="dialog-title">衣物上挂</h3>
@@ -248,7 +250,9 @@
                   <el-icon>
                     <Goods />
                   </el-icon>
-                  {{ currentCloth.clothInfo?.title }}
+                  <el-tooltip :content="currentCloth.clothInfo?.title" placement="top" :show-after="200">
+                    <span class="truncated-name">{{ currentCloth.clothInfo?.title }}</span>
+                  </el-tooltip>
                   <span v-if="currentCloth.clothingColor" class="cloth-detail">
                     <el-tag size="small" effect="plain" type="info">
                       {{colorList.find(color => color.tagId == currentCloth.clothingColor)?.tagName}}
@@ -275,8 +279,8 @@
                     <span class="item-title">瑕疵信息</span>
                   </div>
                   <div class="tag-container">
-                    <el-tag v-for="tagId in currentCloth.clothingFlaw.split(',')" :key="tagId" 
-                      type="danger" effect="light" size="small" class="info-tag">
+                    <el-tag v-for="tagId in currentCloth.clothingFlaw.split(',')" :key="tagId" type="danger"
+                      effect="light" size="small" class="info-tag">
                       {{flawList.find(item => item.tagId == tagId)?.tagName}}
                     </el-tag>
                   </div>
@@ -291,8 +295,8 @@
                     <span class="item-title">洗后预估</span>
                   </div>
                   <div class="tag-container">
-                    <el-tag v-for="tagId in currentCloth.estimate.split(',')" :key="tagId" 
-                      type="warning" effect="light" size="small" class="info-tag">
+                    <el-tag v-for="tagId in currentCloth.estimate.split(',')" :key="tagId" type="warning" effect="light"
+                      size="small" class="info-tag">
                       {{estimateList.find(item => item.tagId == tagId)?.tagName}}
                     </el-tag>
                   </div>
@@ -319,8 +323,7 @@
 
               <el-form-item label="衣挂位置" prop="hangLocationId">
                 <el-select v-model="hangForm.hangLocationId" placeholder="请选择上挂位置编码" class="modern-select">
-                  <el-option v-for="item in hangLocationList" :key="item.id" :label="item.name"
-                    :value="item.id">
+                  <el-option v-for="item in hangLocationList" :key="item.id" :label="item.name" :value="item.id">
                   </el-option>
                 </el-select>
               </el-form-item>
@@ -624,7 +627,7 @@ function handleShowHangUp(row) {
     hangerNumber: row.hangerNumber,
     hangRemark: null
   };
-  
+
   // 获取会员信息
   getUser(props.userId).then(res => {
     currentUser.value = res;
@@ -646,7 +649,14 @@ function hangUp() {
           getList();
           props.flashList();
         }).catch(res => {
-          proxy.notify.error(res.msg);
+          // proxy.notify.error(res.msg);
+          console.log(res);
+          if (res.kind && res.kind == 'SmsNotSubscribed') {
+            proxy.notify.success("上挂成功");
+            showHangUp.value = false;
+            getList();
+            props.flashList();
+          }
         });
         proxy.$modal.closeLoading();
       }
@@ -840,15 +850,23 @@ onMounted(async () => {
 .cloth-info {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: .5rem;
 }
 
 .cloth-name {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: .5rem;
   font-weight: 500;
   font-size: 16px;
+}
+
+.truncated-name {
+  max-width: 6em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: inline-block;
 }
 
 .cloth-tag {
@@ -861,7 +879,7 @@ onMounted(async () => {
 
 /* 卡片内容 */
 .card-content {
-  padding: 8px 0;
+  padding: .5rem 0;
 }
 
 .info-section {
@@ -890,7 +908,7 @@ onMounted(async () => {
 .service-info {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: .5rem;
 
   .service-type {
     display: flex;
@@ -900,16 +918,11 @@ onMounted(async () => {
 
 .info-row {
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 8px;
-}
-
-.info-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 6px;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: .5rem;
+  margin-bottom: .5rem;
 }
 
 .full-width {
@@ -948,13 +961,6 @@ onMounted(async () => {
   border-radius: 4px;
 }
 
-.info-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 8px;
-}
-
 .info-item {
   display: flex;
   align-items: center;
@@ -987,7 +993,7 @@ onMounted(async () => {
 .tag-group {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
+  gap: .5rem;
 }
 
 .tag-label {
@@ -1004,8 +1010,8 @@ onMounted(async () => {
 
 /* 备注信息 */
 .remark {
-  margin-top: 8px;
-  padding-top: 8px;
+  margin-top: .5rem;
+  padding-top: .5rem;
   border-top: 1px dashed var(--el-border-color-lighter);
 }
 
@@ -1013,7 +1019,7 @@ onMounted(async () => {
 .card-actions {
   display: flex;
   justify-content: space-evenly;
-  gap: 8px;
+  gap: .5rem;
   margin-top: 16px;
 }
 
@@ -1095,7 +1101,7 @@ onMounted(async () => {
 .dialog-header {
   background-color: var(--el-fill-color-light);
   padding: 16px 20px;
-  border-radius: 8px 8px 0 0;
+  border-radius: .5rem .5rem 0 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1130,8 +1136,8 @@ onMounted(async () => {
 /* 信息卡片样式 */
 .info-card {
   background-color: var(--el-fill-color);
-  border-radius: 8px;
-  padding: 15px;
+  border-radius: .5rem;
+  padding: 1rem;
   box-shadow: var(--el-box-shadow-light);
   margin-bottom: 20px;
 }
@@ -1147,7 +1153,7 @@ onMounted(async () => {
 
 .info-header {
   margin-bottom: 12px;
-  padding-bottom: 8px;
+  padding-bottom: .5rem;
 }
 
 .cloth-name {
@@ -1157,7 +1163,7 @@ onMounted(async () => {
   font-weight: 500;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: .5rem;
 }
 
 .cloth-name .el-icon {
@@ -1173,10 +1179,6 @@ onMounted(async () => {
   margin: 12px 0;
 }
 
-.info-item {
-  margin-bottom: 16px;
-}
-
 .info-item:last-child {
   margin-bottom: 0;
 }
@@ -1185,7 +1187,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 8px;
+  margin-bottom: .5rem;
 }
 
 .item-header .el-icon {

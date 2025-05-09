@@ -108,7 +108,7 @@ impl Expenditure {
     // update
     pub async fn update(&self, tx: &mut sqlx::Transaction<'_, Sqlite>) -> Result<bool> {
         let result = sqlx::query("UPDATE expenditure SET order_id = ?, cloth_ids = ?, exp_title = ?,
-             recv_account = ?, recv_account_title = ?, exp_type = ?, exp_amount = ?, create_time = ?, remark = ?,
+             recv_account = ?, recv_account_title = ?, exp_type = ?, exp_amount = ?, create_time = ?, remark = ?
             WHERE exp_id = ? AND store_id = ?")
             .bind(&self.order_id)
             .bind(&self.cloth_ids)

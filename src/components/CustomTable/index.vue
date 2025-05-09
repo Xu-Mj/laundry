@@ -39,7 +39,12 @@
           <span class="ellipsis-text">{{ calculateTotalPrice(item) }} 元</span>
         </div>
         <div class="cell action-cell">
-          <el-button type="danger" icon="Delete" @click="handleDelete(item.clothId, item.clothInfo.title)" />
+          <el-button 
+            type="danger" 
+            icon="Delete" 
+            @click="handleDelete(item.clothId, item.clothInfo.title)" 
+            :disabled="disabled"
+          />
         </div>
 
         <!-- 下半部分 -->
@@ -94,6 +99,10 @@ const props = defineProps({
     type: Array,
     required: true,
   },
+  disabled: {
+    type: Boolean,
+    default: false
+  }
 });
 
 const { proxy } = getCurrentInstance();

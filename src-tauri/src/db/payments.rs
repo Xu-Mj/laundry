@@ -47,45 +47,31 @@ pub struct PaymentSummary {
 impl Validator for Payment {
     fn validate(&self) -> Result<()> {
         if self.pay_number.is_none() {
-            return Err(Error::bad_request(
-                "pay_number is required",
-            ));
+            return Err(Error::bad_request("pay_number is required"));
         }
 
         if self.order_type.is_none() {
-            return Err(Error::bad_request(
-                "order_type is required",
-            ));
+            return Err(Error::bad_request("order_type is required"));
         }
 
         if self.total_amount.is_none() {
-            return Err(Error::bad_request(
-                "total_amount is required",
-            ));
+            return Err(Error::bad_request("total_amount is required"));
         }
 
         if self.payment_amount.is_none() {
-            return Err(Error::bad_request(
-                "payment_amount is required",
-            ));
+            return Err(Error::bad_request("payment_amount is required"));
         }
 
         if self.payment_status.is_none() {
-            return Err(Error::bad_request(
-                "payment_status is required",
-            ));
+            return Err(Error::bad_request("payment_status is required"));
         }
 
         if self.payment_method.is_none() {
-            return Err(Error::bad_request(
-                "payment_method is required",
-            ));
+            return Err(Error::bad_request("payment_method is required"));
         }
 
         if self.order_status.is_none() {
-            return Err(Error::bad_request(
-                "order_status is required",
-            ));
+            return Err(Error::bad_request("order_status is required"));
         }
 
         Ok(())
@@ -163,7 +149,7 @@ impl Payment {
     pub async fn cal_total_amount(pool: &Pool<Sqlite>, user_id: i64, store_id: i64) -> Result<f64> {
         let result = sqlx::query_scalar(
             "
-            SELECT SUM(payment_amount)
+            SELECT COALESCE(SUM(payment_amount), 0.0)
             FROM payments p
             INNER JOIN orders o ON p.uc_order_id = o.order_id
             WHERE o.user_id =? AND p.store_id = ?
@@ -171,8 +157,9 @@ impl Payment {
         )
         .bind(user_id)
         .bind(store_id)
-        .fetch_one(pool)
-        .await?;
+        .fetch_optional(pool)
+        .await?
+        .unwrap_or(0.0);
 
         Ok(result)
     }

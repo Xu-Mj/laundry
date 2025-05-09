@@ -25,20 +25,38 @@
                             </el-col>
                             <el-col :span="6" class="info-action"
                                 v-if="form.userId && Object.keys(currentUser).length > 0 && currentUser.userId && !showCreateUser">
-                                <el-button type="primary" plain icon="DArrowRight"
+                                <el-button type="primary" plain icon="DArrowRight" link
                                     @click="showInfoDialog = true">详情</el-button>
                             </el-col>
                         </el-row>
                         <el-row :gutter="20">
                             <el-col :span="12">
                                 <el-form-item size="large" label="会员：" prop="userId">
-                                    <el-select v-model="form.userId" :disabled="notEditable" filterable
-                                        :clearable="true" remote reserve-keyword placeholder="请输入手机号码搜索" allow-create
-                                        @blur="handleBlur" remote-show-suffix :remote-method="searchUserByTel"
-                                        @visible-change="handleVisibleChange" @change="selectUser" value-key="userId"
+                                    <el-select v-model="form.userInfo" 
+                                        value-key="userId"
+                                        :disabled="notEditable" 
+                                        filterable
+                                        :clearable="true" 
+                                        remote 
+                                        reserve-keyword 
+                                        placeholder="请输入手机号码搜索" 
+                                        :allow-create="false" 
+                                        @blur="handleBlur" 
+                                        remote-show-suffix 
+                                        :remote-method="searchUserByTel"
+                                        @visible-change="handleVisibleChange" 
+                                        @change="selectUser"
+                                        @input="validatePhoneInput"
                                         style="width: 100%">
-                                        <el-option v-for="item in userListRes" :key="item.userId"
-                                            :label="item.nickName + '\t' + item.phonenumber" :value="item.userId" />
+                                        <el-option v-for="item in userListRes" 
+                                            :key="item.userId"
+                                            :label="item.phonenumber" 
+                                            :value="item">
+                                            <div style="display: flex; justify-content: space-between; width: 100%;">
+                                                <span>{{ item.nickName }}</span>
+                                                <span>{{ item.phonenumber }}</span>
+                                            </div>
+                                        </el-option>
                                         <template #prefix>
                                             <el-icon>
                                                 <Phone />
@@ -93,16 +111,16 @@
                                 </el-radio>
                             </el-radio-group>
                         </el-form-item>
-                        <div class="price-section" v-if="form.priceId || priceList.length > 0">
+                        <div class="price-section" v-if="form.priceIds.length > 0 || priceList.length > 0">
                             <!-- <div style="font-size: small;">价格方案</div> -->
-                            <el-form-item props="priceId">
-                                <el-radio-group v-model="form.priceId" :disabled="notEditable"
+                            <el-form-item props="priceIds">
+                                <el-checkbox-group v-model="form.priceIds" :disabled="notEditable"
                                     class="modern-radio-group price-list">
-                                    <el-radio v-for="item in priceList" class="payment-method-radio"
-                                        @click="(event) => priceChange(event, item.priceId)" :key="item.priceId"
-                                        :label="item.priceName" :value="item.priceId">
+                                    <el-checkbox v-for="item in priceList" class="payment-method-radio"
+                                        @change="(event) => priceChange(event, item.priceId)" :key="item.priceId"
+                                        :label="item.priceId">
                                         <div class="payment-method-card"
-                                            :class="{ 'selected': form.priceId === item.priceId }">
+                                            :class="{ 'selected': form.priceIds.includes(item.priceId) }">
                                             <el-icon>
                                                 <Money />
                                             </el-icon>
@@ -115,8 +133,8 @@
                                                 <span ref="priceNameSpan">{{ item.priceName }}</span>
                                             </el-tooltip>
                                         </div>
-                                    </el-radio>
-                                </el-radio-group>
+                                    </el-checkbox>
+                                </el-checkbox-group>
                             </el-form-item>
                         </div>
                     </div>
@@ -128,18 +146,18 @@
                         <h3 class="section-title">店主调价</h3>
 
                         <div class="adjust-price-group">
-                            <div class="adjust-price-group-mask" v-if="form.priceId">使用了价格方案后不能调价</div>
+                            <div class="adjust-price-group-mask" v-if="form.priceIds.length > 0">使用了价格方案后不能调价</div>
                             <el-input size="large" type="number" :min="0" :max="1000" @input="adjustInput"
                                 @change="adjustInputChange" v-model="form.adjust.adjustValueSub" placeholder="请输入调减金额"
-                                :disabled="form.priceId" />
+                                :disabled="form.priceIds.length > 0" />
                             <el-input size="large" type="number" :min="0" :max="1000" @input="adjustInput"
                                 @change="adjustInputChange" v-model="form.adjust.adjustValueAdd" placeholder="请输入调增金额"
-                                :disabled="form.priceId" />
+                                :disabled="form.priceIds.length > 0" />
                             <el-input size="large" type="number" :min="0" :max="Infinity" @input="adjustInput"
                                 @change="adjustInputChange" v-model="form.adjust.adjustTotal" placeholder="请输入总金额"
-                                :disabled="form.priceId" />
+                                :disabled="form.priceIds.length > 0" />
                             <el-input size="large" v-model="form.adjust.remark" placeholder="备注信息"
-                                @change="adjustInputChange" :disabled="form.priceId" />
+                                @change="adjustInputChange" :disabled="form.priceIds.length > 0" />
                         </div>
                     </div>
                     <div class="order-summary-card" ref="orderSummaryRef">
@@ -178,7 +196,7 @@
                             '取 消'
                             }}</el-button>
                         <el-button size="large" icon="Check" type="primary" color="#626aef" @click="submitForm"
-                            :disabled="notEditable && !(form.source === '03') && (form.priceId || form.source === '02' || form.source === '01')"
+                            :disabled="notEditable && !(form.source === '03') && (form.priceIds.length === 0)"
                             v-if="form.source !== '01' && form.source !== '02'"
                             ref="submitButtonRef">取衣收款</el-button>
                         <el-button size="large" type="success" @click="createAndPay" icon="Money"
@@ -296,10 +314,30 @@ const addClothRef = ref(null);
 const submitButtonRef = ref(null);
 const payButtonRef = ref(null);
 
+const userRef = ref(null);
+
 const data = reactive({
     form: {
         cloths: [],
-        adjust: {}
+        adjust: {},
+        priceIds: [],
+        orderId: null,
+        orderNumber: null,
+        businessType: null,
+        userId: null,
+        userInfo: null,
+        desireCompleteTime: null,
+        costTimeAlarm: null,
+        pickupCode: null,
+        completeTime: null,
+        deliveryMode: "00",
+        source: "03",
+        status: null,
+        paymentStatus: null,
+        remark: null,
+        orderType: null,
+        createTime: null,
+        updateTime: null
     },
     refundForm: {},
     notifyForm: {},
@@ -354,8 +392,18 @@ function submitClothes(list) {
 
 // 处理价格radio 选中事件
 function priceChange(event, priceId) {
-    event.preventDefault();
-    form.value.priceId = form.value.priceId === priceId ? null : priceId;
+    if (event) {
+        // 如果选中，添加到数组
+        if (!form.value.priceIds.includes(priceId)) {
+            form.value.priceIds.push(priceId);
+        }
+    } else {
+        // 如果取消选中，从数组中移除
+        const index = form.value.priceIds.indexOf(priceId);
+        if (index > -1) {
+            form.value.priceIds.splice(index, 1);
+        }
+    }
     // 清空调整金额
     form.value.adjust.adjustValueSub = null;
     form.value.adjust.adjustValueAdd = null;
@@ -365,13 +413,13 @@ function priceChange(event, priceId) {
 
 
 // 处理失去焦点的情况，保留用户输入
-const handleBlur = (event) => {
-    const inputValue = event.target.value;
-    if (!userListRes.value.some(item => item.userId === form.value.userId)) {
-        // 没有搜索结果且没有选择项时，保留输入
-        form.value.userId = inputValue;
+const handleBlur = () => {
+    // 如果有选择的用户引用，确保显示正确的手机号
+    if (userRef.value && userRef.value.phonenumber) {
+        // 确保表单中保留了用户ID，但UI展示的是手机号
+        // 不需要额外代码，因为我们已经修改了el-select结构
+        ordersRef.value.validateField('userId');
     }
-    ordersRef.value.validateField('userId');
 };
 
 // 取消按钮
@@ -472,10 +520,11 @@ function reset() {
         adjust: {},
         cloths: [],
         orderId: null,
-        priceId: null,
+        priceIds: [],
         orderNumber: null,
         businessType: null,
         userId: null,
+        userInfo: null,
         desireCompleteTime: null,
         costTimeAlarm: null,
         pickupCode: null,
@@ -505,7 +554,7 @@ function sourceChanged() {
     listPrice({ orderType: form.value.source, status: 0 }).then(res => {
         console.log('res', res)
         priceList.value = res;
-        form.value.priceId = null;
+        form.value.priceIds = [];
         adjustInput();
     });
 }
@@ -562,6 +611,8 @@ async function handleUpdate() {
     // 获取用户信息
     await getUser(form.value.userId).then(res => {
         currentUser.value = res;
+        // 设置userInfo
+        form.value.userInfo = res;
     });
 
     await listUserWithNoLimit().then(res => {
@@ -598,14 +649,15 @@ async function submitForm() {
             if (showCreateUser.value) {
                 try {
                     const res = await addUser({
-                        phonenumber: form.value.userId,
+                        phonenumber: currentUser.value.phonenumber, // 使用currentUser中的phonenumber
                         nickName: form.value.nickName
                     });
 
-                    form.value.userId = res.userId; // 设置返回的用户ID
+                    form.value.userId = res.userId;
+                    form.value.userInfo = res; // 设置userInfo
                 } catch (err) {
                     proxy.notify.error(err);
-                    return; // 当 addUser 出错时，中断执行
+                    return;
                 }
             }
             if (form.value.orderId != null) {
@@ -638,19 +690,19 @@ function createAndPay() {
             }
             // 如果选择了美团或者抖音，那么需要选择价格标签
             if (form.value.source == '01' || form.value.source == '02') {
-                if (!form.value.priceId) {
+                if (form.value.priceIds.length === 0) {
                     proxy.notify.error("请选择价格标签");
                     return;
                 }
             }
 
-            if (form.value.priceId && form.value.priceId !== 0) {
+            if (form.value.priceIds.length > 0) {
                 showCoupons.value = false;
             }
             if (showCreateUser.value) {
                 try {
                     const res = await addUser({
-                        phonenumber: form.value.userId,
+                        phonenumber: currentUser.value.phonenumber, // 使用currentUser中的phonenumber
                         nickName: form.value.nickName
                     });
                     // 重新拉取用户列表
@@ -659,6 +711,7 @@ function createAndPay() {
                     });
 
                     form.value.userId = res.userId; // 设置返回的用户ID
+                    form.value.userInfo = res; // 设置userInfo
 
                     await listUserCouponWithValidTime(form.value.userId).then(response => {
                         userCouponList.value = response;
@@ -685,13 +738,23 @@ function createAndPay() {
                     form.value.orderId = response.orderId;
                     form.value.orderNumber = response.orderNumber;
                     // getList();
+                }).catch(err => {
+                    proxy.$modal.closeLoading();
+                    proxy.notify.error(err);
                 });
                 // 打印衣物信息
                 await printCloth();
                 // 初始化支付所需数据
                 props.refresh();
+                
+                // 确保订单的总价与前端计算的一致，特别是当使用价格方案时
+                form.value.totalPrice = totalPrice.value;
+                
                 showPaymentDialog.value = true;
             } else {
+                // 确保订单的总价与前端计算的一致，特别是当使用价格方案时
+                form.value.totalPrice = totalPrice.value;
+                
                 showPaymentDialog.value = true;
             }
 
@@ -699,46 +762,101 @@ function createAndPay() {
     });
 }
 
-/** 按手机号搜索会员 */
-function searchUserByTel(tel) {
-    userListRes.value = userList.value.filter(item => item.phonenumber.includes(tel));
-    if (userListRes.value.length == 0) {
+// 添加验证输入限制为数字的函数
+function validatePhoneInput(value) {
+    // 如果输入的不是数字，则清空或替换非数字字符
+    if (value && typeof value === 'string') {
+        const numericValue = value.replace(/\D/g, ''); // 移除所有非数字字符
+        if (numericValue !== value) {
+            // 如果有非数字字符被移除，更新输入框的值
+            const inputEl = document.querySelector('.el-select__input');
+            if (inputEl) {
+                inputEl.value = numericValue;
+            }
+        }
+    }
+}
+
+// 修改searchUserByTel函数，确保只处理数字输入
+function searchUserByTel(query) {
+    // 确保输入是数字
+    if (query && typeof query === 'string') {
+        query = query.replace(/\D/g, ''); // 移除所有非数字字符
+    }
+    
+    // 验证手机号格式 - 中国大陆手机号格式（11位数字，以1开头）
+    const validPhoneRegex = /^1\d{10}$/;
+    
+    // 从第一个字符就开始搜索
+    if (!query) {
+        userListRes.value = [];
+        return;
+    }
+    
+    // 如果输入的不是有效手机号，但已经输入了11位，给出提示
+    if (query.length === 11 && !validPhoneRegex.test(query)) {
+        userListRes.value = [];
+        proxy.notify.warning("请输入有效的手机号");
+        return;
+    }
+    
+    // 使用本地筛选，而不是API调用
+    userListRes.value = userList.value.filter(user => 
+        user.phonenumber && user.phonenumber.includes(query)
+    );
+    
+    // 如果没有找到用户并且输入是有效的手机号，显示创建用户选项
+    if (userListRes.value.length === 0 && validPhoneRegex.test(query)) {
         showCreateUser.value = true;
         form.value.nickName = null;
-        form.value.userId = null;
-        userCouponList.value = [];
         currentUser.value = {
-            phonenumber: tel,
+            phonenumber: query,
             status: "0",
         };
     } else {
-        // 移除自动选择逻辑，要求用户手动点击选择会员
         showCreateUser.value = false;
     }
 }
+
 function handleVisibleChange(visible) {
     // 移除自动选择逻辑，要求用户手动点击选择会员
 }
+
 /* 选择会员信息 */
-async function selectUser(userId) {
-    if (!userId || userId.length == 0) {
+async function selectUser(val) {
+    if (!val) {
+        userRef.value = null;
+        form.value.userInfo = null;
+        form.value.userId = null;
         form.value.nickName = null;
+        currentUser.value = {};
+        userCouponList.value = [];
+        showCreateUser.value = false;
         return;
     }
-    currentUserId.value = userId;
-    const item = userList.value.find(item => { return item.userId === userId });
-    currentUser.value = await getUser(userId);
-
-    form.value.nickName = item.nickName;
-    // 查询会员卡券信息
-    await listUserCouponWithValidTime(userId).then(response => {
-        userCouponList.value = response;
-        userCouponList.value.filter(item => item.coupon.couponType == '002').map(item => {
-            item.selected = false;
-            item.count = 1;
-        })
-        couponTypeList.value = new Set(userCouponList.value.map(coupon => coupon.coupon.couponType));
-    });
+    
+    // 设置引用并更新表单
+    if (typeof val === 'object') {
+        userRef.value = val;
+        form.value.userInfo = val;
+        form.value.userId = val.userId;
+        currentUserId.value = val.userId;
+        form.value.nickName = val.nickName;
+        showCreateUser.value = false;
+        
+        // 获取完整用户信息
+        currentUser.value = await getUser(val.userId);
+        
+        // 获取用户卡券信息
+        await listUserCouponWithValidTime(val.userId).then(response => {
+            userCouponList.value = response;
+            userCouponList.value.filter(item => item.coupon.couponType == '002').map(item => {
+                item.selected = false;
+                item.count = 1;
+            });
+            couponTypeList.value = new Set(userCouponList.value.map(coupon => coupon.coupon.couponType));
+        });
+    }
 }
 
 function adjustInputChange() {
@@ -765,11 +883,13 @@ function adjustInput() {
         totalPrice.value = Number(form.value.adjust.adjustTotal);
         form.value.adjust.adjustTotal = Number(form.value.adjust.adjustTotal);
     } else {
-        // 如果选择了价格item，那么使用价格item中的价格代替衣物价格
+        // 如果选择了价格方案，那么使用所有选中价格方案的总和
         let price;
-        if (form.value.priceId) {
-            const item = priceList.value.find(item => item.priceId === form.value.priceId);
-            price = item ? item.priceValue : 0;
+        if (form.value.priceIds && form.value.priceIds.length > 0) {
+            price = form.value.priceIds.reduce((acc, priceId) => {
+                const item = priceList.value.find(item => item.priceId === priceId);
+                return acc + (item ? item.priceValue : 0);
+            }, 0);
         } else {
             price = form.value.cloths.reduce((acc, cur) => {
                 // 计算总价

@@ -132,7 +132,7 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="取件码" align="center" prop="pickupCode" v-if="columns[7].visible">
+        <el-table-column label="取件码" align="center" prop="pickupCode" width="100" v-if="columns[7].visible">
           <template #default="scope">
             <span class="pickup-code">{{ scope.row.pickupCode }}</span>
           </template>
@@ -472,8 +472,32 @@ function go2pay(row) {
   listCloths({ orderId: row.orderId }).then(res => {
     currentOrder.value = row;
     currentOrder.value.cloths = res;
+    
+    // 计算衣物的原始价格（不包含调价）
+    let originalPrice = 0;
+    
+    // 如果选择了价格方案，那么使用所有选中价格方案的总和
+    if (row.priceIds && row.priceIds.length > 0) {
+      // 这种情况暂时无法得知每个价格方案的详情，用总价替代
+      originalPrice = row.totalPrice || 0;
+    } else {
+      // 计算衣物的原始价格总和
+      originalPrice = res.reduce((acc, cur) => {
+        let priceValue = cur.priceValue;
+        if (cur.serviceRequirement == '001') {
+          priceValue *= 2;
+        } else if (cur.serviceRequirement == '002') {
+          priceValue *= 1.5;
+        }
+        return acc + priceValue + (cur.processMarkup || 0);
+      }, 0);
+    }
+    
+    // 设置原价
+    currentOrder.value.originalPrice = originalPrice > 0 ? originalPrice : 0;
+    
     showPaymentDialog.value = true;
-    console.log(currentOrder.value)
+    console.log(currentOrder.value);
   });
 }
 

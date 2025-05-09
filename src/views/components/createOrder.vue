@@ -25,44 +25,25 @@
                             </el-col>
                             <el-col :span="6" class="info-action"
                                 v-if="form.userId && Object.keys(currentUser).length > 0 && currentUser.userId && !showCreateUser">
-                                <el-button type="primary" plain icon="DArrowRight" link
+                                <el-button type="primary" plain icon="DArrowRight" link style="outline: none;"
                                     @click="showInfoDialog = true">详情</el-button>
                             </el-col>
                         </el-row>
                         <el-row :gutter="20">
                             <el-col :span="12">
                                 <el-form-item size="large" label="会员：" prop="userId">
-                                    <el-select v-model="form.userInfo" 
-                                        value-key="userId"
-                                        :disabled="notEditable" 
-                                        filterable
-                                        :clearable="true" 
-                                        remote 
-                                        reserve-keyword 
-                                        placeholder="请输入手机号码搜索" 
-                                        :allow-create="false" 
-                                        @blur="handleBlur" 
-                                        remote-show-suffix 
-                                        :remote-method="searchUserByTel"
-                                        @visible-change="handleVisibleChange" 
+                                    <UserSelect
+                                        v-model="form.userInfo"
+                                        :disabled="notEditable"
+                                        :search-method="searchUserMethod"
                                         @change="selectUser"
-                                        @input="validatePhoneInput"
-                                        style="width: 100%">
-                                        <el-option v-for="item in userListRes" 
-                                            :key="item.userId"
-                                            :label="item.phonenumber" 
-                                            :value="item">
-                                            <div style="display: flex; justify-content: space-between; width: 100%;">
-                                                <span>{{ item.nickName }}</span>
-                                                <span>{{ item.phonenumber }}</span>
-                                            </div>
-                                        </el-option>
-                                        <template #prefix>
-                                            <el-icon>
-                                                <Phone />
-                                            </el-icon>
-                                        </template>
-                                    </el-select>
+                                        @blur="handleBlur"
+                                        @need-create-user="handleNeedCreateUser"
+                                        @update-phone="handleUpdatePhone"
+                                        @validate="handleUserValidate"
+                                        @clear-validation="clearUserValidation"
+                                        ref="userSelectRef"
+                                    />
                                 </el-form-item>
                             </el-col>
                             <el-col :span="12">
@@ -124,12 +105,8 @@
                                             <el-icon>
                                                 <Money />
                                             </el-icon>
-                                            <el-tooltip
-                                                :content="item.priceName"
-                                                placement="top"
-                                                :show-after="200"
-                                                :disabled="!isTextOverflow(item.priceName)"
-                                            >
+                                            <el-tooltip :content="item.priceName" placement="top" :show-after="200"
+                                                :disabled="!isTextOverflow(item.priceName)">
                                                 <span ref="priceNameSpan">{{ item.priceName }}</span>
                                             </el-tooltip>
                                         </div>
@@ -147,15 +124,17 @@
 
                         <div class="adjust-price-group">
                             <div class="adjust-price-group-mask" v-if="form.priceIds.length > 0">使用了价格方案后不能调价</div>
-                            <el-input size="large" type="number" :min="0" :max="1000" @input="adjustInput"
-                                @change="adjustInputChange" v-model="form.adjust.adjustValueSub" placeholder="请输入调减金额"
+                            <el-input-number size="large" type="number" :min="0" :max="1000" @input="adjustInput"
+                                controls-position="right" @change="adjustInputChange"
+                                v-model="form.adjust.adjustValueSub" placeholder="请输入调减金额"
                                 :disabled="form.priceIds.length > 0" />
-                            <el-input size="large" type="number" :min="0" :max="1000" @input="adjustInput"
-                                @change="adjustInputChange" v-model="form.adjust.adjustValueAdd" placeholder="请输入调增金额"
+                            <el-input-number size="large" type="number" :min="0" :max="1000" @input="adjustInput"
+                                controls-position="right" @change="adjustInputChange"
+                                v-model="form.adjust.adjustValueAdd" placeholder="请输入调增金额"
                                 :disabled="form.priceIds.length > 0" />
-                            <el-input size="large" type="number" :min="0" :max="Infinity" @input="adjustInput"
-                                @change="adjustInputChange" v-model="form.adjust.adjustTotal" placeholder="请输入总金额"
-                                :disabled="form.priceIds.length > 0" />
+                            <el-input-number size="large" type="number" :min="0" :max="Infinity" @input="adjustInput"
+                                controls-position="right" @change="adjustInputChange" v-model="form.adjust.adjustTotal"
+                                placeholder="请输入总金额" :disabled="form.priceIds.length > 0" />
                             <el-input size="large" v-model="form.adjust.remark" placeholder="备注信息"
                                 @change="adjustInputChange" :disabled="form.priceIds.length > 0" />
                         </div>
@@ -194,11 +173,10 @@
                     <div class="btn-container">
                         <el-button size="large" icon="Close" type="danger" @click="cancelSelf">{{ form.orderId ? '关 闭' :
                             '取 消'
-                            }}</el-button>
+                        }}</el-button>
                         <el-button size="large" icon="Check" type="primary" color="#626aef" @click="submitForm"
                             :disabled="notEditable && !(form.source === '03') && (form.priceIds.length === 0)"
-                            v-if="form.source !== '01' && form.source !== '02'"
-                            ref="submitButtonRef">取衣收款</el-button>
+                            v-if="form.source !== '01' && form.source !== '02'" ref="submitButtonRef">取衣收款</el-button>
                         <el-button size="large" type="success" @click="createAndPay" icon="Money"
                             :disabled="notEditable" ref="payButtonRef">收衣收款</el-button>
                     </div>
@@ -210,7 +188,7 @@
             </div>
         </div>
 
-        <Pay :visible="showPaymentDialog" :key="showPaymentDialog" :order="form" :refresh="cancelSelf"
+        <Pay :visible="showPaymentDialog" :key="showPaymentDialog" :order="form" :refresh="reset"
             :toggle="() => { showPaymentDialog = !showPaymentDialog }" />
         <Information :user="currentUser" :visible="showInfoDialog" :key="showInfoDialog"
             :toggle="() => { showInfoDialog = !showInfoDialog }" />
@@ -245,6 +223,8 @@ import Information from "@/views/frontend/user/information.vue";
 import CustomTable from '@/components/CustomTable';
 import Pay from '@/views/components/pay.vue';
 import eventBus from "@/utils/eventBus";
+import UserSelect from '@/components/UserSelect.vue';
+import { nextTick } from 'vue';
 // import OrderTourGuide from '@/components/OrderTourGuide/index.vue';
 
 const props = defineProps({
@@ -313,8 +293,7 @@ const orderSummaryRef = ref(null);
 const addClothRef = ref(null);
 const submitButtonRef = ref(null);
 const payButtonRef = ref(null);
-
-const userRef = ref(null);
+const userSelectRef = ref(null);
 
 const data = reactive({
     form: {
@@ -336,6 +315,7 @@ const data = reactive({
         paymentStatus: null,
         remark: null,
         orderType: null,
+        originalPrice: null,
         createTime: null,
         updateTime: null
     },
@@ -346,18 +326,34 @@ const data = reactive({
             { required: true, message: "业务类型不能为空", trigger: "change" }
         ],
         userId: [
-            { required: true, message: "所属会员不能为空", trigger: "blur" },
-            {
+            { 
                 validator: (rule, value, callback) => {
-                    // 当没有匹配到任何会员时才进行手机号格式校验
-                    const isNewUser = !userListRes.value.some(item => item.userId === form.value.userId);
-                    if (isNewUser && !phoneRegex.test(value)) {
-                        callback(new Error("请输入正确的手机号"));
-                    } else {
+                    // 获取当前输入值
+                    const currentInput = userSelectRef.value?.getInputValue() || '';
+                    
+                    // 如果是需要创建用户的情况且手机号有效，不报错
+                    if (showCreateUser.value && currentUser.value?.phonenumber && phoneRegex.test(currentUser.value.phonenumber)) {
+                        callback();
+                    } 
+                    // 如果有输入但不是有效手机号
+                    else if (currentInput && currentInput.length > 0) {
+                        // 如果输入的不是11位，或者不是有效手机号
+                        if (currentInput.length !== 11 || !phoneRegex.test(currentInput)) {
+                            callback(new Error("请输入有效的手机号"));
+                        } else {
+                            callback();
+                        }
+                    }
+                    // 如果没有输入任何内容且触发了表单提交
+                    else if (!value && !currentInput && rule.trigger === 'submit') {
+                        callback(new Error("所属会员不能为空"));
+                    } 
+                    // 其他情况通过验证
+                    else {
                         callback();
                     }
                 },
-                trigger: 'blur'
+                trigger: ['blur', 'submit']
             }
         ],
         nickName: [
@@ -411,13 +407,32 @@ function priceChange(event, priceId) {
     adjustInput();
 }
 
+// 处理用户选择组件的验证结果
+const handleUserValidate = (valid, message) => {
+    if (!valid) {
+        // 如果是需要创建用户的情况，不显示错误
+        if (showCreateUser.value && currentUser.value?.phonenumber && phoneRegex.test(currentUser.value.phonenumber)) {
+            return;
+        }
+        
+        // 触发表单验证，而不是使用notify
+        if (ordersRef.value) {
+            // 使用nextTick确保在DOM更新后再触发验证
+            nextTick(() => {
+                ordersRef.value.validateField('userId');
+            });
+        }
+    }
+};
 
-// 处理失去焦点的情况，保留用户输入
+// 处理失去焦点的情况
 const handleBlur = () => {
-    // 如果有选择的用户引用，确保显示正确的手机号
-    if (userRef.value && userRef.value.phonenumber) {
-        // 确保表单中保留了用户ID，但UI展示的是手机号
-        // 不需要额外代码，因为我们已经修改了el-select结构
+    // 验证userId字段
+    if (ordersRef.value) {
+        // 如果是需要创建用户的情况且手机号有效，不进行验证
+        if (showCreateUser.value && currentUser.value?.phonenumber && phoneRegex.test(currentUser.value.phonenumber)) {
+            return;
+        }
         ordersRef.value.validateField('userId');
     }
 };
@@ -535,6 +550,7 @@ function reset() {
         paymentStatus: null,
         remark: null,
         orderType: null,
+        originalPrice: null,
         createTime: null,
         updateTime: null
     };
@@ -546,6 +562,7 @@ function reset() {
     currentUserId.value = props.userId;
     currentUser.value = {};
     proxy.resetForm("ordersRef");
+    sourceChanged();
 }
 
 // 监听订单来源变化
@@ -636,6 +653,9 @@ async function handleUpdate() {
 
 /** 提交按钮 */
 async function submitForm() {
+    // 手动设置验证触发类型为submit
+    const validateOptions = { trigger: 'submit' };
+    
     proxy.$refs["ordersRef"].validate(async valid => {
         if (valid) {
             if (!form.value.cloths || form.value.cloths.length == 0) {
@@ -655,6 +675,9 @@ async function submitForm() {
 
                     form.value.userId = res.userId;
                     form.value.userInfo = res; // 设置userInfo
+
+                    // 将新用户添加到用户列表中
+                    userList.value.push(res);
                 } catch (err) {
                     proxy.notify.error(err);
                     return;
@@ -676,11 +699,14 @@ async function submitForm() {
                 });
             }
         }
-    });
+    }, validateOptions);
 }
 
 /* 收衣收款 */
 function createAndPay() {
+    // 手动设置验证触发类型为submit
+    const validateOptions = { trigger: 'submit' };
+    
     // 提交订单
     proxy.$refs["ordersRef"].validate(async valid => {
         if (valid) {
@@ -713,6 +739,9 @@ function createAndPay() {
                     form.value.userId = res.userId; // 设置返回的用户ID
                     form.value.userInfo = res; // 设置userInfo
 
+                    // 将新用户添加到用户列表中
+                    userList.value.push(res);
+
                     await listUserCouponWithValidTime(form.value.userId).then(response => {
                         userCouponList.value = response;
                         userCouponList.value.filter(item => item.coupon.couponType == '002').map(item => {
@@ -737,6 +766,13 @@ function createAndPay() {
                     proxy.$modal.closeLoading();
                     form.value.orderId = response.orderId;
                     form.value.orderNumber = response.orderNumber;
+                    // 初始化支付所需数据
+                    props.refresh();
+
+                    // 确保订单的总价与前端计算的一致，特别是当使用价格方案时
+                    form.value.totalPrice = totalPrice.value;
+
+                    showPaymentDialog.value = true;
                     // getList();
                 }).catch(err => {
                     proxy.$modal.closeLoading();
@@ -744,88 +780,82 @@ function createAndPay() {
                 });
                 // 打印衣物信息
                 await printCloth();
-                // 初始化支付所需数据
-                props.refresh();
-                
-                // 确保订单的总价与前端计算的一致，特别是当使用价格方案时
-                form.value.totalPrice = totalPrice.value;
-                
-                showPaymentDialog.value = true;
+
             } else {
                 // 确保订单的总价与前端计算的一致，特别是当使用价格方案时
                 form.value.totalPrice = totalPrice.value;
-                
+
                 showPaymentDialog.value = true;
             }
 
         }
-    });
+    }, validateOptions);
 }
 
-// 添加验证输入限制为数字的函数
-function validatePhoneInput(value) {
-    // 如果输入的不是数字，则清空或替换非数字字符
-    if (value && typeof value === 'string') {
-        const numericValue = value.replace(/\D/g, ''); // 移除所有非数字字符
-        if (numericValue !== value) {
-            // 如果有非数字字符被移除，更新输入框的值
-            const inputEl = document.querySelector('.el-select__input');
-            if (inputEl) {
-                inputEl.value = numericValue;
-            }
+// 修改searchUserByTel为返回Promise的函数
+const searchUserMethod = (query) => {
+    return new Promise((resolve) => {
+        // 如果没有查询条件，返回所有用户（但限制数量）
+        if (!query) {
+            const limitedUsers = userList.value.slice(0, 20); // 限制返回前20条
+            userListRes.value = limitedUsers;
+            resolve(limitedUsers);
+            return;
         }
-    }
-}
+        
+        // 确保输入是数字
+        if (query && typeof query === 'string') {
+            query = query.replace(/\D/g, ''); // 移除所有非数字字符
+        }
 
-// 修改searchUserByTel函数，确保只处理数字输入
-function searchUserByTel(query) {
-    // 确保输入是数字
-    if (query && typeof query === 'string') {
-        query = query.replace(/\D/g, ''); // 移除所有非数字字符
-    }
-    
-    // 验证手机号格式 - 中国大陆手机号格式（11位数字，以1开头）
-    const validPhoneRegex = /^1\d{10}$/;
-    
-    // 从第一个字符就开始搜索
-    if (!query) {
-        userListRes.value = [];
-        return;
-    }
-    
-    // 如果输入的不是有效手机号，但已经输入了11位，给出提示
-    if (query.length === 11 && !validPhoneRegex.test(query)) {
-        userListRes.value = [];
-        proxy.notify.warning("请输入有效的手机号");
-        return;
-    }
-    
-    // 使用本地筛选，而不是API调用
-    userListRes.value = userList.value.filter(user => 
-        user.phonenumber && user.phonenumber.includes(query)
-    );
-    
-    // 如果没有找到用户并且输入是有效的手机号，显示创建用户选项
-    if (userListRes.value.length === 0 && validPhoneRegex.test(query)) {
-        showCreateUser.value = true;
-        form.value.nickName = null;
-        currentUser.value = {
-            phonenumber: query,
-            status: "0",
-        };
-    } else {
-        showCreateUser.value = false;
-    }
-}
+        // 验证手机号格式 - 中国大陆手机号格式（11位数字，以1开头）
+        const validPhoneRegex = /^1[3-9]\d{9}$/;
 
-function handleVisibleChange(visible) {
-    // 移除自动选择逻辑，要求用户手动点击选择会员
+        // 如果输入的不是有效手机号，但已经输入了11位，给出提示
+        if (query.length === 11 && !validPhoneRegex.test(query)) {
+            // proxy.notify.warning("请输入有效的手机号");
+            resolve([]);
+            return;
+        }
+
+        // 使用本地筛选，而不是API调用
+        const filteredUsers = userList.value.filter(user =>
+            user.phonenumber && user.phonenumber.includes(query)
+        );
+        
+        userListRes.value = filteredUsers;
+        resolve(filteredUsers);
+    });
+};
+
+// 处理需要创建用户的情况
+const handleNeedCreateUser = (phoneNumber) => {
+    showCreateUser.value = true;
+    form.value.nickName = null;
+    currentUser.value = {
+        phonenumber: phoneNumber,
+        status: "0",
+    };
+    
+    // 设置用户ID为临时值，确保右侧添加衣物组件能够正确显示
+    // 使用一个特殊的标记值，表示这是一个待创建的用户
+    form.value.userId = -999; // 临时ID，表示待创建用户
+    
+    // 清除验证提示
+    clearUserValidation();
+    
+    // 触发事件，通知其他组件刷新
+    eventBus.emit('user-selected', { isNewUser: true, phonenumber: phoneNumber });
+};
+
+// 不再需要handleVisibleChange函数
+function handleVisibleChange() {
+    // 不再需要此函数的功能
 }
 
 /* 选择会员信息 */
 async function selectUser(val) {
     if (!val) {
-        userRef.value = null;
         form.value.userInfo = null;
         form.value.userId = null;
         form.value.nickName = null;
@@ -834,19 +864,19 @@ async function selectUser(val) {
         showCreateUser.value = false;
         return;
     }
-    
-    // 设置引用并更新表单
-    if (typeof val === 'object') {
-        userRef.value = val;
+
+    // 确保val是对象且有userId属性
+    if (typeof val === 'object' && val.userId) {
+        // 设置引用并更新表单
         form.value.userInfo = val;
         form.value.userId = val.userId;
         currentUserId.value = val.userId;
         form.value.nickName = val.nickName;
         showCreateUser.value = false;
-        
+
         // 获取完整用户信息
         currentUser.value = await getUser(val.userId);
-        
+
         // 获取用户卡券信息
         await listUserCouponWithValidTime(val.userId).then(response => {
             userCouponList.value = response;
@@ -856,6 +886,9 @@ async function selectUser(val) {
             });
             couponTypeList.value = new Set(userCouponList.value.map(coupon => coupon.coupon.couponType));
         });
+        
+        // 清除验证提示
+        clearUserValidation();
     }
 }
 
@@ -883,15 +916,16 @@ function adjustInput() {
         totalPrice.value = Number(form.value.adjust.adjustTotal);
         form.value.adjust.adjustTotal = Number(form.value.adjust.adjustTotal);
     } else {
+        // 计算原始价格
+        let originalPrice = 0;
         // 如果选择了价格方案，那么使用所有选中价格方案的总和
-        let price;
         if (form.value.priceIds && form.value.priceIds.length > 0) {
-            price = form.value.priceIds.reduce((acc, priceId) => {
+            originalPrice = form.value.priceIds.reduce((acc, priceId) => {
                 const item = priceList.value.find(item => item.priceId === priceId);
                 return acc + (item ? item.priceValue : 0);
             }, 0);
         } else {
-            price = form.value.cloths.reduce((acc, cur) => {
+            originalPrice = form.value.cloths.reduce((acc, cur) => {
                 // 计算总价
                 // 如果服务要求为加急
                 let priceValue = cur.priceValue;
@@ -904,7 +938,11 @@ function adjustInput() {
                     priceValue + cur.processMarkup
             }, 0);
         }
-        price +=
+        // 保存原始价格
+        form.value.originalPrice = originalPrice > 0 ? originalPrice : 0;
+
+        // 计算最终价格（包含调整）
+        let price = originalPrice +
             Number(form.value.adjust.adjustValueAdd ? form.value.adjust.adjustValueAdd : 0) -
             Number(form.value.adjust.adjustValueSub ? form.value.adjust.adjustValueSub : 0);
         totalPrice.value = price > 0 ? price : 0;
@@ -913,7 +951,35 @@ function adjustInput() {
 
 async function printCloth() {
     const length = form.value.cloths.length;
-    const user = userList.value.find(user => user.userId == form.value.userId);
+    let userData;
+    
+    // Handle the case when a new user is being created (temporary ID)
+    if (form.value.userId === -999 && showCreateUser.value) {
+        userData = {
+            nickName: form.value.nickName,
+            phonenumber: currentUser.value.phonenumber
+        };
+    } else {
+        // Find existing user in userList
+        userData = userList.value.find(user => user.userId == form.value.userId);
+        
+        // If user not found but we have enough information, create a temporary user object
+        if (!userData && form.value.nickName) {
+            userData = {
+                nickName: form.value.nickName,
+                phonenumber: currentUser.value?.phonenumber || ""
+            };
+        }
+    }
+    
+    // Ensure we have at least a name to display
+    if (!userData) {
+        userData = {
+            nickName: form.value.nickName || "顾客",
+            phonenumber: ""
+        };
+    }
+    
     const result = form.value.cloths.map((item, index) => ({
         cloth_name: item.clothInfo.title,
         cloth_color: item.clothingColor ? item.clothingColor : 0,
@@ -923,8 +989,8 @@ async function printCloth() {
         code: item.hangClothCode,
         time: item.createTime,
         client: {
-            name: user.nickName,
-            phone: user.phonenumber,
+            name: userData.nickName,
+            phone: userData.phonenumber,
         },
         shelf: {
             name: String(item.hangLocationCode),
@@ -932,7 +998,6 @@ async function printCloth() {
         }
     }));
     try {
-
         proxy.$modal.loading('正在打印衣物信息...')
         await print(result);
     } catch (error) {
@@ -1036,11 +1101,34 @@ const isTextOverflow = (text) => {
     span.style.padding = '0 4px';
     span.textContent = text;
     document.body.appendChild(span);
-    
+
     const isOverflow = span.offsetWidth > 100; // 100px 是 payment-method-card 的宽度
-    
+
     document.body.removeChild(span);
     return isOverflow;
+};
+
+// 清除用户选择组件的验证提示
+function clearUserValidation() {
+    // 清除userId字段的验证错误
+    if (ordersRef.value) {
+        ordersRef.value.clearValidate('userId');
+    }
+}
+
+// 处理更新手机号事件，但保留姓名
+const handleUpdatePhone = (phoneNumber) => {
+    // 只更新手机号，保留其他信息
+    if (showCreateUser.value && currentUser.value) {
+        currentUser.value.phonenumber = phoneNumber;
+        
+        // 触发事件，通知其他组件更新手机号
+        eventBus.emit('user-phone-updated', { 
+            isNewUser: true, 
+            phonenumber: phoneNumber,
+            nickName: form.value.nickName
+        });
+    }
 };
 </script>
 
@@ -1099,8 +1187,8 @@ const isTextOverflow = (text) => {
 
 .adjust-price-group {
     width: 100%;
-    display: flex;
-    justify-content: space-around;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
     align-items: center;
     gap: 1.5rem;
     position: relative;

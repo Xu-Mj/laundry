@@ -3,6 +3,7 @@
         v-model="dialogVisible"
         title="选择预定义分类"
         width="60%"
+        align-center
         :close-on-click-modal="false"
         class="category-dialog"
         @close="handleClose"

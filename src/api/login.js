@@ -12,7 +12,6 @@ export function validateLoginDevice(storeId, deviceId) {
 
 // 登录方法
 export function login(account, pwd, code, uuid) {
-  console.log(account, pwd, code, uuid)
   const password = btoa(pwd).replace(/=+$/, '');
   // 获取设备信息
   const data = {

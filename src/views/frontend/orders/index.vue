@@ -258,31 +258,16 @@
     </el-dialog>
 
     <!-- 退单弹窗 -->
-    <el-dialog v-model="showRefundDialog" width="400px" :align-center="true" :show-close="false">
-      <el-form ref="refundFormRef" :model="refundForm" :rules="refundRules" label-width="80px">
-        <el-form-item label="支出账目" prop="expTitle">
-          <el-input v-model="refundForm.expTitle" placeholder="请输入支出账目" />
-          <!-- <el-select v-model="refundForm.expType" disabled>
-            <el-option v-for="item in sys_exp_type" :key="item.value" :label="item.label" :value="item.value" />
-          </el-select> -->
-        </el-form-item>
-        <el-form-item label="对方账户" prop="recvAccountTitle">
-          <el-input v-model="refundForm.recvAccountTitle" disabled />
-        </el-form-item>
-        <el-form-item label="实退金额" prop="expAmount">
-          <span v-if="refundForm.unPay">订单未支付</span>
-          <el-input v-else type="number" v-model="refundForm.expAmount" placeholder="请输入退款金额" />
-        </el-form-item>
-        <el-form-item label="备注信息" prop="remark">
-          <el-input type="textarea" v-model="refundForm.remark" placeholder="请输入备注信息" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <div class="payment-footer">
-          <el-button type="primary" @click="submitRefundForm">确认退款</el-button>
-        </div>
-      </template>
-    </el-dialog>
+    <RefundDialog 
+      :visible="showRefundDialog"
+      :order-id="refundForm.orderId"
+      :user-id="refundForm.recvAccount"
+      :order-number="refundForm.orderNumber"
+      @refund-success="handleRefundSuccess"
+      @refund-cancel="showRefundDialog = false"
+      @update:visible="showRefundDialog = $event"
+      ref="refundDialogRef"
+    />
 
     <!-- 派送弹窗 -->
     <el-dialog v-model="showExpressInfoDialog" width="600px" :align-center="true" append-to-body>
@@ -337,14 +322,14 @@
 import { listOrders, getRefundInfo, delOrders } from "@/api/system/orders";
 import { getUser } from "@/api/system/user";
 import { listDispatch } from '@/api/system/dispatch';
-import { refund } from '@/api/system/orders';
 import { addRecord } from '@/api/system/notice_record';
 import { listTemplate } from '@/api/system/template';
 import ShowClothsModern from './showClothsModern.vue';
 import CreateOrder from "@/views/components/createOrder.vue";
 import Pay from "@/views/components/pay.vue";
 import { listCloths } from "@/api/system/cloths";
-import { ArrowDown } from '@element-plus/icons-vue';
+import { ArrowDown, Wallet, User, Money, Check } from '@element-plus/icons-vue';
+import RefundDialog from "@/components/refundDialog.vue";
 
 const { proxy } = getCurrentInstance();
 const {
@@ -600,20 +585,6 @@ function handleDelete(row) {
   }).catch(() => { });
 }
 
-/* 提交退款 */
-function submitRefundForm() {
-  proxy.$refs["refundFormRef"].validate(valid => {
-    if (valid) {
-      refund(refundForm.value).then(res => {
-        proxy.notify.success('退款成功');
-        showRefundDialog.value = false;
-        resetRefundForm();
-        getList();
-      })
-    }
-  });
-}
-
 /* 提交通知 */
 function submitNotifyForm() {
   proxy.$refs["notifyFormRef"].validate(valid => {
@@ -664,26 +635,20 @@ function handleDeliveryMode(row) {
 
 /* 退款 */
 function handleRefund(row) {
+  // 设置必要的数据
   refundForm.value.orderId = row.orderId;
-  refundForm.value.expTitle = "订单退款";
-  refundForm.value.expType = "00";
+  refundForm.value.orderNumber = row.orderNumber;
   refundForm.value.recvAccount = row.userId;
-  getRefundInfo(row.orderId, row.userId).then(res => {
-    refundForm.value.recvAccountTitle = res.user.userName;
-    if (res.payment) {
-      // 已经支付了
-      if (res.payment.paymentAmountMv) {
-        refundForm.value.expAmount = res.payment.paymentAmountMv;
-      } else {
-        refundForm.value.expAmount = res.payment.paymentAmount;
-      }
-    } else {
-      // 没有支付
-      refundForm.value.unPay = true;
-    }
-    showRefundDialog.value = true;
+  
+  // 显示退款对话框
+  showRefundDialog.value = true;
+}
 
-  })
+/* 处理退款成功 */
+function handleRefundSuccess() {
+  proxy.notify.success("退款成功，正在刷新数据");
+  resetRefundForm();
+  getList();
 }
 
 /* 通知 */
@@ -795,6 +760,115 @@ getList();
   justify-content: center;
   align-items: center;
   gap: .2rem;
+}
+
+/* 退单弹窗样式 */
+.refund-dialog :deep(.el-dialog__header) {
+  margin: 0;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+.refund-dialog :deep(.el-dialog__body) {
+  padding: 24px;
+}
+
+.refund-dialog :deep(.el-dialog__footer) {
+  padding: 16px 24px;
+  border-top: 1px solid var(--el-border-color-lighter);
+}
+
+.refund-dialog-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--el-color-primary);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.refund-dialog-header .el-icon {
+  font-size: 20px;
+}
+
+.refund-dialog-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.refund-info-card {
+  background-color: var(--el-fill-color-lighter);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.refund-order-info {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.refund-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.refund-label {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+
+.refund-value {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+}
+
+.refund-divider {
+  height: 1px;
+  background-color: var(--el-border-color-lighter);
+  margin: 12px 0;
+}
+
+.refund-amount-info {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.refund-original-amount {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--el-color-danger);
+}
+
+.refund-form {
+  margin-top: 8px;
+}
+
+.refund-form :deep(.el-form-item__label) {
+  padding-bottom: 8px;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+}
+
+.refund-input {
+  border-radius: 6px;
+}
+
+.refund-input-number :deep(.el-input__wrapper) {
+  border-radius: 6px;
+}
+
+.refund-textarea {
+  border-radius: 6px;
+}
+
+.refund-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
 }
 </style>
 

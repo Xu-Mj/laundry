@@ -59,9 +59,9 @@
         </div>
         <div v-slide-in v-else class="result-item" v-for="order in orderList" :key="order.orderId">
             <div class="result-item-info">
-                <span>订单编码: {{ order.orderNumber }}</span>
+                <span>订单编码: <a class="order-link" @click="showClothList(order)">{{ order.orderNumber }}</a></span>
                 <span>订单日期: {{ formatTime(order.createTime) }}</span>
-                <span style="display: flex; align-items: center; gap: .5rem;">消费金额:
+                <span style="display: flex; align-items: center; gap: .5rem;">订单金额:
                     <span style="color: red;font-weight: bold; align-items: center;">
                         {{ order.mount }}
                     </span>
@@ -86,15 +86,15 @@
                 <el-table-column label="衣物品牌" align="center" prop="clothingBrand">
                     <template #default="scope">
                         <el-tag v-if="scope.row.clothingBrand" type="primary">
-                            {{ brandList.find(item => item.tagId == scope.row.clothingBrand).tagName }}
+                            {{brandList.find(item => item.tagId == scope.row.clothingBrand).tagName}}
                         </el-tag>
                     </template>
                 </el-table-column>
                 <el-table-column label="衣物颜色" align="center">
                     <template #default="scope">
                         <el-tag v-if="scope.row.clothingColor" type="primary">
-                            {{ scope.row.clothingColor ? colorList.find(item => item.tagId ==
-                    scope.row.clothingColor).tagName : '' }}
+                            {{scope.row.clothingColor ? colorList.find(item => item.tagId ==
+                                scope.row.clothingColor).tagName : '' }}
                         </el-tag>
                     </template>
                 </el-table-column>
@@ -115,7 +115,9 @@
         <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum"
             v-model:limit="queryParams.pageSize" @pagination="getList" />
     </div>
-
+    <ShowClothsModern :orderId="currentOrderId" :visible="showClothListDialog" :flashList="getList"
+        :userId="props.userId" :key="showClothListDialog"
+        :toggle="() => { showClothListDialog = !showClothListDialog }" />
 
 </template>
 
@@ -127,6 +129,10 @@ import { getPrice } from "@/api/system/price";
 import { Money, ShoppingCart, Search, Refresh } from '@element-plus/icons-vue';
 import { formatTime } from '@/utils/ruoyi';
 import useTagsStore from '@/store/modules/tags';
+import { useRouter } from 'vue-router';
+import ShowClothsModern from '@/views/frontend/orders/showClothsModern.vue';
+
+const router = useRouter();
 
 const props = defineProps({
     userId: {
@@ -154,6 +160,8 @@ const orderList = ref([]);
 const dateRange = ref([]);
 const totalAmount = ref(0);
 const avgPrice = ref(0);
+const currentOrderId = ref();
+const showClothListDialog = ref(false);
 
 const colorList = computed(() => tagsStore.colorList);
 const flawList = computed(() => tagsStore.flawList);
@@ -178,6 +186,11 @@ function resetQuery() {
         pageSize: 10,
     };
     getList();
+}
+/* 展示衣物列表 */
+function showClothList(row) {
+    currentOrderId.value = row.orderId;
+    showClothListDialog.value = true;
 }
 
 /* 初始化列表数据 */
@@ -207,7 +220,7 @@ async function calculatePrice(item) {
             }
         }
         return totalPrice;
-    } 
+    }
     // 处理单一价格方案（遗留代码兼容）
     else if (item.priceId) {
         try {
@@ -217,7 +230,7 @@ async function calculatePrice(item) {
             console.error(`获取价格方案${item.priceId}失败:`, error);
             return 0;
         }
-    } 
+    }
     // 没有价格方案时按衣物计算
     else {
         return item.clothList.reduce((acc, cur) => {
@@ -491,5 +504,19 @@ onMounted(async () => {
 .no-result {
     padding: 40px 0;
     text-align: center;
+}
+
+/* 订单链接样式 */
+.order-link {
+    color: var(--el-color-primary);
+    cursor: pointer;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.order-link:hover {
+    text-decoration: underline;
+    opacity: 0.8;
 }
 </style>

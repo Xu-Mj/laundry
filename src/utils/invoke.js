@@ -35,9 +35,9 @@ async function invoke(command, params = {}) {
         const errorMsg = errorMessages[error.kind] || errorMessages.default;
         let details = '';
 
-        if (error.kind !== 'ReqwestError') {
-            details = error.details ? `: ${error.details}` : '';
-        } 
+        // if (error.kind !== 'ReqwestError' || error.kind!== 'DbError') {
+        //     details = error.details ? `: ${error.details}` : '';
+        // } 
 
         // 处理UnAuthorized错误
         if (error.kind === 'UnAuthorized') {

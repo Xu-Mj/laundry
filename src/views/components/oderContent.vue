@@ -33,6 +33,18 @@
                     </template>
                 </el-input>
             </el-form-item>
+            <el-form-item label="支付状态" prop="paymentStatus" size="large">
+                <el-select size="large" v-model="queryParams.paymentStatus" @change="handleQuery" clearable
+                    style="width: 120px;" placeholder="请选择">
+                    <template #prefix>
+                        <el-icon>
+                            <Warning />
+                        </el-icon>
+                    </template>
+                    <el-option v-for="dict in sys_payment_status" :key="dict.value" :label="dict.label"
+                        :value="dict.value" />
+                </el-select>
+            </el-form-item>
             <el-form-item>
                 <el-button class="hover-flow" type="primary" icon="Search" @click="handleQuery" size="large"
                     round>搜索</el-button>
@@ -57,7 +69,9 @@
                         <el-icon>
                             <User />
                         </el-icon>
-                        <span>会员身份: <strong>{{ order.nickName }}</strong> ({{ order.phonenumber }})</span>
+                        <span style="display: flex; align-items: center;">会员身份: <strong>{{ order.nickName }}</strong>
+                            ({{
+                            order.phonenumber }})</span>
                     </div>
                     <div class="info-item">
                         <el-icon>
@@ -329,6 +343,7 @@ const data = reactive({
         orderNumber: null,
         phonenumber: null,
         pickupCode: null,
+        paymentStatus: null,
     },
 });
 
@@ -575,7 +590,7 @@ async function initList() {
 
 /** 查询洗护服务订单列表 */
 async function getList() {
-    if (queryParams.value.pickupCode === '' && queryParams.value.phonenumber === '' && queryParams.value.orderNumber === '') {
+    if (queryParams.value.pickupCode === '' && queryParams.value.phonenumber === '' && queryParams.value.orderNumber === '' && queryParams.value.paymentStatus === '') {
         return;
     }
     loading.value = true;
@@ -655,7 +670,7 @@ async function calculatePrice(item) {
             }
         }
         return totalPrice;
-    } 
+    }
     // 处理单一价格方案（遗留代码兼容）
     else if (item.priceId) {
         try {
@@ -665,7 +680,7 @@ async function calculatePrice(item) {
             console.error(`获取价格方案${item.priceId}失败:`, error);
             return 0;
         }
-    } 
+    }
     // 没有价格方案时按衣物计算
     else {
         return item.clothList.reduce((acc, cur) => {
@@ -722,10 +737,12 @@ function handleQuery() {
         pickupCode: queryParams.value.pickupCode ? queryParams.value.pickupCode.trim() : null,
         orderNumber: queryParams.value.orderNumber ? queryParams.value.orderNumber.trim() : null,
         phonenumber: queryParams.value.phonenumber ? queryParams.value.phonenumber.trim() : null,
+        paymentStatus: queryParams.value.paymentStatus ? queryParams.value.paymentStatus.trim() : null,
     };
     if (isEmpty(queryParams.value.pickupCode) &&
         isEmpty(queryParams.value.phonenumber) &&
-        isEmpty(queryParams.value.orderNumber)) {
+        isEmpty(queryParams.value.orderNumber) &&
+        isEmpty(queryParams.value.paymentStatus)) {
         ordersList.value = []
         return;
     }

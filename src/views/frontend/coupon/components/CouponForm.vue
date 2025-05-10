@@ -232,6 +232,7 @@
 </template>
 
 <script setup>
+import { addCoupon, updateCoupon } from '@/api/system/coupon';
 const props = defineProps({
   value: {
     type: Object,
@@ -247,6 +248,7 @@ const props = defineProps({
   }
 });
 
+const { proxy } = getCurrentInstance();
 const emit = defineEmits(['submit', 'cancel']);
 
 const couponFormRef = ref(null);
@@ -307,12 +309,12 @@ const submitForm = () => {
       if (formData.value.couponId != null) {
         updateCoupon(formData.value).then(response => {
           proxy.notify.success("修改成功");
-          props.submit()
+          emit('submit')
         });
       } else {
         addCoupon(formData.value).then(response => {
           proxy.notify.success("新增成功");
-          props.submit()
+          emit('submit')
         });
       }
     }

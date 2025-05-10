@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "cleanwave",
-  "version": "0.2.0",
+  "version": "0.2.2",
   "identifier": "cleanwave",
   "build": {
     "frontendDist": "../dist",
@@ -18,7 +18,8 @@
         "resizable": true,
         "fullscreen": false,
         "decorations": false,
-        "center": true
+        "center": true,
+        "devtools": false
       }
     ],
     "security": {

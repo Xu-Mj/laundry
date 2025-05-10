@@ -29,13 +29,6 @@ pub fn create_app<R: tauri::Runtime, T: Send + Sync + 'static>(
     builder
         .manage(state)
         .setup(|app| {
-            #[cfg(debug_assertions)] // 仅在调试构建时包含此代码
-            {
-                use tauri::Manager;
-                let window = app.get_webview_window("main").unwrap();
-                window.open_devtools();
-                window.close_devtools();
-            }
             // allowed the given directory
             let scope = app.fs_scope();
             scope

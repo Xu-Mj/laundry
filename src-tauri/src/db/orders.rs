@@ -28,7 +28,7 @@ use crate::utils::request::Request;
 const PAY_STATUS_NOT_PAID: &str = "01";
 const PAY_STATUS_REFUND: &str = "05";
 const ORDER_STATUS_REFUND: &str = "06";
-const CLOTH_STATUS_REFUND: &str = "03";
+// const CLOTH_STATUS_REFUND: &str = "03";
 const PAY_STATUS_PAID: &str = "00";
 const NORMAL_ORDER: &str = "00";
 const CLOTHING_STATUS_PICKED_UP: &str = "00";

@@ -69,7 +69,7 @@ impl ClothSequence {
         let result = sqlx::query_as::<_, ClothSequence>(
             "SELECT id, date, sequence_number
              FROM cloth_sequence
-             WHERE date = DATE('now')
+             WHERE date = DATE('now', 'localtime')
              ORDER BY sequence_number DESC
              LIMIT 1",
         )

@@ -1,7 +1,7 @@
 use crate::error::Result;
 use serde::{Deserialize, Serialize};
 use sqlx::sqlite::SqliteRow;
-use sqlx::{Error, FromRow, Pool, Row, Sqlite, Transaction};
+use sqlx::{Error, FromRow, Row, Sqlite, Transaction};
 
 #[derive(Debug, PartialEq, Default, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -44,7 +44,7 @@ impl OrderClothAdjust {
 
         Ok(result)
     }
-    pub async fn upsert(&self, pool: &Pool<Sqlite>) -> Result<bool> {
+    pub async fn upsert(&self, tx: &mut Transaction<'_, Sqlite>) -> Result<bool> {
         let result = sqlx::query(
             "INSERT INTO order_clothes_adjust (order_id, adjust_value_add, adjust_value_sub, adjust_total, remark)
              VALUES (?, ?, ?, ?, ?)
@@ -60,7 +60,7 @@ impl OrderClothAdjust {
             .bind(self.adjust_value_sub)
             .bind(self.adjust_total)
             .bind(&self.remark)
-            .execute(pool)
+            .execute(&mut **tx)
             .await?;
 
         Ok(result.rows_affected() > 0)
@@ -149,6 +149,7 @@ mod tests {
     #[test]
     async fn test_upsert_order_clothes_adjust() {
         let pool = setup_test_db().await;
+        let mut tx = pool.begin().await.unwrap();
 
         // First insert
         let adjust = OrderClothAdjust {
@@ -160,7 +161,7 @@ mod tests {
             remark: Some("First insert".to_string()),
         };
 
-        adjust.upsert(&pool).await.unwrap();
+        adjust.upsert(&mut tx).await.unwrap();
 
         // Now, update with new values
         let updated_adjust = OrderClothAdjust {
@@ -172,8 +173,9 @@ mod tests {
             remark: Some("Updated remark".to_string()),
         };
 
-        updated_adjust.upsert(&pool).await.unwrap();
+        updated_adjust.upsert(&mut tx).await.unwrap();
 
+        tx.commit().await.unwrap();
         // Verify the update
         let result = OrderClothAdjust::get_by_order_id(&pool, 1).await.unwrap();
 

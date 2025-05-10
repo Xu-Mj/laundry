@@ -809,7 +809,6 @@ impl Order {
         let order_id = order.order_id.unwrap_or_default();
         // update clothes order_id
         if !OrderCloth::update_order_id(&mut tr, order_id, &cloth_ids).await? {
-            tr.rollback().await?;
             return Err(Error::internal("update clothes failed"));
         }
 
@@ -817,7 +816,7 @@ impl Order {
         Ok(order)
     }
 
-    async fn udpate_order(&self, state: &tauri::State<'_, AppState>) -> Result<bool> {
+    async fn udpate_order(&mut self, state: &tauri::State<'_, AppState>) -> Result<bool> {
         let pool = &state.pool;
         let mut tx = pool.begin().await?;
 
@@ -839,6 +838,18 @@ impl Order {
         }
 
         let res = self.update(&mut tx).await?;
+
+        // save adjust data to db
+        if let Some(adjust) = self.adjust.as_mut() {
+            adjust.order_id = self.order_id;
+            adjust.upsert(&mut tx).await?;
+        }
+
+        let order_id = self.order_id.unwrap_or_default();
+        // update clothes order_id
+        if !OrderCloth::update_order_id(&mut tx, order_id, &cloth_ids).await? {
+            return Err(Error::internal("update clothes failed"));
+        }
         tx.commit().await?;
         Ok(res)
     }
@@ -1827,14 +1838,13 @@ pub async fn delete_orders(state: tauri::State<'_, AppState>, ids: Vec<i64>) -> 
 /// update adjust data
 #[tauri::command]
 pub async fn update_adjust(state: tauri::State<'_, AppState>, order: Order) -> Result<bool> {
+    let mut tx = state.pool.begin().await?;
     if let Some(adjust) = order.adjust {
-        if !adjust.upsert(&state.pool).await? {
-            return Err(Error::with_details(
-                ErrorKind::InternalServer,
-                "update adjust data failed",
-            ));
+        if !adjust.upsert(&mut tx).await? {
+            return Err(Error::internal("update adjust data failed"));
         }
     }
+    tx.commit().await?;
     Ok(true)
 }
 

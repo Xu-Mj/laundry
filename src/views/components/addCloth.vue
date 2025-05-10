@@ -548,6 +548,14 @@ watch(selectedCloth, (newVal) => {
         reset(); // 如果没有选中任何衣物，则重置表单
     }
 });
+
+// 监听props.clothes的变化，初始化clothList
+watch(() => props.clothes, (newClothes) => {
+    if (newClothes && newClothes.length > 0) {
+        clothList.value = [...newClothes];
+    }
+}, { immediate: true });
+
 const transitionName = ref('slide-right');
 
 watch(step, (newStep, oldStep) => {
@@ -922,7 +930,6 @@ function submitForm() {
                         });
                         return;
                     }
-                    proxy.notify.error("操作失败：" + error);
                 });
             }
         }
@@ -1295,6 +1302,8 @@ onMounted(async () => {
 
 .form-container {
     height: 100%;
+    font-family: var(--el-font-family);
+    color: var(--el-text-color-primary);
 }
 
 .steps-container {

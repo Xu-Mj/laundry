@@ -190,7 +190,7 @@
                     />
                 </div>
                 <AddCloth v-else :userId="form.userId" :orderId="form.orderId" :submit="submitClothes" :disabled="notEditable"
-                    :key="form.userId" />
+                    :key="form.userId + '-' + (form.orderId || 0)" :clothes="form.cloths" />
             </div>
         </div>
 
@@ -389,7 +389,32 @@ provide('setSelectedCloth', (cloth) => {
 
 // 处理子组件传过来的数据
 function submitClothes(list) {
-    form.value.cloths = list;
+    // 在编辑模式下，确保我们不清空现有的衣物列表
+    if (form.value.orderId) {
+        // 这是编辑模式，我们需要合并列表而不是替换
+        // 将传入的list与现有的form.value.cloths合并，
+        // 如果有相同的clothId则更新，否则添加
+        const updatedCloths = [...form.value.cloths];
+        
+        list.forEach(newCloth => {
+            const existingIndex = updatedCloths.findIndex(cloth => 
+                cloth.clothId === newCloth.clothId);
+                
+            if (existingIndex >= 0) {
+                // 更新现有项
+                updatedCloths[existingIndex] = newCloth;
+            } else {
+                // 添加新项
+                updatedCloths.push(newCloth);
+            }
+        });
+        
+        form.value.cloths = updatedCloths;
+    } else {
+        // 创建模式，直接设置列表
+        form.value.cloths = list;
+    }
+    
     adjustInput();
 }
 
@@ -741,7 +766,7 @@ async function submitForm() {
                     await printCloth();
                     reset();
                     props.refresh();
-                    props.toggle();
+                    // props.toggle();
                 });
             }
         }
@@ -828,7 +853,7 @@ function createAndPay() {
                     // getList();
                 }).catch(err => {
                     proxy.$modal.closeLoading();
-                    proxy.notify.error(err);
+                    // proxy.notify.error(err);
                 });
                 // 打印衣物信息
                 await printCloth();
@@ -957,7 +982,7 @@ function adjustInputChange() {
 function adjustInput() {
     // 强制转换调价字符串为数字
     form.value.adjust.adjustValueAdd = form.value.adjust.adjustValueAdd ?
-        Number(form.value.adjust.adjustValueAdd.trim()) : null;
+        Number(form.value.adjust.adjustValueAdd) : null;
 
     form.value.adjust.adjustValueSub = form.value.adjust.adjustValueSub ?
         Number(form.value.adjust.adjustValueSub) : null;

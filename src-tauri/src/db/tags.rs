@@ -14,7 +14,7 @@ pub struct Tag {
     /// 标签唯一标识ID
     tag_id: Option<i64>,
     /// 标签名称
-    tag_name: Option<String>,
+    pub tag_name: Option<String>,
     /// 标签编码
     tag_number: Option<String>,
     /// 标签类别，001 洗前瑕疵，002 洗后预估，003 衣物颜色等

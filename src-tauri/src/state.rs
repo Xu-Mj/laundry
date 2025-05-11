@@ -154,7 +154,10 @@ impl AppState {
                                     tracing::error!("Max retries reached, logging out...");
                                     *token_ref = None;
                                     // 发送登出事件
-                                    let _ = app_handle.emit("app://logout", ());
+                                    let result = app_handle.emit("app://logout", ());
+                                    if let Err(e) = result {
+                                        tracing::error!("Failed to emit logout event: {:?}", e);
+                                    }
                                     break;
                                 }
                             }

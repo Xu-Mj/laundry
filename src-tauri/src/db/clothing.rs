@@ -237,6 +237,7 @@ impl Curd for Clothing {
     }
 }
 
+#[allow(dead_code)]
 impl Clothing {
     /// 查询是否衣物编码是否已经存在
     /// 这里存在一个潜在的bug：如果超过四位，那么会变成1000，进而产生唯一索引错误

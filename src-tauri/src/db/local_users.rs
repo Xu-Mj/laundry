@@ -3,7 +3,7 @@ use base64::prelude::*;
 use serde::{Deserialize, Serialize};
 use sqlx::sqlite::SqliteRow;
 use sqlx::{FromRow, Pool, Row, Sqlite, Transaction};
-use tauri::State;
+use tauri::{AppHandle, Manager, Runtime, State};
 
 use crate::db::Validator;
 use crate::error::{Error, ErrorKind, Result};
@@ -367,8 +367,9 @@ impl LoginReq {
     }
 
     // login, return token if success
-    pub async fn login(mut self, state: &State<'_, AppState>) -> Result<Token> {
+    pub async fn login<R: Runtime>(mut self, app_handle: AppHandle<R>) -> Result<Token> {
         self.validate()?;
+        let state = app_handle.state::<AppState>();
 
         // validate captcha
         if !captcha::verify_captcha(&state.pool, self.uuid.clone(), self.code.clone()).await? {
@@ -376,7 +377,7 @@ impl LoginReq {
         }
 
         // request server to validate the password
-        let mut token = self.verify_from_server(state).await?;
+        let mut token = self.verify_from_server(&state).await?;
         // token.user.role = Some("admin".to_string());
 
         let mut tx = state.pool.begin().await?;
@@ -387,7 +388,7 @@ impl LoginReq {
             // get user's completed tours
             token.user.completed_tours = Some(UserTours::get_by_user_id(&state.pool, id).await?);
 
-            let (subs, sms_subs) = Self::pull_subs_and_plans(state, id, &token.token).await?;
+            let (subs, sms_subs) = Self::pull_subs_and_plans(&state, id, &token.token).await?;
 
             tracing::debug!("request subscriptions and plans: {:?}", subs);
 
@@ -413,7 +414,7 @@ impl LoginReq {
         *app_token = Some(token.clone());
 
         // 启动 token 刷新任务
-        state.start_token_refresh_task().await;
+        state.start_token_refresh_task(app_handle.clone()).await;
 
         Ok(token)
     }
@@ -448,8 +449,8 @@ async fn guest_login_logical(state: &State<'_, AppState>) -> Result<Token> {
 }
 
 #[tauri::command]
-pub async fn login(mut state: State<'_, AppState>, req: LoginReq) -> Result<Token> {
-    req.login(&mut state).await
+pub async fn login<R: Runtime>(app_handle: AppHandle<R>, req: LoginReq) -> Result<Token> {
+    req.login(app_handle).await
 }
 
 #[tauri::command]
@@ -660,7 +661,10 @@ pub struct RegisterRequest {
 }
 
 #[tauri::command]
-pub async fn register(state: State<'_, AppState>, req: RegisterRequest) -> Result<StoreRegisterResponse> {
+pub async fn register(
+    state: State<'_, AppState>,
+    req: RegisterRequest,
+) -> Result<StoreRegisterResponse> {
     // send request to server
     let res = state
         .http_client

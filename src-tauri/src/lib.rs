@@ -119,6 +119,7 @@ fn handle_command<R: Runtime>(invoke: Invoke<R>) -> bool {
         user::change_user_status,
         user::delete_users,
         printer::print,
+        printer::print_receipt,
         db::printer::get_printers,
         db::printer::set_printer,
         db::printer::get_settled_printer,

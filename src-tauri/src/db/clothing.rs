@@ -25,7 +25,7 @@ pub struct Clothing {
     /// 分类ID，关联clothing_styles表
     style_id: Option<i64>,
     /// 衣物名称 (title)
-    title: Option<String>,
+    pub title: Option<String>,
     /// 简介 (etitle)
     etitle: Option<String>,
     /// 主图 (primaryImage)

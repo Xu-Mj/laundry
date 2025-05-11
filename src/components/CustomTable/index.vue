@@ -340,8 +340,6 @@ onMounted(async () => {
   text-overflow: ellipsis;
   font-size: 11px;
   padding: 0 6px;
-  height: 22px;
-  line-height: 20px;
   border-radius: 4px;
 }
 

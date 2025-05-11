@@ -288,6 +288,8 @@ const props = defineProps({
     },
 });
 
+const emit = defineEmits(['payment-success', 'payment-failed', 'payment-cancel']);
+
 const { proxy } = getCurrentInstance();
 const { sys_payment_method } = proxy.useDict("sys_payment_method");
 
@@ -311,7 +313,7 @@ const showCouponSale = ref(false);
 // 组合支付：16 支付宝+储值卡，26 微信支付+储值卡， 27 微信支付+次卡，17 支付宝+次卡，18 支付宝+优惠券， 28 微信支付+优惠券
 // 56 现金支付+储值卡，57 现金支付+次卡，58 现金支付+优惠券
 function close() {
-    // initPaymentForm();
+    emit('payment-cancel');
     props.toggle();
 }
 
@@ -578,10 +580,17 @@ function submitPaymentForm() {
     pay(paymentForm.value).then(res => {
         proxy.notify.success('支付成功');
         showPaymentDialog.value = false;
-        // reset();
+        // 发送支付成功回调
+        emit('payment-success', {
+            paymentMethod: paymentForm.value.paymentMethod,
+            amount: paymentForm.value.paymentAmount
+        });
         props.refresh();
         props.toggle();
-    })
+    }).catch(error => {
+        // 发送支付失败回调
+        emit('payment-failed', error.message || '支付失败');
+    });
 }
 
 function changeCoupon(couponType, card) {

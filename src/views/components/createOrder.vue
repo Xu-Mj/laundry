@@ -194,8 +194,14 @@
             </div>
         </div>
 
-        <Pay :visible="showPaymentDialog" :key="showPaymentDialog" :order="form" :refresh="reset"
-            :toggle="() => { showPaymentDialog = !showPaymentDialog }" />
+        <Pay :visible="showPaymentDialog" 
+            :key="showPaymentDialog" 
+            :order="form" 
+            :refresh="reset"
+            :toggle="() => { showPaymentDialog = !showPaymentDialog }"
+            @payment-success="handlePaymentSuccess"
+            @payment-failed="handlePaymentFailed"
+            @payment-cancel="handlePaymentCancel" />
         <Information :user="currentUser" :visible="showInfoDialog" :key="showInfoDialog"
             :toggle="() => { showInfoDialog = !showInfoDialog }" />
 
@@ -224,7 +230,7 @@ import { listCloths } from "@/api/system/cloths";
 import { getFutureDate } from "@/utils";
 import { getConfigKey } from '@/api/system/config';
 import AddCloth from "./addCloth.vue";
-import { print } from "@/api/system/printer";
+import { print, printReceipt2 } from "@/api/system/printer";
 import Information from "@/views/frontend/user/information.vue";
 import CustomTable from '@/components/CustomTable';
 import Pay from '@/views/components/pay.vue';
@@ -259,7 +265,7 @@ const props = defineProps({
     }
 });
 const { proxy } = getCurrentInstance();
-const { sys_price_order_type } = proxy.useDict("sys_price_order_type");
+const { sys_price_order_type, sys_payment_method } = proxy.useDict("sys_price_order_type", "sys_payment_method");
 
 const router = useRouter();
 const route = useRoute();
@@ -737,6 +743,10 @@ async function submitForm() {
             if (form.value.adjust.adjustValueAdd || form.value.adjust.adjustValueSub || form.value.adjust.adjustTotal) {
                 form.value.adjust.orderId = form.value.orderId;
             }
+
+            // set phonenumber
+            form.value.phonenumber = currentUser.value.phonenumber;
+
             if (showCreateUser.value) {
                 try {
                     const res = await addUser({
@@ -755,15 +765,37 @@ async function submitForm() {
                 }
             }
             if (form.value.orderId != null) {
-                updateOrders(form.value).then(() => {
+                updateOrders(form.value).then(async () => {
                     proxy.notify.success("修改成功");
+                    // 打印衣物标签和小票并发执行
+                    const printClothPromise = printCloth();
+                    const printReceiptPromise = (async () => {
+                        try {
+                            await printReceipt2({...form.value, paymentMethod: '未付款', mount: totalPrice.value});
+                        } catch (e) {
+                            console.error(e);
+                            proxy.notify.error("小票打印失败");
+                        }
+                    })();
+                    await Promise.all([printClothPromise, printReceiptPromise]);
                     props.refresh();
                     props.toggle();
                 });
             } else {
-                addOrders(form.value).then(async () => {
+                addOrders(form.value).then(async (response) => {
                     proxy.notify.success("新增成功");
-                    await printCloth();
+                    form.value.orderNumber = response.orderNumber;
+                    // 打印衣物标签和小票并发执行
+                    const printClothPromise = printCloth();
+                    const printReceiptPromise = (async () => {
+                        try {
+                            await printReceipt2({...form.value, paymentMethod: '未付款', mount: totalPrice.value});
+                        } catch (e) {
+                            console.error(e);
+                            proxy.notify.error("小票打印失败");
+                        }
+                    })();
+                    await Promise.all([printClothPromise, printReceiptPromise]);
                     reset();
                     props.refresh();
                     // props.toggle();
@@ -802,6 +834,9 @@ function createAndPay() {
             if (form.value.priceIds && form.value.priceIds.length > 0) {
                 showCoupons.value = false;
             }
+
+            form.value.phonenumber = currentUser.value.phonenumber;
+            
             if (showCreateUser.value) {
                 try {
                     const res = await addUser({
@@ -835,11 +870,10 @@ function createAndPay() {
             }
             // 如果是创建订单，那么要先创建订单，拿到订单编码
             if (!form.value.orderId) {
-
                 form.value.clothIds = form.value.cloths.map(item => item.clothId);
 
                 proxy.$modal.loading("正在创建订单，请稍候");
-                await addOrders(form.value).then(response => {
+                await addOrders(form.value).then(async response => {
                     proxy.$modal.closeLoading();
                     form.value.orderId = response.orderId;
                     form.value.orderNumber = response.orderNumber;
@@ -850,23 +884,97 @@ function createAndPay() {
                     form.value.totalPrice = totalPrice.value;
 
                     showPaymentDialog.value = true;
-                    // getList();
                 }).catch(err => {
                     proxy.$modal.closeLoading();
                     // proxy.notify.error(err);
                 });
-                // 打印衣物信息
-                await printCloth();
-
             } else {
                 // 确保订单的总价与前端计算的一致，特别是当使用价格方案时
                 form.value.totalPrice = totalPrice.value;
-
                 showPaymentDialog.value = true;
             }
-
         }
     }, validateOptions);
+}
+
+// 处理支付成功回调
+async function handlePaymentSuccess(paymentInfo) {
+    try {
+        // 打印衣物标签和小票并发执行
+        const printClothPromise = printCloth();
+        const printReceiptPromise = (async () => {
+            try {
+                const paymentMethod = sys_payment_method.value.find(item => item.value === paymentInfo.paymentMethod)?.label;
+                await printReceipt2({
+                    ...form.value,
+                    paymentMethod: paymentMethod || '未知',
+                    mount: paymentInfo.amount
+                });
+            } catch (e) {
+                console.error(e);
+                proxy.notify.error("小票打印失败");
+            }
+        })();
+        await Promise.all([printClothPromise, printReceiptPromise]);
+        
+        // 刷新订单列表
+        props.refresh();
+        // 重置表单
+        reset();
+    } catch (error) {
+        console.error('打印失败:', error);
+        proxy.notify.error("打印失败");
+    }
+}
+
+// 处理支付失败回调
+async function handlePaymentFailed(error) {
+    try {
+        // 打印衣物标签和小票并发执行
+        const printClothPromise = printCloth();
+        const printReceiptPromise = (async () => {
+            try {
+                await printReceipt2({
+                    ...form.value,
+                    paymentMethod: '未支付',
+                    mount: totalPrice.value
+                });
+            } catch (e) {
+                console.error(e);
+                proxy.notify.error("小票打印失败");
+            }
+        })();
+        await Promise.all([printClothPromise, printReceiptPromise]);
+        
+        proxy.notify.error(error || "支付失败");
+    } catch (printError) {
+        console.error('打印失败:', printError);
+        proxy.notify.error("打印失败");
+    }
+}
+
+// 处理支付取消回调
+async function handlePaymentCancel() {
+    try {
+        // 打印衣物标签和小票并发执行
+        const printClothPromise = printCloth();
+        const printReceiptPromise = (async () => {
+            try {
+                await printReceipt2({
+                    ...form.value,
+                    paymentMethod: '未支付',
+                    mount: totalPrice.value
+                });
+            } catch (e) {
+                console.error(e);
+                proxy.notify.error("小票打印失败");
+            }
+        })();
+        await Promise.all([printClothPromise, printReceiptPromise]);
+    } catch (printError) {
+        console.error('打印失败:', printError);
+        proxy.notify.error("打印失败");
+    }
 }
 
 // 修改searchUserByTel为返回Promise的函数

@@ -295,8 +295,8 @@ impl OrderCloth {
         store_id: i64,
         hang_location_code: i64,
     ) -> Result<Vec<i32>> {
-        let numbers = sqlx::query_scalar::<_, i32>(
-            "SELECT hanger_number FROM order_clothes WHERE store_id = ? AND hang_location_code = ?",
+        let numbers = sqlx::query_scalar(
+            "SELECT hanger_number FROM order_clothes WHERE store_id = ? AND hang_location_code = ? AND clothing_status = '01'",
         )
         .bind(store_id)
         .bind(hang_location_code)

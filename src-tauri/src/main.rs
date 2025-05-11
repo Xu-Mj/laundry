@@ -2,6 +2,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use sqlx::sqlite::SqlitePoolOptions;
+use tauri::Manager;
 use tokio_native_tls::native_tls;
 use tokio_tungstenite::Connector;
 use tracing_subscriber::fmt::format::Writer;
@@ -21,6 +22,14 @@ impl FormatTime for LocalTimer {
     }
 }
 
+fn ensure_log_dir(log_dir: &str) -> std::io::Result<()> {
+    let path = std::path::Path::new(log_dir);
+    if !path.exists() {
+        std::fs::create_dir_all(path)?;
+    }
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() {
     // 初始化日志配置
@@ -37,15 +46,26 @@ async fn main() {
         tracing::debug!("debug mode"); // 输出日志到控制台上
     } else {
         // 在 release 模式下，日志输出到文件
-        let file_appender = tracing_appender::rolling::daily(&config.log.output, "laundry");
+        let log_dir = &config.log.output;
+        ensure_log_dir(log_dir).unwrap();
+
+        let file_appender = tracing_appender::rolling::daily(log_dir, "laundry.log");
         let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
-        tracing_subscriber::FmtSubscriber::builder()
+
+        let subscriber = tracing_subscriber::fmt()
             .with_line_number(true)
+            .with_file(true)
+            .with_thread_ids(true)
+            .with_thread_names(true)
+            .with_target(true)
             .with_max_level(config.log.level())
-            .with_writer(non_blocking)
             .with_timer(LocalTimer)
-            .init();
-        tracing::debug!("release mode"); // 输出日志到文件
+            .with_ansi(cfg!(debug_assertions))
+            .with_writer(non_blocking)
+            .finish();
+
+        tracing::subscriber::set_global_default(subscriber)
+            .expect("Failed to set global default subscriber");
     }
 
     // 执行数据迁移
@@ -80,7 +100,22 @@ async fn main() {
             .plugin(ws_plugin),
         AppState::new(pool, config.get_url()),
     )
-    .run(|_app_handle, event| match event {
+    .run(|app_handle, event| match event {
+        tauri::RunEvent::WindowEvent { label: _, event: window_event, .. } => {
+            match window_event {
+                tauri::WindowEvent::Focused(focused) => {
+                    if focused {
+                        // 窗口获得焦点时，检查是否需要刷新 token
+                        let state = app_handle.state::<AppState>().inner().clone();
+                        let state_clone = state.clone();
+                        tokio::spawn(async move {
+                            state_clone.check_and_refresh_after_sleep().await;
+                        });
+                    }
+                }
+                _ => {}
+            }
+        }
         tauri::RunEvent::ExitRequested { api, .. } => {
             api.prevent_exit();
         }

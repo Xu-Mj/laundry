@@ -4,6 +4,7 @@ use std::{
 };
 
 use sqlx::{Pool, Sqlite};
+use tauri::{AppHandle, Emitter, Runtime};
 use tokio::sync::Mutex as TokioMutex;
 use tokio::{task::JoinHandle, time::sleep};
 
@@ -13,13 +14,22 @@ use crate::{
 };
 use crate::{error::Result, local_users::LocalUser};
 
+// Token 刷新配置
+const MIN_REFRESH_INTERVAL: u64 = 60; // 最小刷新间隔（秒）
+const MAX_REFRESH_INTERVAL: u64 = 3600; // 最大刷新间隔（秒）
+const REFRESH_THRESHOLD: u64 = 300; // 提前刷新阈值（秒）
+const MAX_RETRIES: usize = 3; // 最大重试次数
+const INITIAL_RETRY_DELAY: u64 = 2; // 初始重试延迟（秒）
+const SLEEP_REFRESH_DELAY: u64 = 5; // 系统唤醒后延迟刷新时间（秒）
+
 // SQLite 连接池
 #[derive(Debug, Clone)]
 pub struct AppState {
     pub pool: Pool<Sqlite>,
     pub http_client: HttpClient,
-    pub token: Arc<TokioMutex<Option<Token>>>, // 使用 Option<Token>
+    pub token: Arc<TokioMutex<Option<Token>>>,
     pub token_refresh_handle: Arc<Mutex<Option<JoinHandle<()>>>>,
+    pub last_activity_time: Arc<Mutex<SystemTime>>,
 }
 
 impl AppState {
@@ -27,8 +37,46 @@ impl AppState {
         Self {
             pool,
             http_client: HttpClient::new(base_url.to_string()),
-            token: Arc::new(TokioMutex::new(None)), // 初始化为 None
+            token: Arc::new(TokioMutex::new(None)),
             token_refresh_handle: Arc::new(Mutex::new(None)),
+            last_activity_time: Arc::new(Mutex::new(SystemTime::now())),
+        }
+    }
+
+    // 更新最后活动时间
+    pub fn update_activity_time(&self) {
+        *self.last_activity_time.lock().unwrap() = SystemTime::now();
+    }
+
+    // 检查是否需要立即刷新 token（系统唤醒后）
+    pub async fn check_and_refresh_after_sleep(&self) {
+        let token_lock = self.token.lock().await;
+        if let Some(token) = token_lock.as_ref() {
+            // 检查 token 是否过期或即将过期
+            let now = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_secs() as i64;
+
+            let remaining = token.exp - now;
+
+            // 如果 token 已过期或即将过期（小于阈值），则刷新
+            if remaining <= REFRESH_THRESHOLD as i64 {
+                tracing::info!("Token is expired or about to expire, refreshing...");
+
+                // 等待一小段时间，确保网络连接已恢复
+                sleep(Duration::from_secs(SLEEP_REFRESH_DELAY)).await;
+
+                // 释放锁，避免死锁
+                drop(token_lock);
+
+                // 强制刷新 token
+                if let Err(e) = self.refresh_token().await {
+                    tracing::error!("Failed to refresh token after sleep: {:?}", e);
+                }
+            } else {
+                tracing::debug!("Token is still valid, no need to refresh");
+            }
         }
     }
 
@@ -43,7 +91,7 @@ impl AppState {
         Ok(())
     }
 
-    pub async fn start_token_refresh_task(&self) {
+    pub async fn start_token_refresh_task<R: Runtime>(&self, app_handle: AppHandle<R>) {
         let token = self.token.clone();
         let http_client = self.http_client.clone();
         let token_refresh_handle = self.token_refresh_handle.clone();
@@ -55,23 +103,41 @@ impl AppState {
 
         let handle = tokio::spawn(async move {
             let mut retries = 0;
-            const MAX_RETRIES: usize = 3;
-            const BASE_DELAY: u64 = 2;
+            let mut last_refresh_time = SystemTime::now();
 
             loop {
                 let mut token_ref = token.lock().await;
                 if let Some(token) = token_ref.as_mut() {
-                    let remaining = token.exp as i64
-                        - SystemTime::now()
+                    let now = SystemTime::now()
+                        .duration_since(UNIX_EPOCH)
+                        .unwrap()
+                        .as_secs() as i64;
+
+                    let remaining = token.exp - now;
+                    let time_since_last_refresh = now
+                        - last_refresh_time
                             .duration_since(UNIX_EPOCH)
                             .unwrap()
                             .as_secs() as i64;
 
-                    // 提前5分钟预刷新
-                    if remaining <= 300 || Self::is_token_expired(&token.exp).unwrap_or(true) {
+                    // 计算下一次刷新时间
+                    let next_refresh = if remaining <= REFRESH_THRESHOLD as i64 {
+                        // 如果剩余时间小于阈值，立即刷新
+                        0
+                    } else {
+                        // 否则，使用动态计算的时间
+                        let dynamic_interval = (remaining - REFRESH_THRESHOLD as i64) / 2;
+                        dynamic_interval
+                            .max(MIN_REFRESH_INTERVAL as i64)
+                            .min(MAX_REFRESH_INTERVAL as i64)
+                    };
+
+                    // 检查是否需要刷新
+                    if time_since_last_refresh >= next_refresh {
                         match http_client.refresh_token(&token.refresh_token).await {
                             Ok(new_token) => {
                                 (*token).set_token(new_token);
+                                last_refresh_time = SystemTime::now();
                                 retries = 0;
                                 tracing::info!("Token refreshed successfully");
                             }
@@ -79,24 +145,30 @@ impl AppState {
                                 tracing::error!("Token refresh failed: {:?}", e);
                                 if retries < MAX_RETRIES {
                                     retries += 1;
-                                    let delay = BASE_DELAY.pow(retries as u32);
+                                    let delay = INITIAL_RETRY_DELAY * (1 << (retries - 1));
                                     tracing::info!("Retrying in {} seconds...", delay);
+                                    drop(token_ref); // 释放锁
                                     sleep(Duration::from_secs(delay)).await;
                                     continue;
                                 } else {
                                     tracing::error!("Max retries reached, logging out...");
                                     *token_ref = None;
+                                    // 发送登出事件
+                                    let _ = app_handle.emit("app://logout", ());
                                     break;
                                 }
                             }
                         }
                     }
 
-                    // drop lock
+                    // 释放锁
                     drop(token_ref);
-                    // 动态计算等待时间（取剩余时间和预刷新时间的较小值）
-                    let wait_seconds = remaining.min(300) as u64;
-                    sleep(Duration::from_secs(wait_seconds)).await;
+
+                    // 计算等待时间
+                    let wait_seconds = next_refresh - time_since_last_refresh;
+                    if wait_seconds > 0 {
+                        sleep(Duration::from_secs(wait_seconds as u64)).await;
+                    }
                 } else {
                     break;
                 }

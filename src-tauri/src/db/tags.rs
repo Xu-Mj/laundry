@@ -272,10 +272,7 @@ impl Tag {
                 .push(" WHERE tag_id = ")
                 .push_bind(self.tag_id)
                 .push(" RETURNING *");
-            let updated_tag = query_builder
-                .build_query_as()
-                .fetch_one(pool)
-                .await?;
+            let updated_tag = query_builder.build_query_as().fetch_one(pool).await?;
             Ok(updated_tag)
         } else {
             Ok(Tag::from(self))

@@ -3,7 +3,8 @@ use tauri::State;
 
 use crate::{
     error::{Error, Result},
-    state::AppState, utils,
+    state::AppState,
+    utils,
 };
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

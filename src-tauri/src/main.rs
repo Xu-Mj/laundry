@@ -90,7 +90,7 @@ async fn main() {
     let ws_plugin = tauri_plugin_websocket::Builder::new()
         .tls_connector(connector)
         .build();
-    
+
     create_app(
         tauri::Builder::default()
             .plugin(tauri_plugin_updater::Builder::new().build())
@@ -101,7 +101,11 @@ async fn main() {
         AppState::new(pool, config.get_url()),
     )
     .run(|app_handle, event| match event {
-        tauri::RunEvent::WindowEvent { label: _, event: window_event, .. } => {
+        tauri::RunEvent::WindowEvent {
+            label: _,
+            event: window_event,
+            ..
+        } => {
             match window_event {
                 tauri::WindowEvent::Focused(focused) => {
                     if focused {

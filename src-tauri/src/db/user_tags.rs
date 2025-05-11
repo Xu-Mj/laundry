@@ -35,10 +35,7 @@ impl UserTags {
 
 impl UserTags {
     #[allow(dead_code)]
-    pub async fn get_by_user_id(
-        tr: &mut Transaction<'_, Sqlite>,
-        id: i64,
-    ) -> Result<Option<Self>> {
+    pub async fn get_by_user_id(tr: &mut Transaction<'_, Sqlite>, id: i64) -> Result<Option<Self>> {
         let mut query = sqlx::QueryBuilder::new("SELECT * FROM user_tags WHERE user_id = ");
         query.push_bind(id);
 
@@ -73,10 +70,7 @@ impl UserTags {
     }
 
     #[allow(dead_code)]
-    pub async fn delete_by_user_id(
-        tr: &mut Transaction<'_, Sqlite>,
-        user_id: i64,
-    ) -> Result<()> {
+    pub async fn delete_by_user_id(tr: &mut Transaction<'_, Sqlite>, user_id: i64) -> Result<()> {
         let mut query = sqlx::QueryBuilder::new("DELETE FROM user_tags WHERE user_id = ");
         query.push_bind(user_id);
 

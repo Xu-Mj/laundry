@@ -23,11 +23,13 @@ pub(crate) mod payments;
 pub(crate) mod printer;
 pub(crate) mod qrcode_payments;
 // pub(crate) mod sms;
+pub(crate) mod delivery;
+pub(crate) mod message;
 pub(crate) mod sms_plan;
 pub(crate) mod sms_subscription;
 pub(crate) mod subscription_plan;
-pub(crate) mod subscriptions;
 pub(crate) mod subscription_service;
+pub(crate) mod subscriptions;
 pub(crate) mod tags;
 pub(crate) mod user;
 pub(crate) mod user_coupons;
@@ -35,8 +37,6 @@ pub(crate) mod user_membership_level;
 pub(crate) mod user_tags;
 pub(crate) mod user_tours;
 pub(crate) mod wechat_config;
-pub(crate) mod delivery;
-pub(crate) mod message;
 
 use std::collections::HashMap;
 

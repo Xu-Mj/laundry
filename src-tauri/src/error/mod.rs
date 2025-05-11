@@ -85,7 +85,7 @@ impl Error {
 
     #[inline]
     pub fn with_details(kind: ErrorKind, details: impl Into<String>) -> Self {
-        let err =  Self {
+        let err = Self {
             kind,
             source: None,
             details: Some(details.into()),

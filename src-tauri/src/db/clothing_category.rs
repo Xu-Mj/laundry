@@ -128,7 +128,7 @@ impl ClothingCategory {
             Some(id) => id,
             None => return Err(Error::with_details(ErrorKind::BadRequest, "缺少品类ID")),
         };
-        
+
         // 使用单一SQL语句更新所有字段
         let now = utils::get_timestamp();
         let result = sqlx::query(
@@ -139,7 +139,7 @@ impl ClothingCategory {
              remark = ?, 
              del_flag = ?, 
              updated_at = ? 
-             WHERE store_id = ? AND category_id = ?"
+             WHERE store_id = ? AND category_id = ?",
         )
         .bind(&self.category_name)
         .bind(&self.category_code)
@@ -151,12 +151,12 @@ impl ClothingCategory {
         .bind(category_id)
         .execute(pool)
         .await?;
-        
+
         Ok(result.rows_affected() > 0)
     }
 
     /// 检查品类名称是否已经存在
-    /// 
+    ///
     /// 如果提供了category_id，则会排除该ID的记录，用于更新时检查
     pub async fn exists_by_name(
         pool: &Pool<Sqlite>,
@@ -165,18 +165,20 @@ impl ClothingCategory {
         exclude_category_id: Option<i64>,
     ) -> Result<bool> {
         let sql = match exclude_category_id {
-            Some(_) => "SELECT EXISTS(SELECT 1 FROM clothing_categories WHERE store_id = ? AND category_name = ? AND category_id != ? AND del_flag = '0')",
-            None => "SELECT EXISTS(SELECT 1 FROM clothing_categories WHERE store_id = ? AND category_name = ? AND del_flag = '0')",
+            Some(_) => {
+                "SELECT EXISTS(SELECT 1 FROM clothing_categories WHERE store_id = ? AND category_name = ? AND category_id != ? AND del_flag = '0')"
+            }
+            None => {
+                "SELECT EXISTS(SELECT 1 FROM clothing_categories WHERE store_id = ? AND category_name = ? AND del_flag = '0')"
+            }
         };
-        
-        let mut query = sqlx::query_scalar(sql)
-            .bind(store_id)
-            .bind(category_name);
-            
+
+        let mut query = sqlx::query_scalar(sql).bind(store_id).bind(category_name);
+
         if let Some(id) = exclude_category_id {
             query = query.bind(id);
         }
-        
+
         let result = query.fetch_one(pool).await?;
 
         Ok(result)
@@ -239,7 +241,9 @@ pub async fn add_clothing_category(
     let pool = &state.pool;
     category.validate()?;
     // check category_name is exists
-    if ClothingCategory::exists_by_name(pool, category.store_id, &category.category_name, None).await? {
+    if ClothingCategory::exists_by_name(pool, category.store_id, &category.category_name, None)
+        .await?
+    {
         return Err(Error::bad_request("品类名称已经存在"));
     }
     // create to server
@@ -255,7 +259,14 @@ pub async fn update_clothing_category(
     let pool = &state.pool;
     category.validate()?;
     // check category_name is exists, 排除当前正在更新的记录
-    if ClothingCategory::exists_by_name(pool, category.store_id, &category.category_name, category.category_id).await? {
+    if ClothingCategory::exists_by_name(
+        pool,
+        category.store_id,
+        &category.category_name,
+        category.category_id,
+    )
+    .await?
+    {
         return Err(Error::bad_request("品类名称已经存在"));
     }
     // update to server

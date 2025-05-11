@@ -57,7 +57,7 @@ impl Validator for ClothingStyle {
         if self.store_id <= 0 {
             return Err(Error::bad_request("必须指定所属商家"));
         }
-        
+
         if self.style_name.trim().is_empty() {
             return Err(Error::bad_request("分类名称不能为空"));
         }
@@ -142,7 +142,7 @@ impl ClothingStyle {
             Some(id) => id,
             None => return Err(Error::with_details(ErrorKind::BadRequest, "缺少分类ID")),
         };
-        
+
         // 使用单一SQL语句更新所有字段
         let now = utils::get_timestamp();
         let result = sqlx::query(
@@ -153,7 +153,7 @@ impl ClothingStyle {
              order_num = ?, 
              remark = ?, 
              updated_at = ? 
-             WHERE store_id = ? AND style_id = ?"
+             WHERE store_id = ? AND style_id = ?",
         )
         .bind(&self.category_id)
         .bind(&self.style_name)
@@ -165,12 +165,12 @@ impl ClothingStyle {
         .bind(style_id)
         .execute(pool)
         .await?;
-        
+
         Ok(result.rows_affected() > 0)
     }
 
     /// 检查分类名称是否已经存在
-    /// 
+    ///
     /// 如果提供了style_id，则会排除该ID的记录，用于更新时检查
     pub async fn exists_by_name(
         pool: &Pool<Sqlite>,
@@ -179,18 +179,20 @@ impl ClothingStyle {
         exclude_style_id: Option<i64>,
     ) -> Result<bool> {
         let sql = match exclude_style_id {
-            Some(_) => "SELECT EXISTS(SELECT 1 FROM clothing_styles WHERE store_id = ? AND style_name = ? AND style_id != ? AND del_flag = '0')",
-            None => "SELECT EXISTS(SELECT 1 FROM clothing_styles WHERE store_id = ? AND style_name = ? AND del_flag = '0')",
+            Some(_) => {
+                "SELECT EXISTS(SELECT 1 FROM clothing_styles WHERE store_id = ? AND style_name = ? AND style_id != ? AND del_flag = '0')"
+            }
+            None => {
+                "SELECT EXISTS(SELECT 1 FROM clothing_styles WHERE store_id = ? AND style_name = ? AND del_flag = '0')"
+            }
         };
-        
-        let mut query = sqlx::query_scalar(sql)
-            .bind(store_id)
-            .bind(style_name);
-            
+
+        let mut query = sqlx::query_scalar(sql).bind(store_id).bind(style_name);
+
         if let Some(id) = exclude_style_id {
             query = query.bind(id);
         }
-        
+
         let result = query.fetch_one(pool).await?;
 
         Ok(result)
@@ -291,7 +293,9 @@ pub async fn update_clothing_style(
     let pool = &state.pool;
     style.validate()?;
     // check if style name exists, 排除当前正在更新的记录
-    if ClothingStyle::exists_by_name(pool, style.store_id, &style.style_name, style.style_id).await? {
+    if ClothingStyle::exists_by_name(pool, style.store_id, &style.style_name, style.style_id)
+        .await?
+    {
         return Err(Error::bad_request("分类名称已存在"));
     }
 

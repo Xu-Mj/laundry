@@ -13,7 +13,12 @@ pub struct PrinterConfiguration {
 }
 
 impl PrinterConfiguration {
-    pub fn new(name: String, system_name: String, driver_name: String, printer_type: String) -> Self {
+    pub fn new(
+        name: String,
+        system_name: String,
+        driver_name: String,
+        printer_type: String,
+    ) -> Self {
         Self {
             name,
             system_name,
@@ -28,7 +33,14 @@ pub async fn get_printers() -> Vec<PrinterConfiguration> {
     let printers = printers::get_printers();
     printers
         .into_iter()
-        .map(|item| PrinterConfiguration::new(item.name, item.system_name, item.driver_name, "business".to_string()))
+        .map(|item| {
+            PrinterConfiguration::new(
+                item.name,
+                item.system_name,
+                item.driver_name,
+                "business".to_string(),
+            )
+        })
         .collect()
 }
 
@@ -37,10 +49,12 @@ pub async fn get_settled_printer(
     state: State<'_, AppState>,
     printer_type: String,
 ) -> Result<Option<PrinterConfiguration>> {
-    let device = sqlx::query_as::<_, PrinterConfiguration>("SELECT * FROM printers WHERE printer_type = ? LIMIT 1")
-        .bind(&printer_type)
-        .fetch_optional(&state.pool)
-        .await?;
+    let device = sqlx::query_as::<_, PrinterConfiguration>(
+        "SELECT * FROM printers WHERE printer_type = ? LIMIT 1",
+    )
+    .bind(&printer_type)
+    .fetch_optional(&state.pool)
+    .await?;
     Ok(device)
 }
 

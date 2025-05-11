@@ -703,15 +703,16 @@ pub async fn create_clothing_4_create_order(
     clothing.is_put_on_sale = Some(false);
     clothing.is_available = Some(false);
     clothing.stock_quantity = Some(0);
-    
-    
+
     // gen clothing_number
     let code = utils::gen_code(clothing.title.as_ref().unwrap());
     clothing.clothing_number =
         Some(Clothing::select_next_num(&state.pool, &format!("{code}-")).await?);
 
     // 如果没有设置主图，使用默认衣物图片
-    if clothing.primary_image.is_none() || clothing.primary_image.as_ref().unwrap().trim().is_empty() {
+    if clothing.primary_image.is_none()
+        || clothing.primary_image.as_ref().unwrap().trim().is_empty()
+    {
         // 使用相对路径，这样在不同平台上都能正确找到图片
         clothing.primary_image = Some("images/default_cloth.svg".to_string());
     }

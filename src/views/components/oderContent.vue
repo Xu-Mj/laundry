@@ -62,7 +62,7 @@
                     <span>
                         订单编码: {{ order.orderNumber }}
                     </span>
-                    <el-button type="primary" size="small">补打小票</el-button>
+                    <el-button type="primary" size="small" @click="reprintReceipt(order)">补打小票</el-button>
                 </div>
                 <div class="result-item-info">
                     <div class="info-item">
@@ -71,7 +71,7 @@
                         </el-icon>
                         <span style="display: flex; align-items: center;">会员身份: <strong>{{ order.nickName }}</strong>
                             ({{
-                            order.phonenumber }})</span>
+                                order.phonenumber }})</span>
                     </div>
                     <div class="info-item">
                         <el-icon>
@@ -240,6 +240,7 @@
             <el-button type="warning" @click="handleDelivery" icon="Van" round>上门派送</el-button>
             <el-button type="info" @click="() => { }" icon="Printer" round>补打小票</el-button>
         </div>
+        <el-backtop :right="40" :bottom="180" />
     </div>
 
     <!-- 展示照片 -->
@@ -280,6 +281,7 @@ import { ElMessageBox } from 'element-plus';
 import { invoke } from '@tauri-apps/api/core';
 import PaymentDialog from "./PaymentDialog.vue";
 import DeliveryDialog from "./DeliveryDialog.vue";
+import { printReceipt } from '@/api/system/printer';
 
 
 const props = defineProps({
@@ -295,7 +297,8 @@ const {
     sys_order_status,
     sys_service_requirement,
     sys_service_type,
-    sys_clothing_status
+    sys_clothing_status,
+    sys_payment_method
 } =
     proxy.useDict(
         'sys_payment_status',
@@ -303,6 +306,7 @@ const {
         "sys_service_requirement",
         "sys_service_type",
         "sys_clothing_status",
+        "sys_payment_method",
     );
 
 
@@ -778,6 +782,23 @@ onMounted(async () => {
     }
     getList();
 });
+// 假设有orderId可用
+async function reprintReceipt(order) {
+    try {
+        let paymentMethod;
+        if (order.payment.payId) {
+            paymentMethod = sys_payment_method.value.find(item => item.value == order.paymentMethod)?.label;
+        } else {
+            paymentMethod = '未付款';
+        }
+        
+        console.log('orderContent.vue loaded:', paymentMethod);
+        await printReceipt({ ...order, paymentMethod  });
+        proxy.notify.success('小票补打成功');
+    } catch (e) {
+        proxy.notify.error('小票补打失败');
+    }
+}
 </script>
 <style scoped>
 .result-container {

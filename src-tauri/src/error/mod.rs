@@ -1,7 +1,7 @@
 use argon2::password_hash;
 use printpdf::image_crate;
 use serde::{Deserialize, Serialize};
-use std::{error::Error as StdError, fmt};
+use std::{backtrace::Backtrace, error::Error as StdError, fmt};
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -36,6 +36,8 @@ pub struct Error {
     details: Option<String>,
     #[serde(skip)]
     source: Option<Box<dyn StdError + Send + Sync>>,
+    #[serde(skip)]
+    backtrace: Option<Backtrace>,
 }
 
 impl Error {
@@ -45,11 +47,14 @@ impl Error {
         details: impl Into<String>,
         source: impl StdError + 'static + Send + Sync,
     ) -> Self {
-        Self {
+        let err = Self {
             kind,
             source: Some(Box::new(source)),
             details: Some(details.into()),
-        }
+            backtrace: Some(Backtrace::capture()),
+        };
+        tracing::error!("{:?}", err);
+        err
     }
 
     pub fn kind(&self) -> ErrorKind {
@@ -58,11 +63,14 @@ impl Error {
 
     #[inline]
     pub fn with_kind(kind: ErrorKind) -> Self {
-        Self {
+        let err = Self {
             kind,
             source: None,
             details: None,
-        }
+            backtrace: Some(Backtrace::capture()),
+        };
+        tracing::error!("{:?}", err);
+        err
     }
 
     #[inline]
@@ -71,43 +79,35 @@ impl Error {
             kind: ErrorKind::InternalServer,
             details: Some(error.to_string()),
             source: Some(error),
+            backtrace: Some(Backtrace::capture()),
         }
     }
 
     #[inline]
     pub fn with_details(kind: ErrorKind, details: impl Into<String>) -> Self {
-        Self {
+        let err =  Self {
             kind,
             source: None,
             details: Some(details.into()),
-        }
+            backtrace: Some(Backtrace::capture()),
+        };
+        tracing::error!("{:?}", err);
+        err
     }
 
     #[inline]
     pub fn internal(details: impl Into<String>) -> Self {
-        Self {
-            kind: ErrorKind::InternalServer,
-            source: None,
-            details: Some(details.into()),
-        }
+        Self::with_details(ErrorKind::InternalServer, details)
     }
 
     #[inline]
     pub fn not_found(details: impl Into<String>) -> Self {
-        Self {
-            kind: ErrorKind::NotFound,
-            source: None,
-            details: Some(details.into()),
-        }
+        Self::with_details(ErrorKind::NotFound, details)
     }
 
     #[inline]
     pub fn bad_request(details: impl Into<String>) -> Self {
-        Self {
-            kind: ErrorKind::BadRequest,
-            source: None,
-            details: Some(details.into()),
-        }
+        Self::with_details(ErrorKind::BadRequest, details)
     }
 
     #[inline]
@@ -123,10 +123,18 @@ impl Error {
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match &self.details {
-            Some(details) => write!(f, "{:?}: {}", self.kind, details),
-            None => write!(f, "{:?}", self.kind),
+        // match &self.details {
+        //     Some(details) => write!(f, "{:?}: {}", self.kind, details),
+        //     None => write!(f, "{:?}", self.kind),
+        // }
+        write!(f, "{:?}: {:?}", self.kind, self.details)?;
+        if let Some(source) = &self.source {
+            write!(f, "\nCaused by: {:?}", source)?;
         }
+        if let Some(backtrace) = &self.backtrace {
+            write!(f, "\nBacktrace:\n{:?}", backtrace)?;
+        }
+        Ok(())
     }
 }
 

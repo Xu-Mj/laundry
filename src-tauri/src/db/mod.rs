@@ -1,5 +1,4 @@
 pub(crate) mod adjust_price;
-pub(crate) mod alarm_management;
 pub(crate) mod alipay_config;
 pub(crate) mod cloth_price;
 pub(crate) mod cloth_sequence;

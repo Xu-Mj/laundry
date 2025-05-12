@@ -5,6 +5,8 @@ import { saveMessage } from '@/api/system/message';
 import { addServerOrders } from '@/api/system/orders';
 import { addUser } from '@/api/system/user';
 import WebSocket from '@tauri-apps/plugin-websocket';
+import { ElMessageBox } from 'element-plus';
+import { useRouter } from 'vue-router';
 
 /**
  * Tauri WebSocket管理类
@@ -23,8 +25,9 @@ class TauriWebSocketManager {
         this.messageListeners = new Map();
         this.messageQueue = [];
         this.lastMessageId = 0;
-        this.manualClose = false;
         this.connectionStateListeners = [];
+        this.isReconnecting = false;  // 标记是否正在重连中
+        this.userPromptShown = false; // 标记是否已显示用户提示
 
         // 支持的消息类型
         this.messageTypes = {
@@ -66,22 +69,30 @@ class TauriWebSocketManager {
 
         if (this.socket) {
             console.log('WebSocket已存在，关闭之前的连接');
-            await this.close();
+            await this.close(false);  // 关闭时不自动重连
         }
 
         try {
             const token = getToken();
             if (!token) {
                 console.error('WebSocket初始化失败: 未找到token');
+                this.isReconnecting = false;  // 重置重连状态
+                this.promptUserForRelogin('登录令牌无效或已过期，是否重新登录？');
                 return false;
             }
 
             const userId = useUserStore().id;
+            if (!userId) {
+                console.error('WebSocket初始化失败: 未找到用户ID');
+                this.isReconnecting = false;
+                this.promptUserForRelogin('用户信息获取失败，是否重新登录？');
+                return false;
+            }
+
             const wsUrl = `${serverUrl}/${userId}/${encodeURIComponent(token)}`;
             console.log('正在连接WebSocket服务器:', serverUrl);
 
             this.isConnected = false;
-            this.manualClose = false;
 
             // 使用Tauri的WebSocket插件建立连接
             this.socket = await WebSocket.connect(wsUrl);
@@ -91,6 +102,8 @@ class TauriWebSocketManager {
 
             this.isConnected = true;
             this.reconnectAttempts = 0;
+            this.isReconnecting = false;  // 连接成功，重置重连状态
+            this.userPromptShown = false; // 重置提示状态
             console.log('WebSocket连接成功，连接已建立');
 
             // 通知连接状态变化
@@ -109,17 +122,52 @@ class TauriWebSocketManager {
             // 通知连接状态变化
             this.notifyConnectionStateChange(false, error.message);
             
+            // 检查是否是认证问题
+            if (error.message && (error.message.includes('unauthorized') || 
+                                  error.message.includes('authentication') || 
+                                  error.message.includes('401'))) {
+                this.promptUserForRelogin('连接失败：身份验证问题，是否重新登录？');
+                this.isReconnecting = false;  // 连接失败，重置重连状态
+                return false;
+            }
+            
+            this.isReconnecting = false;  // 连接失败，重置重连状态
             this.reconnect();
             return false;
         }
     }
 
     /**
-     * 关闭WebSocket连接
+     * 提示用户是否需要重新登录
+     * @param {string} message - 提示消息
      */
-    async close() {
+    promptUserForRelogin(message) {
+        if (this.userPromptShown) return; // 防止重复显示提示
+        this.userPromptShown = true;
+
+        ElMessageBox.confirm(message, '连接提示', {
+            confirmButtonText: '重新登录',
+            cancelButtonText: '取消',
+            type: 'warning'
+        }).then(() => {
+            // 用户选择重新登录
+            const userStore = useUserStore();
+            userStore.logout().then(() => {
+                window.location.href = '/';
+            });
+        }).catch(() => {
+            // 用户取消，重置提示状态，允许之后再次提示
+            this.userPromptShown = false;
+            Notification.info('您可以在个人中心手动重新登录系统');
+        });
+    }
+
+    /**
+     * 关闭WebSocket连接
+     * @param {boolean} shouldReconnect - 是否在关闭后尝试重连，默认为true
+     */
+    async close(shouldReconnect = true) {
         try {
-            this.manualClose = true;
             this.stopHeartbeat();
 
             if (this.socket) {
@@ -130,17 +178,21 @@ class TauriWebSocketManager {
             this.isConnected = false;
             
             // 通知连接状态变化
-            this.notifyConnectionStateChange(false, '连接已手动关闭');
+            this.notifyConnectionStateChange(false, '连接已关闭');
 
             if (this.reconnectTimer) {
                 clearTimeout(this.reconnectTimer);
                 this.reconnectTimer = null;
             }
 
-            console.log('WebSocket连接已手动关闭');
+            console.log('WebSocket连接已关闭');
+            
+            // 如果允许重连且当前不在重连状态，则尝试重连
+            if (shouldReconnect && !this.isReconnecting) {
+                this.reconnect();
+            }
         } catch (error) {
             console.error('关闭WebSocket连接失败:', error);
-            this.manualClose = false;
         }
     }
 
@@ -168,6 +220,13 @@ class TauriWebSocketManager {
         } catch (error) {
             console.error('发送WebSocket消息失败:', error);
             this.messageQueue.push(message);
+            
+            // 如果发送失败，检查连接状态并尝试重连
+            if (this.isConnected) {
+                Notification.warning('消息发送失败，正在尝试重新连接...');
+                await this.close();  // 关闭连接并自动重连
+            }
+            
             return false;
         }
     }
@@ -255,17 +314,19 @@ class TauriWebSocketManager {
      * 重新连接WebSocket
      */
     reconnect() {
-        if (this.manualClose || this.isConnected) {
+        if (this.isConnected || this.isReconnecting) {
             return;
         }
 
         if (this.reconnectAttempts >= this.maxReconnectAttempts) {
             console.error('WebSocket重连次数超过最大限制，停止重连');
-            Notification.error('消息系统连接已断开，请刷新页面重试');
+            Notification.error('消息系统连接已断开');
             
             // 通知连接状态变化
-            this.notifyConnectionStateChange(false, '重连次数超过最大限制，请刷新页面');
+            this.notifyConnectionStateChange(false, '重连次数超过最大限制');
             
+            // 提示用户是否需要重新登录
+            this.promptUserForRelogin('消息系统连接失败，是否需要重新登录系统？');
             return;
         }
 
@@ -276,13 +337,19 @@ class TauriWebSocketManager {
         const delay = Math.min(30000, this.reconnectInterval * Math.pow(1.5, this.reconnectAttempts));
         console.log(`WebSocket将在${delay / 1000}秒后尝试重连...`);
 
+        this.isReconnecting = true;  // 设置重连状态
         this.reconnectTimer = setTimeout(async () => {
             this.reconnectAttempts++;
             console.log(`WebSocket重连尝试 ${this.reconnectAttempts}/${this.maxReconnectAttempts}`);
 
             const serverUrl = await this.getServerUrl();
             if (serverUrl) {
-                await this.init(serverUrl);
+                const success = await this.init(serverUrl);
+                if (!success) {
+                    this.isReconnecting = false;  // 重连失败，重置重连状态
+                }
+            } else {
+                this.isReconnecting = false;  // 获取服务器地址失败，重置重连状态
             }
         }, delay);
     }
@@ -307,9 +374,9 @@ class TauriWebSocketManager {
                     console.log('发送心跳消息');
                 } catch (error) {
                     console.error('发送心跳消息失败:', error);
-                    if (!this.manualClose) {
-                        this.reconnect();
-                    }
+                    // 心跳失败时直接尝试重连
+                    Notification.warning('消息系统连接异常，正在尝试重新连接...');
+                    this.reconnect();
                 }
             }
         }, this.heartbeatInterval);

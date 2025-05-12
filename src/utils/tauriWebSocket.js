@@ -98,7 +98,7 @@ class TauriWebSocketManager {
             this.socket = await WebSocket.connect(wsUrl);
 
             // 设置消息监听器
-            this.socket.addListener(this.handleMessage.bind(this));
+            this.socket.addListener((msg) => this.handleMessage(msg));
 
             this.isConnected = true;
             this.reconnectAttempts = 0;
@@ -374,8 +374,11 @@ class TauriWebSocketManager {
                     console.log('发送心跳消息');
                 } catch (error) {
                     console.error('发送心跳消息失败:', error);
-                    // 心跳失败时直接尝试重连
-                    Notification.warning('消息系统连接异常，正在尝试重新连接...');
+                    // 心跳失败时先更新连接状态，再尝试重连
+                    this.isConnected = false;
+                    this.socket = null;
+                    // 通知连接状态变化
+                    this.notifyConnectionStateChange(false, '心跳检测失败');
                     this.reconnect();
                 }
             }

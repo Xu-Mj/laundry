@@ -388,4 +388,21 @@
  .card-body {
 	padding: 15px;
  }
- 
+
+/* 移除El-input组件内的箭头 */
+.no-spinner .el-input__inner::-webkit-outer-spin-button,
+.no-spinner .el-input__inner::-webkit-inner-spin-button {
+  -webkit-appearance: none !important;
+  margin: 0 !important;
+}
+
+/* Firefox - 针对El-input组件内的input */
+.no-spinner .el-input__inner {
+  -moz-appearance: textfield !important;
+}
+
+/* 通用样式 - 确保所有浏览器一致 */
+.no-spinner .el-input__inner,
+input.no-spinner[type="number"] {
+  appearance: textfield !important;
+}

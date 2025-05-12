@@ -79,75 +79,63 @@
     </el-card>
 
     <!-- 添加或修改对话框 -->
-    <el-dialog :title="title || (form.tagId ? '修改标签' : '新增标签')" v-model="open" width="550px" @opened="refNumberGetFocus"
-      align-center @closed="refNumberFocus = false" destroy-on-close>
+    <el-dialog :title="title || (form.tagId ? '修改标签' : '新增标签')" v-model="open" width="500px" @opened="refNumberGetFocus"
+      align-center @closed="refNumberFocus = false" destroy-on-close class="tag-dialog">
       <el-form ref="tagsRef" :model="form" :rules="rules" label-width="80px">
-        <el-divider content-position="left">
-          <el-icon>
-            <InfoFilled />
-          </el-icon>
-          <span class="divider-title">基本信息</span>
-        </el-divider>
-
-        <el-row :gutter="20">
-          <el-col :span="12">
+        <div class="dialog-content">
+          <div class="section-header">
+            <el-icon class="mr-2"><InfoFilled /></el-icon>
+            <span>基本信息</span>
+          </div>
+          
+          <div class="form-row">
             <el-form-item label="标签类别" prop="tagOrder">
               <el-select v-model="form.tagOrder" placeholder="请选择标签类别" clearable class="w-full">
                 <el-option v-for="dict in sys_tag_order" :key="dict.value" :label="dict.label" :value="dict.value" />
               </el-select>
             </el-form-item>
-          </el-col>
-          <el-col :span="12">
+            
             <el-form-item label="标签名称" prop="tagName">
               <el-input v-model="form.tagName" placeholder="请输入标签名称" />
             </el-form-item>
-          </el-col>
-        </el-row>
+          </div>
 
-        <el-divider content-position="left">
-          <el-icon>
-            <Setting />
-          </el-icon>
-          <span class="divider-title">附加设置</span>
-        </el-divider>
-
-        <el-row :gutter="20">
-          <el-col :span="12">
+          <div class="section-header mt-4">
+            <el-icon class="mr-2"><Setting /></el-icon>
+            <span>附加设置</span>
+          </div>
+          
+          <div class="form-row">
             <el-form-item label="使用次数" prop="refNum">
               <el-input-number v-model="form.refNum" ref="refNum" :min="0" controls-position="right" class="w-full" />
             </el-form-item>
-          </el-col>
-          <el-col :span="12">
+            
             <el-form-item label="显示顺序" prop="orderNum">
               <el-input-number v-model="form.orderNum" :min="0" controls-position="right" class="w-full" />
             </el-form-item>
-          </el-col>
-        </el-row>
+          </div>
 
-        <el-form-item label="状态">
-          <el-radio-group v-model="form.status">
-            <el-radio-button v-for="dict in sys_normal_disable" :key="dict.value" :label="dict.value">
-              <template #default>
-                <el-icon v-if="dict.value === '0'">
-                  <Check />
-                </el-icon>
-                <el-icon v-else>
-                  <Close />
-                </el-icon>
-                {{ dict.label }}
-              </template>
-            </el-radio-button>
-          </el-radio-group>
-        </el-form-item>
+          <el-form-item label="状态">
+            <el-radio-group v-model="form.status" class="status-radio-group">
+              <el-radio-button v-for="dict in sys_normal_disable" :key="dict.value" :label="dict.value" class="status-radio">
+                <template #default>
+                  <el-icon v-if="dict.value === '0'" class="status-icon"><Check /></el-icon>
+                  <el-icon v-else class="status-icon"><Close /></el-icon>
+                  {{ dict.label }}
+                </template>
+              </el-radio-button>
+            </el-radio-group>
+          </el-form-item>
 
-        <el-form-item label="备注" prop="remark">
-          <el-input v-model="form.remark" type="textarea" placeholder="请输入内容" :rows="3" />
-        </el-form-item>
+          <el-form-item label="备注" prop="remark">
+            <el-input v-model="form.remark" type="textarea" placeholder="请输入内容" :rows="3" />
+          </el-form-item>
+        </div>
       </el-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button type="primary" @click="submitForm" :icon="Check">确 定</el-button>
-          <el-button type="danger" @click="cancel" :icon="Close">取 消</el-button>
+          <el-button type="primary" @click="submitForm" :icon="Check" round>确 定</el-button>
+          <el-button @click="cancel" :icon="Close" round>取 消</el-button>
         </div>
       </template>
     </el-dialog>
@@ -162,9 +150,11 @@
 import { listTags, getTags, delTags, addTags, updateTags, updateTagsRefNum, changeTagStatus } from "@/api/system/tags";
 import RefCountEditor from "@/components/RefCountEditor/index.vue";
 import { InfoFilled, Setting, Check, Close } from '@element-plus/icons-vue';
+import useTagsStore from "@/store/modules/tags";
 
 const { proxy } = getCurrentInstance();
 const { sys_normal_disable, sys_tag_order } = proxy.useDict("sys_normal_disable", "sys_tag_order");
+const tagsStore = useTagsStore();
 
 const tagsList = ref([]);
 const open = ref(false);
@@ -289,6 +279,8 @@ function handleRefNumConfirm(refNumber) {
     showUpdateRefNum.value = false;
     tagNumForm.value.refNumber = null;
     getList();
+    // 更新缓存
+    tagsStore.refreshTags();
   }).catch(() => {
     // 处理错误情况
   }).finally(() => {
@@ -305,12 +297,16 @@ function submitForm() {
           proxy.notify.success("修改成功");
           open.value = false;
           getList();
+          // 更新缓存
+          tagsStore.refreshTags();
         });
       } else {
         addTags(form.value).then(response => {
           proxy.notify.success("新增成功");
           open.value = false;
           getList();
+          // 更新缓存
+          tagsStore.refreshTags();
         });
       }
     }
@@ -325,6 +321,8 @@ function handleDelete(row) {
   }).then(() => {
     getList();
     proxy.notify.success("删除成功");
+    // 更新缓存
+    tagsStore.refreshTags();
   }).catch(() => { });
 }
 
@@ -335,6 +333,8 @@ function handleStatusChange(row) {
     return changeTagStatus(row.tagId, row.status);
   }).then(() => {
     proxy.notify.success(text + "成功");
+    // 更新缓存
+    tagsStore.refreshTags();
   }).catch(function () {
     row.status = row.status === "0" ? "1" : "0";
   });
@@ -354,36 +354,119 @@ getList();
   width: 100%;
 }
 
-.divider-title {
-  margin-left: 8px;
-  font-size: 15px;
+.mr-2 {
+  margin-right: 8px;
+}
+
+.mt-4 {
+  margin-top: 16px;
+}
+
+.dialog-content {
+  padding: 0 10px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  font-size: 16px;
   font-weight: 500;
+  color: var(--el-text-color-primary);
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
 }
 
-.el-divider {
-  margin: 16px 0;
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
 }
 
-.el-form-item {
-  margin-bottom: 20px;
+@media screen and (min-width: 768px) {
+  .form-row {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 .dialog-footer {
   display: flex;
   justify-content: center;
   gap: 16px;
+  padding-top: 10px;
 }
 
-.el-radio-button {
-  margin-right: 8px;
+.status-radio-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
-.el-textarea {
-  width: 100%;
+.status-radio {
+  margin-right: 0 !important;
+  border-radius: 4px;
 }
 
-.el-dialog {
+.status-icon {
+  margin-right: 4px;
+}
+
+:deep(.el-form-item) {
+  margin-bottom: 20px;
+}
+
+:deep(.el-form-item__label) {
+  font-weight: 500;
+}
+
+:deep(.el-input__wrapper),
+:deep(.el-textarea__inner),
+:deep(.el-select) {
+  box-shadow: 0 0 0 1px var(--el-border-color-light) inset;
+  border-radius: 6px;
+  transition: box-shadow 0.2s;
+}
+
+:deep(.el-input__wrapper:hover),
+:deep(.el-textarea__inner:hover),
+:deep(.el-select:hover) {
+  box-shadow: 0 0 0 1px var(--el-color-primary-light-5) inset;
+}
+
+:deep(.el-input__wrapper:focus-within),
+:deep(.el-textarea__inner:focus-within),
+:deep(.el-select:focus-within) {
+  box-shadow: 0 0 0 1px var(--el-color-primary) inset;
+}
+
+:deep(.el-radio-button__original-radio:checked + .el-radio-button__inner) {
+  background-color: var(--el-color-primary-light-8);
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary-light-5);
+  box-shadow: none;
+}
+
+:deep(.tag-dialog .el-dialog__header) {
+  padding: 20px 20px 10px;
+  margin: 0;
+  text-align: center;
+  font-weight: 600;
+  font-size: 18px;
+}
+
+:deep(.tag-dialog .el-dialog__body) {
+  padding: 15px 20px;
+}
+
+:deep(.tag-dialog .el-dialog__footer) {
+  padding: 10px 20px 20px;
+  border-top: 1px solid var(--el-border-color-lighter);
+}
+
+:deep(.tag-dialog .el-dialog) {
   border-radius: 8px;
   overflow: hidden;
+  box-shadow: 0 12px 32px 4px rgba(0, 0, 0, 0.1);
 }
 </style>

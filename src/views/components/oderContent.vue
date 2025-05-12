@@ -282,6 +282,7 @@ import { invoke } from '@tauri-apps/api/core';
 import PaymentDialog from "./PaymentDialog.vue";
 import DeliveryDialog from "./DeliveryDialog.vue";
 import { printReceipt } from '@/api/system/printer';
+import useTagsStore from "@/store/modules/tags";
 
 
 const props = defineProps({
@@ -554,42 +555,28 @@ function handleClothSelectionChange(selectedItems, row) {
 
 /* 初始化列表数据 */
 async function initList() {
-    const promises = [];
-
+    // 使用store中的tags缓存
+    const tagsStore = useTagsStore();
+    
     // 获取颜色列表
     if (colorList.value.length === 0) {
-        const colorPromise = listTagsNoLimit({ tagOrder: '003' }).then(response => {
-            colorList.value = response;
-        });
-        promises.push(colorPromise);
+        colorList.value = tagsStore.getTagsByOrder('003');
     }
 
     // 获取瑕疵列表
     if (flawList.value.length === 0) {
-        const flawPromise = listTagsNoLimit({ tagOrder: '001' }).then(response => {
-            flawList.value = response;
-        });
-        promises.push(flawPromise);
+        flawList.value = tagsStore.getTagsByOrder('001');
     }
 
     // 获取预估列表
     if (estimateList.value.length === 0) {
-        const estimatePromise = listTagsNoLimit({ tagOrder: '002' }).then(response => {
-            estimateList.value = response;
-        });
-        promises.push(estimatePromise);
+        estimateList.value = tagsStore.getTagsByOrder('002');
     }
 
     // 获取品牌列表
     if (brandList.value.length === 0) {
-        const brandPromise = listTagsNoLimit({ tagOrder: '004' }).then(response => {
-            brandList.value = response;
-        });
-        promises.push(brandPromise);
+        brandList.value = tagsStore.getTagsByOrder('004');
     }
-
-    // 等待所有异步操作完成防止衣物列表数据加载完后这里的数据没有准备好而出错
-    await Promise.all(promises);
 }
 
 /** 查询洗护服务订单列表 */

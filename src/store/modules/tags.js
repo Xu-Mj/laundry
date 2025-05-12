@@ -53,7 +53,7 @@ const useTagsStore = defineStore('tags', {
     },
     
     // 根据标签类型获取标签列表
-    getTagsByType(tagOrder) {
+    getTagsByOrder(tagOrder) {
       switch (tagOrder) {
         case '001':
           return this.flawList;
@@ -119,6 +119,18 @@ const useTagsStore = defineStore('tags', {
         return response;
       } catch (error) {
         console.error(`刷新${tagOrder}标签数据失败:`, error);
+        throw error;
+      }
+    },
+    
+    // 刷新所有类型的标签数据
+    async refreshTags() {
+      try {
+        this.resetCache();
+        await this.initTags();
+        console.log('所有标签数据已刷新');
+      } catch (error) {
+        console.error('刷新所有标签数据失败:', error);
         throw error;
       }
     },

@@ -13,36 +13,49 @@ const TRIAL_DAYS = 7
 const GUEST_TRIAL_DAYS = 2
 
 const useUserStore = defineStore('user', {
-  state: () => ({
-    token: getToken(),
-    id: '',          // 用户唯一标识
-    name: '',
-    account: '',
-    avatar: '',
-    user: null,
+  state: () => {
 
-    // 订阅系统状态
-    subscription: {
-      status: 'inactive', // active | inactive
-      expiryDate: null,
-      planType: 'free'
-    },
+    return {
+      token: getToken(),
+      id: '',          // 用户唯一标识
+      name: '',
+      account: '',
+      avatar: '',
+      user: null,
 
-    // 试用系统状态（运行时状态）
-    trial: {
-      isInTrial: false,
-      days: TRIAL_DAYS,
-      startTime: null,     // 动态加载
-      remainingDays: 0,
-      isGuest: false,
-      isExpired: false,
-    },
+      // 订阅系统状态 - 累积模式
+      subscription: {
+        isActive: false,       // 是否有有效订阅
+        latestExpiryDate: null, // 最新的过期日期
+        planType: 'free'       // 当前计划类型
+      },
 
-    // 其他业务状态
-    showWatermark: false,
-    allSubscriptions: [],
-    smsSub: null
-  }),
+      // 试用系统状态（运行时状态）
+      trial: {
+        isInTrial: false,
+        days: TRIAL_DAYS,
+        startTime: null,     // 动态加载
+        remainingDays: 0,
+        isGuest: false,
+        isExpired: false,
+      },
+
+      // 其他业务状态
+      showWatermark: false,
+      allSubscriptions: [],  // 所有订阅
+
+      // 短信订阅系统状态 - 累积模式
+      smsSub: {
+        isActive: false,
+        latestExpiryDate: null,
+        planType: 'free',
+        totalSmsCount: 0,
+        usedSmsCount: 0,
+        remainingSmsCount: 0
+      },
+      allSmsSubscriptions: [] // 所有短信订阅
+    }
+  },
 
   getters: {
     // 计算剩余试用天数
@@ -56,12 +69,12 @@ const useUserStore = defineStore('user', {
 
     // 是否显示水印
     shouldShowWatermark: (state) => {
-      return state.subscription.status !== 'active' && state.trial.isInTrial
+      return !state.subscription.isActive && state.trial.isInTrial
     },
 
     // 获取用户状态标签
     userStatus: (state) => {
-      if (state.subscription.status === 'active') return 'active'
+      if (state.subscription.isActive) return 'active'
       if (state.trial.isInTrial) return 'trial'
       return 'inactive'
     }
@@ -104,7 +117,7 @@ const useUserStore = defineStore('user', {
       this.trial.isInTrial = this.trial.remainingDays > 0
 
       // 订阅状态优先
-      if (this.subscription.status === 'active') {
+      if (this.subscription.isActive) {
         this.trial.isInTrial = false
       }
 
@@ -112,7 +125,7 @@ const useUserStore = defineStore('user', {
       // 更新到期状态
       this.trial.isExpired =
         this.trial.remainingDays <= 0 &&
-        this.subscription.status !== 'active'
+        !this.subscription.isActive
     },
 
     // 用户登录
@@ -137,6 +150,7 @@ const useUserStore = defineStore('user', {
     async getInfo() {
       try {
         const res = await getInfo()
+        console.log('API Response from getInfo:', res) // Debug log
         const user = res.user
 
         if (user) {
@@ -157,14 +171,33 @@ const useUserStore = defineStore('user', {
           // 加载试用数据
           await this.loadUserTrial()
 
-          // 处理订阅信息
-          if (res.subscription) {
-            this.updateSubscription(res.subscription)
+          // 处理订阅信息 - 累积模式
+          if (res.subscriptions && res.subscriptions.length > 0) {
+            this.updateSubscriptions(res.subscriptions)
+          }
+
+          // 处理短信订阅信息 - 累积模式
+          if (res.sms_subscriptions && res.sms_subscriptions.length > 0) {
+            this.updateSmsSubscriptions(res.sms_subscriptions)
+          } else {
+            // Initialize with default values instead of null
+            this.$patch({
+              smsSub: {
+                isActive: false,
+                latestExpiryDate: null,
+                planType: 'free',
+                totalSmsCount: 0,
+                usedSmsCount: 0,
+                remainingSmsCount: 0
+              },
+              allSmsSubscriptions: []
+            })
           }
         }
 
         return res
       } catch (error) {
+        console.error('Error in getInfo:', error) // Debug log
         throw error
       }
     },
@@ -188,15 +221,41 @@ const useUserStore = defineStore('user', {
       }
     },
 
-    // 更新订阅信息
-    updateSubscription(newSub) {
-      const isActive = newSub.expiryDate > Date.now()
+    // 更新订阅信息 - 累积模式
+    updateSubscriptions(subscriptions) {
+      // 存储所有订阅
+      this.allSubscriptions = subscriptions
 
+      // 找出最晚的过期日期
+      let latestExpiryDate = null
+      let isActive = false
+      let highestPlanType = 'free'
+
+      // 检查是否有任何有效订阅
+      const now = Date.now()
+      subscriptions.forEach(sub => {
+        // 如果订阅有效
+        if (sub.expiryDate > now) {
+          isActive = true
+
+          // 更新最晚过期日期
+          if (!latestExpiryDate || sub.expiryDate > latestExpiryDate) {
+            latestExpiryDate = sub.expiryDate
+          }
+
+          // 更新最高级别计划类型
+          if (sub.planType && (sub.planType === 'premium' || (sub.planType === 'standard' && highestPlanType === 'free'))) {
+            highestPlanType = sub.planType
+          }
+        }
+      })
+
+      // 更新订阅状态
       this.$patch({
         subscription: {
-          status: isActive ? 'active' : 'inactive',
-          expiryDate: newSub.expiryDate,
-          planType: newSub.planType || 'free'
+          isActive,
+          latestExpiryDate,
+          planType: isActive ? highestPlanType : 'free'
         }
       })
 
@@ -211,6 +270,61 @@ const useUserStore = defineStore('user', {
       }
 
       this.showWatermark = this.shouldShowWatermark
+    },
+
+    // 更新短信订阅信息 - 累积模式
+    updateSmsSubscriptions(smsSubscriptions) {
+
+      // 存储所有短信订阅
+      this.allSmsSubscriptions = smsSubscriptions
+
+      // 找出最晚的过期日期和计算累计短信数
+      let latestExpiryDate = null
+      let isActive = false
+      let highestPlanType = 'free'
+      let totalSmsCount = 0
+      let usedSmsCount = 0
+      let remainingSmsCount = 0
+
+      // 检查是否有任何有效订阅
+      const now = Date.now()
+      smsSubscriptions.forEach(sub => {
+        // 如果订阅有效
+        if (sub.expiryDate > now) {
+          isActive = true
+
+          // 更新最晚过期日期
+          if (!latestExpiryDate || sub.expiryDate > latestExpiryDate) {
+            latestExpiryDate = sub.expiryDate
+          }
+
+          // 更新最高级别计划类型
+          if (sub.plan && sub.plan.planType &&
+            (sub.plan.planType === 'Premium' ||
+              (sub.plan.planType === 'Standard' && highestPlanType === 'free'))) {
+            highestPlanType = sub.plan.planType
+          }
+
+          // 累加短信数量
+          totalSmsCount += sub.totalSmsCount || 0
+          usedSmsCount += sub.usedSmsCount || 0
+          remainingSmsCount += sub.remainingSmsCount || 0
+        }
+      })
+
+      // 更新短信订阅状态
+      const smsSubUpdate = {
+        isActive,
+        latestExpiryDate,
+        planType: isActive ? highestPlanType : 'free',
+        totalSmsCount,
+        usedSmsCount,
+        remainingSmsCount
+      }
+
+      this.$patch({
+        smsSub: smsSubUpdate
+      })
     },
 
     // 修改密码
@@ -233,6 +347,9 @@ const useUserStore = defineStore('user', {
 
         // 清除运行时状态
         removeToken()
+
+        // 保存当前状态，以便检查什么被重置了
+
         this.$reset()
 
         // 保留持久化存储数据
@@ -241,8 +358,19 @@ const useUserStore = defineStore('user', {
             startTime: null,
             isInTrial: false,
             remainingDays: 0
+          },
+
+          // 确保smsSub结构保持一致
+          smsSub: {
+            isActive: false,
+            latestExpiryDate: null,
+            planType: 'free',
+            totalSmsCount: 0,
+            usedSmsCount: 0,
+            remainingSmsCount: 0
           }
         })
+
       } catch (error) {
         throw error
       }

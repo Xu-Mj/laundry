@@ -1,24 +1,5 @@
 <template>
   <div class="subscription-management">
-    <div class="current-plan-info" v-if="subscriptionData.plan">
-      <h3>当前订阅计划</h3>
-      <el-descriptions :column="2" border>
-        <el-descriptions-item label="套餐名称">{{ subscriptionData.plan.name }}</el-descriptions-item>
-        <el-descriptions-item label="套餐类型">
-          {{ getSubscriptionTypeName(subscriptionData.plan.planType) }}
-        </el-descriptions-item>
-        <el-descriptions-item label="订阅周期">
-          {{ getPeriodText(subscriptionData.plan.period) }}
-        </el-descriptions-item>
-        <el-descriptions-item label="套餐价格">¥{{ subscriptionData.plan.price }}</el-descriptions-item>
-        <el-descriptions-item label="到期时间">
-          {{ formatDate(subscriptionData.expiryDate) }}
-        </el-descriptions-item>
-        <el-descriptions-item label="自动续费">
-          <el-switch v-model="subscriptionData.autoRenew" @change="handleAutoRenewChange" />
-        </el-descriptions-item>
-      </el-descriptions>
-    </div>
 
     <!-- 所有有效订阅列表 -->
     <div class="all-subscriptions" v-if="allSubscriptions.length > 0">
@@ -47,26 +28,33 @@
             {{ formatDate(row.expiryDate) }}
           </template>
         </el-table-column>
-        <el-table-column label="状态">
+        <el-table-column label="自动续费">
           <template #default="{ row }">
-            <el-tag :type="row.id === subscriptionData.id ? 'success' : 'info'">
-              {{ row.id === subscriptionData.id ? '当前激活' : '未激活' }}
-            </el-tag>
+            <el-switch v-model="row.autoRenew" @change="(val) => handleAutoRenewChange(row, val)" />
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="180">
+        <el-table-column label="操作" width="120">
           <template #default="{ row }">
-            <el-button v-if="row.id !== subscriptionData.id" type="primary" size="small"
-              @click="activateSubscription(row)">
-              设为当前
-            </el-button>
-            <el-button v-if="row.id !== subscriptionData.id" type="danger" size="small"
-              @click="confirmCancelSubscription(row)">
+            <el-button type="danger" size="small" @click="confirmCancelSubscription(row)">
               取消订阅
             </el-button>
           </template>
         </el-table-column>
       </el-table>
+
+      <!-- 累计到期时间 -->
+      <div class="expiry-info" v-if="latestExpiryDate">
+        <el-alert type="info" :closable="false">
+          <template #title>
+            <div class="expiry-alert-content">
+              <el-icon>
+                <Calendar />
+              </el-icon>
+              <span>订阅到期时间: {{ formatDate(latestExpiryDate) }}</span>
+            </div>
+          </template>
+        </el-alert>
+      </div>
     </div>
 
     <div class="available-plans">
@@ -114,9 +102,8 @@
               </template>
             </div>
 
-            <el-button type="primary" class="subscribe-btn" :disabled="isCurrentPlan(plan.id)"
-              @click="showSubscriptionDialog(plan)">
-              {{ isCurrentPlan(plan.id) ? '当前套餐' : '选择套餐' }}
+            <el-button type="primary" class="subscribe-btn" @click="showSubscriptionDialog(plan)">
+              订阅套餐
             </el-button>
           </el-card>
         </el-col>
@@ -136,32 +123,16 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Check } from '@element-plus/icons-vue';
+import { Check, Calendar } from '@element-plus/icons-vue';
 import { formatDate as formatDateUtil } from '@/utils/index';
 import { getAllPlans, getSubscription, saveSubscription, cancelSubscription as apiCancelSubscription } from '@/api/system/subscription';
 import useUserStore from '@/store/modules/user';
 import SubscriptionPayment from '@/components/SubscriptionPayment/index.vue';
 import SubscriptionCongrats from '@/components/SubscriptionCongrats/index.vue';
 
-const props = defineProps({
-  subscriptionData: {
-    type: Object,
-    required: true,
-    default: () => ({
-      id: null,
-      plan: null,
-      expiryDate: null,
-      autoRenew: false
-    })
-  },
-  // 新增属性，接收所有有效订阅
-  allSubscriptions: {
-    type: Array,
-    default: () => []
-  }
-});
-
-const emit = defineEmits(['subscription-updated', 'subscription-activated', 'subscription-cancelled']);
+const props = defineProps({  // 所有有效订阅  
+  allSubscriptions: { type: Array, default: () => [] }
+}); const emit = defineEmits(['subscription-updated', 'subscription-cancelled']);
 
 const { proxy } = getCurrentInstance();
 // 计算属性：所有有效订阅
@@ -171,6 +142,18 @@ const allSubscriptions = computed(() => {
   const subscriptions = props.allSubscriptions || [];
   // 限制最多显示20个订阅，防止可能的性能问题
   return Array.isArray(subscriptions) ? subscriptions.slice(0, 20) : [];
+});
+
+// 计算属性：所有订阅中最晚的到期日期
+const latestExpiryDate = computed(() => {
+  if (!allSubscriptions.value.length) return null;
+
+  // 找出所有订阅中最晚的到期日期
+  return allSubscriptions.value.reduce((latest, current) => {
+    if (!current.expiryDate) return latest;
+    const currentDate = new Date(current.expiryDate);
+    return !latest || currentDate > latest ? currentDate : latest;
+  }, null);
 });
 
 // 订阅套餐相关
@@ -286,36 +269,20 @@ const getFeaturesList = (features) => {
   }
 }
 
-// 判断是否为当前套餐
-const isCurrentPlan = (planId) => {
-  return props.subscriptionData.plan && props.subscriptionData.plan.id === planId
-}
+
 
 // 处理自动续费变更
-const handleAutoRenewChange = async () => {
+const handleAutoRenewChange = async (subscription, newValue) => {
   try {
     // 实际项目中应调用API更新自动续费状态
-    // await updateSubscription({ autoRenew: subscriptionData.value.autoRenew })
-    ElMessage.success(`自动续费已${props.subscriptionData.autoRenew ? '开启' : '关闭'}`)
+    // await updateSubscription({ id: subscription.id, autoRenew: newValue })
+    ElMessage.success(`自动续费已${newValue ? '开启' : '关闭'}`)
     // 通知父组件订阅已更新
     emit('subscription-updated');
   } catch (error) {
-    props.subscriptionData.autoRenew = !props.subscriptionData.autoRenew
+    subscription.autoRenew = !newValue;
     ElMessage.error('设置失败：' + (error.message || '未知错误'))
   }
-}
-
-// 激活指定订阅
-const activateSubscription = (subscription) => {
-  // 更新订阅状态为激活
-  const updatedSubscription = {
-    ...subscription,
-    status: 'Active'
-  };
-
-  // 通知父组件激活指定订阅
-  emit('subscription-activated', updatedSubscription);
-  ElMessage.success(`已将「${subscription.plan.name}」设为当前激活订阅`);
 }
 
 // 确认取消订阅
@@ -354,11 +321,25 @@ const cancelSubscription = (subscription) => {
   height: 100%;
 }
 
-.current-plan-info {
+.all-subscriptions {
   margin-bottom: 32px;
 }
 
-.current-plan-info h3,
+.expiry-info {
+  margin-top: 16px;
+}
+
+.expiry-alert-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.expiry-alert-content .el-icon {
+  color: #409eff;
+}
+
+.all-subscriptions h3,
 .available-plans h3 {
   font-size: 18px;
   font-weight: 600;

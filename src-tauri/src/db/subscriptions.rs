@@ -148,25 +148,6 @@ impl Subscription {
         Ok(result.rows_affected() > 0)
     }
 
-    // 根据用户ID获取有效的订阅
-    pub async fn get_active_by_user_id(pool: &Pool<Sqlite>, user_id: i64) -> Result<Option<Self>> {
-        let now = utils::get_timestamp();
-        let subscription = sqlx::query_as(
-            r#"
-            SELECT sup.*, sp.* FROM subscriptions sup
-            JOIN subscription_plans sp ON sup.plan_id = sp.id
-            WHERE sup.store_id = ? AND sup.expiry_date > ? AND sup.status = 'Active'
-            ORDER BY sup.expiry_date DESC LIMIT 1
-            "#,
-        )
-        .bind(user_id)
-        .bind(now)
-        .fetch_optional(pool)
-        .await?;
-
-        Ok(subscription)
-    }
-
     // 获取用户的所有有效订阅
     pub async fn get_all_active_by_user_id(pool: &Pool<Sqlite>, user_id: i64) -> Result<Vec<Self>> {
         let now = utils::get_timestamp();
@@ -175,7 +156,7 @@ impl Subscription {
             SELECT sup.*, sp.* FROM subscriptions sup
             JOIN subscription_plans sp ON sup.plan_id = sp.id
             WHERE sup.store_id = ? AND sup.expiry_date > ? AND sup.status = 'Active'
-            ORDER BY sup.expiry_date DESC
+            ORDER BY sup.created_at DESC
             "#,
         )
         .bind(user_id)
@@ -231,15 +212,4 @@ pub async fn update_subscription(
 ) -> Result<bool> {
     subscription.validate()?;
     subscription.update(&state.pool).await
-}
-
-#[tauri::command]
-pub async fn get_active_by_user_id(state: State<'_, AppState>) -> Result<Option<Subscription>> {
-    let user = state.get_user_info().await;
-    if let Some(user) = user {
-        if let Some(id) = user.id {
-            return Subscription::get_active_by_user_id(&state.pool, id).await;
-        }
-    }
-    Ok(None)
 }

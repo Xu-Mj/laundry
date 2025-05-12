@@ -264,7 +264,6 @@ fn handle_command<R: Runtime>(invoke: Invoke<R>) -> bool {
         subscriptions::create_subscription,
         subscriptions::update_subscription,
         subscriptions::get_user_subscriptions,
-        subscriptions::get_active_by_user_id,
         // tours
         user_tours::update_tour_guide,
         user_tours::check_tour_completed,

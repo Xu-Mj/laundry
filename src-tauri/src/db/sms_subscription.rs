@@ -183,20 +183,26 @@ impl SmsSubscription {
         Ok(result)
     }
 
-    /// 获取商家当前有效的短信订阅
-    pub async fn get_active_subscription(
+    /// 获取商家所有有效的短信订阅
+    pub async fn get_all_active_by_user_id(
         pool: &Pool<Sqlite>,
         store_id: i64,
-    ) -> Result<Option<SmsSubscription>> {
-        let subscription = sqlx::query_as(
-            "SELECT * FROM sms_subscriptions 
-            WHERE store_id = $1 AND status = 'Active' 
-            ORDER BY expiry_date DESC LIMIT 1",
+    ) -> Result<Vec<SmsSubscription>> {
+        let now = utils::get_timestamp();
+
+        let subscriptions = sqlx::query_as(
+            r#"
+            SELECT s.*, p.* FROM sms_subscriptions s
+            LEFT JOIN sms_plans p ON s.plan_id = p.id
+            WHERE s.store_id = ? AND s.expiry_date > ? AND s.status = 'Active'
+            ORDER BY s.expiry_date DESC
+            "#,
         )
         .bind(store_id)
-        .fetch_optional(pool)
+        .bind(now)
+        .fetch_all(pool)
         .await?;
 
-        Ok(subscription)
+        Ok(subscriptions)
     }
 }

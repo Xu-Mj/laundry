@@ -34,7 +34,7 @@ const showExpiredOverlay = computed(() => {
     }
     // 当试用期结束且没有激活订阅时显示
     return userStore.trial.remainingDays <= 0 &&
-        userStore.subscription.status !== 'active';
+        !userStore.subscription.isActive;
 });
 
 // 根据用户类型显示不同的消息

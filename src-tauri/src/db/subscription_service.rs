@@ -45,47 +45,6 @@ pub struct Subscription {
     pub plan: Option<SubscriptionPlan>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CreateSubscriptionRequest {
-    pub store_id: i64,
-    pub plan_id: i64,
-    pub auto_renew: bool,
-    pub promo_code: Option<String>,
-    pub is_first_year_free: bool,
-    pub payment_id: Option<i64>,
-    pub remark: Option<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct UpdateSubscriptionRequest {
-    pub id: i64,
-    pub plan_id: Option<i64>,
-    pub auto_renew: Option<bool>,
-    pub status: Option<String>,
-    pub cancellation_reason: Option<String>,
-    pub remark: Option<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct SubsAndPlans {
-    pub subs: Vec<Subscription>,
-    pub plans: Vec<SubscriptionPlan>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct PageResult<T> {
-    pub total: u64,
-    pub rows: Vec<T>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct PageParams {
-    pub page_size: i64,
-    pub page: i64,
-}
-
 // Forward requests to the backend API
 #[tauri::command]
 pub async fn get_all_plans(state: State<'_, AppState>) -> Result<Vec<SubscriptionPlan>> {

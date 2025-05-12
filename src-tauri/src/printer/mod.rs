@@ -592,6 +592,6 @@ pub async fn print_receipt(state: State<'_, AppState>, order: PrintReceiptReq) -
         .print_file(&file_name, None)
         .map_err(|e| Error::with_details(ErrorKind::PrintError, e))?;
     tracing::debug!("print complete, deleting file: {}", file_name);
-    // std::fs::remove_file(file_name)?;
+    std::fs::remove_file(file_name)?;
     Ok(())
 }

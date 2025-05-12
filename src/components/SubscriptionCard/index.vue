@@ -1,76 +1,55 @@
 <template>
-  <el-card class="subscription-card" shadow="hover">
-    <template #header>
-      <div class="s-card-header">
-        <span>{{ title }}</span>
-        <el-tag v-if="activeSubscription && activeSubscription.plan" 
-          :type="getSubscriptionTagType(activeSubscription.plan.planType)"
-          effect="dark" size="small">
-          {{ getSubscriptionTypeName(activeSubscription.plan.planType) }}
-        </el-tag>
-      </div>
+  <el-card class="subscription-card" shadow="hover"> <template #header>
+      <div class="s-card-header"> <span>{{ title }}</span> </div>
     </template>
 
     <!-- 有订阅时的展示 -->
     <template v-if="hasSubscriptions">
-      <!-- 当前激活的订阅信息 -->
+      <!-- 订阅总览信息 -->
       <div class="subscription-info">
-        <h3 class="plan-name">{{ activeSubscription.plan.name }}</h3>
-        <div class="plan-price">
-          <span class="price">¥{{ activeSubscription.plan.price }}</span>
-          <span class="period">/ {{ getPeriodText(activeSubscription.plan.period) }}</span>
-        </div>
+        <h3 class="subscription-title">有效订阅</h3>
 
-        <div class="plan-features" v-if="activeSubscription.plan.features">
-          <div v-for="(feature, index) in getFeaturesList(activeSubscription.plan.features)" :key="index"
-            class="feature-item">
-            <el-icon>
-              <Check />
-            </el-icon>
-            <span>{{ feature }}</span>
-          </div>
-        </div>
-
-        <div class="subscription-footer">
-          <div class="expiry-info-container">
-            <div class="expiry-info">
-              <el-icon>
-                <Calendar />
-              </el-icon>
-              <span>当前订阅到期: {{ formatDate(activeSubscription.expiryDate) }}</span>
-            </div>
-            <div class="expiry-info total-expiry" v-if="latestExpiryDate && props.subscriptions.length > 1">
-              <el-icon>
-                <Calendar />
-              </el-icon>
-              <span>总体到期时间: {{ formatDate(latestExpiryDate) }}</span>
-            </div>
-          </div>
-          <div>
-            <el-button type="primary" plain size="small" @click="handleRenew">续费</el-button>
-            <el-button type="success" plain size="small" @click="handleUpgrade">升级</el-button>
-          </div>
-        </div>
-      </div>
-
-      <!-- 多订阅切换区域 -->
-      <div v-if="subscriptions.length > 1" class="subscription-switcher">
-        <div class="switcher-header">
-          <el-divider content-position="left">其他可用订阅</el-divider>
-        </div>
         <div class="subscription-list">
-          <div v-for="(sub, index) in otherSubscriptions" :key="index" class="subscription-item">
+          <div v-for="(sub, index) in subscriptions" :key="index" class="subscription-item">
             <div class="subscription-item-info">
               <div class="item-name">{{ sub.plan.name }}</div>
               <el-tag size="small" effect="plain" :type="getSubscriptionTypeTag(sub.plan.planType)">
                 {{ getSubscriptionTypeName(sub.plan.planType) }}
               </el-tag>
             </div>
-            <div class="subscription-item-expiry">到期: {{ formatDate(sub.expiryDate) }}</div>
-            <el-button type="primary" size="small" @click="activateSubscription(sub)">设为当前</el-button>
+            <div class="subscription-details">
+              <div class="plan-price">
+                <span class="price">¥{{ sub.plan.price }}</span>
+                <span class="period">/ {{ getPeriodText(sub.plan.period) }}</span>
+              </div>
+              <div class="subscription-item-expiry">到期: {{ formatDate(sub.expiryDate) }}</div>
+            </div>
+
+            <div class="plan-features" v-if="sub.plan.features">
+              <div v-for="(feature, index) in getFeaturesList(sub.plan.features)" :key="index" class="feature-item">
+                <el-icon>
+                  <Check />
+                </el-icon>
+                <span>{{ feature }}</span>
+              </div>
+            </div>
           </div>
         </div>
+
+        <div class="subscription-footer">
+          <div class="expiry-info-container">
+            <div class="expiry-info total-expiry">
+              <el-icon>
+                <Calendar />
+              </el-icon>
+              <span>订阅到期时间: {{ formatDate(latestExpiryDate) }}</span>
+            </div>
+          </div>
+          <div> <el-button type="primary" plain size="small" @click="handleSubscribe">添加订阅</el-button> </div>
+        </div>
       </div>
+
+
     </template>
 
     <!-- 无订阅时的展示 -->
@@ -83,77 +62,28 @@
 </template>
 
 <script setup>
-import { formatDate as formatDateUtil } from '@/utils/index';
-import { ElMessage } from 'element-plus';
-import { Check, Calendar } from '@element-plus/icons-vue';
+import { formatDate as formatDateUtil } from '@/utils/index'; import { Check, Calendar } from '@element-plus/icons-vue';
 
 const props = defineProps({
-  title: {
-    type: String,
-    default: '当前订阅'
-  },
-  // 当前激活的订阅数据
-  subscriptionData: {
-    type: Object,
-    required: true,
-    default: () => ({
-      id: null,
-      plan: null,
-      expiryDate: null,
-      autoRenew: false
-    })
-  },
-  // 所有有效订阅列表
-  subscriptions: {
-    type: Array,
-    default: () => []
-  }
+  title: { type: String, default: '我的订阅' },
+  // 所有有效订阅列表  
+  subscriptions: { type: Array, default: () => [] }
 });
-console.log(props);
 
-const emit = defineEmits(['renew', 'upgrade', 'subscribe', 'subscription-activated']);
+
+const emit = defineEmits(['subscribe']);
 
 // 计算属性：是否有订阅
-const hasSubscriptions = computed(() => {
-  return props.subscriptions && props.subscriptions.length > 0;
-});
-
-// 计算属性：当前激活的订阅
-const activeSubscription = computed(() => {
-  // 如果有传入subscriptionData且有plan，则使用subscriptionData
-  if (props.subscriptionData && props.subscriptionData.plan) {
-    return props.subscriptionData;
-  }
-  
-  // 否则从subscriptions中找到第一个有效订阅
-  if (hasSubscriptions.value) {
-    return props.subscriptions[0];
-  }
-  
-  // 如果没有任何订阅，返回空对象
-  return { plan: null, expiryDate: null };
-});
-
-console.log(activeSubscription);
-// 计算属性：其他可用订阅（排除当前激活的）
-const otherSubscriptions = computed(() => {
-  if (!hasSubscriptions.value) return [];
-  
-  return props.subscriptions.filter(sub => {
-    return sub.id !== activeSubscription.value.id;
-  });
-});
+const hasSubscriptions = computed(() => Array.isArray(props.subscriptions) && props.subscriptions.length > 0);
 
 // 计算属性：所有订阅的最晚到期时间
 const latestExpiryDate = computed(() => {
   if (!hasSubscriptions.value) return null;
-  
-  // 找出所有订阅中最晚的到期时间
-  return props.subscriptions.reduce((latest, sub) => {
-    if (!sub.expiryDate) return latest;
-    
-    const currentExpiry = new Date(sub.expiryDate).getTime();
-    return !latest || currentExpiry > latest ? currentExpiry : latest;
+
+  // 找出所有订阅中最晚的到期日期
+  return props.subscriptions.reduce((latest, current) => {
+    const currentDate = new Date(current.expiryDate);
+    return !latest || currentDate > latest ? currentDate : latest;
   }, null);
 });
 
@@ -168,21 +98,9 @@ const getSubscriptionTypeName = (type) => {
   return typeMap[type] || type
 }
 
-// 获取订阅标签类型
-const getSubscriptionTagType = (type) => {
-  const typeMap = {
-    'Standard': 'info',
-    'Premium': 'success',
-    'Enterprise': 'warning',
-    'Custom': 'danger'
-  }
-  return typeMap[type] || 'info'
-}
 
-// 获取订阅类型对应的标签类型（用于列表项）
-const getSubscriptionTypeTag = (type) => {
-  return getSubscriptionTagType(type);
-}
+
+// 获取订阅类型对应的标签类型const getSubscriptionTypeTag = (type) => {  const typeMap = {    'Standard': 'info',    'Premium': 'success',    'Enterprise': 'warning',    'Custom': 'danger'  }  return typeMap[type] || 'info'}
 
 // 获取周期文本
 const getPeriodText = (period) => {
@@ -211,28 +129,9 @@ const getFeaturesList = (features) => {
   }
 }
 
-// 激活指定订阅
-const activateSubscription = (subscription) => {
-  // 更新订阅状态为激活
-  const updatedSubscription = {
-    ...subscription,
-    status: 'Active'
-  };
-  
-  // 通知父组件激活指定订阅
-  emit('subscription-activated', updatedSubscription);
-  ElMessage.success(`已将「${subscription.plan.name}」设为当前激活订阅`);
-}
 
-// 处理续费
-const handleRenew = () => {
-  emit('renew');
-}
 
-// 处理升级
-const handleUpgrade = () => {
-  emit('upgrade');
-}
+
 
 // 处理订阅
 const handleSubscribe = () => {
@@ -257,10 +156,45 @@ const handleSubscribe = () => {
   padding: 1rem 0;
 }
 
-.plan-name {
+.subscription-title {
   font-size: 18px;
   font-weight: 600;
   margin: 0 0 12px;
+}
+
+.subscription-list {
+  margin-bottom: 1rem;
+}
+
+.subscription-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem;
+  border-radius: 6px;
+  background-color: var(--el-fill-color-light);
+  transition: all 0.2s;
+}
+
+.subscription-item:hover {
+  background-color: var(--el-fill-color);
+}
+
+.subscription-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.item-name {
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.subscription-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
 }
 
 .plan-price {
@@ -276,6 +210,11 @@ const handleSubscribe = () => {
 .period {
   font-size: 14px;
   color: #909399;
+}
+
+.subscription-item-expiry {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
 }
 
 .plan-features {
@@ -387,13 +326,13 @@ const handleSubscribe = () => {
     margin-top: 8px;
     margin-left: 0 !important;
   }
-  
+
   .subscription-item {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.5rem;
   }
-  
+
   .subscription-item .el-button {
     width: 100%;
   }

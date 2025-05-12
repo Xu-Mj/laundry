@@ -1,33 +1,65 @@
 <template>
   <div class="sms-subscription-management">
-    <div class="current-plan-info" v-if="smsSubscriptionData.plan">
-      <h3>当前短信订阅计划</h3>
-      <el-descriptions :column="2" border>
-        <el-descriptions-item label="套餐名称">{{ smsSubscriptionData.plan.name }}</el-descriptions-item>
-        <el-descriptions-item label="套餐类型">
-          {{ getSmsSubscriptionTypeName(smsSubscriptionData.plan.planType) }}
-        </el-descriptions-item>
-        <el-descriptions-item label="订阅周期">
-          {{ getPeriodText(smsSubscriptionData.plan.period) }}
-        </el-descriptions-item>
-        <el-descriptions-item label="套餐价格">¥{{ smsSubscriptionData.plan.price }}</el-descriptions-item>
-        <el-descriptions-item label="到期时间">
-          {{ formatDate(smsSubscriptionData.expiryDate) }}
-        </el-descriptions-item>
-        <el-descriptions-item label="自动续费">
-          <el-switch v-model="smsSubscriptionData.autoRenew" @change="handleAutoRenewChange" />
-        </el-descriptions-item>
-      </el-descriptions>
+    <!-- 所有有效短信订阅列表 -->
+    <div class="all-sms-subscriptions" v-if="allSmsSubscriptions.length > 0">
+      <h3>所有有效短信订阅</h3>
+      <el-table :data="allSmsSubscriptions" style="width: 100%" border>
+        <el-table-column prop="plan.name" label="套餐名称" />
+        <el-table-column label="套餐类型">
+          <template #default="{ row }">
+            <el-tag :type="getSmsSubscriptionTypeTag(row.plan.planType)" effect="plain">
+              {{ getSmsSubscriptionTypeName(row.plan.planType) }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="短信数量">
+          <template #default="{ row }">
+            <div>总量: {{ row.totalSmsCount }} 条</div>
+            <div>剩余: {{ row.remainingSmsCount }} 条</div>
+          </template>
+        </el-table-column>
+        <el-table-column label="到期时间">
+          <template #default="{ row }">
+            {{ formatDate(row.expiryDate) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="自动续费">
+          <template #default="{ row }">
+            <el-switch v-model="row.autoRenew" @change="(val) => handleAutoRenewChange(row, val)" />
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="120">
+          <template #default="{ row }">
+            <el-button type="danger" size="small" @click="confirmCancelSubscription(row)">
+              取消订阅
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
 
-      <!-- 短信使用情况 -->
+      <!-- 累计短信使用情况 -->
       <div class="sms-usage-info">
-        <h3>短信使用情况</h3>
+        <h3>累计短信使用情况</h3>
         <el-progress :percentage="getSmsUsagePercentage()" :format="formatSmsUsage" :stroke-width="18" />
         <div class="sms-count-info">
-          <span>总短信条数: {{ smsSubscriptionData.totalSmsCount }}</span>
-          <span>已使用: {{ smsSubscriptionData.usedSmsCount }}</span>
-          <span>剩余: {{ smsSubscriptionData.remainingSmsCount }}</span>
+          <span>总短信条数: {{ getTotalSmsCount() }}</span>
+          <span>已使用: {{ getUsedSmsCount() }}</span>
+          <span>剩余: {{ getRemainingSmsCount() }}</span>
         </div>
+      </div>
+
+      <!-- 累计到期时间 -->
+      <div class="expiry-info" v-if="getLatestExpiryDate()">
+        <el-alert type="info" :closable="false">
+          <template #title>
+            <div class="expiry-alert-content">
+              <el-icon>
+                <Calendar />
+              </el-icon>
+              <span>最新订阅到期时间: {{ formatDate(getLatestExpiryDate()) }}</span>
+            </div>
+          </template>
+        </el-alert>
       </div>
     </div>
 
@@ -79,9 +111,8 @@
               </div>
             </div>
 
-            <el-button type="primary" class="subscribe-btn" :disabled="isCurrentPlan(plan.id)"
-              @click="showSmsSubscriptionDialog(plan)">
-              {{ isCurrentPlan(plan.id) ? '当前套餐' : '选择套餐' }}
+            <el-button type="primary" class="subscribe-btn" @click="showSmsSubscriptionDialog(plan)">
+              订阅套餐
             </el-button>
           </el-card>
         </el-col>
@@ -99,30 +130,19 @@
 </template>
 
 <script setup>
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import { formatDate as formatDateUtil } from '@/utils/index';
-import { getSmsPlans, getSubscription, saveSubscription } from '@/api/system/subscription';
+import { getSmsPlans, getSubscription, saveSubscription, cancelSubscription as apiCancelSubscription } from '@/api/system/subscription';
 import useUserStore from '@/store/modules/user';
 import SmsSubscriptionPayment from '@/components/SmsSubscriptionPayment/index.vue';
 import SubscriptionCongrats from '@/components/SubscriptionCongrats/index.vue';
 
 const props = defineProps({
-  smsSubscriptionData: {
-    type: Object,
-    required: true,
-    default: () => ({
-      plan: null,
-      expiryDate: null,
-      autoRenew: false,
-      totalSmsCount: 0,
-      usedSmsCount: 0,
-      remainingSmsCount: 0,
-      status: 'Active'
-    })
-  }
+  // 所有有效短信订阅  
+  allSmsSubscriptions: { type: Array, default: () => [] }
 });
 
-const emit = defineEmits(['subscription-updated']);
+const emit = defineEmits(['subscription-updated', 'subscription-cancelled']);
 
 const { proxy } = getCurrentInstance();
 
@@ -197,6 +217,17 @@ const getSmsSubscriptionTypeName = (type) => {
   return typeMap[type] || type
 }
 
+// 获取订阅类型对应的标签类型
+const getSmsSubscriptionTypeTag = (type) => {
+  const tagMap = {
+    'Standard': 'info',
+    'Premium': 'success',
+    'Enterprise': 'warning',
+    'Custom': 'danger'
+  }
+  return tagMap[type] || 'info'
+}
+
 // 获取周期文本
 const getPeriodText = (period) => {
   const periodMap = {
@@ -224,28 +255,81 @@ const getFeaturesList = (features) => {
   }
 }
 
-// 判断是否为当前套餐
-const isCurrentPlan = (planId) => {
-  return props.smsSubscriptionData.plan && props.smsSubscriptionData.plan.id === planId
+// 获取最晚到期日期
+const getLatestExpiryDate = () => {
+  if (!props.allSmsSubscriptions.length) return null;
+  
+  return props.allSmsSubscriptions.reduce((latest, sub) => {
+    if (!sub.expiryDate) return latest;
+    return !latest || sub.expiryDate > latest ? sub.expiryDate : latest;
+  }, null);
+}
+
+// 获取总短信条数
+const getTotalSmsCount = () => {
+  if (!props.allSmsSubscriptions.length) return 0;
+  return props.allSmsSubscriptions.reduce((total, sub) => total + (sub.totalSmsCount || 0), 0);
+}
+
+// 获取已使用短信条数
+const getUsedSmsCount = () => {
+  if (!props.allSmsSubscriptions.length) return 0;
+  return props.allSmsSubscriptions.reduce((total, sub) => total + (sub.usedSmsCount || 0), 0);
+}
+
+// 获取剩余短信条数
+const getRemainingSmsCount = () => {
+  if (!props.allSmsSubscriptions.length) return 0;
+  return props.allSmsSubscriptions.reduce((total, sub) => total + (sub.remainingSmsCount || 0), 0);
 }
 
 // 处理自动续费变更
-const handleAutoRenewChange = async () => {
+const handleAutoRenewChange = async (subscription, newValue) => {
   try {
     // 实际项目中应调用API更新自动续费状态
-    ElMessage.success(`自动续费已${props.smsSubscriptionData.autoRenew ? '开启' : '关闭'}`)
+    ElMessage.success(`自动续费已${newValue ? '开启' : '关闭'}`);
     // 通知父组件订阅已更新
     emit('subscription-updated');
   } catch (error) {
-    props.smsSubscriptionData.autoRenew = !props.smsSubscriptionData.autoRenew
+    subscription.autoRenew = !newValue;
     ElMessage.error('设置失败：' + (error.message || '未知错误'))
   }
 }
 
+// 确认取消订阅
+const confirmCancelSubscription = (subscription) => {
+  ElMessageBox.confirm(
+    `确定要取消「${subscription.plan.name}」订阅吗？取消后将无法恢复。`,
+    '取消订阅',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    }
+  ).then(() => {
+    cancelSubscription(subscription);
+  }).catch(() => {
+    // 用户取消操作
+  });
+}
+
+// 取消订阅
+const cancelSubscription = (subscription) => {
+  // 调用取消订阅API
+  apiCancelSubscription(subscription.id, '用户主动取消').then(() => {
+    ElMessage.success('订阅已成功取消');
+    // 通知父组件订阅已取消
+    emit('subscription-cancelled', subscription.id);
+  }).catch(error => {
+    ElMessage.error('取消订阅失败：' + (error.message || '未知错误'));
+  });
+}
+
 // 获取短信使用百分比
 const getSmsUsagePercentage = () => {
-  if (!props.smsSubscriptionData.totalSmsCount) return 0;
-  return Math.round((props.smsSubscriptionData.usedSmsCount / props.smsSubscriptionData.totalSmsCount) * 100);
+  const total = getTotalSmsCount();
+  if (!total) return 0;
+  return Math.min(100, Math.round((getUsedSmsCount() / total) * 100));
 }
 
 // 格式化短信使用情况
@@ -255,16 +339,44 @@ const formatSmsUsage = (percentage) => {
 </script>
 
 <style scoped>
-.subscription-management {
+.sms-subscription-management {
   padding: 16px 0;
   height: 100%;
 }
 
-.current-plan-info {
+.all-sms-subscriptions {
   margin-bottom: 32px;
 }
 
-.current-plan-info h3,
+.sms-usage-info {
+  margin-top: 16px;
+  margin-bottom: 16px;
+}
+
+.sms-count-info {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-size: 12px;
+  color: #606266;
+}
+
+.expiry-info {
+  margin-top: 16px;
+}
+
+.expiry-alert-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.expiry-alert-content .el-icon {
+  color: #409eff;
+}
+
+.all-sms-subscriptions h3,
+.sms-usage-info h3,
 .available-plans h3 {
   font-size: 18px;
   font-weight: 600;
@@ -369,6 +481,11 @@ const formatSmsUsage = (percentage) => {
   .subscription-footer .el-button {
     margin-top: 8px;
     margin-left: 0 !important;
+  }
+  
+  .sms-count-info {
+    flex-direction: column;
+    gap: 4px;
   }
 }
 </style>

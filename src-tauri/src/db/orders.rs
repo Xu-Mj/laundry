@@ -983,16 +983,6 @@ impl Order {
 
         tracing::debug!("支付请求信息: {:?}", payment_req);
 
-        #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-        struct OrderWithPayment {
-            order: Order,
-            payment: Payment,
-        }
-
-        impl Request for Vec<OrderWithPayment> {
-            const URL: &'static str = "/orders/payment";
-        }
-
         let mut orders_with_payments = Vec::with_capacity(orders.len());
         // 如果是扫码支付，调用相应的支付接口
         if is_qr_code_payment {
@@ -1765,6 +1755,16 @@ impl Order {
 
         Ok(())
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+struct OrderWithPayment {
+    order: Order,
+    payment: Payment,
+}
+
+impl Request for Vec<OrderWithPayment> {
+    const URL: &'static str = "/orders/payment";
 }
 
 #[tauri::command]

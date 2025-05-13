@@ -51,7 +51,7 @@ export const constantRoutes = [
     ]
   },
   {
-    path: '/coupon',
+    path: '/system/coupon',
     component: Layout,
     children: [
       {
@@ -111,7 +111,7 @@ export const constantRoutes = [
     ]
   },
   {
-    path: '/order-list',
+    path: '/system/order-list',
     component: Layout,
     children: [
       {

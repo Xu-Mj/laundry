@@ -88,8 +88,8 @@
                         <el-form-item size="large" label="衣挂方式">
                             <el-radio-group size="large" v-model="form.clothInfo.hangType">
                                 <el-radio :value="'1'">输送线</el-radio>
+                                <el-radio :value="'3'">鞋柜</el-radio>
                                 <el-radio :value="'2'">其他</el-radio>
-                                <!-- <el-radio :value="'2'">鞋柜</el-radio> -->
                             </el-radio-group>
                         </el-form-item>
                     </div>

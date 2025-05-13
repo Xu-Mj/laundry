@@ -22,7 +22,8 @@
         <el-table-column label="架子类型" align="center" prop="rackType">
           <template #default="scope">
             <el-tag v-if="scope.row.rackType == 1">输送线</el-tag>
-            <el-tag v-if="scope.row.rackType == 2">其他</el-tag>
+            <el-tag v-else-if="scope.row.rackType == 3">鞋柜</el-tag>
+            <el-tag v-else>其他</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="容量" align="center" prop="capacity" />
@@ -59,6 +60,7 @@
             <el-form-item label="类型" prop="rackType">
               <el-radio-group v-model="form.rackType">
                 <el-radio :value="'1'">输送线</el-radio>
+                <el-radio value="3">鞋柜</el-radio>
                 <el-radio :value="'2'">其他</el-radio>
               </el-radio-group>
             </el-form-item>

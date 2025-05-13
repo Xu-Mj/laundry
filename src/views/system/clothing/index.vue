@@ -199,6 +199,7 @@
                 <el-form-item label="挂衣方式" prop="hangType">
                   <el-radio-group size="large" v-model="form.hangType">
                     <el-radio :value="'1'">输送线</el-radio>
+                    <el-radio :value="'3'">鞋柜</el-radio>
                     <el-radio :value="'2'">其他</el-radio>
                   </el-radio-group>
                 </el-form-item>

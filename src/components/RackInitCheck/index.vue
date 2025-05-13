@@ -41,8 +41,8 @@
                         <el-form-item :label="'架子类型'" :prop="`racks.${index}.rackType`">
                             <el-radio-group v-model="rack.rackType">
                                 <el-radio value="1">输送线</el-radio>
-                                <el-radio value="2">其他</el-radio>
                                 <el-radio value="3">鞋柜</el-radio>
+                                <el-radio value="2">其他</el-radio>
                             </el-radio-group>
                         </el-form-item>
                         <el-form-item :label="'容量'" :prop="`racks.${index}.capacity`">

@@ -50,19 +50,19 @@
                 <Location />
               </el-icon>
               <span class="info-label">店铺地址:</span>
-              <span class="info-value">{{ profileData.province + '·' + profileData.city + '·' + profileData.district +
-                '·' + profileData.addressDetail }}</span>
+              <span class="info-value">{{ profileData.province + '·' + profileData.city + '·' + profileData.district + '·' + profileData.addressDetail }}</span>
             </div>
           </div>
         </el-card>
 
         <!-- 订阅信息卡片 -->
-        <SubscriptionCard title="当前订阅" :subscriptions="allSubscriptions"
-          @subscribe="handleSubscribe" />
+        <SubscriptionCard title="当前订阅" :subscription-data="subscriptionData" :subscriptions="allSubscriptions"
+          @renew="handleRenewSubscription" @upgrade="handleUpgradeSubscription" @subscribe="handleSubscribe" />
 
         <!-- 短信订阅信息卡片 -->
-        <SmsSubscriptionCard title="短信订阅" :sms-subscription-data="smsSubscriptionData" @subscribe="handleSmsSubscribe"
-          @add-subscription="handleSmsSubscribe" class="mt-20" />
+        <SmsSubscriptionCard title="短信订阅" :sms-subscription-data="smsSubscriptionData"
+          @renew="handleRenewSmsSubscription" @upgrade="handleUpgradeSmsSubscription" @subscribe="handleSmsSubscribe"
+          class="mt-20" />
       </el-col>
 
       <!-- 右侧内容区域 -->
@@ -94,10 +94,10 @@
 
             <!-- 订阅管理标签页 -->
             <el-tab-pane label="订阅管理" name="subscription">
-              <SubscriptionManagement :all-subscriptions="allSubscriptions" />
+              <SubscriptionManagement :subscription-data="subscriptionData" :all-subscriptions="allSubscriptions" />
             </el-tab-pane>
             <el-tab-pane label="短信订阅管理" name="subscription-sms">
-              <SmsSubscriptionManagement :all-sms-subscriptions="smsSubscriptionData" />
+              <SmsSubscriptionManagement :subscription-data="subscriptionData" />
             </el-tab-pane>
           </el-tabs>
         </el-card>
@@ -182,9 +182,12 @@ const handleStatusChanged = (type, isActive) => {
   }
 }
 
+// 订阅数据
+const subscriptionData = ref(userStore.allSubscriptions.length > 0 ? userStore.allSubscriptions[0] : {})
+
 // 短信订阅数据
-const smsSubscriptionData = ref(userStore.allSmsSubscriptions || [])
-const allSubscriptions = ref(userStore.allSubscriptions || []);
+const smsSubscriptionData = ref(userStore.smsSub || {})
+const allSubscriptions = ref(userStore.allSubscriptions);
 
 // 获取个人信息和配置
 onMounted(async () => {
@@ -284,10 +287,47 @@ const maskSensitiveInfo = (str) => {
   return str.substring(0, 4) + '*'.repeat(str.length - 8) + str.substring(str.length - 4)
 }
 
+// 处理续费
+const handleRenewSubscription = () => {
+  ElMessageBox.confirm('确定要续费当前套餐吗？', '续费确认', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'info'
+  }).then(() => {
+    // 实际项目中应跳转到支付页面或调用续费API
+    proxy.notify.success('续费成功，订阅已延长')
+    // 模拟更新到期时间
+    subscriptionData.value.expiryDate = Date.now() + 30 * 24 * 60 * 60 * 1000
+  }).catch(() => { })
+}
+
+// 处理升级
+const handleUpgradeSubscription = () => {
+  activeTab.value = 'subscription'
+}
 
 // 处理订阅
 const handleSubscribe = () => {
   activeTab.value = 'subscription'
+}
+
+// 处理短信续费
+const handleRenewSmsSubscription = () => {
+  ElMessageBox.confirm('确定要续费当前短信套餐吗？', '续费确认', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'info'
+  }).then(() => {
+    // 实际项目中应跳转到支付页面或调用续费API
+    proxy.notify.success('续费成功，短信订阅已延长')
+    // 模拟更新到期时间
+    smsSubscriptionData.value.expiryDate = Date.now() + 30 * 24 * 60 * 60 * 1000
+  }).catch(() => { })
+}
+
+// 处理短信升级
+const handleUpgradeSmsSubscription = () => {
+  activeTab.value = 'subscription-sms'
 }
 
 // 处理短信订阅

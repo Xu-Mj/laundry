@@ -324,7 +324,7 @@ function getList() {
 }
 
 function handleRefNumConfirm(refNumber) {
-  updatePriceRefNum({ priceIds: ids.value, refNum: refNumber }).then(res => {
+  updatePriceRefNum({ clothPriceIds: ids.value, refNum: refNumber }).then(res => {
     proxy.notify.success("修改成功");
     showUpdateRefNum.value = false;
     tagNumForm.value.refNumber = null;

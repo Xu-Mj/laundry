@@ -355,10 +355,10 @@ async function cateChange(id) {
 
 // 处理引用计数确认事件
 function handleRefNumConfirm(refNumber) {
-  updateClothingRefNum({ clothingIds: ids.value, refNum: refNumber }).then(res => {
+  updateClothingRefNum({ ids: ids.value, refNum: refNumber }).then(res => {
     proxy.notify.success("修改成功");
     showUpdateRefNum.value = false;
-    tagNumForm.value.refNumber = null;
+    tagNumForm.value.refNumber = 0;
     getList();
   }).catch(() => {
     // 处理错误情况
@@ -563,7 +563,7 @@ async function submitForm() {
         } else {
           const res = await addClothing(submitData);
           console.log('新增成功:', res);
-          proxy.notify.success("新增成功");
+          proxy.notify.success("衣物新增成功");
           reset();
           open.value = false;
           activeStep.value = 0; // 重置步骤

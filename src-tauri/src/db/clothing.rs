@@ -200,7 +200,7 @@ impl Curd for Clothing {
         LEFT JOIN clothing_styles cs ON c.style_id = cs.style_id 
         WHERE c.id = ? AND c.del_flag = '0' ";
     const DELETE_BATCH_SQL: &'static str = "UPDATE clothing SET del_flag = '2' WHERE id IN (";
-    const ORDER_SQL: Option<&'static str> = Some(" ORDER BY order_num DESC, clothing_degree ASC ");
+    const ORDER_SQL: Option<&'static str> = Some(" ORDER BY order_num DESC, clothing_degree DESC ");
 
     fn apply_filters<'a>(&'a self, builder: &mut QueryBuilder<'a, Sqlite>) {
         if self.store_id.is_none() {
@@ -534,6 +534,14 @@ pub async fn add_clothing(state: State<'_, AppState>, mut clothing: Clothing) ->
         } else {
             tag_list.split(',').map(|s| s.to_string()).collect()
         };
+    }
+
+    if clothing.clothing_degree.is_none() {
+        clothing.clothing_degree = Some(0);
+    }
+
+    if clothing.order_num.is_none() {
+        clothing.order_num = Some(0);
     }
 
     tracing::debug!("clothing: {:?}", clothing);

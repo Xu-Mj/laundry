@@ -112,11 +112,10 @@
 
 <script setup>
 import { listCategory, getCategory, delCategory, addCategory, updateCategory } from "@/api/system/clothingCategory";
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ElMessageBox } from 'element-plus';
 import { ref, reactive, toRefs, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
 
-const router = useRouter();
+const { proxy } = getCurrentInstance();
 
 const data = reactive({
   // 遮罩层
@@ -160,7 +159,7 @@ const data = reactive({
   }
 });
 
-const { loading, ids, single, multiple, showSearch, total, categoryList, title, open, queryParams, form, rules } = toRefs(data);
+const { loading, single, multiple, showSearch, total, categoryList, title, open, queryParams, form, rules } = toRefs(data);
 const queryRef = ref();
 const categoryRef = ref();
 
@@ -237,7 +236,7 @@ function submitForm() {
       if (data.form.categoryId != undefined) {
         updateCategory(data.form).then(response => {
           if (response) {
-            ElMessage.success("修改成功");
+            proxy.notify.success("修改成功");
             data.open = false;
             getList();
           }
@@ -245,7 +244,7 @@ function submitForm() {
       } else {
         addCategory(data.form).then(response => {
           if (response) {
-            ElMessage.success("新增成功");
+            proxy.notify.success("新增品类成功");
             data.open = false;
             getList();
           }
@@ -266,7 +265,7 @@ function handleDelete(row) {
     return delCategory(ids);
   }).then(() => {
     getList();
-    ElMessage.success("删除成功");
+    proxy.notify.success("删除成功");
   }).catch(() => { });
 }
 

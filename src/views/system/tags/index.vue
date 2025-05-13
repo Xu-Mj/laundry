@@ -302,7 +302,7 @@ function submitForm() {
         });
       } else {
         addTags(form.value).then(response => {
-          proxy.notify.success("新增成功");
+          proxy.notify.success("新增标签成功");
           open.value = false;
           getList();
           // 更新缓存

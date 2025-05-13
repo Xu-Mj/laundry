@@ -137,6 +137,8 @@ import { listCategoryAll } from "@/api/system/clothingCategory";
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { useRoute, useRouter } from 'vue-router';
 
+const { proxy } = getCurrentInstance();
+
 const route = useRoute();
 const router = useRouter();
 const categoryName = ref('');
@@ -189,7 +191,7 @@ const data = reactive({
     }
 });
 
-const { loading, ids, single, multiple, showSearch, total, styleList, categoryOptions, title, open, queryParams, form, rules } = toRefs(data);
+const { loading, single, multiple, showSearch, total, styleList, categoryOptions, title, open, queryParams, form, rules } = toRefs(data);
 const queryRef = ref();
 const styleRef = ref();
 
@@ -293,7 +295,7 @@ function submitForm() {
             if (data.form.styleId != undefined) {
                 updateStyle(data.form).then(response => {
                     if (response) {
-                        ElMessage.success("修改成功");
+                        proxy.notify.success("修改成功");
                         data.open = false;
                         getList();
                     }
@@ -301,7 +303,7 @@ function submitForm() {
             } else {
                 addStyle(data.form).then(response => {
                     if (response) {
-                        ElMessage.success("新增成功");
+                        proxy.notify.success("新增分类成功");
                         data.open = false;
                         getList();
                     }
@@ -322,7 +324,7 @@ function handleDelete(row) {
         return delStyle(ids);
     }).then(() => {
         getList();
-        ElMessage.success("删除成功");
+        proxy.notify.success("删除成功");
     }).catch(() => { });
 }
 

@@ -444,7 +444,7 @@ function submitForm() {
         });
       } else {
         addPrice(form.value).then(response => {
-          proxy.notify.success("新增成功");
+          proxy.notify.success("新增价格方案成功");
           open.value = false;
           getList();
         });

@@ -313,7 +313,7 @@ const submitForm = () => {
         });
       } else {
         addCoupon(formData.value).then(response => {
-          proxy.notify.success("新增成功");
+          proxy.notify.success("卡券新增成功");
           emit('submit')
         });
       }

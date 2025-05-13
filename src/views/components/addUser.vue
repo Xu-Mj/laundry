@@ -239,7 +239,7 @@ function submitForm() {
                 form.value.userName = form.value.phonenumber;
 
                 addUser(form.value).then(response => {
-                    proxy.notify.success("新增成功");
+                    proxy.notify.success("会员添加成功");
                     // 触发userAdded事件
                     eventBus.emit('userAdded');
                     emit('refresh');

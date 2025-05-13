@@ -173,7 +173,7 @@ function submitForm() {
         });
       } else {
         addRack(form.value).then(response => {
-          proxy.notify.success("新增成功");
+          proxy.notify.success("新增衣架成功");
           open.value = false;
           getList();
         });

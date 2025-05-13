@@ -89,6 +89,7 @@
                             <el-radio-group size="large" v-model="form.clothInfo.hangType">
                                 <el-radio :value="'1'">输送线</el-radio>
                                 <el-radio :value="'2'">其他</el-radio>
+                                <!-- <el-radio :value="'2'">鞋柜</el-radio> -->
                             </el-radio-group>
                         </el-form-item>
                     </div>
@@ -728,10 +729,18 @@ async function handleAddCate() {
         orderNum: 0
     };
 
-    addStyle(style).then(() => {
+    addStyle(style).then(res => {
         proxy.notify.success("添加成功");
-        cateChange();
         cateName.value = "";
+        // cateChange();
+        // 将结果添加到styleList中
+        clothStyleList.value.push({
+            dictValue: res.styleId,
+            dictLabel: res.styleName
+        });
+        // 自动选中，然后下一步
+        form.value.styleId = res.styleId;
+        nextStep();
     });
 }
 
@@ -903,7 +912,7 @@ function submitForm() {
                     submitData.orderId = props.orderId;
                 }
                 addCloths(submitData).then(response => {
-                    proxy.notify.success("新增成功");
+                    proxy.notify.success("衣物新增成功");
                     const flaw = form.value.clothingFlawArr;
                     const estimate = form.value.estimateArr;
                     form.value = response;
@@ -1185,7 +1194,7 @@ async function addTag(type, tagName) {
     try {
         const tagsStore = useTagsStore();
         const newTag = await tagsStore.addTag(type, tagName);
-        proxy.notify.success("新增成功");
+        proxy.notify.success("标签新增成功");
 
         // 根据标签类型进行选中
         switch (type) {
@@ -1205,6 +1214,8 @@ async function addTag(type, tagName) {
                 form.value.clothingColor = newTag.tagId;
                 showAddColorBtn.value = false;
                 clothColorInput.value = '';
+                // 自动下一步
+                nextStep();
                 break;
             case "004": // 品牌
                 form.value.clothingBrand = newTag.tagId;

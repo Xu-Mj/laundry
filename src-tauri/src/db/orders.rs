@@ -807,6 +807,14 @@ impl Order {
         }
 
         let order_id = order.order_id.unwrap_or_default();
+
+        if order.price_ids.is_some() && !order.price_ids.as_ref().unwrap().is_empty() {
+            // increment ref_num
+            if !ClothPrice::increment_ref_num(&mut tr, &order.price_ids.as_ref().unwrap()).await? {
+                return Err(Error::internal("increment ref_num failed"));
+            }
+        }
+
         // update clothes order_id
         if !OrderCloth::update_order_id(&mut tr, order_id, &cloth_ids).await? {
             return Err(Error::internal("update clothes failed"));
@@ -982,6 +990,16 @@ impl Order {
         }
 
         tracing::debug!("支付请求信息: {:?}", payment_req);
+
+        #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+        struct OrderWithPayment {
+            order: Order,
+            payment: Payment,
+        }
+        
+        impl Request for Vec<OrderWithPayment> {
+            const URL: &'static str = "/orders/payment";
+        }
 
         let mut orders_with_payments = Vec::with_capacity(orders.len());
         // 如果是扫码支付，调用相应的支付接口
@@ -1757,15 +1775,6 @@ impl Order {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-struct OrderWithPayment {
-    order: Order,
-    payment: Payment,
-}
-
-impl Request for Vec<OrderWithPayment> {
-    const URL: &'static str = "/orders/payment";
-}
 
 #[tauri::command]
 pub async fn create_order(state: tauri::State<'_, AppState>, mut order: Order) -> Result<Order> {

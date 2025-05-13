@@ -244,12 +244,29 @@
     </div>
 
     <!-- 展示照片 -->
-    <el-dialog title="照片" v-model="showPicture" width="400px" :align-center="true" append-to-body>
+    <!-- <el-dialog title="照片" v-model="showPicture" width="400px" :align-center="true" append-to-body>
         <div class="img-container">
             <el-image class="img-item" show-progress :zoom-rate="1.2" :max-scale="7" :min-scale="0.2"
                 :preview-src-list="pictureList" :src="item" v-for="(item, index) in pictureList" :key="index"
                 fit="cover" />
         </div>
+    </el-dialog> -->
+    
+    <!-- 展示照片对话框 -->
+    <el-dialog title="照片预览" v-model="showPicture" width="600px" :align-center="true" append-to-body
+      class="picture-dialog">
+      <div class="picture-container">
+        <el-empty v-if="pictureList.length === 0" description="暂无照片" />
+        <el-carousel v-else :interval="4000" type="card" height="300px">
+          <el-carousel-item v-for="(item, index) in pictureList" :key="index">
+            <el-image :src="item" fit="contain" :preview-src-list="pictureList" preview-teleported class="carousel-image" />
+          </el-carousel-item>
+        </el-carousel>
+        <div class="picture-grid" v-if="pictureList.length > 0">
+          <el-image v-for="(item, index) in pictureList" :key="index" :src="item" fit="cover"
+            :preview-src-list="pictureList" class="grid-image" />
+        </div>
+      </div>
     </el-dialog>
     <!-- 派送对话框 -->
     <DeliveryDialog v-model:visible="showDeliveryDialog" :user="currentUser" :selected-cloths="selectedCloths"
@@ -931,6 +948,37 @@ async function reprintReceipt(order) {
         display: flex;
         gap: .5rem;
     }
+}
+
+/* 照片对话框 */
+.picture-container {
+  padding: 10px 0;
+}
+
+.carousel-image {
+  width: 100%;
+  height: 100%;
+  border-radius: 4px;
+}
+
+.picture-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.grid-image {
+  width: 100%;
+  height: 100px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.grid-image:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .service-type {

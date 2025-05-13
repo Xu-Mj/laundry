@@ -28,7 +28,7 @@ export function createSmsSubPaymentWithAlipay(data) {
 
 // 查询订阅支付状态
 export function querySmsSubPaymentWithAlipay(data) {
-  return invoke('check_alipay_sms_sub_qr_code_payment_status', { req: data })
+  return invoke('check_alipay_sms_sub_payment', { req: data })
 }
 
 // wechat

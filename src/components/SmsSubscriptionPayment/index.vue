@@ -164,7 +164,7 @@
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue';
 import { ElMessage } from 'element-plus';
 import useUserStore from '@/store/modules/user';
-import { createSubscriptionPaymentWithAlipay, querySubscriptionPaymentWithAlipay, querySubscriptionPaymentWithWechat, createSubscriptionPaymentWithWechat } from '@/api/system/subscriptionPayment';
+import { createSmsSubPaymentWithAlipay, querySmsSubPaymentWithAlipay, querySmsSubPaymentWithWechat, createSmsSubPaymentWithWechat } from '@/api/system/subscriptionPayment';
 import QRCode from 'qrcode';
 
 const props = defineProps({
@@ -298,10 +298,10 @@ const generateQrCode = async () => {
     let res;
     if (paymentMethod.value === '01') {
       // 支付宝支付
-      res = await createSubscriptionPaymentWithAlipay(paymentRequest);
+      res = await createSmsSubPaymentWithAlipay(paymentRequest);
     } else if (paymentMethod.value === '02') {
-      // 微信支付
-      res = await createSubscriptionPaymentWithWechat(paymentRequest);
+      // 微信支付 
+      res = await createSmsSubPaymentWithWechat(paymentRequest);
     }
 
     if (res && res.success) {
@@ -402,9 +402,9 @@ const queryPaymentStatus = async () => {
     // 根据支付方式选择对应的查询API
     let res;
     if (paymentMethod.value === '01') {
-      res = await querySubscriptionPaymentWithAlipay(queryRequest);
+      res = await querySmsSubPaymentWithAlipay(queryRequest);
     } else if (paymentMethod.value === '02') {
-      res = await querySubscriptionPaymentWithWechat(queryRequest);
+      res = await querySmsSubPaymentWithWechat(queryRequest);
     }
 
     if (res && res.success) {

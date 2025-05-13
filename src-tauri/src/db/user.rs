@@ -425,19 +425,17 @@ impl User {
 
         self.init();
 
+        let user_tags = self.user_tags.clone();
+        let tags_remark = self.tags_remark.clone();
         // create user to server
         let user = self.create_request(state).await?;
 
         let user = user.create(&mut tr).await?;
         // create user tags
-        if let Some(tags) = &user.user_tags {
-            UserTags::new(
-                user.user_id.unwrap(),
-                tags.clone(),
-                user.tags_remark.clone(),
-            )
-            .insert(&mut tr)
-            .await?;
+        if let Some(tags) = user_tags {
+            UserTags::new(user.user_id.unwrap(), tags, tags_remark)
+                .insert(&mut tr)
+                .await?;
         }
 
         // combine member level

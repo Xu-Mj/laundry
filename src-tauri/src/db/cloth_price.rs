@@ -182,28 +182,48 @@ impl ClothPrice {
     }
 
     // 增加ref_num
+    pub async fn increment_ref_num(tx: &mut Transaction<'_, Sqlite>, ids: &[i64]) -> Result<bool> {
+        let mut builder = QueryBuilder::<Sqlite>::new(
+            "UPDATE cloth_price SET ref_num = ref_num + 1 WHERE price_id IN (",
+        );
+
+        ids.iter().enumerate().for_each(|(i, id)| {
+            if i > 0 {
+                builder.push(", ");
+            }
+            builder.push_bind(id);
+        });
+
+        builder.push(")");
+
+        let result = builder.build().execute(&mut **tx).await?;
+
+        Ok(result.rows_affected() > 0)
+    }
+
+    // 增加ref_num
     pub async fn update_ref_num(
         pool: &Pool<Sqlite>,
         store_id: i64,
         ref_num: i64,
-        clothing_ids: Vec<i64>,
+        ids: Vec<i64>,
     ) -> Result<()> {
-        let mut query_builder = QueryBuilder::<Sqlite>::new("UPDATE cloth_price SET ref_num = ");
-        query_builder.push_bind(ref_num);
+        let mut builder = QueryBuilder::<Sqlite>::new("UPDATE cloth_price SET ref_num = ");
+        builder.push_bind(ref_num);
 
-        query_builder
-            .push(" WHERE store_id = ? ")
-            .push_bind(store_id);
+        builder.push(" WHERE store_id = ").push_bind(store_id);
 
-        query_builder.push(" AND price_id IN (");
+        builder.push(" AND price_id IN (");
+        ids.iter().enumerate().for_each(|(i, id)| {
+            if i > 0 {
+                builder.push(", ");
+            }
+            builder.push_bind(id);
+        });
 
-        let mut separated = query_builder.separated(", ");
-        for clothing_id in &clothing_ids {
-            separated.push_bind(clothing_id);
-        }
-        query_builder.push(")");
+        builder.push(")");
 
-        query_builder.build().execute(pool).await?;
+        builder.build().execute(pool).await?;
         Ok(())
     }
 

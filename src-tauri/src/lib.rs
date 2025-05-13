@@ -19,7 +19,7 @@ use crate::db::{
     alipay_config, cloth_price, clothing, clothing_category, clothing_style, configs, coupons,
     delivery, dict_data, dict_type, drying_rack, expenditure, local_users, membership_level,
     message, notice_temp, order_clothes, orders, payments, qrcode_payments, subscription_service,
-    subscriptions, tags, user, user_coupons, user_tours, wechat_config,
+    subscriptions, tags, user, user_coupons, user_tours, wechat_config, sms_subscription,
 };
 
 pub fn create_app<R: tauri::Runtime, T: Send + Sync + 'static>(
@@ -291,6 +291,9 @@ fn handle_command<R: Runtime>(invoke: Invoke<R>) -> bool {
         subscription_service::get_sms_plans,
         subscription_service::get_alipay_qr_code,
         subscription_service::check_alipay_qr_code_payment_status,
+        subscription_service::check_alipay_sms_sub_payment,
+        subscription_service::get_alipay_sms_sub_qr_code,
+        // sms_subscription::get_all_active_by_user_id,
     ];
     handler(invoke);
 

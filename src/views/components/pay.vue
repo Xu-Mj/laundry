@@ -286,6 +286,9 @@ const props = defineProps({
         type: Function,
         required: true,
     },
+    createOrder: {
+        type: Function,
+    }
 });
 
 const emit = defineEmits(['payment-success', 'payment-failed', 'payment-cancel']);
@@ -500,7 +503,7 @@ function initForm() {
 }
 
 /* 收款 */
-function submitPaymentForm() {
+async function submitPaymentForm() {
     // 判断是否使用了优惠券
     if (!paymentForm.value.couponId) {
         if (couponStorageCardId.value.length > 0) {
@@ -576,7 +579,14 @@ function submitPaymentForm() {
     paymentForm.value.totalAmount = Number(paymentForm.value.totalAmount);
     // 
     paymentForm.value.orders = [props.order]
-    console.log(paymentForm.value)
+    if (props.createOrder) {
+        const callback = (res) => {
+            if (res && res.orderId) {
+                paymentForm.value.orders = [res]
+            }
+        }
+        await props.createOrder(callback)
+    }
     pay(paymentForm.value).then(res => {
         proxy.notify.success('支付成功');
         showPaymentDialog.value = false;

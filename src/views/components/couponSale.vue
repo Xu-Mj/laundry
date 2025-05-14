@@ -174,7 +174,6 @@ const {
 
 const couponList = ref([]);
 const loading = ref(true);
-const open = ref(false);
 const user = ref({});
 const needCreateUser = ref(false);
 const searchUserloading = ref(false);
@@ -191,27 +190,6 @@ const queryParams = ref({
     couponType: null,
     couponTitle: null,
 });
-// 列显隐信息
-const columns = ref([
-    { key: 0, label: `卡券名称`, visible: true },
-    { key: 1, label: `卡券编码`, visible: false },
-    { key: 2, label: `卡券类别`, visible: true },
-    { key: 3, label: `卡券面值`, visible: true },
-    { key: 4, label: `最低消费金额`, visible: true },
-    { key: 5, label: `客户可见`, visible: true },
-    { key: 6, label: `总量限制`, visible: true },
-    { key: 7, label: `单用户数量限制`, visible: true },
-    { key: 8, label: `有效期-起`, visible: true },
-    { key: 9, label: `有效期-止`, visible: true },
-    { key: 10, label: `自动延期`, visible: true },
-    { key: 11, label: `卡券价值`, visible: true },
-    { key: 12, label: `限制条件`, visible: true },
-    { key: 13, label: `适用品类`, visible: true },
-    { key: 14, label: `适用分类`, visible: true },
-    { key: 15, label: `适用衣物`, visible: true },
-    { key: 16, label: `卡券状态`, visible: true },
-    { key: 17, label: `描述`, visible: true },
-]);
 
 const data = reactive({
     form: {},
@@ -382,7 +360,6 @@ onMounted(async () => {
     if (props.visible) {
         resetSellForm();
         getList();
-        open.value = true;
     }
 });
 </script>

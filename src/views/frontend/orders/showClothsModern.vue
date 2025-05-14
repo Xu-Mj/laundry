@@ -213,7 +213,8 @@
         <el-empty v-if="pictureList.length === 0" description="暂无照片" />
         <el-carousel v-else :interval="4000" type="card" height="300px">
           <el-carousel-item v-for="(item, index) in pictureList" :key="index">
-            <el-image :src="item" fit="contain" :preview-src-list="pictureList" preview-teleported class="carousel-image" />
+            <el-image :src="item" fit="contain" :preview-src-list="pictureList" preview-teleported
+              class="carousel-image" />
           </el-carousel-item>
         </el-carousel>
         <div class="picture-grid" v-if="pictureList.length > 0">
@@ -359,21 +360,17 @@
     </el-dialog>
 
     <!-- 赔偿对话框 -->
-    <el-dialog 
-      v-model="showCompensationDialog" 
-      width="500px" 
-      :align-center="true" 
-      :show-close="true"
-      destroy-on-close
-      class="compensation-dialog"
-      top="10vh">
+    <el-dialog v-model="showCompensationDialog" width="500px" :align-center="true" :show-close="true" destroy-on-close
+      class="compensation-dialog" top="10vh">
       <template #header>
         <div class="compensation-dialog-header">
-          <el-icon><Money /></el-icon>
+          <el-icon>
+            <Money />
+          </el-icon>
           <span>衣物赔偿</span>
         </div>
       </template>
-      
+
       <div class="compensation-dialog-content">
         <div class="compensation-info-card">
           <div class="compensation-order-info">
@@ -390,11 +387,7 @@
           <div class="selected-clothes" v-if="selectionList.length > 0">
             <div class="compensation-label">已选衣物</div>
             <div class="selected-clothes-list">
-              <el-tag 
-                v-for="(item, index) in selectionList" 
-                :key="index" 
-                class="selected-cloth-tag"
-                type="info"
+              <el-tag v-for="(item, index) in selectionList" :key="index" class="selected-cloth-tag" type="info"
                 effect="light">
                 {{ item.clothInfo?.title || '衣物' }}
               </el-tag>
@@ -402,67 +395,53 @@
           </div>
         </div>
 
-        <el-form 
-          ref="compensationRef" 
-          :model="compensationForm" 
-          :rules="compensationRules" 
-          label-position="top" 
+        <el-form ref="compensationRef" :model="compensationForm" :rules="compensationRules" label-position="top"
           class="compensation-form">
           <el-form-item label="赔偿名称" prop="expTitle">
-            <el-input 
-              v-model="compensationForm.expTitle" 
-              placeholder="请输入赔偿名称" 
-              class="compensation-input">
+            <el-input v-model="compensationForm.expTitle" placeholder="请输入赔偿名称" class="compensation-input">
               <template #prefix>
-                <el-icon><Document /></el-icon>
+                <el-icon>
+                  <Document />
+                </el-icon>
               </template>
             </el-input>
           </el-form-item>
-          
+
           <el-form-item label="对方账户" prop="recvAccountTitle">
-            <el-input 
-              v-model="compensationForm.recvAccountTitle" 
-              disabled 
-              class="compensation-input">
+            <el-input v-model="compensationForm.accountTitle" disabled class="compensation-input">
               <template #prefix>
-                <el-icon><User /></el-icon>
+                <el-icon>
+                  <User />
+                </el-icon>
               </template>
             </el-input>
           </el-form-item>
-          
+
           <el-form-item label="赔偿金额" prop="expAmount">
-            <el-input-number 
-              v-model="compensationForm.expAmount" 
-              :precision="2" 
-              :step="0.01" 
-              :min="0"
-              controls-position="right"
-              style="width: 100%"
-              class="compensation-input-number"
-              placeholder="请输入赔偿金额">
+            <el-input-number v-model="compensationForm.expAmount" :precision="2" :step="0.01" :min="0"
+              controls-position="right" style="width: 100%" class="compensation-input-number" placeholder="请输入赔偿金额">
               <template #prefix>
-                <el-icon><Money /></el-icon>
+                <el-icon>
+                  <Money />
+                </el-icon>
               </template>
             </el-input-number>
           </el-form-item>
-          
+
           <el-form-item label="备注信息" prop="remark">
-            <el-input 
-              type="textarea" 
-              v-model="compensationForm.remark" 
-              placeholder="请输入赔偿原因或其他备注信息" 
-              :rows="3"
-              resize="none"
-              class="compensation-textarea" />
+            <el-input type="textarea" v-model="compensationForm.remark" placeholder="请输入赔偿原因或其他备注信息" :rows="3"
+              resize="none" class="compensation-textarea" />
           </el-form-item>
         </el-form>
       </div>
-      
+
       <template #footer>
         <div class="compensation-footer">
           <el-button @click="showCompensationDialog = false" plain>取消</el-button>
           <el-button type="primary" @click="compensate">
-            <el-icon><Check /></el-icon>确认赔偿
+            <el-icon>
+              <Check />
+            </el-icon>确认赔偿
           </el-button>
         </div>
       </template>
@@ -763,20 +742,22 @@ function closeHangUpDialog(done) {
 function handleCompensate() {
   getUser(props.userId).then(res => {
     showCompensationDialog.value = true;
-    
+
     // 创建更专业的赔偿标题
     let selectedCount = selectionList.value.length;
     let title;
-    
+
     if (selectedCount === 1) {
       title = `衣物赔偿-${selectionList.value[0].clothInfo.title}`;
     } else {
       title = `衣物赔偿-${selectedCount}件衣物`;
     }
-    
+
+    console.log(res);
     compensationForm.value = {
       expTitle: title,
-      recvAccountTitle: res.userName,
+      accountTitle: res.nickName + '-' + res.phonenumber,
+      recvAccountTitle: res.nickName,
       recvAccount: res.userId,
       expAmount: null,
       expType: "01",
@@ -791,13 +772,15 @@ function handleCompensate() {
 function compensate() {
   proxy.$refs["compensationRef"].validate(valid => {
     if (valid) {
+      compensationForm.value.expAmount = compensationForm.value.expAmount * 100;
       addExpenditure(compensationForm.value).then(res => {
         proxy.notify.success("赔偿成功");
         showCompensationDialog.value = false;
         getList();
         props.flashList();
       }).catch(err => {
-        proxy.notify.error(err.msg || "赔偿失败");
+        console.log(err);
+        proxy.notify.error("赔偿失败");
       });
     }
   });

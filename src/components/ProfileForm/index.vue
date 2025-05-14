@@ -7,11 +7,8 @@
         </el-form-item>
       </el-col>
       <el-col :span="12">
-        <el-form-item label="性别">
-          <el-radio-group v-model="profileData.ownerGender" class="gender-radio">
-            <el-radio value="male">男</el-radio>
-            <el-radio value="female">女</el-radio>
-          </el-radio-group>
+        <el-form-item label="店主姓名" prop="ownerName">
+          <el-input v-model="profileData.ownerName" placeholder="请输入店主姓名" prefix-icon="User" />
         </el-form-item>
       </el-col>
     </el-row>
@@ -23,16 +20,41 @@
         </el-form-item>
       </el-col>
       <el-col :span="12">
-        <el-form-item label="店主姓名" prop="ownerName">
-          <el-input v-model="profileData.ownerName" placeholder="请输入店主姓名" prefix-icon="User" />
+        <el-form-item label="性别">
+          <el-radio-group v-model="profileData.ownerGender" class="gender-radio">
+            <el-radio value="male">男</el-radio>
+            <el-radio value="female">女</el-radio>
+          </el-radio-group>
         </el-form-item>
       </el-col>
     </el-row>
 
     <el-row :gutter="20">
       <el-col :span="12">
+        <!-- 店铺地址 - 省市区选择 -->
+        <el-form-item label="店铺地址" prop="addressRegion">
+          <el-cascader v-model="profileData.addressRegion" :options="areaData" placeholder="请选择省/市/区"
+            class="custom-cascader" :props="{
+              checkStrictly: false,
+              value: 'value',
+              label: 'label',
+              children: 'children',
+              expandTrigger: 'hover'
+            }" clearable />
+        </el-form-item>
+      </el-col>
+      <el-col :span="12">
         <el-form-item label="联系电话" prop="ownerPhone">
           <el-input v-model="profileData.ownerPhone" disabled placeholder="请输入联系电话" prefix-icon="Phone" />
+        </el-form-item>
+
+      </el-col>
+    </el-row>
+    <el-row :gutter="20">
+      <el-col :span="12">
+        <!-- 详细地址 -->
+        <el-form-item label="详细地址" prop="addressDetail">
+          <el-input v-model="profileData.addressDetail" placeholder="请输入详细地址（街道、门牌号等）" prefix-icon="Location" />
         </el-form-item>
       </el-col>
       <el-col :span="12">
@@ -41,23 +63,6 @@
         </el-form-item>
       </el-col>
     </el-row>
-
-    <!-- 店铺地址 - 省市区选择 -->
-    <el-form-item label="店铺地址" prop="addressRegion">
-      <el-cascader v-model="profileData.addressRegion" :options="areaData" placeholder="请选择省/市/区"
-        class="custom-cascader" :props="{
-          checkStrictly: false,
-          value: 'value',
-          label: 'label',
-          children: 'children',
-          expandTrigger: 'hover'
-        }" clearable />
-    </el-form-item>
-
-    <!-- 详细地址 -->
-    <el-form-item label="详细地址" prop="addressDetail">
-      <el-input v-model="profileData.addressDetail" placeholder="请输入详细地址（街道、门牌号等）" prefix-icon="Location" />
-    </el-form-item>
 
     <el-form-item>
       <el-button :disabled="props.isGuest" type="primary" @click="handleUpdateProfile" :loading="updating">

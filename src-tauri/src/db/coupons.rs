@@ -247,8 +247,11 @@ impl Coupon {
             "SELECT * FROM coupons WHERE
                  customer_sale_count != 0
                  AND customer_sale_total != 0
-                 AND datetime('now') BETWEEN valid_from AND valid_to ",
+                 AND ",
         );
+
+        builder.push_bind(utils::get_now());
+        builder.push(" BETWEEN valid_from AND valid_to ");
 
         self.apply_filters(&mut builder);
 
@@ -498,10 +501,7 @@ impl Coupon {
     pub async fn update_coupon(&mut self, pool: &Pool<Sqlite>) -> Result<bool> {
         self.validate()?;
         if self.coupon_id.is_none() {
-            return Err(Error::with_details(
-                ErrorKind::BadRequest,
-                "coupon_id is required",
-            ));
+            return Err(Error::bad_request("coupon_id is required"));
         }
 
         // query if there is a coupon which has sold already
@@ -517,10 +517,7 @@ impl Coupon {
                 .unwrap();
             old_coupon.status = Some("2".to_string());
             if !old_coupon.update(&mut tr).await? {
-                return Err(Error::with_details(
-                    ErrorKind::InternalServer,
-                    "Failed to update old coupon",
-                ));
+                return Err(Error::internal("Failed to update old coupon"));
             }
 
             // gen new coupon number
@@ -545,23 +542,17 @@ impl Coupon {
             if info.count > self.customer_sale_total.unwrap()
                 || info.count > self.customer_sale_count.unwrap()
             {
-                return Err(Error::with_details(
-                    ErrorKind::BadRequest,
-                    "单用户购买数量超过购买限制",
-                ));
+                return Err(Error::bad_request("单用户购买数量超过购买限制"));
             }
         } else if self.customer_sale_total != Some(-1) {
             if info.count > self.customer_sale_total.unwrap() {
-                return Err(Error::with_details(ErrorKind::BadRequest, "库存不足"));
+                return Err(Error::bad_request("库存不足"));
             }
             // update customer_sale_total
             self.customer_sale_total = Some(self.customer_sale_total.unwrap() - info.count);
         } else if self.customer_sale_count != Some(-1) {
             if info.count > self.customer_sale_count.unwrap() {
-                return Err(Error::with_details(
-                    ErrorKind::BadRequest,
-                    "超出单用户购买数量限制",
-                ));
+                return Err(Error::bad_request("超出单用户购买数量限制"));
             }
             // update customer_sale_count
             self.customer_sale_count = Some(self.customer_sale_count.unwrap() - info.count);
@@ -613,7 +604,7 @@ impl Coupon {
             // query coupon by coupon_id
             let mut coupon = Self::get_by_id(pool, info.coupon_id)
                 .await?
-                .ok_or(Error::with_details(ErrorKind::NotFound, "Coupon not found"))?;
+                .ok_or(Error::not_found("Coupon not found"))?;
 
             // check coupon status and reduce available_value if necessary
             coupon.check_coupon(&mut tr, &info).await?;
@@ -651,7 +642,7 @@ impl Coupon {
             // query coupon by coupon_id
             let mut coupon = Self::get_by_id(pool, info.coupon_id)
                 .await?
-                .ok_or(Error::with_details(ErrorKind::NotFound, "Coupon not found"))?;
+                .ok_or(Error::not_found("Coupon not found"))?;
 
             // check coupon status and reduce available_value if necessary
             coupon.check_coupon(&mut tr, &info).await?;
@@ -680,6 +671,7 @@ impl Coupon {
         // create payment
 
         let payment = Payment {
+            pay_id: Some(uuid::Uuid::new_v4().to_string()),
             pay_number: Some(format!("KQ-{}", Utc::now().timestamp_millis())),
             order_type: Some(0.to_string()),
             total_amount: Some(total_amount),

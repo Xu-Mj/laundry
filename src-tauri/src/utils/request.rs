@@ -8,7 +8,12 @@ use crate::local_users::LocalUser;
 use crate::state::AppState;
 
 const URL_LOGIN: &str = "/stores/login";
-const URL_REFRESH_TOKEN: &str = "/stores/refresh-token";
+const URL_REFRESH_TOKEN: &str = "/stores/refresh_token";
+#[derive(Debug, Deserialize, Serialize)]
+pub struct StoreIdWithIds {
+    pub store_id: i64,
+    pub ids: Vec<i64>,
+}
 
 pub trait Request: Serialize + DeserializeOwned + Send + Sized {
     const URL: &'static str;
@@ -23,6 +28,13 @@ pub trait Request: Serialize + DeserializeOwned + Send + Sized {
         let result = state
             .http_client
             .put(Self::URL, self, Some(&state.try_get_token().await?))
+            .await?;
+        Ok(result)
+    }
+    async fn delete_request(state: &State<'_, AppState>, body: StoreIdWithIds) -> Result<bool> {
+        let result = state
+            .http_client
+            .delete(Self::URL, body, Some(&state.try_get_token().await?))
             .await?;
         Ok(result)
     }

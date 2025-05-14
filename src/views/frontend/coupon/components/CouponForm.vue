@@ -254,6 +254,20 @@ const emit = defineEmits(['submit', 'cancel']);
 const couponFormRef = ref(null);
 const formData = ref({ ...props.value });
 
+// 监听props.value变化，确保表单重置
+watch(() => props.value, (newVal) => {
+  formData.value = { ...newVal };
+  if (couponFormRef.value) {
+    couponFormRef.value.resetFields();
+  }
+}, { deep: true });
+
+// 重置表单
+const resetForm = () => {
+  formData.value = { ...props.value };
+  couponFormRef.value.resetFields();
+};
+
 // 表单验证规则
 const rules = {
   couponType: [
@@ -309,11 +323,13 @@ const submitForm = () => {
       if (formData.value.couponId != null) {
         updateCoupon(formData.value).then(response => {
           proxy.notify.success("修改成功");
+          resetForm();
           emit('submit')
         });
       } else {
         addCoupon(formData.value).then(response => {
           proxy.notify.success("卡券新增成功");
+          resetForm();
           emit('submit')
         });
       }

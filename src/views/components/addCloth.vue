@@ -301,7 +301,7 @@
                             <div class="section-title">工艺加价</div>
                             <div class="process-markup">
                                 <el-input-number style="width: 14rem;" size="large" v-model="form.processMarkup"
-                                    :min="0" :max="6000" :precision="2" />元
+                                    :min="0" :max="6000" :precision="2" :value-on-clear="0" />元
                             </div>
                             <div class="section-title">备注信息</div>
                             <div class="step6-card">
@@ -782,7 +782,7 @@ function reset() {
         beforePics: null,
         afterPics: null,
         notes: null,
-        processMarkup: 0,
+        processMarkup: null,
         priceValue: 0,
         hangLocationCode: null,
         hangClothCode: null,

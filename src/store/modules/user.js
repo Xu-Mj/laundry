@@ -150,7 +150,6 @@ const useUserStore = defineStore('user', {
     async getInfo() {
       try {
         const res = await getInfo()
-        console.log('API Response from getInfo:', res) // Debug log
         const user = res.user
 
         if (user) {

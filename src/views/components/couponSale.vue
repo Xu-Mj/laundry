@@ -136,6 +136,7 @@
 import { listCoupon4sale, buyCoupon } from "@/api/system/coupon";
 import { getUser, listUserWithNoLimit, addUser } from "@/api/system/user";
 import Information from "@/views/frontend/user/information.vue";
+import eventBus from "@/utils/eventBus";
 import { ref, computed } from "vue";
 
 const props = defineProps({
@@ -348,7 +349,23 @@ function buy() {
             sellForm.value.coupons = coupons;
             buyCoupon(sellForm.value).then(res => {
                 proxy.notify.success("购买成功");
-                props.submit(sellForm.value);
+                
+                // 通知全局事件系统卡券已更新
+                eventBus.emit('coupon-purchase-success', {
+                    userId: sellForm.value.userId,
+                    purchaseInfo: {
+                        coupons: coupons,
+                        paymentMethod: sellForm.value.paymentMethod
+                    }
+                });
+                
+                // 通知父组件购买成功，传递完整的购买信息
+                props.submit({
+                    userId: sellForm.value.userId,
+                    purchasedCoupons: coupons,
+                    paymentMethod: sellForm.value.paymentMethod
+                });
+                
                 resetSellForm();
                 selectedList.value = [];
                 getList();

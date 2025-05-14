@@ -76,7 +76,7 @@
             </el-tab-pane>
 
             <!-- 支付配置标签页 -->
-            <el-tab-pane label="支付配置" name="payment">
+            <el-tab-pane label="付款配置" name="payment">
               <el-row :gutter="20" class="payment-config-container">
                 <!-- 支付宝配置 -->
                 <el-col :span="12">
@@ -107,7 +107,6 @@
 </template>
 
 <script setup>
-import { ElMessageBox } from 'element-plus';
 import { getAlipayConfig, getWechatConfig } from '@/api/system/profile';
 import useUserStore from '@/store/modules/user';
 import SubscriptionManagement from '@/components/SubscriptionManagement/index.vue';

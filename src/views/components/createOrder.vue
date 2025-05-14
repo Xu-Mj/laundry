@@ -176,11 +176,11 @@
                     <div class="btn-container">
                         <el-button size="large" icon="Close" type="danger" @click="cancelSelf">{{ form.orderId ? '关 闭' :
                             '取 消'
-                        }}</el-button>
+                            }}</el-button>
                         <el-button size="large" icon="Check" type="primary" color="#626aef" @click="submitForm"
                             :disabled="notEditable || (!(form.source === '03') && (!form.priceIds || form.priceIds.length === 0))"
                             v-if="form.source !== '01' && form.source !== '02'" ref="submitButtonRef">取衣收款</el-button>
-                        <el-button size="large" type="success" @click="showPaymentDialog = true" icon="Money"
+                        <el-button size="large" type="success" @click="createAndGo2Pay" icon="Money"
                             :disabled="notEditable" ref="payButtonRef">收衣收款</el-button>
                     </div>
                 </div>
@@ -795,13 +795,51 @@ async function submitForm() {
                     await Promise.all([printClothPromise, printReceiptPromise]);
                     reset();
                     props.refresh();
-                    // props.toggle();
+                    // 确保订单的总价与前端计算的一致，特别是当使用价格方案时
+                    form.value.totalPrice = totalPrice.value;
+                    // 截断为两位小数（不四舍五入）
+                    form.value.totalPrice = Math.floor(form.value.totalPrice * 100) / 100;
                 });
             }
         }
     }, validateOptions);
 }
 
+async function createAndGo2Pay() {
+    if (showCreateUser.value) {
+        try {
+            const res = await addUser({
+                phonenumber: currentUser.value.phonenumber, // 使用currentUser中的phonenumber
+                nickName: form.value.nickName
+            });
+            showCreateUser.value = false;
+            // 重新拉取用户列表
+            listUserWithNoLimit().then(res => {
+                userList.value = res;
+            });
+
+            form.value.userId = res.userId; // 设置返回的用户ID
+            form.value.userInfo = res; // 设置userInfo
+
+            // 将新用户添加到用户列表中
+            userList.value.push(res);
+
+            await listUserCouponWithValidTime(form.value.userId).then(response => {
+                userCouponList.value = response;
+                userCouponList.value.filter(item => item.coupon.couponType == '002').map(item => {
+                    item.selected = false;
+                    item.count = 1;
+                });
+                couponTypeList.value = new Set(userCouponList.value.map(coupon => coupon.coupon.couponType));
+            });
+
+        } catch (err) {
+            proxy.notify.error(err);
+            return; // 当 addUser 出错时，中断执行
+        }
+    }
+    showPaymentDialog.value = true;
+}
 /* 收衣收款 */
 async function createAndPay(callback) {
     console.log('createAndPay', form.value);
@@ -835,37 +873,37 @@ async function createAndPay(callback) {
 
             form.value.phonenumber = currentUser.value.phonenumber;
 
-            if (showCreateUser.value) {
-                try {
-                    const res = await addUser({
-                        phonenumber: currentUser.value.phonenumber, // 使用currentUser中的phonenumber
-                        nickName: form.value.nickName
-                    });
-                    // 重新拉取用户列表
-                    listUserWithNoLimit().then(res => {
-                        userList.value = res;
-                    });
+            // if (showCreateUser.value) {
+            //     try {
+            //         const res = await addUser({
+            //             phonenumber: currentUser.value.phonenumber, // 使用currentUser中的phonenumber
+            //             nickName: form.value.nickName
+            //         });
+            //         // 重新拉取用户列表
+            //         listUserWithNoLimit().then(res => {
+            //             userList.value = res;
+            //         });
 
-                    form.value.userId = res.userId; // 设置返回的用户ID
-                    form.value.userInfo = res; // 设置userInfo
+            //         form.value.userId = res.userId; // 设置返回的用户ID
+            //         form.value.userInfo = res; // 设置userInfo
 
-                    // 将新用户添加到用户列表中
-                    userList.value.push(res);
+            //         // 将新用户添加到用户列表中
+            //         userList.value.push(res);
 
-                    await listUserCouponWithValidTime(form.value.userId).then(response => {
-                        userCouponList.value = response;
-                        userCouponList.value.filter(item => item.coupon.couponType == '002').map(item => {
-                            item.selected = false;
-                            item.count = 1;
-                        });
-                        couponTypeList.value = new Set(userCouponList.value.map(coupon => coupon.coupon.couponType));
-                    });
+            //         await listUserCouponWithValidTime(form.value.userId).then(response => {
+            //             userCouponList.value = response;
+            //             userCouponList.value.filter(item => item.coupon.couponType == '002').map(item => {
+            //                 item.selected = false;
+            //                 item.count = 1;
+            //             });
+            //             couponTypeList.value = new Set(userCouponList.value.map(coupon => coupon.coupon.couponType));
+            //         });
 
-                } catch (err) {
-                    proxy.notify.error(err);
-                    return; // 当 addUser 出错时，中断执行
-                }
-            }
+            //     } catch (err) {
+            //         proxy.notify.error(err);
+            //         return; // 当 addUser 出错时，中断执行
+            //     }
+            // }
             // 如果是创建订单，那么要先创建订单，拿到订单编码
             if (!form.value.orderId) {
                 form.value.clothIds = form.value.cloths.map(item => item.clothId);
@@ -879,17 +917,15 @@ async function createAndPay(callback) {
                 form.value.orderId = response.orderId;
                 callback(response);
                 form.value.orderNumber = response.orderNumber;
-                // 初始化支付所需数据
-                props.refresh();
-
                 // 确保订单的总价与前端计算的一致，特别是当使用价格方案时
                 form.value.totalPrice = totalPrice.value;
-
-                // showPaymentDialog.value = true;
+                // 截断为两位小数（不四舍五入）
+                form.value.totalPrice = Math.floor(form.value.totalPrice * 100) / 100;
             } else {
                 // 确保订单的总价与前端计算的一致，特别是当使用价格方案时
                 form.value.totalPrice = totalPrice.value;
-                // showPaymentDialog.value = true;
+                // 截断为两位小数（不四舍五入）
+                form.value.totalPrice = Math.floor(form.value.totalPrice * 100) / 100;
             }
         }
     }, validateOptions);
@@ -1051,6 +1087,8 @@ function adjustInput() {
 
     if (form.value.adjust.adjustTotal) {
         totalPrice.value = form.value.adjust.adjustTotal;
+        // 截断为两位小数（不四舍五入）
+        totalPrice.value = Math.floor(totalPrice.value * 100) / 100;
     } else {
         // 计算原始价格
         let originalPrice = 0;
@@ -1080,12 +1118,18 @@ function adjustInput() {
                 // 然后应用折扣
                 const discountFactor = discountPriceItem.priceDiscount / 100; // 将百分比转换为小数
                 originalPrice = originalPrice * discountFactor;
+
+                // 截断为两位小数（不四舍五入）
+                originalPrice = Math.floor(originalPrice * 100) / 100;
             } else {
                 // 如果是固定价格类型，使用所有选中价格方案的总和
                 originalPrice = form.value.priceIds.reduce((acc, priceId) => {
                     const item = priceList.value.find(item => item.priceId === priceId);
                     return acc + (item && item.priceValue ? item.priceValue : 0);
                 }, 0);
+
+                // 截断为两位小数（不四舍五入）
+                originalPrice = Math.floor(originalPrice * 100) / 100;
             }
         } else {
             // 如果没有选择价格方案，计算衣物的原始价格总和
@@ -1100,6 +1144,9 @@ function adjustInput() {
                 }
                 return acc + priceValue + cur.processMarkup;
             }, 0);
+
+            // 截断为两位小数（不四舍五入）
+            originalPrice = Math.floor(originalPrice * 100) / 100;
         }
 
         // 保存原始价格
@@ -1109,6 +1156,10 @@ function adjustInput() {
         let price = originalPrice +
             Number(form.value.adjust.adjustValueAdd ? form.value.adjust.adjustValueAdd : 0) -
             Number(form.value.adjust.adjustValueSub ? form.value.adjust.adjustValueSub : 0);
+
+        // 截断为两位小数（不四舍五入）
+        price = Math.floor(price * 100) / 100;
+
         totalPrice.value = price > 0 ? price : 0;
     }
 }
@@ -1254,7 +1305,57 @@ onMounted(async () => {
         }
         showDialog.value = true;
     }
+
+    // 监听用户卡券更新事件
+    // eventBus.on('user-coupons-updated', handleCouponsUpdated);
+
+    // 监听卡券购买成功事件
+    eventBus.on('coupon-purchase-success', handleCouponPurchase);
 });
+
+// 组件卸载时移除事件监听
+onUnmounted(() => {
+    // eventBus.off('user-coupons-updated', handleCouponsUpdated);
+    eventBus.off('coupon-purchase-success', handleCouponPurchase);
+});
+
+// 处理用户卡券更新事件
+// function handleCouponsUpdated(data) {
+//     // 检查是否是当前用户的卡券更新
+//     if (data.userId && data.userId == form.value.userId) {
+//         // 更新卡券数据
+//         userCouponList.value = data.coupons;
+//         couponTypeList.value = data.couponTypeList;
+
+//         // 如果当前用户信息不完整，更新用户信息
+//         if (!currentUser.value || Object.keys(currentUser.value).length === 0) {
+//             getUser(data.userId).then(res => {
+//                 currentUser.value = res;
+//             });
+//         }
+//     }
+// }
+
+// 处理卡券购买成功事件
+function handleCouponPurchase(data) {
+    // 检查是否是当前用户购买的卡券
+    if (data.userId && data.userId == form.value.userId) {
+        // 重新获取用户卡券列表
+        listUserCouponWithValidTime(form.value.userId).then(response => {
+            userCouponList.value = response;
+            userCouponList.value.filter(item => item.coupon.couponType == '002').map(item => {
+                item.selected = false;
+                item.count = 1;
+            });
+            couponTypeList.value = new Set(userCouponList.value.map(coupon => coupon.coupon.couponType));
+
+            // 更新用户信息（余额、积分等可能变化）
+            getUser(form.value.userId).then(res => {
+                currentUser.value = res;
+            });
+        });
+    }
+}
 
 defineExpose({
     cancel,

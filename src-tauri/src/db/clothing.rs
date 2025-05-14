@@ -7,7 +7,7 @@ use crate::db::PageResult;
 use crate::error::{Error, ErrorKind, Result};
 use crate::state::AppState;
 use crate::utils;
-use crate::utils::request::Request;
+use crate::utils::request::{Request, StoreIdWithIds};
 
 use super::{Curd, PageParams, Validator};
 
@@ -692,6 +692,15 @@ pub async fn clothing_name_exists(state: State<'_, AppState>, clothing_name: &st
 pub async fn delete_clothing_batch(state: State<'_, AppState>, ids: Vec<i64>) -> Result<bool> {
     let mut tr = state.pool.begin().await?;
     let result = Clothing::delete_batch(&mut tr, &ids).await?;
+
+    let body = StoreIdWithIds {
+        store_id: utils::get_user_id(&state).await?,
+        ids,
+    };
+    if !Clothing::delete_request(&state, body).await? {
+        return Err(Error::bad_request("删除失败"));
+    }
+    
     tr.commit().await?;
     Ok(result)
 }

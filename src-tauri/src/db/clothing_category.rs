@@ -6,7 +6,7 @@ use tauri::State;
 use crate::error::{Error, ErrorKind, Result};
 use crate::state::AppState;
 use crate::utils;
-use crate::utils::request::Request;
+use crate::utils::request::{Request, StoreIdWithIds};
 
 use super::{Curd, PageParams, PageResult, Validator};
 
@@ -183,21 +183,17 @@ impl ClothingCategory {
 
         Ok(result)
     }
-
-    /// 软删除衣物品类
-    pub async fn soft_delete(pool: &Pool<Sqlite>, category_id: i64) -> Result<u64> {
-        let result =
-            sqlx::query("UPDATE clothing_categories SET del_flag = '2' WHERE category_id = ?")
-                .bind(category_id)
-                .execute(pool)
-                .await?;
-
-        Ok(result.rows_affected())
-    }
 }
 
 impl Request for ClothingCategory {
     const URL: &str = "/clothing/category";
+    async fn delete_request(state: &State<'_, AppState>, body: StoreIdWithIds) -> Result<bool> {
+        let result = state
+            .http_client
+            .delete(Self::URL, body, Some(&state.try_get_token().await?))
+            .await?;
+        Ok(result)
+    }
 }
 
 // Tauri命令接口
@@ -280,11 +276,18 @@ pub async fn update_clothing_category(
 pub async fn delete_clothing_category_batch(
     state: State<'_, AppState>,
     ids: Vec<i64>,
-) -> Result<u64> {
-    let pool = &state.pool;
-    let mut affected = 0;
-    for id in ids {
-        affected += ClothingCategory::soft_delete(pool, id).await?;
+) -> Result<bool> {
+    let mut tx = state.pool.begin().await?;
+
+    // 删除本地数据库中的记录
+    ClothingCategory::delete_batch(&mut tx, &ids).await?;
+
+    let store_id = utils::get_user_id(&state).await?; // check user is login
+    let body = StoreIdWithIds { store_id, ids };
+    if !ClothingCategory::delete_request(&state, body).await? {
+        return Err(Error::bad_request("删除失败"));
     }
-    Ok(affected)
+
+    tx.commit().await?;
+    Ok(true)
 }

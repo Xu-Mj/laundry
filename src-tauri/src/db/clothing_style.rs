@@ -6,7 +6,7 @@ use tauri::State;
 use crate::error::{Error, ErrorKind, Result};
 use crate::state::AppState;
 use crate::utils;
-use crate::utils::request::Request;
+use crate::utils::request::{Request, StoreIdWithIds};
 
 use super::{Curd, PageParams, PageResult, Validator};
 
@@ -117,10 +117,11 @@ impl ClothingStyle {
     pub async fn insert(self, pool: &Pool<Sqlite>) -> Result<Self> {
         let now = utils::get_timestamp();
         let result = sqlx::query_as::<_, Self>(
-            "INSERT INTO clothing_styles (store_id, category_id, style_code, style_name, order_num, remark, del_flag, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, '0', ?, ?)
+            "INSERT INTO clothing_styles (style_id,store_id, category_id, style_code, style_name, order_num, remark, del_flag, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, '0', ?, ?)
              RETURNING *"
         )
+            .bind(self.style_id)
             .bind(self.store_id)
             .bind(self.category_id)
             .bind(&self.style_code)
@@ -208,16 +209,6 @@ impl ClothingStyle {
         .await?;
 
         Ok(result)
-    }
-
-    /// 软删除衣物分类
-    pub async fn soft_delete(pool: &Pool<Sqlite>, style_id: i64) -> Result<u64> {
-        let result = sqlx::query("UPDATE clothing_styles SET del_flag = '2' WHERE style_id = ?")
-            .bind(style_id)
-            .execute(pool)
-            .await?;
-
-        Ok(result.rows_affected())
     }
 }
 
@@ -308,11 +299,21 @@ pub async fn update_clothing_style(
 }
 
 #[tauri::command]
-pub async fn delete_clothing_style_batch(state: State<'_, AppState>, ids: Vec<i64>) -> Result<u64> {
-    let pool = &state.pool;
-    let mut affected = 0;
-    for id in ids {
-        affected += ClothingStyle::soft_delete(pool, id).await?;
+pub async fn delete_clothing_style_batch(
+    state: State<'_, AppState>,
+    ids: Vec<i64>,
+) -> Result<bool> {
+    let mut tx = state.pool.begin().await?;
+
+    // 删除本地数据库中的记录
+    ClothingStyle::delete_batch(&mut tx, &ids).await?;
+
+    let store_id = utils::get_user_id(&state).await?; // check user is login
+    let body = StoreIdWithIds { store_id, ids };
+    if !ClothingStyle::delete_request(&state, body).await? {
+        return Err(Error::bad_request("删除失败"));
     }
-    Ok(affected)
+
+    tx.commit().await?;
+    Ok(true)
 }

@@ -66,7 +66,11 @@
             <dict-tag :options="sys_exp_type" :value="scope.row.expType" />
           </template>
         </el-table-column>
-        <el-table-column label="支出金额" align="center" prop="expAmount" />
+        <el-table-column label="支出金额" align="center" prop="expAmount">
+          <template #default="scope">
+            {{ scope.row.expAmount / 100 }}
+          </template>
+        </el-table-column>
         <el-table-column label="支出时间" align="center" prop="createTime">
           <template #default="scope">
             <span>{{ formatTime(scope.row.createTime, '{y}-{m}-{d} {hh}:{mm}:{ss}') }}</span>
@@ -115,7 +119,7 @@
           <dict-tag :options="sys_exp_type" :value="detail.expType" />
         </el-form-item>
         <el-form-item label="支出金额" prop="expAmount">
-          {{ detail.expAmount }}
+          {{ detail.expAmount / 100 }}
         </el-form-item>
         <el-form-item label="订单编码" prop="expAmount">
           {{ detail.order.orderNumber }}
@@ -264,9 +268,26 @@ async function handleUpdate(row) {
 
 /** 删除按钮操作 */
 function handleDelete(row) {
-  const _expIds = row.expId || ids.value;
-  proxy.$modal.confirm('是否确认删除支出编号为"' + _expIds + '"的数据项？').then(function () {
-    return delExpenditure(_expIds);
+  const expIds = row.expId || ids.value;
+  
+  // 获取要删除的支出账目名称
+  let confirmMessage;
+  
+  if (row.expId) {
+    // 单个删除
+    confirmMessage = `是否确认删除支出账目"${row.expTitle}"?`;
+  } else {
+    // 批量删除
+    const expTitles = expenditureList.value
+      .filter(item => ids.value.includes(item.expId))
+      .map(item => item.expTitle)
+      .join("、");
+    
+    confirmMessage = `是否确认删除以下支出账目: ${expTitles}?`;
+  }
+  
+  proxy.$modal.confirm(confirmMessage).then(function () {
+    return delExpenditure(expIds);
   }).then(() => {
     getList();
     proxy.notify.success("删除成功");

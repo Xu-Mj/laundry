@@ -79,6 +79,7 @@
             <template #header>
                 <div class="card-header">
                     <span>卡券信息</span>
+                    <el-button type="primary" link size="small" @click="showCouponSale = true">购买卡券</el-button>
                 </div>
             </template>
             <div class="coupon-section">
@@ -88,11 +89,7 @@
                         <Wallet />
                     </el-icon>
                     <span class="label">储值卡余额:</span>
-                    <span class="value amount" v-if="coupons && coupons.length > 0">
-                        {{coupons.filter(item => item.coupon.couponType == '000').reduce((acc, cur) => acc +
-                        cur.availableValue, 0) }} 元
-                    </span>
-                    <span class="value" v-else>0 元</span>
+                    <span class="value amount">{{ storageCardBalance }} 元</span>
                 </div>
 
                 <!-- 次卡 -->
@@ -198,20 +195,30 @@
                 {{ user.remark }}
             </div>
         </el-card>
+
+        <!-- 卡券购买弹窗 -->
+        <el-dialog v-model="showCouponSale" width="780px" append-to-body lock-scroll modal align-center
+            :close-on-click-modal="false" :show-close="false">
+            <CouponSale :userId="user.userId" :key="showCouponSale" :taggle="() => { showCouponSale = !showCouponSale }"
+                :visible="showCouponSale" :couponTypeList="couponTypeList" :submit="handleCouponBought" />
+        </el-dialog>
     </div>
 </template>
 
 <script setup>
 import { changeUserStatus } from "@/api/system/user";
 import { listUserCouponNoPage } from '@/api/system/user_coupon';
-import { ref } from "vue";
+import { ref, computed } from "vue";
+import CouponSale from '@/views/components/couponSale.vue';
+import eventBus from "@/utils/eventBus";
 import {
     User, UserFilled, Avatar, Phone, Medal, Connection, Male, Star, Trophy,
     Warning, Switch, Calendar, Wallet, Ticket, Discount
 } from '@element-plus/icons-vue';
 
 const { proxy } = getCurrentInstance();
-const { sys_user_tags, sys_user_sex, sys_user_type, sys_user_identify } = proxy.useDict("sys_user_tags", "sys_user_sex", "sys_user_type", "sys_user_identify");
+const { sys_user_tags, sys_user_sex, sys_user_type, sys_user_identify } =
+    proxy.useDict("sys_user_tags", "sys_user_sex", "sys_user_type", "sys_user_identify");
 
 // 定义props
 const props = defineProps({
@@ -222,6 +229,8 @@ const props = defineProps({
 });
 
 const coupons = ref();
+const showCouponSale = ref(false);
+const couponTypeList = ref(new Set());
 
 /* 会员状态修改 */
 const handleStatusChange = (row) => {
@@ -235,12 +244,41 @@ const handleStatusChange = (row) => {
     });
 };
 
+// 卡券购买成功后刷新卡券列表
+function handleCouponBought() {
+    // 重新获取会员优惠券列表
+    if (props.user && props.user.userId) {
+        // 清空当前卡券列表，确保UI会强制刷新
+        coupons.value = [];
+
+        // 添加延迟，确保数据库同步完成
+        listUserCouponNoPage({ userId: props.user.userId }).then(response => {
+            // 强制触发响应式更新
+            coupons.value = [...response];
+
+            // 更新卡券类型列表
+            couponTypeList.value = new Set(coupons.value.map(coupon => coupon.coupon.couponType));
+        });
+    }
+};
+
 // 获取会员优惠券列表
 if (props.user && props.user.userId) {
     listUserCouponNoPage({ userId: props.user.userId }).then(response => {
         coupons.value = response;
+        // 初始化卡券类型列表
+        couponTypeList.value = new Set(coupons.value.map(coupon => coupon.coupon.couponType));
     });
 }
+
+// 使用计算属性计算储值卡余额，确保响应式更新
+const storageCardBalance = computed(() => {
+    if (!coupons.value || coupons.value.length === 0) return 0;
+
+    return coupons.value
+        .filter(item => item.coupon?.couponType === '000')
+        .reduce((acc, cur) => acc + (cur.availableValue || 0), 0);
+});
 
 </script>
 
@@ -265,6 +303,7 @@ if (props.user && props.user.userId) {
 .card-header {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     font-weight: 600;
     color: var(--el-text-color-primary);
     border-radius: .5rem;

@@ -20,12 +20,6 @@
         <div class="form-container">
             <el-form ref="formRef" :model="form" :rules="rules" label-width="80px">
                 <div class="form-section hover-flow">
-                    <div class="section-header">
-                        <el-icon>
-                            <Key />
-                        </el-icon>
-                        <span>修改内容</span>
-                    </div>
                     <div class="section-content">
                         <el-form-item label="旧密码" prop="oldPassword">
                             <el-input v-model="form.oldPassword" type="password" placeholder="请输入旧密码"

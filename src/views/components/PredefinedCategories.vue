@@ -1,36 +1,20 @@
 <template>
-    <el-dialog
-        v-model="dialogVisible"
-        title="选择预定义分类"
-        width="60%"
-        align-center
-        :close-on-click-modal="false"
-        class="category-dialog"
-        @close="handleClose"
-    >
+    <el-dialog v-model="dialogVisible" title="选择预定义分类" width="60%" align-center :close-on-click-modal="false"
+        class="category-dialog" @close="handleClose">
         <div class="predefined-categories">
             <div class="category-header">
                 <span class="header-title">分类名称</span>
                 <span class="header-styles">包含样式</span>
             </div>
             <el-checkbox-group v-model="selectedCategories" class="category-group">
-                <el-checkbox
-                    v-for="category in predefinedCategories"
-                    :key="category.categoryName"
-                    :label="category"
-                    class="category-checkbox"
-                >
+                <el-checkbox v-for="category in predefinedCategories" :key="category.categoryName" :label="category"
+                    class="category-checkbox">
                     <div class="category-item">
                         <div class="category-info">
                             <span class="category-name">{{ category.categoryName }}</span>
                             <div class="style-list">
-                                <el-tag
-                                    v-for="style in category.styles"
-                                    :key="style"
-                                    size="small"
-                                    class="style-tag"
-                                    effect="plain"
-                                >
+                                <el-tag v-for="style in category.styles" :key="style" size="small" class="style-tag"
+                                    effect="plain">
                                     {{ style }}
                                 </el-tag>
                             </div>
@@ -56,11 +40,8 @@
 </template>
 
 <script setup>
-import { ref, defineProps, defineEmits } from 'vue';
-import { ElMessage } from 'element-plus';
 import { addCategory } from "@/api/system/clothingCategory";
 import { addStyle } from "@/api/system/clothingStyle";
-import { listCategoryAll } from "@/api/system/clothingCategory";
 
 const props = defineProps({
     modelValue: {
@@ -68,6 +49,8 @@ const props = defineProps({
         required: true
     }
 });
+
+const { proxy } = getCurrentInstance();
 
 // 预定义的分类数据
 const predefinedCategories = ref([
@@ -111,7 +94,7 @@ watch(() => dialogVisible.value, (newVal) => {
 // 处理确认按钮点击
 async function handleConfirm() {
     if (selectedCategories.value.length === 0) {
-        ElMessage.warning('请至少选择一个分类');
+        proxy.notify.warning('请至少选择一个分类');
         return;
     }
 
@@ -134,11 +117,11 @@ async function handleConfirm() {
         });
 
         await Promise.all(promises);
-        ElMessage.success("分类添加成功");
+        proxy.notify.success("分类添加成功");
         emit('success');
         handleClose();
     } catch (error) {
-        ElMessage.error("添加分类失败：" + error);
+        proxy.notify.error("添加分类失败：" + error);
     }
 }
 
@@ -292,4 +275,4 @@ function handleClose() {
 .category-checkbox:hover:deep(.el-checkbox__input:not(.is-checked) + .el-checkbox__label .category-item) {
     border-color: var(--el-color-primary);
 }
-</style> 
+</style>

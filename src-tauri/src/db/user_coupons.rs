@@ -87,7 +87,7 @@ impl UserCoupon {
             INSERT INTO user_coupons (
                 store_id, user_id, coupon_id, create_time, obtain_at, available_value,
                 uc_count, pay_id, uc_type, status, remark
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             RETURNING *
             "#,
         )
@@ -155,12 +155,13 @@ impl UserCoupon {
     ) -> Result<Vec<Self>> {
         let result = sqlx::query_as(&format!(
             "{SQL} WHERE uc.store_id = ?  AND uc.user_id = ? 
-                  AND datetime('now') BETWEEN c.valid_from AND c.valid_to
+                  AND ? BETWEEN c.valid_from AND c.valid_to
                   AND uc.available_value > 0
                   AND uc.uc_count > 0;"
         ))
         .bind(store_id)
         .bind(user_id)
+        .bind(utils::get_now())
         .fetch_all(pool)
         .await?;
         Ok(result)
@@ -276,7 +277,7 @@ impl UserCoupon {
         uc_ids: &[i64],
     ) -> Result<Vec<UserCoupon>> {
         let mut builder =
-            QueryBuilder::new(&format!("{SQL} WHERE store_id = {store_id} uc_id IN ("));
+            QueryBuilder::new(&format!("{SQL} WHERE uc.store_id = {store_id} AND uc.uc_id IN ("));
 
         uc_ids.iter().enumerate().for_each(|(i, id)| {
             if i > 0 {

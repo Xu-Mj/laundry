@@ -60,7 +60,7 @@
                             </template>
                         </el-input-number>
                         <div class="amount-display" v-if="form.expAmount">
-                            {{ formatCurrency(form.expAmount) }}
+                            {{ form.expAmount }}
                         </div>
                         <div class="amount-hint">金额单位：元</div>
                     </el-form-item>
@@ -213,7 +213,15 @@ function submitForm() {
                 form.value.recvAccountTitle = form.value.recvAccount;
                 form.value.recvAccount = null;
             } else if (form.value.recvAccount) {
-                form.value.recvAccountTitle = userList.value.find(item => item.userId === form.value.recvAccount).nickName;
+                // 查找用户，防止找不到用户导致报错
+                const foundUser = userList.value.find(item => item.userId === form.value.recvAccount);
+                if (foundUser) {
+                    form.value.recvAccountTitle = foundUser.nickName;
+                } else {
+                    // 如果找不到对应的用户，将recvAccount值赋给recvAccountTitle并设置recvAccount为null
+                    form.value.recvAccountTitle = form.value.recvAccount;
+                    form.value.recvAccount = null;
+                }
             }
 
             const request = form.value.expId != null ?

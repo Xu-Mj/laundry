@@ -96,9 +96,11 @@ function logout() {
     cancelButtonText: '取消',
     type: 'warning'
   }).then(() => {
-    userStore.logOut().then(async () => {
-      location.href = '/';
-    })
+    const redirectUrl = '/login';
+    setTimeout(() => {
+      userStore.logOut();
+    }, 0);
+    location.href = redirectUrl;
   }).catch(() => { });
 }
 

@@ -8,8 +8,11 @@
 
 <script setup name="CloseBar">
 import { Window } from '@tauri-apps/api/window';
+import useUserStore from '@/store/modules/user';
+import { removeToken } from '@/utils/auth';
 
 const appWindow = new Window('main');
+const userStore = useUserStore();
 
 // 定义一个响应式的引用，用于跟踪窗口是否最大化
 const isMaximized = ref(false);
@@ -28,8 +31,21 @@ const maximizeOrRestoreWindow = () => {
 };
 
 // 关闭窗口
-const closeWindow = () => {
-    appWindow.close()
+const closeWindow = async () => {
+    try {
+        // 执行登出操作以清除当前用户的登录状态
+        await userStore.logOut();
+        
+        // 移除Token，确保下次启动时需要重新登录
+        removeToken();
+        
+        // 关闭窗口
+        appWindow.close();
+    } catch (error) {
+        console.error('关闭窗口时出错:', error);
+        // 即使登出失败，也尝试关闭窗口
+        appWindow.close();
+    }
 };
 </script>
 

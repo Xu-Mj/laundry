@@ -153,11 +153,20 @@ const formatDate = (date) => {
   return `${year}年${month}月${day}日`;
 };
 
+// 格式化货币显示
+const formatCurrency = (value) => {
+  return new Intl.NumberFormat('zh-CN', {
+    style: 'currency',
+    currency: 'CNY',
+    minimumFractionDigits: 2
+  }).format(value);
+};
+
 // 统计卡片数据
 const statisticCards = computed(() => [
   {
     title: '本日收入',
-    value: paymentData.value.today?.income || 0,
+    value: formatCurrency((paymentData.value.today?.income || 0)),
     trend: `较昨日 ${Math.abs(paymentData.value.today?.incomeRate || 0)}%`,
     trendClass: paymentData.value.today?.incomeRate >= 0 ? 'trend-up' : 'trend-down',
     trendIcon: paymentData.value.today?.incomeRate >= 0 ? 'CaretTop' : 'CaretBottom',
@@ -165,7 +174,7 @@ const statisticCards = computed(() => [
   },
   {
     title: '本周收入',
-    value: paymentData.value.week?.income || 0,
+    value: formatCurrency((paymentData.value.week?.income || 0)),
     trend: `较上周 ${Math.abs(paymentData.value.week?.incomeRate || 0)}%`,
     trendClass: paymentData.value.week?.incomeRate >= 0 ? 'trend-up' : 'trend-down',
     trendIcon: paymentData.value.week?.incomeRate >= 0 ? 'CaretTop' : 'CaretBottom',
@@ -173,7 +182,7 @@ const statisticCards = computed(() => [
   },
   {
     title: '本日支出',
-    value: paymentData.value.today?.expense || 0,
+    value: formatCurrency((paymentData.value.today?.expense || 0) / 100),
     trend: `较昨日 ${Math.abs(paymentData.value.today?.expenseRate || 0)}%`,
     trendClass: paymentData.value.today?.expenseRate >= 0 ? 'trend-down' : 'trend-up',
     trendIcon: paymentData.value.today?.expenseRate >= 0 ? 'CaretTop' : 'CaretBottom',
@@ -181,7 +190,7 @@ const statisticCards = computed(() => [
   },
   {
     title: '本周支出',
-    value: paymentData.value.week?.expense || 0,
+    value: formatCurrency((paymentData.value.week?.expense || 0) / 100),
     trend: `较上周 ${Math.abs(paymentData.value.week?.expenseRate || 0)}%`,
     trendClass: paymentData.value.week?.expenseRate >= 0 ? 'trend-down' : 'trend-up',
     trendIcon: paymentData.value.week?.expenseRate >= 0 ? 'CaretTop' : 'CaretBottom',
@@ -287,7 +296,8 @@ const initLineChart = async (year, month) => {
 
   const dates = filteredData.map(item => item.date);
   const incomes = filteredData.map(item => item.income);
-  const expenses = filteredData.map(item => item.expense);
+  // 将分转换为元
+  const expenses = filteredData.map(item => item.expense / 100);
 
   lineChart.value = {
     title: { text: '本月收支情况', left: 'center' },
@@ -296,7 +306,7 @@ const initLineChart = async (year, month) => {
       formatter: function (params) {
         let result = params[0].name + '<br/>';
         params.forEach(param => {
-          result += param.seriesName + ': ' + param.value + ' 元<br/>';
+          result += param.seriesName + ': ' + formatCurrency(param.value) + '<br/>';
         });
         return result;
       }

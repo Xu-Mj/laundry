@@ -104,7 +104,7 @@
         </el-table-column>
         <el-table-column label="限制条件" align="center" prop="usageLimit" v-if="columns[12].visible">
           <template #default="scope">
-            {{ scope.row.couponType === '003' ? '最高消费金额限制' + scope.row.usageLimit + '元' :
+            {{ scope.row.couponType === '003' ? '最高优惠金额限制' + scope.row.usageLimit + '元' :
               scope.row.usageLimit == 0 ? '无限制' : scope.row.usageLimit }}
           </template>
         </el-table-column>
@@ -113,7 +113,7 @@
             <dict-tag :options="sys_coupon_status" :value="scope.row.status" />
           </template>
         </el-table-column>
-        <el-table-column label="卡券描述" align="center" prop=" desc" v-if="columns[14].visible" show-overflow-tooltip />
+        <el-table-column label="卡券描述" align="center" prop="desc" v-if="columns[14].visible" show-overflow-tooltip />
         <el-table-column label="备注" align="center" prop="remark" v-if="columns[15].visible" show-overflow-tooltip />
         <el-table-column label="操作" align="center" class-name="small-padding" width="140">
           <template #default="scope">
@@ -522,9 +522,9 @@ function reset() {
     applicableStyle: null,
     applicableCloths: null,
     status: "0",
+    desc: null,
     remark: null
   };
-  proxy.resetForm("couponRef");
 }
 
 /** 搜索按钮操作 */

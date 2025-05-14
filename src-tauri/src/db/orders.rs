@@ -996,7 +996,7 @@ impl Order {
             order: Order,
             payment: Payment,
         }
-        
+
         impl Request for Vec<OrderWithPayment> {
             const URL: &'static str = "/orders/payment";
         }
@@ -1161,11 +1161,14 @@ impl Order {
         tr: &mut Transaction<'_, Sqlite>,
         payment: &mut Payment,
         user_coupons: &mut Vec<UserCoupon>,
-        mut total_amount: f64,
+        total_amount: f64,
     ) -> Result<bool> {
         if user_coupons.is_empty() {
             return Ok(true);
         }
+
+        // 将输入值转换为Decimal，确保精度
+        let mut total_amount_decimal = Decimal::from_f64(total_amount).unwrap_or_default();
 
         // 校验卡券是否过期
         for coupon in user_coupons.iter() {
@@ -1207,12 +1210,16 @@ impl Order {
 
             for storage_card in sorted_storage_cards {
                 let available_value = storage_card.available_value.unwrap_or(0.0);
+                let available_value_decimal =
+                    Decimal::from_f64(available_value).unwrap_or_default();
 
-                if available_value >= total_amount {
+                if available_value_decimal >= total_amount_decimal {
                     // 使用储值卡支付足够金额
-                    storage_card.available_value = Some(available_value - total_amount);
+                    let new_balance = available_value_decimal - total_amount_decimal;
+                    storage_card.available_value = Some(new_balance.to_f64().unwrap_or_default());
                     payment.payment_method = Some("06".to_string());
-                    payment.payment_amount_vip = Some(total_amount);
+                    // 储值卡类型不计算卡券优惠金额
+                    payment.payment_amount_vip = None;
                     // update user coupon
                     if !storage_card.update(tr).await? {
                         return Err(Error::internal("update user coupon failed"));
@@ -1220,7 +1227,7 @@ impl Order {
                     return Ok(true);
                 } else {
                     // 使用储值卡支付部分金额
-                    total_amount -= available_value;
+                    total_amount_decimal -= available_value_decimal;
                     storage_card.available_value = Some(0.0);
                     // update user coupon
                     if !storage_card.update(tr).await? {
@@ -1259,7 +1266,8 @@ impl Order {
 
                 // 校验卡券最低消费
                 if let Some(min_spend) = coupon.min_spend {
-                    if total_amount < min_spend {
+                    let min_spend_decimal = Decimal::from_f64(min_spend).unwrap_or_default();
+                    if total_amount_decimal < min_spend_decimal {
                         return Err(Error::bad_request(format!(
                             "Minimum spend not met for coupon {}",
                             coupon.coupon_title.clone().unwrap_or_default()
@@ -1268,16 +1276,16 @@ impl Order {
                 }
 
                 // 计算优惠金额
-                let total_amount_decimal = Decimal::from_f64(total_amount).unwrap_or_default();
                 let result = if coupon.coupon_type.as_deref() == Some(OFF_CARD_NUMBER) {
                     if coupon.usage_value.is_none() || coupon.usage_limit.is_none() {
                         return Err(Error::internal("get coupon usage value failed"));
                     }
                     // 折扣券逻辑
-                    let discount = Decimal::from_f64(1.0).unwrap_or_default()
-                        - Decimal::from_f64(coupon.usage_value.unwrap_or_default())
-                            .unwrap_or_default()
-                            / Decimal::from_f64(100.0).unwrap_or_default();
+                    let usage_value_decimal =
+                        Decimal::from_f64(coupon.usage_value.unwrap_or_default())
+                            .unwrap_or_default();
+                    let hundred = Decimal::from(100);
+                    let discount = Decimal::ONE - (usage_value_decimal / hundred);
                     let discounted = (total_amount_decimal * discount)
                         .round_dp_with_strategy(2, RoundingStrategy::MidpointAwayFromZero);
                     let usage_limit = Decimal::from_f64(coupon.usage_limit.unwrap_or_default())
@@ -1297,13 +1305,17 @@ impl Order {
                 };
 
                 // 更新金额和校验逻辑
-                total_amount = result.to_f64().unwrap_or_default();
-                payment.payment_amount_vip =
-                    Some((total_amount_decimal - result).to_f64().unwrap_or_default());
+                let payment_amount_vip =
+                    (total_amount_decimal - result).to_f64().unwrap_or_default();
+                payment.payment_amount_vip = Some(payment_amount_vip);
+                let payment_amount = payment.payment_amount.unwrap_or_default();
+                let payment_amount_decimal = Decimal::from_f64(payment_amount).unwrap_or_default();
+                let result_decimal =
+                    Decimal::from_f64(result.to_f64().unwrap_or_default()).unwrap_or_default();
 
-                // 校验最终金额
-                if (total_amount - payment.payment_amount.unwrap_or_default()).abs() > f64::EPSILON
-                {
+                // 校验最终金额 - 使用Decimal比较以避免浮点误差
+                let diff = (result_decimal - payment_amount_decimal).abs();
+                if diff > Decimal::from_f64(0.01).unwrap_or_default() {
                     return Err(Error::internal(
                         "提交的最终金额(优惠后的金额)与订单最终金额(优惠后的金额)不一致",
                     ));
@@ -1352,8 +1364,14 @@ impl Order {
 
                     if usable_count >= cloth_count {
                         // If the coupon can cover all clothes, deduct its value and update the database
-                        coupon.available_value =
-                            coupon.available_value.map(|v| v - cloth_count as f64);
+                        // 使用Decimal进行计算，避免浮点精度问题
+                        let current_value =
+                            Decimal::from_f64(coupon.available_value.unwrap_or_default())
+                                .unwrap_or_default();
+                        let deduction = Decimal::from(cloth_count);
+                        let new_value = current_value - deduction;
+                        coupon.available_value = Some(new_value.to_f64().unwrap_or_default());
+
                         time_based_coupon.count -= cloth_count as i32;
 
                         // Update the coupon in the database
@@ -1484,8 +1502,11 @@ impl Order {
             }
         }
 
+        // 始终执行一次截断，确保精度一致
+        let rounded_price = price.round_dp_with_strategy(2, RoundingStrategy::ToZero);
+
         // Ensure the price is non-negative
-        Ok(price.to_f64().unwrap_or_default().max(0.0))
+        Ok(rounded_price.to_f64().unwrap_or_default().max(0.0))
     }
 
     pub async fn query_list(
@@ -1653,20 +1674,30 @@ impl Order {
                 tx.commit().await?;
                 return Ok(());
             }
-            let mut total_amount = total_amount.unwrap();
+            let mut total_amount = Decimal::from_f64(total_amount.unwrap()).unwrap_or_default();
 
             for user_coupon in storage_cards {
                 if let Some(coupon) = &user_coupon.coupon {
+                    // 使用Decimal进行所有计算，避免浮点精度问题
                     // Original total value of the storage card
-                    // todo check the uc count is correct
-                    let old_value = coupon.usage_value.unwrap_or_default()
-                        * user_coupon.uc_count.unwrap_or_default() as f64;
+                    let usage_value = Decimal::from_f64(coupon.usage_value.unwrap_or_default())
+                        .unwrap_or_default();
+                    let uc_count =
+                        Decimal::from_f64(user_coupon.uc_count.unwrap_or_default() as f64)
+                            .unwrap_or_default();
+                    let old_value = usage_value * uc_count;
+
+                    // 当前可用余额
+                    let available_value =
+                        Decimal::from_f64(user_coupon.available_value.unwrap_or_default())
+                            .unwrap_or_default();
+
                     // Amount used in this order for this storage card
-                    let used_value = old_value - user_coupon.available_value.unwrap_or_default();
+                    let used_value = old_value - available_value;
 
                     if total_amount > used_value {
                         // Refund the full value
-                        user_coupon.available_value = Some(old_value);
+                        user_coupon.available_value = Some(old_value.to_f64().unwrap_or_default());
                         if !user_coupon.update(&mut tx).await? {
                             return Err(Error::internal("退还储值卡失败"));
                         }
@@ -1674,8 +1705,9 @@ impl Order {
                         total_amount -= used_value;
                     } else {
                         // Refund only part of the value
+                        let new_available = available_value + total_amount;
                         user_coupon.available_value =
-                            user_coupon.available_value.map(|v| v + total_amount);
+                            Some(new_available.to_f64().unwrap_or_default());
                         if !user_coupon.update(&mut tx).await? {
                             return Err(Error::internal("退还储值卡失败"));
                         }
@@ -1774,7 +1806,6 @@ impl Order {
         Ok(())
     }
 }
-
 
 #[tauri::command]
 pub async fn create_order(state: tauri::State<'_, AppState>, mut order: Order) -> Result<Order> {

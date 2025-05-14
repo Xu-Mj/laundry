@@ -185,7 +185,7 @@ async function routeJump() {
     }
     return acc;
   }, {});
-  router.push({ path: redirect.value || "/", query: otherQueryParams });
+  router.push({ path: redirect.value || "/index", query: otherQueryParams });
 }
 
 // 检查衣挂数据是否已初始化

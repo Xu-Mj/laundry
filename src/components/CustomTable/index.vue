@@ -127,7 +127,7 @@ const calculateTotalPrice = (cloth) => {
   if (cloth.processMarkup) {
     priceValue += cloth.processMarkup;
   }
-  return parseFloat(priceValue);
+  return parseFloat(Math.floor(priceValue * 100) / 100);
 };
 
 // 删除操作

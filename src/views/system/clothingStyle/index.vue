@@ -316,7 +316,22 @@ function submitForm() {
 /** 删除按钮操作 */
 function handleDelete(row) {
     const ids = row.styleId || data.ids;
-    ElMessageBox.confirm('是否确认删除分类编号为"' + ids + '"的数据项?', "警告", {
+    // 获取要删除的品类名称
+    let confirmMessage;
+
+    if (row.categoryId) {
+        // 单个删除
+        confirmMessage = `是否确认删除分类"${row.styleName}"?`;
+    } else {
+        // 批量删除
+        const styleNames = data.styleList
+            .filter(item => data.ids.includes(item.styleId))
+            .map(item => item.styleName)
+            .join("、");
+
+        confirmMessage = `是否确认删除以下分类: ${styleNames}?`;
+    }
+    ElMessageBox.confirm(confirmMessage, "警告", {
         confirmButtonText: "确定",
         cancelButtonText: "取消",
         type: "warning"

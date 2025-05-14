@@ -256,13 +256,30 @@ function submitForm() {
 
 /** 删除按钮操作 */
 function handleDelete(row) {
-  const ids = row.categoryId || data.ids;
-  ElMessageBox.confirm('是否确认删除品类编号为"' + ids + '"的数据项?', "警告", {
+  const categoryIds = row.categoryId || data.ids;
+  
+  // 获取要删除的品类名称
+  let confirmMessage;
+  
+  if (row.categoryId) {
+    // 单个删除
+    confirmMessage = `是否确认删除品类"${row.categoryName}"?`;
+  } else {
+    // 批量删除
+    const categoryNames = data.categoryList
+      .filter(item => data.ids.includes(item.categoryId))
+      .map(item => item.categoryName)
+      .join("、");
+    
+    confirmMessage = `是否确认删除以下品类: ${categoryNames}?`;
+  }
+  
+  ElMessageBox.confirm(confirmMessage, "警告", {
     confirmButtonText: "确定",
     cancelButtonText: "取消",
     type: "warning"
   }).then(function () {
-    return delCategory(ids);
+    return delCategory(categoryIds);
   }).then(() => {
     getList();
     proxy.notify.success("删除成功");

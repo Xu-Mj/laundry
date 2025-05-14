@@ -26,7 +26,7 @@ impl CouponOrder {
 impl CouponOrder {
     pub async fn create(&mut self, tr: &mut Transaction<'_, Sqlite>) -> Result<bool> {
         let result = sqlx::query(
-            "INSERT INTO coupon_orders(uc_ids, create_time, store_id) VALUES (?, ?, ?) RETURNING *",
+            "INSERT INTO coupon_orders(uc_id, create_time, store_id) VALUES (?, ?, ?) RETURNING *",
         )
         .bind(&self.uc_ids)
         .bind(&self.create_time)

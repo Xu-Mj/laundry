@@ -128,7 +128,7 @@ const handleMenuClick = (menu) => {
 
 const switchAdmin = () => {
   isAdmin.value = !isAdmin.value;
-  router.push('/');
+  router.push('/index');
 };
 
 function hangupClick() {

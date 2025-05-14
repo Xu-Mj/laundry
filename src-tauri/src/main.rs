@@ -120,9 +120,6 @@ async fn main() {
                 _ => {}
             }
         }
-        tauri::RunEvent::ExitRequested { api, .. } => {
-            api.prevent_exit();
-        }
         _ => {}
     });
 }

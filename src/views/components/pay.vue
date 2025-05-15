@@ -749,7 +749,6 @@ function changeCoupon(couponType, card) {
         }
         // 折扣券
         if (coupon.coupon.couponType == '003') {
-            debugger
             // 创建订单时已经处理了小数，这里直接计算即可
             let bonusAmount = paymentForm.value.totalAmount * (1 - coupon.coupon.usageValue / 100);
 

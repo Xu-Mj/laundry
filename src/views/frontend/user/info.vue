@@ -120,7 +120,7 @@
                         <el-tag
                             v-for="(card, index) in coupons.filter(item => item.coupon.couponType !== '000' && item.coupon.couponType !== '002' && item.availableValue > 0)"
                             :key="index" type="warning" effect="light" class="coupon-tag">
-                            {{ card.coupon.couponTitle }} - {{ card.availableValue }}张
+                            {{ card.coupon.couponTitle }} - {{ card.ucCount }}张
                         </el-tag>
                     </div>
                     <span class="value" v-else>无可用优惠券</span>

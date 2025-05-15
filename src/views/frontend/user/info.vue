@@ -103,7 +103,7 @@
                         <el-tag
                             v-for="(card, index) in coupons.filter(item => item.coupon.couponType == '002' && item.availableValue > 0)"
                             :key="index" type="success" effect="light" class="coupon-tag">
-                            {{ card.coupon.couponTitle }} - {{ card.availableValue }}次
+                            {{ card.coupon.couponTitle }} - {{ card.ucCount }}张
                         </el-tag>
                     </div>
                     <span class="value" v-else>无可用次卡</span>
@@ -210,11 +210,6 @@ import { changeUserStatus } from "@/api/system/user";
 import { listUserCouponNoPage } from '@/api/system/user_coupon';
 import { ref, computed } from "vue";
 import CouponSale from '@/views/components/couponSale.vue';
-import eventBus from "@/utils/eventBus";
-import {
-    User, UserFilled, Avatar, Phone, Medal, Connection, Male, Star, Trophy,
-    Warning, Switch, Calendar, Wallet, Ticket, Discount
-} from '@element-plus/icons-vue';
 
 const { proxy } = getCurrentInstance();
 const { sys_user_tags, sys_user_sex, sys_user_type, sys_user_identify } =
@@ -248,24 +243,43 @@ const handleStatusChange = (row) => {
 function handleCouponBought() {
     // 重新获取会员优惠券列表
     if (props.user && props.user.userId) {
-        // 清空当前卡券列表，确保UI会强制刷新
-        coupons.value = [];
-
         // 添加延迟，确保数据库同步完成
         listUserCouponNoPage({ userId: props.user.userId }).then(response => {
-            // 强制触发响应式更新
-            coupons.value = [...response];
+            const mergedCoupons = response.reduce((acc, cur) => {
+                const existing = acc.find(item => item.coupon.couponId === cur.coupon.couponId);
+                if (existing) {
+                    existing.ucCount += cur.ucCount;
+                } else {
+                    acc.push(cur);
+                }
+                return acc;
+            }, []);
+
+            coupons.value = mergedCoupons;
 
             // 更新卡券类型列表
             couponTypeList.value = new Set(coupons.value.map(coupon => coupon.coupon.couponType));
         });
     }
+    // 关闭弹窗
+    showCouponSale.value = false;
 };
 
 // 获取会员优惠券列表
 if (props.user && props.user.userId) {
     listUserCouponNoPage({ userId: props.user.userId }).then(response => {
-        coupons.value = response;
+        // 合并相同卡券数量，如果couponId相同，那么计算该couponId的ucCount总和
+        const mergedCoupons = response.reduce((acc, cur) => {
+            const existing = acc.find(item => item.coupon.couponId === cur.coupon.couponId && item.coupon.couponType !== '000');
+            if (existing) {
+                existing.ucCount += cur.ucCount;
+            } else {
+                acc.push(cur);
+            }
+            return acc;
+        }, []);
+
+        coupons.value = mergedCoupons;
         // 初始化卡券类型列表
         couponTypeList.value = new Set(coupons.value.map(coupon => coupon.coupon.couponType));
     });

@@ -583,7 +583,28 @@ async function submitForm() {
 /** 删除按钮操作 */
 function handleDelete(row) {
   const _clothingIds = row.id || ids.value;
-  proxy.$modal.confirm('是否确认删除衣物管理编号为"' + _clothingIds + '"的数据项？').then(function () {
+  
+  // 获取要删除的衣物名称
+  let confirmMessage;
+  
+  if (row.id) {
+    // 单个删除
+    confirmMessage = `是否确认删除衣物"${row.title}"?`;
+  } else {
+    // 批量删除
+    const clothingNames = clothingList.value
+      .filter(item => ids.value.includes(item.id))
+      .map(item => item.title)
+      .join("、");
+    
+    confirmMessage = `是否确认删除以下衣物: ${clothingNames}?`;
+  }
+  
+  proxy.$modal.confirm(confirmMessage, "警告", {
+    confirmButtonText: "确定",
+    cancelButtonText: "取消",
+    type: "warning"
+  }).then(function () {
     return delClothing(_clothingIds);
   }).then(() => {
     getList();

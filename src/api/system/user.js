@@ -68,6 +68,11 @@ export function changeUserStatus(userId, status) {
   return invoke('change_user_status', { userId, status })
 }
 
+// 用户黑灰名单修改
+export function changeUserIdentify(userId, identify) {
+  return invoke('change_user_identify', { userId, identify })
+}
+
 // 查询用户个人信息
 export function getUserProfile() {
   return request({

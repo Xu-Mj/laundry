@@ -66,8 +66,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, toRefs } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ElMessageBox } from 'element-plus';
 import { addRack } from '@/api/system/rack';
 import { useRouter } from 'vue-router';
 import { Picture } from '@element-plus/icons-vue';
@@ -82,6 +81,8 @@ const props = defineProps({
 
 const emit = defineEmits(['update:visible', 'setup-complete']);
 
+const { proxy } = getCurrentInstance();
+
 const router = useRouter();
 const dialogVisible = ref(props.visible);
 const rackFormRef = ref(null);
@@ -89,7 +90,7 @@ const rackFormRef = ref(null);
 // 创建默认衣挂对象的函数
 const createDefaultRack = () => {
     return {
-        name: '',
+        name: ' ', // 添加空格作为初始值，避免立即触发验证
         rackType: '1',
         capacity: 100,
         remainingCapacity: 100,
@@ -103,15 +104,7 @@ const data = reactive({
         racks: [createDefaultRack()]
     },
     rackRules: {
-        'racks.0.name': [
-            { required: true, message: "架子名称不能为空", trigger: "blur" }
-        ],
-        'racks.0.capacity': [
-            { required: true, message: "容量不能为空", trigger: "blur" }
-        ],
-        'racks.0.rackType': [
-            { required: true, message: "架子类型不能为空", trigger: "blur" }
-        ]
+        // 这里留空，我们将使用动态validateField而不是声明式验证规则
     }
 });
 
@@ -120,17 +113,20 @@ const addNewRack = () => {
     const newRack = createDefaultRack();
     rackForm.value.racks.push(newRack);
 
-    // 动态添加验证规则
-    const index = rackForm.value.racks.length - 1;
-    rackRules.value[`racks.${index}.name`] = [
-        { required: true, message: "架子名称不能为空", trigger: "blur" }
-    ];
-    rackRules.value[`racks.${index}.capacity`] = [
-        { required: true, message: "容量不能为空", trigger: "blur" }
-    ];
-    rackRules.value[`racks.${index}.rackType`] = [
-        { required: true, message: "架子类型不能为空", trigger: "blur" }
-    ];
+    // 延迟聚焦并确保不触发验证
+    setTimeout(() => {
+        // 重置整个表单的验证
+        if (rackFormRef.value) {
+            rackFormRef.value.clearValidate();
+        }
+
+        const index = rackForm.value.racks.length - 1;
+        const inputSelector = `.rack-item:nth-child(${index + 1}) input[placeholder="请输入架子名称"]`;
+        const inputElement = document.querySelector(inputSelector);
+        if (inputElement) {
+            inputElement.focus();
+        }
+    }, 300);
 };
 
 // 删除衣挂
@@ -163,6 +159,22 @@ const { rackForm, rackRules } = toRefs(data);
 // 监听visible属性变化
 watch(() => props.visible, (newVal) => {
     dialogVisible.value = newVal;
+    if (newVal) {
+        // 当对话框显示时，重置表单并聚焦第一个输入框
+        setTimeout(() => {
+            if (rackFormRef.value) {
+                rackFormRef.value.clearValidate();
+
+                if (rackForm.value.racks.length > 0) {
+                    const inputSelector = `.rack-item:nth-child(1) input[placeholder="请输入架子名称"]`;
+                    const inputElement = document.querySelector(inputSelector);
+                    if (inputElement) {
+                        inputElement.focus();
+                    }
+                }
+            }
+        }, 300);
+    }
 });
 
 // 监听对话框可见性变化
@@ -172,44 +184,61 @@ watch(dialogVisible, (newVal) => {
 
 // 提交表单
 const submitForm = () => {
-    rackFormRef.value.validate(valid => {
-        if (valid) {
-            // 设置每个衣挂的剩余容量等于总容量
-            rackForm.value.racks.forEach(rack => {
-                rack.remainingCapacity = rack.capacity;
-            });
+    // 手动验证所有字段
+    let hasError = false;
 
-            // 创建提交的Promise数组
-            const promises = rackForm.value.racks.map(rack => addRack(rack));
-
-            // 并行提交所有衣挂信息
-            Promise.all(promises)
-                .then(responses => {
-                    ElMessage.success(`成功设置 ${responses.length} 个衣挂信息`);
-                    dialogVisible.value = false;
-                    emit('setup-complete', true);
-
-                    // 询问是否前往衣挂管理页面
-                    ElMessageBox.confirm(
-                        '衣挂信息设置成功，是否前往衣挂管理页面查看更多设置？',
-                        '操作成功',
-                        {
-                            confirmButtonText: '前往查看',
-                            cancelButtonText: '稍后再说',
-                            type: 'success',
-                        }
-                    ).then(() => {
-                        router.push('/system/rack');
-                    }).catch(() => {
-                        // 用户选择稍后再说，不做任何操作
-                    });
-                })
-                .catch(error => {
-                    console.error('设置衣挂信息失败:', error);
-                    ElMessage.error('设置衣挂信息失败，请稍后重试');
-                });
+    rackForm.value.racks.forEach((rack, index) => {
+        // 检查每个必填字段
+        if (!rack.name || rack.name.trim() === '') {
+            proxy.notify.error(`衣挂 #${index + 1} 的架子名称不能为空`);
+            hasError = true;
+        }
+        if (!rack.capacity) {
+            proxy.notify.error(`衣挂 #${index + 1} 的容量不能为空`);
+            hasError = true;
+        }
+        if (!rack.rackType) {
+            proxy.notify.error(`衣挂 #${index + 1} 的架子类型不能为空`);
+            hasError = true;
         }
     });
+
+    if (!hasError) {
+        // 设置每个衣挂的剩余容量等于总容量
+        rackForm.value.racks.forEach(rack => {
+            rack.remainingCapacity = rack.capacity;
+        });
+
+        // 创建提交的Promise数组
+        const promises = rackForm.value.racks.map(rack => addRack(rack));
+
+        // 并行提交所有衣挂信息
+        Promise.all(promises)
+            .then(responses => {
+                proxy.notify.success(`成功设置 ${responses.length} 个衣挂信息`);
+                dialogVisible.value = false;
+                emit('setup-complete', true);
+
+                // 询问是否前往衣挂管理页面
+                ElMessageBox.confirm(
+                    '衣挂信息设置成功，是否前往衣挂管理页面查看更多设置？',
+                    '操作成功',
+                    {
+                        confirmButtonText: '前往查看',
+                        cancelButtonText: '稍后再说',
+                        type: 'success',
+                    }
+                ).then(() => {
+                    router.push('/system/rack');
+                }).catch(() => {
+                    // 用户选择稍后再说，不做任何操作
+                });
+            })
+            .catch(error => {
+                console.error('设置衣挂信息失败:', error);
+                proxy.notify.error('设置衣挂信息失败，请稍后重试');
+            });
+    }
 };
 
 // 跳过设置
@@ -225,12 +254,28 @@ const skipSetup = () => {
     ).then(() => {
         dialogVisible.value = false;
         emit('setup-complete', false);
-        ElMessage({
-            type: 'info',
-            message: '您可以稍后在「衣挂管理」中完成设置',
-        });
+        proxy.notify.info('您可以稍后在「衣挂管理」中完成设置');
     }).catch(() => {
         // 用户取消，对话框保持打开状态
+    });
+};
+
+// 聚焦第一个名称输入框（保留但不再使用）
+const focusFirstNameInput = () => {
+    focusNameInput(0);
+};
+
+// 聚焦指定索引的名称输入框（保留但不再使用）
+const focusNameInput = (index) => {
+    // 使用更具体的选择器，明确选择架子名称输入框
+    const inputSelector = `.rack-item:nth-child(${index + 1}) input[placeholder="请输入架子名称"]`;
+    nextTick(() => {
+        setTimeout(() => {
+            const inputElement = document.querySelector(inputSelector);
+            if (inputElement) {
+                inputElement.focus();
+            }
+        }, 100); // 添加小延迟确保DOM已完全渲染
     });
 };
 </script>
@@ -257,6 +302,7 @@ const skipSetup = () => {
     /* color: #303133; */
     font-weight: 600;
 }
+
 .rack-init-content {
     padding: 20px 0;
 }

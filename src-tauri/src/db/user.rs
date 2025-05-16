@@ -126,6 +126,14 @@ impl User {
             self.integral = Some(0);
         }
 
+        if self.identify.is_none() {
+            self.identify = Some("00".to_string());
+        }
+
+        if self.user_type.is_none() {
+            self.user_type = Some("01".to_string());
+        }
+
         if self.status.is_none() {
             self.status = Some("0".to_string());
         }
@@ -215,7 +223,7 @@ impl User {
         .bind(&self.login_ip)
         .bind(&self.login_date)
         .bind(&self.create_by)
-        .bind(utils::get_now())
+        .bind(utils::get_timestamp())
         .bind(&self.remark)
         .bind(&self.address)
         .fetch_one(&mut **tr)
@@ -265,7 +273,7 @@ impl User {
         .bind(&self.update_by)
         .bind(&self.remark)
         .bind(&self.address)
-        .bind(utils::get_now())
+        .bind(utils::get_timestamp())
         .bind(self.store_id)
         .bind(self.user_id)
         .execute(&mut **tr)
@@ -490,7 +498,6 @@ impl User {
             // query user coupons for storage card and calculate balance
             if let Some(id) = user.user_id {
                 let coupons = UserCoupon::find_by_user_id(pool, self.store_id.unwrap(), id).await?;
-                tracing::debug!("user {} has {:?} coupons", id, coupons);
                 user.balance = coupons
                     .iter()
                     .filter(|c| {
@@ -569,7 +576,23 @@ pub async fn get_user_by_id(state: State<'_, AppState>, id: i64) -> Result<Optio
 
     let store_id = utils::get_user_id(&state).await?;
     // cal balance
-    user.balance = UserCoupon::cal_balance(pool, store_id, user.user_id.unwrap()).await?;
+    let coupons = UserCoupon::find_by_user_id(pool, store_id, id).await?;
+    user.balance = coupons
+        .iter()
+        .filter(|c| {
+            if let Some(coupon) = c.coupon.as_ref() {
+                if let Some(valid_to) = coupon.valid_to {
+                    return coupon.coupon_type.as_deref() == Some(STORAGE_CARD_TYPE)
+                        && utils::get_now() <= valid_to
+                        && c.available_value.is_some()
+                        && c.available_value.unwrap() > 0.;
+                }
+            }
+            false
+        })
+        .map(|c| c.available_value.unwrap_or_default())
+        .sum();
+
     Ok(Some(user))
 }
 
@@ -612,6 +635,24 @@ pub async fn change_user_status(
         .ok_or(Error::not_found("用户未找到"))?;
 
     user.status = Some(status.to_string());
+    let mut tr = state.pool.begin().await?;
+
+    let result = user.update(&mut tr).await?;
+    tr.commit().await?;
+    Ok(result)
+}
+
+#[tauri::command]
+pub async fn change_user_identify(
+    state: State<'_, AppState>,
+    user_id: i64,
+    identify: &str,
+) -> Result<bool> {
+    let mut user = User::get_by_id(&state.pool, user_id)
+        .await?
+        .ok_or(Error::not_found("用户未找到"))?;
+
+    user.identify = Some(identify.to_string());
     let mut tr = state.pool.begin().await?;
 
     let result = user.update(&mut tr).await?;

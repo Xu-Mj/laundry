@@ -116,6 +116,7 @@ fn handle_command<R: Runtime>(invoke: Invoke<R>) -> bool {
         user::get_user_by_cloth_code,
         user::create_user,
         user::update_user,
+        user::change_user_identify,
         user::change_user_status,
         user::delete_users,
         printer::print,

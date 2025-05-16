@@ -120,7 +120,14 @@
             </el-table-column>
             <el-table-column label="黑灰名单" align="center" key="identify" v-if="columns[13].visible">
                <template #default="scope">
-                  <dict-tag :options="sys_user_identify" :value="scope.row.identify" />
+                  <el-select v-model="scope.row.identify" @change="handleIdentifyChange(scope.row)" size="small" class="identify-select">
+                     <el-option
+                         v-for="dict in sys_user_identify"
+                         :key="dict.value"
+                         :label="dict.label"
+                         :value="dict.value"
+                     />
+                  </el-select>
                </template>
             </el-table-column>
             <el-table-column label="账号状态" align="center" key="status" v-if="columns[4].visible">
@@ -178,7 +185,7 @@
 </template>
 
 <script setup name="User">
-import { changeUserStatus, listUser, resetUserPwd, delUser } from "@/api/system/user";
+import { changeUserStatus, changeUserIdentify, listUser, resetUserPwd, delUser } from "@/api/system/user";
 import { listRecord } from "@/api/system/record";
 import { listPostAll } from "@/api/system/post";
 import Information from "@/views/frontend/user/information.vue";
@@ -354,6 +361,26 @@ function handleStatusChange(row) {
    });
 };
 
+/** 黑灰名单状态修改 */
+function handleIdentifyChange(row) {
+   const identifyMap = {
+      '00': '正常',
+      '01': '加入黑名单',
+      '02': '加入灰名单'
+   };
+   const text = identifyMap[row.identify] || '正常';
+   
+   proxy.$modal.confirm('确认要将"' + row.userName + '"会员' + (row.identify !== '00' ? '设为' + text : '移出黑灰名单') + '吗?').then(function () {
+      return changeUserIdentify(row.userId, row.identify);
+   }).then(() => {
+      proxy.notify.success('设置成功');
+   }).catch(function () {
+      // 操作取消，回退选择
+      const oldIdentify = proxy.getDictValue(sys_user_identify, row.identify);
+      row.identify = oldIdentify ? oldIdentify.value : '00';
+   });
+};
+
 /** 重置密码按钮操作 */
 function handleResetPwd(row) {
    proxy.$prompt('请输入"' + row.userName + '"的新密码', "提示", {
@@ -469,5 +496,9 @@ onUnmounted(() => {
    align-items: center;
    flex-flow: row wrap;
    gap: .5rem;
+}
+
+.identify-select {
+   width: 110px;
 }
 </style>

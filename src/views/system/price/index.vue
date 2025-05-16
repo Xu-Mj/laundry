@@ -456,7 +456,28 @@ function submitForm() {
 /** 删除按钮操作 */
 function handleDelete(row) {
   const _priceIds = row.priceId || ids.value;
-  proxy.$modal.confirm('是否确认删除价格管理编号为"' + _priceIds + '"的数据项？').then(function () {
+  
+  // 获取要删除的价格名称
+  let confirmMessage;
+  
+  if (row.priceId) {
+    // 单个删除
+    confirmMessage = `是否确认删除价格"${row.priceName}"?`;
+  } else {
+    // 批量删除
+    const priceNames = priceList.value
+      .filter(item => ids.value.includes(item.priceId))
+      .map(item => item.priceName)
+      .join("、");
+    
+    confirmMessage = `是否确认删除以下价格: ${priceNames}?`;
+  }
+  
+  proxy.$modal.confirm(confirmMessage, "警告", {
+    confirmButtonText: "确定",
+    cancelButtonText: "取消",
+    type: "warning"
+  }).then(function () {
     return delPrice(_priceIds);
   }).then(() => {
     getList();

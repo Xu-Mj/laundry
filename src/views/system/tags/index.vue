@@ -316,7 +316,23 @@ function submitForm() {
 /** 删除按钮操作 */
 function handleDelete(row) {
   const _tagIds = row.tagId || ids.value;
-  proxy.$modal.confirm('是否确认删除编号为"' + _tagIds + '"的数据项？').then(function () {
+    // 获取要删除的价格名称
+    let confirmMessage;
+  
+  if (row.tagId) {
+    // 单个删除
+    confirmMessage = `是否确认删除标签"${row.tagName}"?`;
+  } else {
+    // 批量删除
+    const priceNames = tagsList.value
+      .filter(item => ids.value.includes(item.tagId))
+      .map(item => item.tagName)
+      .join("、");
+    
+    confirmMessage = `是否确认删除以下标签: ${priceNames}?`;
+  }
+  
+  proxy.$modal.confirm(confirmMessage).then(function () {
     return delTags(_tagIds);
   }).then(() => {
     getList();

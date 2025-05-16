@@ -246,7 +246,23 @@ function submitForm() {
 /** 删除按钮操作 */
 function handleDelete(row) {
    const levelIds = row.levelId || ids.value;
-   proxy.$modal.confirm('是否确认删除等级编号为"' + levelIds + '"的数据项？').then(function () {
+
+   let confirmMessage;
+  
+  if (row.levelId) {
+    // 单个删除
+    confirmMessage = `是否确认删除等级"${row.levelName}"?`;
+  } else {
+    // 批量删除
+    const priceNames = postList.value
+      .filter(item => ids.value.includes(item.levelId))
+      .map(item => item.levelName)
+      .join("、");
+    
+    confirmMessage = `是否确认删除以下等级: ${priceNames}?`;
+  }
+  
+   proxy.$modal.confirm(confirmMessage).then(function () {
       return delPost(levelIds);
    }).then(() => {
       getList();

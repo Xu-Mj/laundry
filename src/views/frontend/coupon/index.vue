@@ -583,6 +583,9 @@ function handleUpdate(row) {
     if (form.value.applicableCloths) {
       form.value.applicableClothsArr = form.value.applicableCloths.split(",");
     }
+    if (form.value.couponType === '000') {
+      form.value.usageValue = form.value.usageValue - form.value.couponValue;
+    }
     open.value = true;
     title.value = "修改卡券";
   });
@@ -597,10 +600,10 @@ function submitForm() {
 /** 删除按钮操作 */
 function handleDelete(row) {
   const _couponIds = row.couponId || ids.value;
-  
+
   // 获取要删除的卡券名称
   let confirmMessage;
-  
+
   if (row.couponId) {
     // 单个删除
     confirmMessage = `是否确认删除卡券"${row.couponTitle}"?`;
@@ -610,10 +613,10 @@ function handleDelete(row) {
       .filter(item => ids.value.includes(item.couponId))
       .map(item => item.couponTitle)
       .join("、");
-    
+
     confirmMessage = `是否确认删除以下卡券: ${couponNames}?`;
   }
-  
+
   proxy.$modal.confirm(confirmMessage, "警告", {
     confirmButtonText: "确定",
     cancelButtonText: "取消",

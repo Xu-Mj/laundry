@@ -277,10 +277,7 @@
         :refresh="() => { selectedCloths = []; getList(); }" :key="showRewashDialog"
         :toggle="() => { showRewashDialog = !showRewashDialog }" />
 
-    <PaymentDialog :visible="showPaymentDialog" :user="currentUser" :orders="orders" :cloths-list="clothsList"
-        :user-coupon-list="userCouponList" :coupon-type-list="couponTypeList" :refresh="getList"
-        :key="showPaymentDialog" :toggle="() => { showPaymentDialog = !showPaymentDialog }"
-        @success="handlePaymentSuccess" @pickup="handlePaymentPickup" />
+        <Pay         :visible="showPaymentDialog"         :user="currentUser"         :orders="orders"         :clothsList="clothsList"        :userCouponList="userCouponList"         :couponTypeList="couponTypeList"         :showPickupButton="true"         :refresh="getList"        :key="showPaymentDialog"         :toggle="() => { showPaymentDialog = !showPaymentDialog }"        @payment-success="handlePaymentSuccess"         @success="handlePaymentSuccess"         @pickup="handlePaymentPickup"        @payment-failed="handlePaymentFailed"     />
 
 </template>
 
@@ -296,7 +293,7 @@ import { getPrice } from "@/api/system/price";
 import ReWash from "./rewash.vue";
 import { ElMessageBox } from 'element-plus';
 import { invoke } from '@tauri-apps/api/core';
-import PaymentDialog from "./PaymentDialog.vue";
+import Pay from "./pay.vue";
 import DeliveryDialog from "./DeliveryDialog.vue";
 import { printReceipt } from '@/api/system/printer';
 import useTagsStore from "@/store/modules/tags";
@@ -486,8 +483,14 @@ async function pickup(cloth) {
 async function handlePaymentSuccess(data) {
     // 支付成功后刷新订单列表
     await getList();
-    proxy.notify.success("支付成功");
+    // proxy.notify.success("支付成功");
     selectedCloths.value = [];
+}
+
+// 处理支付失败事件
+function handlePaymentFailed(error) {
+    console.error('支付失败:', error);
+    proxy.notify.error(error || '支付失败');
 }
 
 // 处理支付成功并取衣事件

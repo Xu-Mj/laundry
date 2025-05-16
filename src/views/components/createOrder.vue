@@ -197,6 +197,7 @@
 
         <Pay :visible="showPaymentDialog" :key="showPaymentDialog" :order="form" :refresh="reset"
             :toggle="() => { showPaymentDialog = !showPaymentDialog }" :createOrder="createAndPay"
+            :userCouponList="userCouponList" :couponTypeList="couponTypeList" :showPickupButton="false"
             @payment-success="handlePaymentSuccess" @payment-failed="handlePaymentFailed" />
         <Information :user="currentUser" :visible="showInfoDialog" :key="showInfoDialog"
             :toggle="() => { showInfoDialog = !showInfoDialog }" />
@@ -335,6 +336,7 @@ const data = reactive({
             { required: true, message: "业务类型不能为空", trigger: "change" }
         ],
         userId: [
+            { required: true, message: "会员不能为空", trigger: "blur" },
             {
                 validator: (rule, value, callback) => {
                     // 获取当前输入值
@@ -806,39 +808,55 @@ async function submitForm() {
 }
 
 async function createAndGo2Pay() {
-    if (showCreateUser.value) {
-        try {
-            const res = await addUser({
-                phonenumber: currentUser.value.phonenumber, // 使用currentUser中的phonenumber
-                nickName: form.value.nickName
-            });
-            showCreateUser.value = false;
-            // 重新拉取用户列表
-            listUserWithNoLimit().then(res => {
-                userList.value = res;
-            });
 
-            form.value.userId = res.userId; // 设置返回的用户ID
-            form.value.userInfo = res; // 设置userInfo
-
-            // 将新用户添加到用户列表中
-            userList.value.push(res);
-
-            await listUserCouponWithValidTime(form.value.userId).then(response => {
-                userCouponList.value = response;
-                userCouponList.value.filter(item => item.coupon.couponType == '002').map(item => {
-                    item.selected = false;
-                    item.count = 1;
-                });
-                couponTypeList.value = new Set(userCouponList.value.map(coupon => coupon.coupon.couponType));
-            });
-
-        } catch (err) {
-            proxy.notify.error(err);
-            return; // 当 addUser 出错时，中断执行
-        }
+    // 检查订单是否已支付或退单
+    if (form.value.orderId && (form.value.paymentStatus === '00' || form.value.status === '05')) {
+        proxy.notify.error("订单已支付或已退单，不能修改信息");
+        return;
     }
-    showPaymentDialog.value = true;
+
+    // 提交订单
+    await proxy.$refs["ordersRef"].validate(async valid => {
+        if (valid) {
+            if (!form.value.cloths || form.value.cloths.length == 0) {
+                proxy.notify.error("衣物信息不能为空");
+                return;
+            }
+            if (showCreateUser.value) {
+                try {
+                    const res = await addUser({
+                        phonenumber: currentUser.value.phonenumber, // 使用currentUser中的phonenumber
+                        nickName: form.value.nickName
+                    });
+                    showCreateUser.value = false;
+                    // 重新拉取用户列表
+                    listUserWithNoLimit().then(res => {
+                        userList.value = res;
+                    });
+
+                    form.value.userId = res.userId; // 设置返回的用户ID
+                    form.value.userInfo = res; // 设置userInfo
+
+                    // 将新用户添加到用户列表中
+                    userList.value.push(res);
+
+                    await listUserCouponWithValidTime(form.value.userId).then(response => {
+                        userCouponList.value = response;
+                        userCouponList.value.filter(item => item.coupon.couponType == '002').map(item => {
+                            item.selected = false;
+                            item.count = 1;
+                        });
+                        couponTypeList.value = new Set(userCouponList.value.map(coupon => coupon.coupon.couponType));
+                    });
+
+                } catch (err) {
+                    proxy.notify.error(err);
+                    return; // 当 addUser 出错时，中断执行
+                }
+            }
+            showPaymentDialog.value = true;
+        }
+    });
 }
 /* 收衣收款 */
 async function createAndPay(callback) {
@@ -873,37 +891,6 @@ async function createAndPay(callback) {
 
             form.value.phonenumber = currentUser.value.phonenumber;
 
-            // if (showCreateUser.value) {
-            //     try {
-            //         const res = await addUser({
-            //             phonenumber: currentUser.value.phonenumber, // 使用currentUser中的phonenumber
-            //             nickName: form.value.nickName
-            //         });
-            //         // 重新拉取用户列表
-            //         listUserWithNoLimit().then(res => {
-            //             userList.value = res;
-            //         });
-
-            //         form.value.userId = res.userId; // 设置返回的用户ID
-            //         form.value.userInfo = res; // 设置userInfo
-
-            //         // 将新用户添加到用户列表中
-            //         userList.value.push(res);
-
-            //         await listUserCouponWithValidTime(form.value.userId).then(response => {
-            //             userCouponList.value = response;
-            //             userCouponList.value.filter(item => item.coupon.couponType == '002').map(item => {
-            //                 item.selected = false;
-            //                 item.count = 1;
-            //             });
-            //             couponTypeList.value = new Set(userCouponList.value.map(coupon => coupon.coupon.couponType));
-            //         });
-
-            //     } catch (err) {
-            //         proxy.notify.error(err);
-            //         return; // 当 addUser 出错时，中断执行
-            //     }
-            // }
             // 如果是创建订单，那么要先创建订单，拿到订单编码
             if (!form.value.orderId) {
                 form.value.clothIds = form.value.cloths.map(item => item.clothId);

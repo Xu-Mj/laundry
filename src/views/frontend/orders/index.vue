@@ -81,12 +81,12 @@
       <div class="table-operations">
         <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" :columns="columns"></right-toolbar>
       </div>
-      <el-table v-loading="loading" :data="ordersList" class="modern-table" border stripe>
+      <el-table v-loading="loading" :data="ordersList" class="modern-table no-wrap-table" border stripe :table-layout="fixed" :fit="true">
         <template #empty>
           <el-empty description="暂无数据" />
         </template>
-        <el-table-column label="订单编码" align="center" width="180" prop="orderNumber" v-if="columns[0].visible" />
-        <el-table-column label="所属会员" align="center" width="180" v-if="columns[1].visible">
+        <el-table-column label="订单编码" align="center" prop="orderNumber" v-if="columns[0].visible" min-width="160" show-overflow-tooltip />
+        <el-table-column label="所属会员" align="center" v-if="columns[1].visible" min-width="120">
           <template #default="scope">
             <div class="member-info">
               <span class="member-name">{{ scope.row.nickName }}</span>
@@ -132,7 +132,7 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="取件码" align="center" prop="pickupCode" width="100" v-if="columns[7].visible">
+        <el-table-column label="取件码" align="center" prop="pickupCode" v-if="columns[7].visible">
           <template #default="scope">
             <span class="pickup-code">{{ scope.row.pickupCode }}</span>
           </template>
@@ -143,7 +143,7 @@
             <dict-tag :options="sys_business_type" :value="scope.row.businessType" />
           </template>
         </el-table-column>
-        <el-table-column label="收衣时间" align="center" prop="createTime" width="160" v-if="columns[9].visible">
+        <el-table-column label="收衣时间" align="center" prop="createTime" min-width="100" v-if="columns[9].visible">
           <template #default="scope">
             <span class="time-info">{{ formatTime(scope.row.createTime) }}</span>
           </template>
@@ -154,7 +154,7 @@
             <dict-tag :options="sys_cost_time_alarm" :value="scope.row.costTimeAlarm" />
           </template>
         </el-table-column>
-        <el-table-column label="订单完成时间" align="center" prop="completeTime" width="160" v-if="columns[11].visible">
+        <el-table-column label="订单完成时间" align="center" prop="completeTime" min-width="100" v-if="columns[11].visible">
           <template #default="scope">
             <span class="time-info">{{ scope.row.completeTime }}</span>
           </template>
@@ -187,7 +187,7 @@
               @click="handleDeliveryMode(scope.row)" />
           </template>
         </el-table-column>
-        <el-table-column label="预计完成时间" align="center" prop="desireCompleteTime" width="160" v-if="columns[17].visible">
+        <el-table-column label="预计完成时间" align="center" prop="desireCompleteTime" min-width="100" v-if="columns[17].visible">
           <template #default="scope">
             <span>{{ parseTime(scope.row.desireCompleteTime, '{y}-{m}-{d}') }}</span>
           </template>
@@ -314,13 +314,16 @@
         :toggle="() => { open = !open; getList(); }" :refresh="getList" :key="open" />
     </el-dialog>
     <Pay :visible="showPaymentDialog" :key="showPaymentDialog" :order="currentOrder" :refresh="getList"
-      :toggle="() => { showPaymentDialog = !showPaymentDialog }" />
+      :toggle="() => { showPaymentDialog = !showPaymentDialog }" 
+      :userCouponList="userCouponList" :couponTypeList="couponTypeList" :showPickupButton="false"
+      @payment-success="handlePaymentSuccess" @payment-failed="handlePaymentFailed" />
   </div>
 </template>
 
 <script setup name="Orders">
 import { listOrders, getRefundInfo, delOrders } from "@/api/system/orders";
 import { getUser } from "@/api/system/user";
+import { listUserCouponWithValidTime } from '@/api/system/user_coupon';
 import { listDispatch } from '@/api/system/dispatch';
 import { addRecord } from '@/api/system/notice_record';
 import { listTemplate } from '@/api/system/template';
@@ -359,6 +362,10 @@ const {
 const ordersList = ref([]);
 // 通知模板列表
 const noticeTempList = ref([]);
+// 用户卡券列表
+const userCouponList = ref([]);
+// 用户卡券种类列表
+const couponTypeList = ref(new Set());
 const open = ref(false);
 const showClothListDialog = ref(false);
 const showExpressInfoDialog = ref(false);
@@ -430,9 +437,9 @@ const columns = ref([
   { key: 14, label: `洗护状态`, visible: true },
   { key: 15, label: `订单类型`, visible: false },
   { key: 16, label: `支付状态`, visible: true },
-  { key: 17, label: `取回方式`, visible: true },
+  { key: 17, label: `取回方式`, visible: false },
   { key: 18, label: `预计完成时间`, visible: true },
-  { key: 19, label: `备注`, visible: true },
+  { key: 19, label: `备注`, visible: false },
 ]);
 
 // Save column visibility to local storage
@@ -452,9 +459,20 @@ const loadColumnVisibility = () => {
 watch(columns, saveColumnVisibility, { deep: true });
 
 
+// 处理支付成功事件
+function handlePaymentSuccess(data) {
+  getList();
+}
+
+// 处理支付失败事件
+function handlePaymentFailed(error) {
+  console.error('支付失败:', error);
+  proxy.notify.error(error || '支付失败');
+}
+
 function go2pay(row) {
   // 根据订单id查询衣物列表
-  listCloths({ orderId: row.orderId }).then(res => {
+  listCloths({ orderId: row.orderId }).then(async res => {
     currentOrder.value = row;
     currentOrder.value.cloths = res;
     
@@ -480,6 +498,16 @@ function go2pay(row) {
     
     // 设置原价
     currentOrder.value.originalPrice = originalPrice > 0 ? originalPrice : 0;
+    
+    // 获取用户卡券列表
+    await listUserCouponWithValidTime(row.userId).then(response => {
+      userCouponList.value = response;
+      userCouponList.value.filter(item => item.coupon.couponType == '002').map(item => {
+        item.selected = false;
+        item.count = 1;
+      });
+      couponTypeList.value = new Set(userCouponList.value.map(coupon => coupon.coupon.couponType));
+    });
     
     showPaymentDialog.value = true;
     console.log(currentOrder.value);
@@ -686,6 +714,19 @@ getList();
 }
 
 /* 表格内容样式 */
+.no-wrap-table :deep(.el-table__cell) {
+  white-space: nowrap !important;
+}
+
+.no-wrap-table :deep(.el-table__inner-wrapper) {
+  width: 100%;
+}
+
+.no-wrap-table :deep(.cell) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .member-info {
   display: flex;
   flex-direction: column;

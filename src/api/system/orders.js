@@ -81,9 +81,10 @@ export function updateAdjust(data) {
 // 退款
 export function pay(data) {
   const req = (data) => {
-    const { orders, ...rest } = data;
+    const { orders, timeBased, ...rest } = data;
     return {
       orders,
+      timeBased,
       payment: rest
     };
   };

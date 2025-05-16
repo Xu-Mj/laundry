@@ -176,19 +176,23 @@ impl ClothingStyle {
     pub async fn exists_by_name(
         pool: &Pool<Sqlite>,
         store_id: i64,
+        category_id: i64,
         style_name: &str,
         exclude_style_id: Option<i64>,
     ) -> Result<bool> {
         let sql = match exclude_style_id {
             Some(_) => {
-                "SELECT EXISTS(SELECT 1 FROM clothing_styles WHERE store_id = ? AND style_name = ? AND style_id != ? AND del_flag = '0')"
+                "SELECT EXISTS(SELECT 1 FROM clothing_styles WHERE store_id = ? AND category_id = ? AND style_name = ? AND style_id != ? AND del_flag = '0')"
             }
             None => {
-                "SELECT EXISTS(SELECT 1 FROM clothing_styles WHERE store_id = ? AND style_name = ? AND del_flag = '0')"
+                "SELECT EXISTS(SELECT 1 FROM clothing_styles WHERE store_id = ? AND category_id = ? AND style_name = ? AND del_flag = '0')"
             }
         };
 
-        let mut query = sqlx::query_scalar(sql).bind(store_id).bind(style_name);
+        let mut query = sqlx::query_scalar(sql)
+            .bind(store_id)
+            .bind(category_id)
+            .bind(style_name);
 
         if let Some(id) = exclude_style_id {
             query = query.bind(id);
@@ -266,7 +270,15 @@ pub async fn add_clothing_style(
     let pool = &state.pool;
     style.validate()?;
     // check if style name exists
-    if ClothingStyle::exists_by_name(pool, style.store_id, &style.style_name, None).await? {
+    if ClothingStyle::exists_by_name(
+        pool,
+        style.store_id,
+        style.category_id,
+        &style.style_name,
+        None,
+    )
+    .await?
+    {
         return Err(Error::bad_request("分类名称已存在"));
     }
 
@@ -284,8 +296,14 @@ pub async fn update_clothing_style(
     let pool = &state.pool;
     style.validate()?;
     // check if style name exists, 排除当前正在更新的记录
-    if ClothingStyle::exists_by_name(pool, style.store_id, &style.style_name, style.style_id)
-        .await?
+    if ClothingStyle::exists_by_name(
+        pool,
+        style.store_id,
+        style.category_id,
+        &style.style_name,
+        style.style_id,
+    )
+    .await?
     {
         return Err(Error::bad_request("分类名称已存在"));
     }

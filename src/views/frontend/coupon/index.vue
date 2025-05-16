@@ -4,10 +4,6 @@
     <transition name="height-fade">
       <el-card class="search-card" v-show="showSearch">
         <el-form :model="queryParams" ref="queryRef" :inline="true" label-width="68px">
-          <el-form-item label="卡券编码" prop="couponNumber" size="large">
-            <el-input size="large" v-model="queryParams.couponNumber" placeholder="请输入卡券编码" clearable
-              @keyup.enter="handleQuery" />
-          </el-form-item>
           <el-form-item label="卡券名称" prop="couponTitle" size="large">
             <el-input size="large" v-model="queryParams.couponTitle" placeholder="请输入卡券名称" clearable
               @keyup.enter="handleQuery" />
@@ -54,7 +50,7 @@
       <el-table v-loading="loading" :data="couponList" ref="table" class="modern-table"
         @selection-change="handleSelectionChange">
         <template #empty>
-          <el-empty description="暂无数据"/>
+          <el-empty description="暂无数据" />
         </template>
         <el-table-column type="selection" width="55" align="center" />
         <!-- <el-table-column label="卡券唯一标识ID" align="center" prop="couponId" /> -->
@@ -99,7 +95,8 @@
         </el-table-column>
         <el-table-column label="卡券价值" align="center" prop="usageValue" v-if="columns[11].visible">
           <template #default="scope">
-            {{ scope.row.couponType === '003' ? scope.row.usageValue / 10 + '折' : scope.row.usageValue + '元' }}
+            <!-- {{ scope.row.couponType === '003' ? scope.row.usageValue / 10 + '折' : scope.row.usageValue + '元' }} -->
+            {{ calValue(scope.row.couponType, scope.row.usageValue) }}
           </template>
         </el-table-column>
         <el-table-column label="限制条件" align="center" prop="usageLimit" v-if="columns[12].visible">
@@ -485,6 +482,19 @@ const totalPrice = computed(() => {
   }, 0);
 });
 
+// 计算卡券价值
+function calValue(type, value) {
+  if (type === '000') {
+    return value + '元';
+  }
+  if (type === '003') {
+    return value + '折';
+  }
+  if (type === '002') {
+    return value + '次';
+  }
+}
+
 /** 查询卡券列表 */
 function getList() {
   loading.value = true;
@@ -587,7 +597,28 @@ function submitForm() {
 /** 删除按钮操作 */
 function handleDelete(row) {
   const _couponIds = row.couponId || ids.value;
-  proxy.$modal.confirm('是否确认删除卡券编号为"' + _couponIds + '"的数据项？').then(function () {
+  
+  // 获取要删除的卡券名称
+  let confirmMessage;
+  
+  if (row.couponId) {
+    // 单个删除
+    confirmMessage = `是否确认删除卡券"${row.couponTitle}"?`;
+  } else {
+    // 批量删除
+    const couponNames = couponList.value
+      .filter(item => ids.value.includes(item.couponId))
+      .map(item => item.couponTitle)
+      .join("、");
+    
+    confirmMessage = `是否确认删除以下卡券: ${couponNames}?`;
+  }
+  
+  proxy.$modal.confirm(confirmMessage, "警告", {
+    confirmButtonText: "确定",
+    cancelButtonText: "取消",
+    type: "warning"
+  }).then(function () {
     return delCoupon(_couponIds);
   }).then(() => {
     getList();

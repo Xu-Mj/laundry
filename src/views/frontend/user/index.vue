@@ -301,20 +301,40 @@ function resetQuery() {
 
 /** 删除按钮操作 */
 function handleDelete(row) {
+   // 检查余额情况
    if (row && row.balance > 0) {
       proxy.notify.warning("会员余额大于0，无法删除！");
       return;
    } else if (!row && ids.value.length > 0) {
-      // query user list by ids
-      if (userList.value.filter(item => ids.value.contains(item.userId)).filter(item => item.balance > 0).length > 0) {
+      // 检查选中的会员是否有余额大于0的
+      const usersWithBalance = userList.value.filter(item => ids.value.includes(item.userId) && item.balance > 0);
+      if (usersWithBalance.length > 0) {
          proxy.notify.warning("存在会员余额大于0的用户，无法删除！");
          return;
       }
    }
 
-
    const userIds = row.userId || ids.value;
-   proxy.$modal.confirm('是否确认删除会员编号为"' + userIds + '"的数据项？').then(function () {
+
+   // 获取要删除的会员名称
+   let confirmMessage;
+   if (row.userId) {
+      // 单个删除
+      confirmMessage = `是否确认删除会员"${row.nickName || row.userName}"?`;
+   } else {
+      // 批量删除
+      const userNames = userList.value
+         .filter(item => ids.value.includes(item.userId))
+         .map(item => item.nickName)
+         .join("、");
+      confirmMessage = `是否确认删除以下会员: ${userNames}?`;
+   }
+
+   proxy.$modal.confirm(confirmMessage, "警告", {
+      confirmButtonText: "确定",
+      cancelButtonText: "取消",
+      type: "warning"
+   }).then(function () {
       return delUser(userIds);
    }).then(() => {
       getList();
@@ -424,20 +444,20 @@ function showUserInfo(info) {
 
 // 监听eventBus中的会员添加和更新事件
 onMounted(() => {
-  // 注册事件监听
-  eventBus.on('userAdded', getList);
-  eventBus.on('userUpdated', getList);
+   // 注册事件监听
+   eventBus.on('userAdded', getList);
+   eventBus.on('userUpdated', getList);
 
-  // 初始加载
-  loadColumnVisibility();
-  getPostList();
-  getList();
+   // 初始加载
+   loadColumnVisibility();
+   getPostList();
+   getList();
 });
 
 // 组件卸载时移除事件监听
 onUnmounted(() => {
-  eventBus.off('userAdded', getList);
-  eventBus.off('userUpdated', getList);
+   eventBus.off('userAdded', getList);
+   eventBus.off('userUpdated', getList);
 });
 </script>
 

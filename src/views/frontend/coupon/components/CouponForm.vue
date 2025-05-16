@@ -153,13 +153,13 @@
           <el-row :gutter="20">
             <el-col :span="12">
               <el-form-item label="客户可见" prop="customerInvalid">
-                <el-switch v-model="formData.customerInvalid" active-value="0" inactive-value="1" active-text="可见"
+                <el-switch v-model="formData.customerInvalid" active-value="0" inactive-value="2" active-text="可见"
                   inactive-text="不可见" inline-prompt />
               </el-form-item>
             </el-col>
             <el-col :span="12">
               <el-form-item label="自动延期" prop="autoDelay">
-                <el-switch v-model="formData.autoDelay" active-value="0" inactive-value="1" active-text="是"
+                <el-switch v-model="formData.autoDelay" active-value="0" inactive-value="2" active-text="是"
                   inactive-text="否" inline-prompt />
               </el-form-item>
             </el-col>

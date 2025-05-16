@@ -906,6 +906,7 @@ impl Order {
             }
             coupons
         } else if let Some(time_based) = &payment_req.time_based {
+            tracing::debug!("使用了次卡进行支付: {:?}", time_based);
             // 如果使用了次卡
             let ids: Vec<i64> = time_based.iter().map(|t| t.uc_id).collect();
             let coupons = UserCoupon::find_by_uc_ids(pool, store_id, &ids).await?;
@@ -1341,80 +1342,126 @@ impl Order {
         let mut cloth_count = clothes.len();
         let mut used_coupon_ids = Vec::with_capacity(cloth_count);
         let mut total_used_coupons = 0;
-
+        tracing::debug!("[次卡支付] 开始验证次卡支付，总衣物数量: {}", cloth_count);
         // Map `uc_id` to the corresponding `TimeBasedCoupon`
         if let Some(time_based) = payment.time_based.as_mut() {
+            tracing::debug!("[次卡支付] 找到次卡数量: {}", time_based.len());
             for coupon in user_coupons.iter_mut() {
                 if let Some(uc_id) = coupon.uc_id {
+                    tracing::debug!("[次卡支付] 处理次卡ID: {}", uc_id);
                     // Get corresponding `TimeBasedCoupon`
                     let time_based_coupon = time_based
                         .iter_mut()
                         .filter(|t| t.uc_id == uc_id)
                         .next()
-                        .ok_or(Error::internal("time based card information error"))?;
-                    let remaining_uses = coupon.available_value.unwrap_or_default() as usize; // Remaining uses in the system
-                    let requested_uses = time_based_coupon.count as usize; // Uses requested by the user
-
+                        .ok_or(Error::internal("所选次卡信息错误"))?;
+                    let usable_count = coupon.available_value.unwrap_or_default() as usize;
+                    // Remaining uses in the system
+                    // Uses requested by the user
+                    tracing::debug!(
+                        "[次卡支付] 次卡ID: {}, 剩余次数: {}, 请求使用次数: {}",
+                        uc_id,
+                        usable_count,
+                        cloth_count
+                    );
                     // Ensure user does not request more uses than available
-                    let usable_count = remaining_uses.min(requested_uses);
-
+                    // let usable_count = uc_count.min(requested_uses) * remaining_uses;
+                    tracing::debug!(
+                        "[次卡支付] 次卡ID: {}, 实际可用次数: {}",
+                        uc_id,
+                        usable_count
+                    );
                     if usable_count == 0 {
+                        tracing::debug!("[次卡支付] 次卡ID: {}, 可用次数为0，跳过", uc_id);
                         continue;
                     }
-
                     if usable_count >= cloth_count {
-                        // If the coupon can cover all clothes, deduct its value and update the database
-                        // 使用Decimal进行计算，避免浮点精度问题
-                        let current_value =
-                            Decimal::from_f64(coupon.available_value.unwrap_or_default())
-                                .unwrap_or_default();
-                        let deduction = Decimal::from(cloth_count);
-                        let new_value = current_value - deduction;
-                        coupon.available_value = Some(new_value.to_f64().unwrap_or_default());
-
+                        tracing::debug!(
+                            "[次卡支付] 次卡ID: {}, 可完全覆盖剩余衣物({}件)",
+                            uc_id,
+                            cloth_count
+                        );
+                        // If the coupon can cover all clothes, deduct its value and update the database                        // 使用Decimal进行计算，避免浮点精度问题
+                        // let current_value =
+                        //     Decimal::from_f64(coupon.available_value.unwrap_or_default())
+                        //         .unwrap_or_default();
+                        // let deduction = Decimal::from(cloth_count);
+                        let new_value = usable_count - cloth_count;
+                        tracing::debug!(
+                            "[次卡支付] 次卡ID: {}, 当前值: {}, 扣减: {}, 新值: {}",
+                            uc_id,
+                            usable_count,
+                            cloth_count,
+                            new_value
+                        );
+                        coupon.available_value = Some(new_value as f64);
                         time_based_coupon.count -= cloth_count as i32;
-
+                        tracing::debug!(
+                            "[次卡支付] 次卡ID: {}, 更新后剩余次数: {}, 请求中剩余次数: {}",
+                            uc_id,
+                            coupon.available_value.unwrap_or_default(),
+                            time_based_coupon.count
+                        );
                         // Update the coupon in the database
                         if !coupon.update(tr).await? {
+                            tracing::error!("[次卡支付] 次卡ID: {}, 更新数据库失败", uc_id);
                             return Err(Error::internal("update user coupon failed"));
                         }
-
                         used_coupon_ids.push(uc_id);
                         total_used_coupons += cloth_count;
-
+                        cloth_count = 0;
+                        tracing::debug!(
+                            "[次卡支付] 次卡ID: {}, 使用完毕，总使用次数: {}",
+                            uc_id,
+                            total_used_coupons
+                        );
                         break;
                     } else {
+                        tracing::debug!(
+                            "[次卡支付] 次卡ID: {}, 不足以覆盖所有衣物，部分使用",
+                            uc_id
+                        );
                         // If the coupon cannot cover all clothes, use it up and continue to the next coupon
                         cloth_count -= usable_count;
-                        coupon.available_value = Some(0f64); // This coupon is fully consumed
+                        coupon.available_value = Some(0f64); // This coupon is fully consumed                        
                         time_based_coupon.count -= usable_count as i32;
-
-                        // Update the coupon in the database
+                        tracing::debug!(
+                            "[次卡支付] 次卡ID: {}, 已用完，剩余衣物数: {}",
+                            uc_id,
+                            cloth_count
+                        ); // Update the coupon in the database
                         if !coupon.update(tr).await? {
+                            tracing::error!("[次卡支付] 次卡ID: {}, 更新数据库失败", uc_id);
                             return Err(Error::internal("update user coupon failed"));
                         }
                         used_coupon_ids.push(uc_id);
                         total_used_coupons += usable_count;
+                        tracing::debug!("[次卡支付] 已累计使用次数: {}", total_used_coupons);
                     }
                 }
             }
-
             if cloth_count > 0 {
-                return Err(Error::bad_request("not enough coupon"));
-            }
-
-            // Update the `PaymentReq` object
+                tracing::error!("[次卡支付] 次卡不足，剩余未覆盖衣物: {}", cloth_count);
+                return Err(Error::bad_request("所选次卡数量不足"));
+            } // Update the `PaymentReq` object
             if let Some(payment) = payment.payment.as_mut() {
-                payment.uc_id = Some(
-                    used_coupon_ids
-                        .iter()
-                        .map(ToString::to_string)
-                        .collect::<Vec<_>>()
-                        .join(","),
+                let uc_ids = used_coupon_ids
+                    .iter()
+                    .map(ToString::to_string)
+                    .collect::<Vec<_>>()
+                    .join(",");
+                tracing::debug!(
+                    "[次卡支付] 更新支付请求，使用次卡IDs: {}, 总使用次数: {}",
+                    uc_ids,
+                    total_used_coupons
                 );
+                payment.uc_id = Some(uc_ids);
                 payment.payment_amount_vip = Some(total_used_coupons as f64);
             }
+        } else {
+            tracing::debug!("[次卡支付] 未找到次卡信息");
         }
+        tracing::debug!("[次卡支付] 验证完成，次卡支付有效");
         Ok(())
     }
 

@@ -165,12 +165,8 @@
                     </el-icon>
                     <span class="label">黑灰名单:</span>
                     <el-select v-model="user.identify" @change="handleIdentifyChange(user)" class="identify-select">
-                        <el-option
-                            v-for="dict in sys_user_identify"
-                            :key="dict.value"
-                            :label="dict.label"
-                            :value="dict.value"
-                        />
+                        <el-option v-for="dict in sys_user_identify" :key="dict.value" :label="dict.label"
+                            :value="dict.value" />
                     </el-select>
                 </div>
                 <div class="status-item">
@@ -254,7 +250,7 @@ const handleIdentifyChange = (row) => {
         '02': '加入灰名单'
     };
     const text = identifyMap[row.identify] || '正常';
-    
+
     proxy.$modal.confirm('确认要将"' + row.userName + '"会员' + (row.identify !== '00' ? '设为' + text : '移出黑灰名单') + '吗?').then(function () {
         return changeUserIdentify(row.userId, row.identify);
     }).then(() => {
@@ -273,7 +269,7 @@ function handleCouponBought() {
         // 添加延迟，确保数据库同步完成
         listUserCouponNoPage({ userId: props.user.userId }).then(response => {
             const mergedCoupons = response.reduce((acc, cur) => {
-                const existing = acc.find(item => item.coupon.couponId === cur.coupon.couponId);
+                const existing = acc.find(item => item.coupon.couponId === cur.coupon.couponId && item.coupon.couponType !== '000');
                 if (existing) {
                     existing.ucCount += cur.ucCount;
                 } else {

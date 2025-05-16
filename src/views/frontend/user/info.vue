@@ -164,7 +164,14 @@
                         <Warning />
                     </el-icon>
                     <span class="label">黑灰名单:</span>
-                    <dict-tag :options="sys_user_identify" :value="user.identify" />
+                    <el-select v-model="user.identify" @change="handleIdentifyChange(user)" class="identify-select">
+                        <el-option
+                            v-for="dict in sys_user_identify"
+                            :key="dict.value"
+                            :label="dict.label"
+                            :value="dict.value"
+                        />
+                    </el-select>
                 </div>
                 <div class="status-item">
                     <el-icon>
@@ -206,7 +213,7 @@
 </template>
 
 <script setup>
-import { changeUserStatus } from "@/api/system/user";
+import { changeUserStatus, changeUserIdentify } from "@/api/system/user";
 import { listUserCouponNoPage } from '@/api/system/user_coupon';
 import { ref, computed } from "vue";
 import CouponSale from '@/views/components/couponSale.vue';
@@ -236,6 +243,26 @@ const handleStatusChange = (row) => {
         proxy.notify.success(text + "成功");
     }).catch(function () {
         row.status = row.status === "0" ? "1" : "0";
+    });
+};
+
+/* 黑灰名单状态修改 */
+const handleIdentifyChange = (row) => {
+    const identifyMap = {
+        '00': '正常',
+        '01': '加入黑名单',
+        '02': '加入灰名单'
+    };
+    const text = identifyMap[row.identify] || '正常';
+    
+    proxy.$modal.confirm('确认要将"' + row.userName + '"会员' + (row.identify !== '00' ? '设为' + text : '移出黑灰名单') + '吗?').then(function () {
+        return changeUserIdentify(row.userId, row.identify);
+    }).then(() => {
+        proxy.notify.success('设置成功');
+    }).catch(function () {
+        // 操作取消，回退选择
+        const oldIdentify = proxy.getDictValue(sys_user_identify, row.identify);
+        row.identify = oldIdentify ? oldIdentify.value : '00';
     });
 };
 
@@ -449,5 +476,10 @@ const storageCardBalance = computed(() => {
 
 .coupon-tag {
     margin: 0;
+}
+
+.identify-select {
+    margin-left: .5rem;
+    width: 120px;
 }
 </style>

@@ -223,9 +223,6 @@ const data = reactive({
 
 const { sellForm, selectedList, rules } = toRefs(data);
 
-function closeHangUpDialog() {
-    props.taggle();
-}
 /** 搜索按钮操作 */
 function handleQuery() {
     queryParams.value.pageNum = 1;

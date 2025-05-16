@@ -28,7 +28,7 @@
         </el-table-column>
         <el-table-column label="容量" align="center" prop="capacity" />
         <el-table-column label="剩余容量" align="center" prop="remainingCapacity" />
-        <el-table-column label="当前挂钩位置" align="center" prop="position" />
+        <el-table-column label="当前位置" align="center" prop="position" />
         <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
           <template #default="scope">
             <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)">修改</el-button>
@@ -187,7 +187,28 @@ function submitForm() {
 /** 删除按钮操作 */
 function handleDelete(row) {
   const _ids = row.id || ids.value;
-  proxy.$modal.confirm('是否确认删除晾衣架编号为"' + _ids + '"的数据项？').then(function () {
+  
+  // 获取要删除的架子名称
+  let confirmMessage;
+  
+  if (row.id) {
+    // 单个删除
+    confirmMessage = `是否确认删除架子"${row.name}"?`;
+  } else {
+    // 批量删除
+    const rackNames = rackList.value
+      .filter(item => ids.value.includes(item.id))
+      .map(item => item.name)
+      .join("、");
+    
+    confirmMessage = `是否确认删除以下架子: ${rackNames}?`;
+  }
+  
+  proxy.$modal.confirm(confirmMessage, "警告", {
+    confirmButtonText: "确定",
+    cancelButtonText: "取消",
+    type: "warning"
+  }).then(function () {
     return delRack(_ids);
   }).then(() => {
     getList();

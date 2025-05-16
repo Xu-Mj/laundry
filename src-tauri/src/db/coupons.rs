@@ -260,171 +260,62 @@ impl Coupon {
     }
 
     pub async fn update(&self, tr: &mut Transaction<'_, Sqlite>) -> Result<bool> {
-        let mut builder = sqlx::QueryBuilder::new("UPDATE coupons SET ");
-        let mut has_updated = false;
-        if let Some(coupon_number) = &self.coupon_number {
-            builder.push("coupon_number = ").push_bind(coupon_number);
-            has_updated = true;
+        // Ensure coupon_id is present
+        if self.coupon_id.is_none() {
+            return Err(Error::bad_request("coupon_id is required for update"));
         }
 
-        if let Some(name) = &self.coupon_title {
-            if has_updated {
-                builder.push(", ");
-            }
-            builder.push("coupon_title = ").push_bind(name);
-            has_updated = true;
-        }
+        let query = r#"
+        UPDATE coupons SET 
+            store_id = ?,
+            coupon_number = ?,
+            coupon_type = ?,
+            coupon_title = ?,
+            coupon_value = ?,
+            min_spend = ?,
+            customer_invalid = ?,
+            customer_sale_total = ?,
+            customer_sale_count = ?,
+            valid_from = ?,
+            valid_to = ?,
+            auto_delay = ?,
+            usage_value = ?,
+            usage_limit = ?,
+            applicable_category = ?,
+            applicable_style = ?,
+            applicable_cloths = ?,
+            status = ?,
+            remark = ?,
+            desc = ?
+        WHERE coupon_id = ?
+        "#;
 
-        if let Some(coupon_type) = &self.coupon_type {
-            if has_updated {
-                builder.push(", ");
-            }
-            builder.push("coupon_type = ").push_bind(coupon_type);
-            has_updated = true;
-        }
+        let result = sqlx::query(query)
+            .bind(&self.store_id)
+            .bind(&self.coupon_number)
+            .bind(&self.coupon_type)
+            .bind(&self.coupon_title)
+            .bind(self.coupon_value)
+            .bind(self.min_spend)
+            .bind(&self.customer_invalid)
+            .bind(self.customer_sale_total)
+            .bind(self.customer_sale_count)
+            .bind(self.valid_from)
+            .bind(self.valid_to)
+            .bind(&self.auto_delay)
+            .bind(self.usage_value)
+            .bind(self.usage_limit)
+            .bind(&self.applicable_category)
+            .bind(&self.applicable_style)
+            .bind(&self.applicable_cloths)
+            .bind(&self.status)
+            .bind(&self.remark)
+            .bind(&self.desc)
+            .bind(self.coupon_id)
+            .execute(&mut **tr)
+            .await?;
 
-        if let Some(coupon_value) = &self.coupon_value {
-            if has_updated {
-                builder.push(", ");
-            }
-            builder.push("coupon_value = ").push_bind(coupon_value);
-            has_updated = true;
-        }
-
-        if let Some(min_spend) = &self.min_spend {
-            if has_updated {
-                builder.push(", ");
-            }
-            builder.push("min_spend = ").push_bind(min_spend);
-            has_updated = true;
-        }
-
-        if let Some(customer_invalid) = &self.customer_invalid {
-            if has_updated {
-                builder.push(", ");
-            }
-            builder
-                .push("customer_invalid = ")
-                .push_bind(customer_invalid);
-            has_updated = true;
-        }
-
-        if let Some(customer_sale_total) = &self.customer_sale_total {
-            if has_updated {
-                builder.push(", ");
-            }
-            builder
-                .push("customer_sale_total = ")
-                .push_bind(customer_sale_total);
-            has_updated = true;
-        }
-
-        if let Some(customer_sale_count) = &self.customer_sale_count {
-            if has_updated {
-                builder.push(", ");
-            }
-            builder
-                .push("customer_sale_count = ")
-                .push_bind(customer_sale_count);
-            has_updated = true;
-        }
-
-        if let Some(valid_from) = &self.valid_from {
-            if has_updated {
-                builder.push(", ");
-            }
-            builder.push("valid_from = ").push_bind(valid_from);
-            has_updated = true;
-        }
-
-        if let Some(valid_to) = &self.valid_to {
-            if has_updated {
-                builder.push(", ");
-            }
-            builder.push("valid_to = ").push_bind(valid_to);
-            has_updated = true;
-        }
-
-        if let Some(auto_delay) = &self.auto_delay {
-            if has_updated {
-                builder.push(", ");
-            }
-            builder.push("auto_delay = ").push_bind(auto_delay);
-            has_updated = true;
-        }
-
-        if let Some(usage_value) = &self.usage_value {
-            if has_updated {
-                builder.push(", ");
-            }
-            builder.push("usage_value = ").push_bind(usage_value);
-            has_updated = true;
-        }
-
-        if let Some(usage_limit) = &self.usage_limit {
-            if has_updated {
-                builder.push(", ");
-            }
-            builder.push("usage_limit = ").push_bind(usage_limit);
-            has_updated = true;
-        }
-
-        if let Some(applicable_category) = &self.applicable_category {
-            if has_updated {
-                builder.push(", ");
-            }
-            builder
-                .push("applicable_category = ")
-                .push_bind(applicable_category);
-            has_updated = true;
-        }
-
-        if let Some(applicable_style) = &self.applicable_style {
-            if has_updated {
-                builder.push(", ");
-            }
-            builder
-                .push("applicable_style = ")
-                .push_bind(applicable_style);
-            has_updated = true;
-        }
-
-        if let Some(applicable_cloths) = &self.applicable_cloths {
-            if has_updated {
-                builder.push(", ");
-            }
-            builder
-                .push("applicable_cloths = ")
-                .push_bind(applicable_cloths);
-            has_updated = true;
-        }
-
-        if let Some(status) = &self.status {
-            if has_updated {
-                builder.push(", ");
-            }
-            builder.push("status = ").push_bind(status);
-            has_updated = true;
-        }
-
-        if let Some(remark) = &self.remark {
-            if has_updated {
-                builder.push(", ");
-            }
-            builder.push("remark = ").push_bind(remark);
-            has_updated = true;
-        }
-
-        if has_updated {
-            builder
-                .push(" WHERE coupon_id = ")
-                .push_bind(self.coupon_id);
-
-            let result = builder.build().execute(&mut **tr).await?;
-            return Ok(result.rows_affected() > 0);
-        }
-
-        Ok(false)
+        Ok(result.rows_affected() > 0)
     }
 
     // Add this new method to check expiring coupons
@@ -524,6 +415,7 @@ impl Coupon {
             let number = utils::gen_code(old_coupon.coupon_title.as_ref().unwrap());
             self.coupon_number = Some(format!("{number}-{}", Utc::now().timestamp_subsec_millis()));
             self.add(&mut tr).await?;
+            tr.commit().await?;
             return Ok(true);
         }
         let result = self.update(&mut tr).await?;

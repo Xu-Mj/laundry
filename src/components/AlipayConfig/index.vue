@@ -158,6 +158,20 @@ const handleUpdatePaymentConfig = async () => {
       return;
     }
 
+    // 验证所有字段不能为空
+    const requiredFields = {
+      'appId': '应用ID',
+      'privateKey': '私钥',
+      'alipayPublicKey': '支付宝公钥'
+    };
+
+    for (const [key, label] of Object.entries(requiredFields)) {
+      if (!paymentConfig.value[key]) {
+        proxy.notify.error(`${label}不能为空`);
+        return;
+      }
+    }
+
     // 转换字段名称以匹配后端结构
     const alipayConfig = {
       storeId: paymentConfig.value.storeId,
@@ -185,6 +199,24 @@ const handlePaymentStatusChange = async () => {
       // 恢复状态
       paymentConfig.value.isActive = !paymentConfig.value.isActive;
       return;
+    }
+
+    // 如果正在启用支付，验证所有字段不能为空
+    if (paymentConfig.value.isActive) {
+      const requiredFields = {
+        'appId': '应用ID',
+        'privateKey': '私钥',
+        'alipayPublicKey': '支付宝公钥'
+      };
+
+      for (const [key, label] of Object.entries(requiredFields)) {
+        if (!paymentConfig.value[key]) {
+          proxy.notify.error(`${label}不能为空，无法启用支付`);
+          // 恢复状态
+          paymentConfig.value.isActive = !paymentConfig.value.isActive;
+          return;
+        }
+      }
     }
 
     // 转换字段名称以匹配后端结构

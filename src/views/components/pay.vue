@@ -14,9 +14,9 @@
                     <el-icon>
                         <Ticket />
                     </el-icon>
-                    <span>{{ paymentForm.payNumber ? `订单 - ${paymentForm.payNumber}` : '订单支付' }}</span>
+                    <span v-if="paymentForm.titles">{{ paymentForm.titles }}</span>
+                    <span v-else>{{ paymentForm.payNumber ? `订单 - ${paymentForm.payNumber}` : '订单支付' }}</span>
                 </div>
-                <div class="order-number" v-if="paymentForm.titles">{{ paymentForm.titles }}</div>
                 <el-button type="primary" size="small" @click="showCouponSale = true">
                     <el-icon>
                         <Plus />
@@ -121,7 +121,7 @@
                 <div class="coupon-section">
                     <!-- 当没有任何卡券时显示提示信息 -->
                     <div v-if="userCouponList.length === 0" class="no-coupons-tip">
-                        <el-empty description="该用户名下没有任何卡券" :image-size="100">
+                        <el-empty description="该用户名下没有任何卡券" :image-size="50" :style="{ padding: '1rem' }">
                             <el-button type="primary" size="small" plain @click="showCouponSale = true">
                                 <el-icon>
                                     <Plus />
@@ -132,7 +132,7 @@
 
                     <!-- 当有卡券但没有有效卡券时显示提示 -->
                     <div v-else-if="userCouponList.filter(item => item.isValid).length === 0" class="no-coupons-tip">
-                        <el-empty description="该用户名下没有可用的卡券" :image-size="100">
+                        <el-empty description="该用户名下没有可用的卡券" :image-size="50" :style="{ padding: '1rem' }">
                             <el-button type="primary" size="small" plain @click="showCouponSale = true">
                                 <el-icon>
                                     <Plus />
@@ -466,7 +466,7 @@ function getOrderAmount() {
 }
 
 function submitCouponSale() {
-    listUserCouponWithValidTime(form.value.userId).then(response => {
+    listUserCouponWithValidTime(userId.value).then(response => {
         userCouponList.value = response;
         userCouponList.value.filter(item => item.coupon.couponType == '002').map(item => {
             item.selected = false;
@@ -1544,7 +1544,7 @@ function handlePaymentMethodChange(value) {
 }
 
 .price-diff-title {
-    font-size: 16px;
+    font-size: 1rem;
     font-weight: 600;
     color: var(--el-text-color-primary);
 }
@@ -1567,7 +1567,7 @@ function handlePaymentMethodChange(value) {
     left: 15px;
     font-weight: bold;
     color: var(--el-color-primary);
-    font-size: 16px;
+    font-size: 1rem;
     z-index: 1;
 }
 
@@ -1659,9 +1659,9 @@ function handlePaymentMethodChange(value) {
 
 /* 调整所有折叠面板内容的样式 */
 :deep(.el-collapse-item__content) {
-    padding-top: 16px;
+    padding-top: 1rem;
     /* 增加顶部内边距 */
-    padding-bottom: 16px;
+    padding-bottom: 1rem;
     /* 增加底部内边距 */
 }
 
@@ -1685,6 +1685,6 @@ function handlePaymentMethodChange(value) {
     background-color: var(--el-fill-color-light);
     border-radius: 8px;
     text-align: center;
-    margin-bottom: 16px;
+    margin-bottom: 1rem;
 }
 </style>

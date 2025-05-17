@@ -79,7 +79,10 @@
             <template #header>
                 <div class="card-header">
                     <span>卡券信息</span>
-                    <el-button type="primary" link size="small" @click="showCouponSale = true">购买卡券</el-button>
+                    <div class="card-actions">
+                        <el-button type="info" link size="small" @click="showCouponHistory = true">查看历史卡券</el-button>
+                        <el-button type="primary" link size="small" @click="showCouponSale = true">购买卡券</el-button>
+                    </div>
                 </div>
             </template>
             <div class="coupon-section">
@@ -205,13 +208,67 @@
             <CouponSale :userId="user.userId" :key="showCouponSale" :taggle="() => { showCouponSale = !showCouponSale }"
                 :visible="showCouponSale" :couponTypeList="couponTypeList" :submit="handleCouponBought" />
         </el-dialog>
+
+        <!-- 卡券历史弹窗 -->
+        <el-dialog v-model="showCouponHistory" title="历史卡券" width="780px" align-center custom-class="coupon-history-dialog" :show-close="true">
+            <div v-if="historyCoupons && historyCoupons.length > 0" class="coupon-history-container">
+                <div v-for="(item, index) in historyCoupons" :key="index" class="coupon-history-item" 
+                    :class="[`coupon-type-${item.coupon.couponType}`, item.ucCount > 0 ? 'coupon-active' : 'coupon-inactive']">
+                    <div class="coupon-left">
+                        <div class="coupon-value">
+                            <template v-if="item.coupon.couponType === '000'">
+                                <span class="amount">{{ item.availableValue || 0 }}</span>
+                                <span class="unit">元</span>
+                            </template>
+                            <template v-else-if="item.coupon.couponType === '001'">
+                                <span class="amount">{{ item.coupon.discount }}</span>
+                                <span class="unit">折</span>
+                            </template>
+                            <template v-else>
+                                <span class="amount">{{ item.ucCount }}</span>
+                                <span class="unit">张</span>
+                            </template>
+                        </div>
+                        <div class="coupon-type">
+                            {{ getCouponTypeName(item.coupon.couponType) }}
+                        </div>
+                    </div>
+                    <div class="coupon-right">
+                        <div class="coupon-title">{{ item.coupon.couponTitle }}</div>
+                        <div class="coupon-desc" v-if="item.coupon.couponDesc">{{ item.coupon.couponDesc }}</div>
+                        <div class="coupon-meta">
+                            <div class="coupon-meta-item">
+                                <el-icon><Calendar /></el-icon>
+                                <span>有效期至: {{ item.coupon.validTo ? formatTime(item.coupon.validTo) : '永久有效' }}</span>
+                            </div>
+                            <div class="coupon-meta-item" v-if="item.coupon.couponType === '000'">
+                                <el-icon><Wallet /></el-icon>
+                                <span>可用余额: {{ item.availableValue || 0 }}元</span>
+                            </div>
+                            <div class="coupon-meta-item" v-else>
+                                <el-icon><Ticket /></el-icon>
+                                <span>剩余数量: {{ item.ucCount }}张</span>
+                            </div>
+                        </div>
+                        <div class="coupon-status">
+                            <el-tag size="small" :type="item.availableValue > 0 ? 'success' : 'info'" effect="light">
+                                {{ item.availableValue > 0 ? '可用' : '已用完' }}
+                            </el-tag>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div v-else class="empty-history">
+                <el-empty description="暂无历史卡券记录" />
+            </div>
+        </el-dialog>
     </div>
 </template>
 
 <script setup>
 import { changeUserStatus, changeUserIdentify } from "@/api/system/user";
-import { listUserCouponWithValidTime } from '@/api/system/user_coupon';
-import { ref, computed } from "vue";
+import { listUserCouponWithValidTime, listUserCouponNoPage } from '@/api/system/user_coupon';
+import { ref, computed, watch } from "vue";
 import CouponSale from '@/views/components/couponSale.vue';
 
 const { proxy } = getCurrentInstance();
@@ -228,7 +285,49 @@ const props = defineProps({
 
 const coupons = ref();
 const showCouponSale = ref(false);
+const showCouponHistory = ref(false);
+const historyCoupons = ref([]);
 const couponTypeList = ref(new Set());
+
+// 获取卡券类型名称
+const getCouponTypeName = (type) => {
+    const typeMap = {
+        '000': '储值卡',
+        '001': '折扣券',
+        '002': '次卡',
+        '003': '代金券',
+        '004': '满减券'
+    };
+    return typeMap[type] || '未知类型';
+};
+
+// 获取卡券类型标签样式
+const getCouponTypeTag = (type) => {
+    const typeTagMap = {
+        '000': 'danger',
+        '001': 'warning',
+        '002': 'success',
+        '003': 'primary',
+        '004': 'info'
+    };
+    return typeTagMap[type] || '';
+};
+
+// 查询用户历史卡券
+const fetchHistoryCoupons = () => {
+    if (props.user && props.user.userId) {
+        listUserCouponNoPage({ userId: props.user.userId }).then(response => {
+            historyCoupons.value = response || [];
+        });
+    }
+};
+
+// 监听历史卡券弹窗显示状态
+watch(showCouponHistory, (newVal) => {
+    if (newVal) {
+        fetchHistoryCoupons();
+    }
+});
 
 /* 会员状态修改 */
 const handleStatusChange = (row) => {
@@ -344,6 +443,11 @@ const storageCardBalance = computed(() => {
     font-weight: 600;
     color: var(--el-text-color-primary);
     border-radius: .5rem;
+}
+
+.card-actions {
+    display: flex;
+    gap: 10px;
 }
 
 .info-grid {
@@ -477,5 +581,176 @@ const storageCardBalance = computed(() => {
 .identify-select {
     margin-left: .5rem;
     width: 120px;
+}
+
+.empty-history {
+    padding: 40px 0;
+}
+
+/* 卡券历史弹窗样式 */
+:deep(.coupon-history-dialog) {
+    border-radius: 8px;
+}
+
+:deep(.coupon-history-dialog .el-dialog__header) {
+    padding: 20px;
+    margin-right: 0;
+    border-bottom: 1px solid var(--el-border-color-light);
+}
+
+:deep(.coupon-history-dialog .el-dialog__body) {
+    padding: 20px;
+}
+
+.coupon-history-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    max-height: 60vh;
+    overflow-y: auto;
+    padding-right: 5px;
+}
+
+.coupon-history-item {
+    display: flex;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+    transition: all 0.3s;
+    position: relative;
+}
+
+.coupon-history-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.1);
+}
+
+.coupon-left {
+    width: 120px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: #fff;
+}
+
+.coupon-right {
+    flex: 1;
+    padding: 15px 20px;
+    position: relative;
+    background-color: #fff;
+    border-left: 1px dashed #e8e8e8;
+}
+
+.coupon-right:before {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: -8px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background-color: var(--el-bg-color);
+}
+
+.coupon-right:after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: -8px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background-color: var(--el-bg-color);
+}
+
+.coupon-value {
+    text-align: center;
+    line-height: 1;
+}
+
+.coupon-value .amount {
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.coupon-value .unit {
+    font-size: 14px;
+    margin-left: 2px;
+}
+
+.coupon-type {
+    margin-top: 8px;
+    font-size: 14px;
+}
+
+.coupon-title {
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: var(--el-text-color-primary);
+}
+
+.coupon-desc {
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+    margin-bottom: 10px;
+    line-height: 1.4;
+}
+
+.coupon-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.coupon-meta-item {
+    display: flex;
+    align-items: center;
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+}
+
+.coupon-meta-item .el-icon {
+    margin-right: 4px;
+    font-size: 14px;
+}
+
+.coupon-status {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+}
+
+/* 卡券类型样式 - 只应用于可用的卡券 */
+.coupon-active.coupon-type-000 .coupon-left {
+    background-color: var(--el-color-danger);
+}
+
+/* .coupon-active.coupon-type-001 .coupon-left {
+    background-color: var(--el-color-warning);
+} */
+
+.coupon-active.coupon-type-002 .coupon-left {
+    background-color: var(--el-color-success);
+}
+
+.coupon-active.coupon-type-003 .coupon-left {
+    background-color: var(--el-color-primary);
+}
+
+.coupon-active.coupon-type-004 .coupon-left {
+    background-color: var(--el-color-warning);
+}
+
+/* 已用完的卡券样式 */
+.coupon-inactive {
+    opacity: 0.7;
+}
+
+.coupon-inactive .coupon-left {
+    background-color: #909399 !important; /* Override any type-specific background color */
 }
 </style>

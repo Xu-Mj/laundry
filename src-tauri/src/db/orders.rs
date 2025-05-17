@@ -1227,6 +1227,7 @@ impl Order {
                     // 使用储值卡支付部分金额
                     total_amount_decimal -= available_value_decimal;
                     storage_card.available_value = Some(0.0);
+                    storage_card.uc_count = Some(0);
                     // update user coupon
                     if !storage_card.update(tr).await? {
                         return Err(Error::internal("update user coupon failed"));

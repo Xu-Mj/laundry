@@ -882,14 +882,13 @@ impl Order {
         let orders = payment_req
             .orders
             .take()
-            .ok_or(Error::bad_request("orders can not be empty"))?;
+            .ok_or(Error::bad_request("订单不能为空"))?;
         let mut is_time_based = false;
 
         let mut payment = payment_req
             .payment
             .take()
-            // .as_mut()
-            .ok_or(Error::bad_request("payment can not be empty"))?;
+            .ok_or(Error::bad_request("支付信息不能为空"))?;
 
         // set store_id
         payment.store_id = Some(store_id);
@@ -937,10 +936,10 @@ impl Order {
                 // 校验订单状态
                 let mut existing_order = Self::get_by_id(pool, store_id, order_id)
                     .await?
-                    .ok_or(Error::bad_request("order is not exist"))?;
+                    .ok_or(Error::bad_request("订单不存在"))?;
 
                 if existing_order.payment_status.as_deref() == Some(PAY_STATUS_PAID) {
-                    return Err(Error::bad_request("order is paid already"));
+                    return Err(Error::bad_request("订单已支付"));
                 }
 
                 // 查询订单衣物信息
@@ -1031,7 +1030,7 @@ impl Order {
                             for order_id in &order_ids {
                                 let mut existing_order = Self::get_by_id(pool, store_id, *order_id)
                                     .await?
-                                    .ok_or(Error::bad_request("order is not exist"))?;
+                                    .ok_or(Error::bad_request("订单不存在"))?;
 
                                 // 更新订单支付状态为已支付
                                 existing_order.payment_status = Some(PAY_STATUS_PAID.to_string());
@@ -1179,7 +1178,7 @@ impl Order {
                 .ok_or(Error::internal("get coupon failed"))?;
             if Some(utils::get_now()) > coupon.valid_to {
                 return Err(Error::bad_request(format!(
-                    "Coupon {} is expired",
+                    "优惠券 <{}> 已过期",
                     coupon.coupon_title.clone().unwrap_or_default()
                 )));
             }
@@ -1194,9 +1193,7 @@ impl Order {
             });
 
         if !storage_cards.is_empty() && !other_coupons.is_empty() {
-            return Err(Error::bad_request(
-                "Cannot combine storage cards with other coupon types",
-            ));
+            return Err(Error::bad_request("不能同时使用储值卡和其他优惠券"));
         }
 
         // 储值卡处理逻辑
@@ -1241,7 +1238,7 @@ impl Order {
 
         // 校验非储值卡优惠券数量
         if other_coupons.len() > 1 {
-            return Err(Error::bad_request("Only one coupon can be used at a time"));
+            return Err(Error::bad_request("每次支付只能使用一张优惠券"));
         }
 
         // 处理单张优惠券
@@ -1258,21 +1255,18 @@ impl Order {
                 let uc_count = user_coupon
                     .uc_count
                     .as_mut()
-                    .ok_or(Error::internal("get user coupon count failed"))?;
+                    .ok_or(Error::internal("获取用户优惠券数量失败"))?;
                 if *uc_count > 0 {
                     *uc_count -= 1;
                 } else {
-                    return Err(Error::bad_request("coupon count is not enough"));
+                    return Err(Error::bad_request("优惠券数量不足"));
                 }
 
                 // 校验卡券最低消费
                 if let Some(min_spend) = coupon.min_spend {
                     let min_spend_decimal = Decimal::from_f64(min_spend).unwrap_or_default();
                     if total_amount_decimal < min_spend_decimal {
-                        return Err(Error::bad_request(format!(
-                            "Minimum spend not met for coupon {}",
-                            coupon.coupon_title.clone().unwrap_or_default()
-                        )));
+                        return Err(Error::bad_request("最小消费金额未达到，请选择其他优惠券"));
                     }
                 }
 
@@ -1288,7 +1282,7 @@ impl Order {
                     let hundred = Decimal::from(100);
                     let discount = Decimal::ONE - (usage_value_decimal / hundred);
                     let discounted = (total_amount_decimal * discount)
-                        .round_dp_with_strategy(2, RoundingStrategy::MidpointAwayFromZero);
+                        .round_dp_with_strategy(2, RoundingStrategy::MidpointTowardZero);
                     let usage_limit = Decimal::from_f64(coupon.usage_limit.unwrap_or_default())
                         .unwrap_or_default();
                     let result = if discounted > usage_limit {
@@ -1296,13 +1290,19 @@ impl Order {
                     } else {
                         discounted
                     };
+                    tracing::debug!(
+                        "[支付] 折扣券逻辑: 总金额: {}, 折扣：{}, 优惠金额: {}",
+                        total_amount_decimal,
+                        discount,
+                        result
+                    );
                     total_amount_decimal - result
                 } else {
                     // 满减券逻辑
                     let usage_value = Decimal::from_f64(coupon.usage_value.unwrap_or_default())
                         .unwrap_or_default();
                     (total_amount_decimal - usage_value)
-                        .round_dp_with_strategy(2, RoundingStrategy::MidpointAwayFromZero)
+                        .round_dp_with_strategy(2, RoundingStrategy::MidpointTowardZero)
                 };
 
                 // 更新金额和校验逻辑
@@ -1311,11 +1311,17 @@ impl Order {
                 payment.payment_amount_vip = Some(payment_amount_vip);
                 let payment_amount = payment.payment_amount.unwrap_or_default();
                 let payment_amount_decimal = Decimal::from_f64(payment_amount).unwrap_or_default();
-                let result_decimal =
-                    Decimal::from_f64(result.to_f64().unwrap_or_default()).unwrap_or_default();
+                // let result_decimal =
+                //     Decimal::from_f64(result.to_f64().unwrap_or_default()).unwrap_or_default();
 
                 // 校验最终金额 - 使用Decimal比较以避免浮点误差
-                let diff = (result_decimal - payment_amount_decimal).abs();
+                let diff = (result - payment_amount_decimal).abs();
+                tracing::debug!(
+                    "[支付] 最终金额: {}, 订单最终金额: {}, 差值: {}",
+                    result,
+                    payment_amount_decimal,
+                    diff
+                );
                 if diff > Decimal::from_f64(0.01).unwrap_or_default() {
                     return Err(Error::internal(
                         "提交的最终金额(优惠后的金额)与订单最终金额(优惠后的金额)不一致",
@@ -1342,7 +1348,6 @@ impl Order {
         let mut cloth_count = clothes.len();
         let mut used_coupon_ids = Vec::with_capacity(cloth_count);
         let mut total_used_coupons = 0;
-        tracing::debug!("[次卡支付] 开始验证次卡支付，总衣物数量: {}", cloth_count);
         // Map `uc_id` to the corresponding `TimeBasedCoupon`
         if let Some(time_based) = payment.time_based.as_mut() {
             tracing::debug!("[次卡支付] 找到次卡数量: {}", time_based.len());
@@ -1364,15 +1369,7 @@ impl Order {
                         usable_count,
                         cloth_count
                     );
-                    // Ensure user does not request more uses than available
-                    // let usable_count = uc_count.min(requested_uses) * remaining_uses;
-                    tracing::debug!(
-                        "[次卡支付] 次卡ID: {}, 实际可用次数: {}",
-                        uc_id,
-                        usable_count
-                    );
                     if usable_count == 0 {
-                        tracing::debug!("[次卡支付] 次卡ID: {}, 可用次数为0，跳过", uc_id);
                         continue;
                     }
                     if usable_count >= cloth_count {
@@ -1381,11 +1378,6 @@ impl Order {
                             uc_id,
                             cloth_count
                         );
-                        // If the coupon can cover all clothes, deduct its value and update the database                        // 使用Decimal进行计算，避免浮点精度问题
-                        // let current_value =
-                        //     Decimal::from_f64(coupon.available_value.unwrap_or_default())
-                        //         .unwrap_or_default();
-                        // let deduction = Decimal::from(cloth_count);
                         let new_value = usable_count - cloth_count;
                         tracing::debug!(
                             "[次卡支付] 次卡ID: {}, 当前值: {}, 扣减: {}, 新值: {}",
@@ -1496,16 +1488,20 @@ impl Order {
         let mut price = clothes
             .iter()
             .map(|cloth| {
-                if let Some(mut base_price) = cloth.price_value {
-                    base_price += cloth.process_markup.unwrap_or_default();
-
-                    if Some(SERVICE_TYPE_EMERGENCY) == cloth.service_type.as_deref() {
-                        Decimal::from_f64(base_price).unwrap_or_default() * dec!(2.0)
-                    } else if Some(SERVICE_TYPE_SINGLE_WASH) == cloth.service_type.as_deref() {
-                        Decimal::from_f64(base_price).unwrap_or_default() * dec!(1.5)
+                if let Some(base_price) = cloth.price_value {
+                    let base_price = Decimal::from_f64(base_price).unwrap_or_default();
+                    let mut price = if Some(SERVICE_TYPE_EMERGENCY)
+                        == cloth.service_requirement.as_deref()
+                    {
+                        base_price * dec!(2.0)
+                    } else if Some(SERVICE_TYPE_SINGLE_WASH) == cloth.service_requirement.as_deref()
+                    {
+                        base_price * dec!(1.5)
                     } else {
-                        Decimal::from_f64(base_price).unwrap_or_default()
-                    }
+                        base_price
+                    };
+                    price += Decimal::from_f64(cloth.process_markup.unwrap_or_default()).unwrap_or_default();
+                    price
                 } else {
                     Decimal::ZERO
                 }

@@ -699,6 +699,12 @@ async function submitPaymentForm(isPickup) {
         proxy.notify.error('您选择了储值卡支付方式，但未选择任何储值卡');
         return;
     }
+    
+    // 验证：如果选择了次卡支付但未选择任何次卡，则提示错误并阻止提交
+    if (paymentForm.value.paymentMethod === '07' && !groupedTimeCards.value.some(card => card.selected)) {
+        proxy.notify.error('您选择了次卡支付方式，但未选择任何次卡');
+        return;
+    }
 
     // 确保所有金额都使用截断处理
     paymentForm.value.totalAmount = Math.floor(paymentForm.value.totalAmount * 100) / 100;
@@ -1157,10 +1163,19 @@ watch(() => paymentForm.value.paymentMethod, (newMethod) => {
             // 触发计算逻辑
             changeCoupon(1);
         }
-    } else if (newMethod === '07') {
-        // 如果选择了次卡支付，自动展开次卡区域
-        if (!activeCollapseItem.value.includes('time-card')) {
-            activeCollapseItem.value = ['time-card'];
+    }
+    // 当选择次卡支付时，展开次卡列表
+    else if (newMethod === '07') {
+        activeCollapseItem.value = ['time-card'];
+        
+        // 自动选择第一张有效的次卡
+        const validTimeCards = groupedTimeCards.value.filter(card => card.isValid);
+        
+        if (validTimeCards.length > 0) {
+            // 选中第一张有效次卡
+            validTimeCards[0].selected = true;
+            // 触发计算逻辑
+            changeCoupon(2, validTimeCards[0]);
         }
     }
 });
@@ -1225,6 +1240,16 @@ function handlePaymentMethodChange(value) {
     // 当选择次卡支付时，展开次卡列表
     else if (value === '07') {
         activeCollapseItem.value = ['time-card'];
+        
+        // 自动选择第一张有效的次卡
+        const validTimeCards = groupedTimeCards.value.filter(card => card.isValid);
+        
+        if (validTimeCards.length > 0) {
+            // 选中第一张有效次卡
+            validTimeCards[0].selected = true;
+            // 触发计算逻辑
+            changeCoupon(2, validTimeCards[0]);
+        }
     }
 }
 

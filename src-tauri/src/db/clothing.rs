@@ -315,17 +315,18 @@ impl Clothing {
         let result = sqlx::query_as(
             r#"
             INSERT INTO clothing (
-                store_id, clothing_number, category_id, style_id, title, etitle, primary_image, 
+                id, store_id, clothing_number, category_id, style_id, title, etitle, primary_image, 
                 images, description_images, is_put_on_sale, is_available, 
                 is_sold_out, is_default, clothing_base_price, sale_price, clothing_min_price, 
                 stock_quantity, sold_num, sku_list, spec_list, order_num, clothing_degree,
                 tag_list, del_flag, create_time, update_time
             ) VALUES (
-                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                ?, ?, ? , ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
                 ?, ?, ?, ?, ?, '0', ?, ?
             ) RETURNING *
             "#,
         )
+        .bind(self.id)
         .bind(self.store_id)
         .bind(self.clothing_number)
         .bind(self.category_id)
@@ -700,7 +701,7 @@ pub async fn delete_clothing_batch(state: State<'_, AppState>, ids: Vec<i64>) ->
     if !Clothing::delete_request(&state, body).await? {
         return Err(Error::bad_request("删除失败"));
     }
-    
+
     tr.commit().await?;
     Ok(result)
 }

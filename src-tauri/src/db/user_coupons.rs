@@ -108,20 +108,6 @@ impl UserCoupon {
         Ok(result)
     }
 
-    // Read operation (by uc_id)
-    #[allow(dead_code)]
-    pub async fn find_by_id(
-        tr: &mut Transaction<'_, Sqlite>,
-        uc_id: i64,
-    ) -> Result<Option<UserCoupon>> {
-        let result = sqlx::query_as(&format!("{SQL} WHERE uc_id = ?"))
-            .bind(uc_id)
-            .fetch_optional(&mut **tr)
-            .await?;
-
-        Ok(result)
-    }
-
     pub async fn find_by_user_id(
         pool: &Pool<Sqlite>,
         store_id: i64,
@@ -132,18 +118,6 @@ impl UserCoupon {
             .bind(user_id)
             .fetch_all(pool)
             .await?;
-
-        Ok(result)
-    }
-
-    pub async fn cal_balance(pool: &Pool<Sqlite>, store_id: i64, user_id: i64) -> Result<f64> {
-        let result = sqlx::query_scalar(
-            "SELECT SUM(available_value) FROM user_coupons WHERE store_id = ? AND user_id = ? AND uc_type = '01'",
-        )
-        .bind(store_id)
-        .bind(user_id)
-        .fetch_one(pool)
-        .await?;
 
         Ok(result)
     }

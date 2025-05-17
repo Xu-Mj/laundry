@@ -544,8 +544,8 @@ impl Coupon {
             // concat coupon name
             uc_ids.push(uc_id);
 
-            total_amount += coupon.usage_value.unwrap() * info.count as f64;
-            amount += coupon.usage_value.unwrap() * info.count as f64;
+            total_amount += coupon.coupon_value.unwrap() * info.count as f64;
+            amount += coupon.coupon_value.unwrap() * info.count as f64;
         }
 
         // create order

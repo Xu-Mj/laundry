@@ -191,8 +191,13 @@ fn get_mac_address_internal() -> Option<String> {
     {
         // 在Windows上使用ipconfig命令作为备用方法
         debug!("使用备用方法获取MAC地址");
+        
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+        
         let output = Command::new("powershell")
             .args(["-Command", "Get-NetAdapter | Where-Object Status -eq 'Up' | Select-Object -First 1 -ExpandProperty MacAddress"])
+            .creation_flags(CREATE_NO_WINDOW)
             .output()
             .ok()?;
 
@@ -246,11 +251,15 @@ fn generate_hardware_fingerprint_internal() -> String {
         let cpu_start = Instant::now();
 
         // 使用更简单的命令获取CPU ID
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+        
         let output = Command::new("powershell")
             .args([
                 "-Command",
                 "(Get-CimInstance -Class Win32_Processor).ProcessorId",
             ])
+            .creation_flags(CREATE_NO_WINDOW)
             .output();
 
         if let Ok(output) = output {

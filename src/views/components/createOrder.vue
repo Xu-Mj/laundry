@@ -176,7 +176,7 @@
                     <div class="btn-container">
                         <el-button size="large" icon="Close" type="danger" @click="cancelSelf">{{ form.orderId ? '关 闭' :
                             '取 消'
-                            }}</el-button>
+                        }}</el-button>
                         <el-button size="large" icon="Check" type="primary" color="#626aef" @click="submitForm"
                             :disabled="notEditable || (!(form.source === '03') && (!form.priceIds || form.priceIds.length === 0))"
                             v-if="form.source !== '01' && form.source !== '02'" ref="submitButtonRef">取衣收款</el-button>
@@ -756,6 +756,7 @@ async function submitForm() {
                     form.value.userId = res.userId;
                     form.value.userInfo = res; // 设置userInfo
 
+                    showCreateUser.value = false;
                     // 将新用户添加到用户列表中
                     userList.value.push(res);
                 } catch (err) {

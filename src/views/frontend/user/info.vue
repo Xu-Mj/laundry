@@ -210,7 +210,7 @@
 
 <script setup>
 import { changeUserStatus, changeUserIdentify } from "@/api/system/user";
-import { listUserCouponNoPage } from '@/api/system/user_coupon';
+import { listUserCouponWithValidTime } from '@/api/system/user_coupon';
 import { ref, computed } from "vue";
 import CouponSale from '@/views/components/couponSale.vue';
 
@@ -267,7 +267,7 @@ function handleCouponBought() {
     // 重新获取会员优惠券列表
     if (props.user && props.user.userId) {
         // 添加延迟，确保数据库同步完成
-        listUserCouponNoPage({ userId: props.user.userId }).then(response => {
+        listUserCouponWithValidTime(props.user.userId).then(response => {
             const mergedCoupons = response.reduce((acc, cur) => {
                 const existing = acc.find(item => item.coupon.couponId === cur.coupon.couponId && item.coupon.couponType !== '000');
                 if (existing) {
@@ -290,7 +290,7 @@ function handleCouponBought() {
 
 // 获取会员优惠券列表
 if (props.user && props.user.userId) {
-    listUserCouponNoPage({ userId: props.user.userId }).then(response => {
+    listUserCouponWithValidTime(props.user.userId ).then(response => {
         // 合并相同卡券数量，如果couponId相同，那么计算该couponId的ucCount总和
         const mergedCoupons = response.reduce((acc, cur) => {
             const existing = acc.find(item => item.coupon.couponId === cur.coupon.couponId && item.coupon.couponType !== '000');

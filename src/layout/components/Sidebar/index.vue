@@ -137,11 +137,11 @@ function hangupClick() {
     proxy.notify.warning('当前处于游客模式，请先注册！');
     return;
   }
-  if (userStore.trial.isInTrial) {
-    // 弹窗提醒
-    proxy.notify.warning('您当前为试用期用户，请升级为正式用户后使用！');
-    return;
-  }
+  // if (userStore.trial.isInTrial) {
+  //   // 弹窗提醒
+  //   proxy.notify.warning('您当前为试用期用户，请升级为正式用户后使用！');
+  //   return;
+  // }
   showHangUp.value = true;
 }
 

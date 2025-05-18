@@ -106,8 +106,8 @@
                     </div>
                 </div>
                 <!-- 订单包含的衣物列表 -->
-                <el-table v-if="order.clothList && order.clothList.length > 0" :data="order.clothList"
-                    :loading="order.loading" row-key="clothingId"
+                                <el-table v-if="order.clothList && order.clothList.length > 0" :data="order.clothList"
+                    :loading="order.loading" row-key="clothId"
                     @selection-change="selectedItems => handleClothSelectionChange(selectedItems, order)"
                     ref="clothsTableRef" class="modern-table" stripe>
                     <el-table-column type="selection" width="50" align="center" />
@@ -213,18 +213,13 @@
                     </el-table-column>
                     <el-table-column label="操作" align="center" width="120" fixed="right">
                         <template #default="scope">
-                            <div v-if="scope.row.clothingStatus == '02'" class="action-buttons">
-                                <el-button type="primary" size="small" plain round @click="pickup(scope.row)">
-                                    <el-icon>
+                            <div v-if="scope.row.clothingStatus == '02'" class="action-buttons"> <el-button
+                                    type="primary" size="small" plain round @click="pickup(scope.row)"> <el-icon>
                                         <TakeawayBox />
-                                    </el-icon> 取衣
-                                </el-button>
-                                <!-- <el-button type="warning" size="small" plain round @click="handleReWash(scope.row)">
-                                    <el-icon>
-                                        <Refresh />
-                                    </el-icon> 复洗
-                                </el-button> -->
-                            </div>
+                                    </el-icon> 取衣 </el-button> <el-button type="danger" size="small" plain round
+                                    @click="handleCompensate(scope.row)"> <el-icon>
+                                        <Money />
+                                    </el-icon> 赔偿 </el-button> </div>
                             <span v-else>-</span>
                         </template>
                     </el-table-column>
@@ -233,8 +228,7 @@
             </div>
         </div>
 
-        <div class="footer">
-            <el-button type="danger" @click="props.taggle()" icon="Close" round>关闭</el-button>
+        <div class="footer"> <el-button type="danger" @click="props.taggle()" icon="Close" round>关闭</el-button>
             <el-button type="primary" @click="pickup()" icon="TakeawayBox" round>取衣</el-button>
             <el-button type="success" @click="handlePay" icon="Wallet" round>取衣收款</el-button>
             <el-button type="warning" @click="handleDelivery" icon="Van" round>上门派送</el-button>
@@ -268,16 +262,12 @@
                     :preview-src-list="pictureList" class="grid-image" />
             </div>
         </div>
-    </el-dialog>
-    <!-- 派送对话框 -->
+    </el-dialog> <!-- 派送对话框 -->
     <DeliveryDialog v-model:visible="showDeliveryDialog" :user="currentUser" :selected-cloths="selectedCloths"
-        @success="handleDeliverySuccess" @cancel="handleDeliveryCancel" />
-
-    <!-- 复洗 -->
-    <ReWash :visible="showRewashDialog" :order="rewashOrder" :clothes="rewashClothesId"
-        :refresh="() => { selectedCloths = []; getList(); }" :key="showRewashDialog"
-        :toggle="() => { showRewashDialog = !showRewashDialog }" />
-
+        @success="handleDeliverySuccess" @cancel="handleDeliveryCancel" /> <!-- 赔偿对话框 -->
+    <CompensationDialog v-model:visible="showCompensationDialog" :selection-list="selectedCloths"
+        :order-id="selectedCloths.length > 0 ? selectedCloths[0].orderId : ''"
+        :user-id="currentUser ? currentUser.userId : ''" @success="handleCompensationSuccess" />
     <Pay :visible="showPaymentDialog" :user="currentUser" :orders="orders" :clothsList="clothsList"
         :userCouponList="userCouponList" :couponTypeList="couponTypeList" :showPickupButton="true" :refresh="getList"
         :key="showPaymentDialog" :toggle="() => { showPaymentDialog = !showPaymentDialog }"
@@ -288,18 +278,17 @@
 
 <script setup name="OderContent">
 import { listCloths } from "@/api/system/cloths";
-import { listTagsNoLimit } from "@/api/system/tags";
-import { onMounted } from "vue";
 import { pickUp } from "@/api/system/cloths";
 import { listUserCouponWithValidTime } from '@/api/system/user_coupon';
 import { getUser } from '@/api/system/user';
 import { selectListExceptCompleted } from "@/api/system/orders";
 import { getPrice } from "@/api/system/price";
-import ReWash from "./rewash.vue";
+
 import { ElMessageBox } from 'element-plus';
 import { invoke } from '@tauri-apps/api/core';
 import Pay from "./pay.vue";
 import DeliveryDialog from "./DeliveryDialog.vue";
+import CompensationDialog from "@/views/components/CompensationDialog.vue";
 import { printReceipt } from '@/api/system/printer';
 import useTagsStore from "@/store/modules/tags";
 
@@ -333,7 +322,7 @@ const {
 // 订单列表
 const ordersList = ref([]);
 const showPaymentDialog = ref(false);
-const showRewashDialog = ref(false);
+
 const loading = ref(true);
 const colorList = ref([]);
 const flawList = ref([]);
@@ -348,16 +337,12 @@ const userCouponList = ref([]);
 // 用户卡券种类列表
 const couponTypeList = ref();
 
-const showPicture = ref(false);
-const showDeliveryDialog = ref(false);
-// 当前需要处理的衣物列表
-const clothsList = ref([]);
+const showPicture = ref(false); const showDeliveryDialog = ref(false); const showCompensationDialog = ref(false);// 当前需要处理的衣物列表const clothsList = ref([]);
 
 // 当前用户信息
 const currentUser = ref(null);
 
-const rewashOrder = ref(null);
-const rewashClothesId = ref([]);
+
 
 const phonenumber = ref();
 const orders = ref([]);
@@ -378,26 +363,7 @@ async function go2pay(row) {
     showPaymentDialog.value = true;
 }
 
-// 显示售后复洗
-function handleReWash(cloth) {
-    if (cloth) {
-        selectedCloths.value = [cloth];
-    }
-    if (selectedCloths.value.length == 0) {
-        proxy.$message.error("请先选择衣物");
-        return;
-    }
 
-    const orders = new Set(selectedCloths.value.map(item => item.orderId));
-    if (orders.length > 1) {
-        proxy.$message.error("不支持跨订单复洗");
-        return;
-    }
-    rewashClothesId.value = selectedCloths.value.map(item => item.clothId);
-    rewashOrder.value = ordersList.value.find(item => item.orderId == orders.values().next().value);
-
-    showRewashDialog.value = true;
-}
 
 async function handlePay() {
     if (ordersList.value.length == 0) {
@@ -520,6 +486,41 @@ async function handlePaymentPickup() {
     }
 }
 
+// 显示赔偿对话框
+function handleCompensate(cloth) {
+    if (cloth) {
+        selectedCloths.value = [cloth];
+    }
+
+    if (selectedCloths.value.length === 0) {
+        proxy.notify.warning("请先选择需要赔偿的衣物");
+        return;
+    }
+
+    // 检查是否有衣物状态为已完成洗护的衣物
+    const validCloths = selectedCloths.value.filter(item => item.clothingStatus === '02');
+    if (validCloths.length === 0) {
+        proxy.notify.warning("只能对已完成洗护的衣物进行赔偿");
+        return;
+    }
+
+    // 检查衣物是否来自同一订单
+    const orderIds = new Set(validCloths.map(item => item.orderId));
+    if (orderIds.size > 1) {
+        proxy.notify.warning("不能对不同订单的衣物同时进行赔偿");
+        return;
+    }
+
+    showCompensationDialog.value = true;
+}
+
+// 赔偿成功回调
+function handleCompensationSuccess() {
+    proxy.notify.success("赔偿操作成功");
+    selectedCloths.value = [];
+    getList();
+}
+
 // 处理派送成功事件
 // async function handleDeliverySuccess() {
 //     showDeliveryDialog.value = false;
@@ -570,12 +571,16 @@ function handleDeliveryCancel() {
 
 // 衣物列表多选框选中数据
 function handleClothSelectionChange(selectedItems, row) {
-    // 清空当前订单下的选中数据
+    // 获取当前订单的所有衣物，用于对比哪些被选中哪些未被选中
     const orderId = row.orderId;
+    
+    // 先移除当前订单下所有选中的衣物
     selectedCloths.value = selectedCloths.value.filter(cloth => cloth.orderId !== orderId);
-
-    // 将新的选中项合并到 shared array
-    selectedCloths.value.push(...selectedItems);
+    
+    // 只添加新选中的衣物，这样就不会选择整个订单的衣物
+    if (selectedItems && selectedItems.length > 0) {
+        selectedCloths.value.push(...selectedItems);
+    }
 }
 
 /* 初始化列表数据 */

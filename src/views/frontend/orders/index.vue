@@ -81,11 +81,13 @@
       <div class="table-operations">
         <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" :columns="columns"></right-toolbar>
       </div>
-      <el-table v-loading="loading" :data="ordersList" class="modern-table no-wrap-table" border stripe :table-layout="fixed" :fit="true">
+      <el-table v-loading="loading" :data="ordersList" class="modern-table no-wrap-table" border stripe
+        :table-layout="fixed" :fit="true">
         <template #empty>
           <el-empty description="暂无数据" />
         </template>
-        <el-table-column label="订单编码" align="center" prop="orderNumber" v-if="columns[0].visible" min-width="160" show-overflow-tooltip />
+        <el-table-column label="订单编码" align="center" prop="orderNumber" v-if="columns[0].visible" min-width="160"
+          show-overflow-tooltip />
         <el-table-column label="所属会员" align="center" v-if="columns[1].visible" min-width="120">
           <template #default="scope">
             <div class="member-info">
@@ -128,7 +130,8 @@
         <el-table-column label="衣物编码" align="center" v-if="columns[6].visible">
           <template #default="scope">
             <div class="cloth-code-container">
-              <el-tag type="primary" v-for="item in scope.row.clothCodes" :key="item" size="small" effect="plain">{{ item }}</el-tag>
+              <el-tag type="primary" v-for="item in scope.row.clothCodes" :key="item" size="small" effect="plain">{{
+                item }}</el-tag>
             </div>
           </template>
         </el-table-column>
@@ -187,7 +190,8 @@
               @click="handleDeliveryMode(scope.row)" />
           </template>
         </el-table-column>
-        <el-table-column label="预计完成时间" align="center" prop="desireCompleteTime" min-width="100" v-if="columns[17].visible">
+        <el-table-column label="预计完成时间" align="center" prop="desireCompleteTime" min-width="100"
+          v-if="columns[17].visible">
           <template #default="scope">
             <span>{{ parseTime(scope.row.desireCompleteTime, '{y}-{m}-{d}') }}</span>
           </template>
@@ -203,23 +207,24 @@
               <template #dropdown>
                 <el-dropdown-menu>
                   <el-dropdown-item>
-                    <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)">编辑</el-button>
+                    <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)">{{ scope.row.status ==
+                      '06' || scope.row.paymentStatus == '00' ? '查看' : '编辑' }}</el-button>
                   </el-dropdown-item>
                   <el-dropdown-item>
-                    <el-button link type="primary" icon="Edit" :disabled="scope.row.status == '05'"
+                    <el-button link type="primary" icon="Edit" :disabled="scope.row.status == '06'"
                       @click="handleRefund(scope.row)">退单</el-button>
                   </el-dropdown-item>
-                  <el-dropdown-item>
+                  <!-- <el-dropdown-item>
                     <el-button link type="primary" icon="Edit"
                       :disabled="scope.row.status !== '02' && scope.row.status !== '03'"
                       @click="handleNotify(scope.row)">通知</el-button>
-                  </el-dropdown-item>
+                  </el-dropdown-item>-->
                   <el-dropdown-item>
                     <el-button link type="danger" icon="Delete" @click="handleDelete(scope.row)">删除</el-button>
-                  </el-dropdown-item>
-                  <el-dropdown-item disabled>
+                  </el-dropdown-item> 
+                  <el-dropdown-item>
                     <el-button link type="primary" icon="Edit"
-                      :disabled="scope.row.paymentStatus !== '01' || scope.row.status == '05'"
+                      :disabled="scope.row.paymentStatus !== '01' || scope.row.status == '06'"
                       @click="go2pay(scope.row)">收款</el-button>
                   </el-dropdown-item>
                 </el-dropdown-menu>
@@ -258,16 +263,9 @@
     </el-dialog>
 
     <!-- 退单弹窗 -->
-    <RefundDialog 
-      :visible="showRefundDialog"
-      :order-id="refundForm.orderId"
-      :user-id="refundForm.recvAccount"
-      :order-number="refundForm.orderNumber"
-      @refund-success="handleRefundSuccess"
-      @refund-cancel="showRefundDialog = false"
-      @update:visible="showRefundDialog = $event"
-      ref="refundDialogRef"
-    />
+    <RefundDialog :visible="showRefundDialog" :order-id="refundForm.orderId" :user-id="refundForm.recvAccount"
+      :order-number="refundForm.orderNumber" @refund-success="handleRefundSuccess"
+      @refund-cancel="showRefundDialog = false" @update:visible="showRefundDialog = $event" ref="refundDialogRef" />
 
     <!-- 派送弹窗 -->
     <el-dialog v-model="showExpressInfoDialog" width="600px" :align-center="true" append-to-body>
@@ -314,14 +312,14 @@
         :toggle="() => { open = !open; getList(); }" :refresh="getList" :key="open" />
     </el-dialog>
     <Pay :visible="showPaymentDialog" :key="showPaymentDialog" :order="currentOrder" :refresh="getList"
-      :toggle="() => { showPaymentDialog = !showPaymentDialog }" 
-      :userCouponList="userCouponList" :couponTypeList="couponTypeList" :showPickupButton="false"
-      @payment-success="handlePaymentSuccess" @payment-failed="handlePaymentFailed" />
+      :toggle="() => { showPaymentDialog = !showPaymentDialog }" :userCouponList="userCouponList"
+      :couponTypeList="couponTypeList" :showPickupButton="false" @payment-success="handlePaymentSuccess"
+      @payment-failed="handlePaymentFailed" />
   </div>
 </template>
 
 <script setup name="Orders">
-import { listOrders, getRefundInfo, delOrders } from "@/api/system/orders";
+import { listOrders, delOrders } from "@/api/system/orders";
 import { getUser } from "@/api/system/user";
 import { listUserCouponWithValidTime } from '@/api/system/user_coupon';
 import { listDispatch } from '@/api/system/dispatch';
@@ -331,7 +329,6 @@ import ShowClothsModern from './showClothsModern.vue';
 import CreateOrder from "@/views/components/createOrder.vue";
 import Pay from "@/views/components/pay.vue";
 import { listCloths } from "@/api/system/cloths";
-import { ArrowDown, Wallet, User, Money, Check } from '@element-plus/icons-vue';
 import RefundDialog from "@/components/refundDialog.vue";
 
 const { proxy } = getCurrentInstance();
@@ -475,10 +472,10 @@ function go2pay(row) {
   listCloths({ orderId: row.orderId }).then(async res => {
     currentOrder.value = row;
     currentOrder.value.cloths = res;
-    
+
     // 计算衣物的原始价格（不包含调价）
     let originalPrice = 0;
-    
+
     // 如果选择了价格方案，那么使用所有选中价格方案的总和
     if (row.priceIds && row.priceIds.length > 0) {
       // 这种情况暂时无法得知每个价格方案的详情，用总价替代
@@ -495,10 +492,10 @@ function go2pay(row) {
         return acc + priceValue + (cur.processMarkup || 0);
       }, 0);
     }
-    
+
     // 设置原价
     currentOrder.value.originalPrice = originalPrice > 0 ? originalPrice : 0;
-    
+
     // 获取用户卡券列表
     await listUserCouponWithValidTime(row.userId).then(response => {
       userCouponList.value = response;
@@ -508,7 +505,7 @@ function go2pay(row) {
       });
       couponTypeList.value = new Set(userCouponList.value.map(coupon => coupon.coupon.couponType));
     });
-    
+
     showPaymentDialog.value = true;
     console.log(currentOrder.value);
   });
@@ -667,7 +664,7 @@ function handleRefund(row) {
   refundForm.value.orderId = row.orderId;
   refundForm.value.orderNumber = row.orderNumber;
   refundForm.value.recvAccount = row.userId;
-  
+
   // 显示退款对话框
   showRefundDialog.value = true;
 }

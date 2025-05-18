@@ -43,10 +43,6 @@ export function getCountByUserId(userId) {
 // 查询退单所需的信息，用户手机号、订单实际支付金额
 export function getRefundInfo(orderId, userId) {
   return invoke('get_refund_info', { orderId, userId })
-  return request({
-    url: '/system/orders/refund/' + orderId + '/' + userId,
-    method: 'get'
-  })
 }
 
 // 新增洗护服务订单

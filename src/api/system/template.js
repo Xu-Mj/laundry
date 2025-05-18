@@ -2,15 +2,8 @@ import request from '@/utils/request'
 import invoke from '@/utils/invoke'
 
 // 查询通知模板管理列表
-export function listTemplate(query) {
-  console.log(query)
-  const pageParams = { pageSize: query.pageSize, page: query.pageNum, params: query.params }
-  const temp = {
-    tempName: query.tempName,
-    tempType: query.tempType,
-    noticeMethod: query.noticeMethod,
-  };
-  return invoke('get_temp_pagination', { pageParams, temp })
+export function listTemplate() {
+  return invoke('sms_template_list')
 }
 
 // 查询通知模板管理详细

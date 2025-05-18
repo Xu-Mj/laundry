@@ -1,15 +1,11 @@
 <template>
-  <el-dialog 
-    v-model="localVisible" 
-    width="500px" 
-    :align-center="true" 
-    :show-close="true"
-    destroy-on-close
-    class="refund-dialog"
-    top="10vh">
+  <el-dialog v-model="localVisible" width="500px" :align-center="true" :show-close="true" destroy-on-close
+    class="refund-dialog" top="10vh">
     <template #header>
       <div class="refund-dialog-header">
-        <el-icon><Wallet /></el-icon>
+        <el-icon>
+          <Wallet />
+        </el-icon>
         <span>订单退款</span>
       </div>
     </template>
@@ -39,49 +35,45 @@
         <el-form-item label="退款账目" prop="expTitle">
           <el-input v-model="refundForm.expTitle" placeholder="请输入支出账目名称" class="refund-input">
             <template #prefix>
-              <el-icon><Document /></el-icon>
+              <el-icon>
+                <Document />
+              </el-icon>
             </template>
           </el-input>
         </el-form-item>
         <el-form-item label="对方账户" prop="recvAccountTitle">
           <el-input v-model="refundForm.recvAccountTitle" disabled class="refund-input">
             <template #prefix>
-              <el-icon><User /></el-icon>
+              <el-icon>
+                <User />
+              </el-icon>
             </template>
           </el-input>
         </el-form-item>
         <el-form-item label="实退金额" prop="expAmount" v-if="!refundForm.unPay">
-          <el-input-number 
-            v-model="refundForm.expAmount" 
-            :precision="2" 
-            :step="0.01" 
-            :min="0" 
-            :max="refundForm.expAmount"
-            controls-position="right"
-            style="width: 100%"
-            class="refund-input-number">
+          <el-input-number v-model="refundForm.expAmount" :precision="2" :step="0.01" :min="0"
+            :max="refundForm.expAmount" controls-position="right" style="width: 100%" class="refund-input-number">
             <template #prefix>
-              <el-icon><Money /></el-icon>
+              <el-icon>
+                <Money />
+              </el-icon>
             </template>
           </el-input-number>
         </el-form-item>
         <el-form-item label="备注信息" prop="remark">
-          <el-input 
-            type="textarea" 
-            v-model="refundForm.remark" 
-            placeholder="请输入退款原因或其他备注信息" 
-            :rows="3"
-            resize="none"
+          <el-input type="textarea" v-model="refundForm.remark" placeholder="请输入退款原因或其他备注信息" :rows="3" resize="none"
             class="refund-textarea" />
         </el-form-item>
       </el-form>
     </div>
-    
+
     <template #footer>
       <div class="refund-footer">
         <el-button @click="closeDialog" plain>取消</el-button>
         <el-button type="primary" @click="submitRefundForm" :disabled="refundForm.unPay">
-          <el-icon><Check /></el-icon>确认退款
+          <el-icon>
+            <Check />
+          </el-icon>确认退款
         </el-button>
       </div>
     </template>
@@ -90,7 +82,6 @@
 
 <script setup>
 import { getRefundInfo, refund } from "@/api/system/orders";
-import { Document, Wallet, User, Money, Check } from '@element-plus/icons-vue';
 
 const props = defineProps({
   visible: {
@@ -112,6 +103,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['update:visible', 'refund-success', 'refund-cancel']);
+const { proxy } = getCurrentInstance();
 
 const localVisible = ref(props.visible);
 const refundFormRef = ref(null);
@@ -159,12 +151,12 @@ watch(() => props.orderId, (newVal) => {
 function loadRefundInfo() {
   // 重置表单
   resetForm();
-  
+
   // 设置基本信息
   refundForm.value.orderId = props.orderId;
   refundForm.value.orderNumber = props.orderNumber;
   refundForm.value.recvAccount = props.userId;
-  
+
   // 获取退款详情
   getRefundInfo(props.orderId, props.userId).then(res => {
     refundForm.value.recvAccountTitle = res.user.userName;
@@ -181,7 +173,6 @@ function loadRefundInfo() {
       refundForm.value.unPay = true;
     }
   }).catch(error => {
-    const { proxy } = getCurrentInstance();
     proxy.$notify.error('获取退款信息失败：' + error);
     closeDialog();
   });
@@ -191,11 +182,10 @@ function loadRefundInfo() {
 function submitRefundForm() {
   refundFormRef.value.validate((valid) => {
     if (valid) {
-      const { proxy } = getCurrentInstance();
-      
+
       proxy.$modal.confirm('确认要退款吗？此操作不可逆！').then(() => {
         proxy.$modal.loading("退款中，请稍候");
-        
+
         refund(refundForm.value).then(() => {
           proxy.$modal.closeLoading();
           proxy.$notify.success("退款成功");
@@ -203,7 +193,7 @@ function submitRefundForm() {
           closeDialog();
         }).catch(error => {
           proxy.$modal.closeLoading();
-          proxy.$notify.error("退款失败：" + error);
+          proxy.$notify.error("退款失败");
         });
       }).catch(() => {
         // 用户取消操作
@@ -231,7 +221,7 @@ function resetForm() {
     remark: '',
     unPay: false
   };
-  
+
   // 如果表单ref已存在，则重置验证
   if (refundFormRef.value) {
     refundFormRef.value.resetFields();
@@ -359,4 +349,4 @@ defineExpose({
   justify-content: flex-end;
   gap: 12px;
 }
-</style> 
+</style>

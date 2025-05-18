@@ -1040,8 +1040,8 @@ impl Order {
 
                                 // 创建支付记录
                                 payment.pay_id = Some(uuid::Uuid::new_v4().to_string());
-                                payment.order_status = Some("01".to_string());
-                                payment.payment_status = Some("01".to_string());
+                                payment.order_status = Some(PAY_STATUS_PAID.to_string());
+                                payment.payment_status = Some(PAY_STATUS_PAID.to_string());
                                 payment.pay_number = existing_order.order_number.clone();
                                 payment.uc_order_id = Some(*order_id);
                                 payment.transaction_id = alipay_result
@@ -1130,8 +1130,8 @@ impl Order {
 
                 // 创建支付记录
                 payment.pay_id = Some(uuid::Uuid::new_v4().to_string());
-                payment.order_status = Some("01".to_string());
-                payment.payment_status = Some("01".to_string());
+                payment.order_status = Some(PAY_STATUS_PAID.to_string());
+                payment.payment_status = Some(PAY_STATUS_PAID.to_string());
                 payment.pay_number = existing_order.order_number.clone();
                 payment.uc_order_id = Some(*order_id);
                 payment.create_payment(&mut tr).await?;
@@ -1501,7 +1501,8 @@ impl Order {
                     } else {
                         base_price
                     };
-                    price += Decimal::from_f64(cloth.process_markup.unwrap_or_default()).unwrap_or_default();
+                    price += Decimal::from_f64(cloth.process_markup.unwrap_or_default())
+                        .unwrap_or_default();
                     price
                 } else {
                     Decimal::ZERO
@@ -1648,7 +1649,7 @@ impl Order {
         // select payment record
         let payment = Payment::get_by_order_id(pool, order.order_id.unwrap(), store_id).await?;
         if payment.is_none() {
-            order.status = Some(PAY_STATUS_REFUND.to_string());
+            order.status = Some(ORDER_STATUS_REFUND.to_string());
             if !order.update(&mut tx).await? {
                 return Err(Error::internal("update order failed"));
             }
@@ -1661,15 +1662,32 @@ impl Order {
             }
         }
 
-        let payment = payment.unwrap();
+        let mut payment = payment.unwrap();
         // generate expenditure recorde
-        if payment.payment_amount_mv.is_some() && payment.payment_amount_mv.unwrap() > 0. {
-            exp.create(&mut tx).await?;
-        }
+        // if payment.payment_amount_mv.is_some() && payment.payment_amount_mv.unwrap() > 0. {
+        //     exp.create(&mut tx).await?;
+        // }
 
         // check if user used coupon
         let uc_id = &payment.uc_id;
         if uc_id.is_none() {
+            // update payment status
+            payment.payment_status = Some(PAY_STATUS_REFUND.to_string());
+            if !payment.update_payment_status(&mut tx).await? {
+                return Err(Error::internal("更新支付状态失败"));
+            }
+            // refund user points
+            if payment.payment_amount.is_some() && payment.payment_amount.unwrap() > 0. {
+                if !User::decrease_points(
+                    &mut tx,
+                    order.user_id.unwrap_or_default(),
+                    payment.payment_amount.unwrap_or_default() as i64,
+                )
+                .await?
+                {
+                    return Err(Error::internal("退还积分失败"));
+                }
+            }
             tx.commit().await?;
             return Ok(());
         }
@@ -1769,6 +1787,11 @@ impl Order {
             }
         }
 
+        // update payment status
+        payment.payment_status = Some(PAY_STATUS_REFUND.to_string());
+        if !payment.update_payment_status(&mut tx).await? {
+            return Err(Error::internal("更新支付状态失败"));
+        }
         // refund user points
         if payment.payment_amount.is_some() && payment.payment_amount.unwrap() > 0. {
             if !User::decrease_points(

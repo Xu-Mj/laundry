@@ -46,15 +46,15 @@
                                 <el-icon>
                                     <Goods />
                                 </el-icon>
-                                {{ currentCloth.clothInfo.clothingName }}
+                                {{ currentCloth.clothInfo.title || currentCloth.clothInfo.clothingName }}
                                 <span v-if="currentCloth.clothingColor" class="cloth-detail">
                                     <el-tag size="small" effect="plain" type="info">
-                                        {{colorList.find(item => item.tagId == currentCloth.clothingColor).tagName}}
+                                        {{colorList.find(item => item.tagId == currentCloth.clothingColor)?.tagName}}
                                     </el-tag>
                                 </span>
                                 <span v-if="currentCloth.clothingBrand" class="cloth-detail">
                                     <el-tag size="small" effect="plain" type="success">
-                                        {{brandList.find(item => item.tagId == currentCloth.clothingBrand).tagName}}
+                                        {{brandList.find(item => item.tagId == currentCloth.clothingBrand)?.tagName}}
                                     </el-tag>
                                 </span>
                             </div>
@@ -76,7 +76,7 @@
                                 <div class="tag-container">
                                     <el-tag v-for="tagId in currentCloth.flawListArr" :key="tagId" type="danger"
                                         effect="light" size="small" class="info-tag">
-                                        {{flawList.find(item => item.tagId == tagId).tagName}}
+                                        {{flawList.find(item => item.tagId == tagId)?.tagName || tagId}}
                                     </el-tag>
                                 </div>
                             </div>
@@ -93,7 +93,7 @@
                                 <div class="tag-container">
                                     <el-tag v-for="tagId in currentCloth.estimateArr" :key="tagId" type="warning"
                                         effect="light" size="small" class="info-tag">
-                                        {{estimateList.find(item => item.tagId == tagId).tagName}}
+                                        {{estimateList.find(item => item.tagId == tagId)?.tagName || tagId}}
                                     </el-tag>
                                 </div>
                             </div>
@@ -169,6 +169,7 @@ import { listTagsNoLimit } from "@/api/system/tags";
 import { listRack } from "@/api/system/rack";
 import { getUserByClothCode } from "@/api/system/user";
 import { Search, Location, Goods, Warning, Timer, Memo } from '@element-plus/icons-vue';
+import useTagsStore from "@/store/modules/tags";
 
 const props = defineProps({
     visible: {
@@ -183,6 +184,7 @@ const props = defineProps({
 });
 
 const { proxy } = getCurrentInstance();
+const tagsStore = useTagsStore();
 
 const data = reactive({
     hangForm: {},
@@ -201,10 +203,10 @@ const data = reactive({
 
 const { hangForm, hangRules } = toRefs(data);
 
-const colorList = ref([]);
-const flawList = ref([]);
-const estimateList = ref([]);
-const brandList = ref([]);
+const colorList = computed(() => tagsStore.getColorList);
+const flawList = computed(() => tagsStore.getFlawList);
+const estimateList = computed(() => tagsStore.getEstimateList);
+const brandList = computed(() => tagsStore.getBrandList);
 
 const open = ref(false);
 const hangupBtnDisabled = ref(false);
@@ -247,10 +249,15 @@ function getClothInfo() {
                 hangerNumber: currentCloth.value.hangerNumber,
                 hangRemark: currentCloth.value.hangRemark,
             };
+        } else if (currentCloth.value.clothingStatus !== '01') {
+            // 只允许洗护中的衣物上挂
+            proxy.notify.warning("只能上挂正在洗护的衣物");
+            hangupBtnDisabled.value = true;
+            hangForm.value.clothId = currentCloth.value.clothId;
         } else {
             // 查找最合适的衣挂位置
             hangForm.value = {
-                clothingNumber: currentCloth.value.hangClothCode,
+                clothingNumber: currentCloth.value.hangClothCode || clothingNumber,
                 clothId: currentCloth.value.clothId,
                 hangLocationId: currentCloth.value.hangLocationCode,
                 hangerNumber: currentCloth.value.hangerNumber,
@@ -259,8 +266,13 @@ function getClothInfo() {
             hangupBtnDisabled.value = false;
             // 找到了，确认上挂获取焦点
             hangUpBtnRef.value.$el.focus();
-            currentCloth.value.flawListArr = currentCloth.value.clothingFlaw?.split(",");
-            currentCloth.value.estimateArr = currentCloth.value.estimate?.split(",");
+            
+            // 安全地处理可能为null的字段
+            currentCloth.value.flawListArr = currentCloth.value.clothingFlaw ? 
+                currentCloth.value.clothingFlaw.split(",") : [];
+                
+            currentCloth.value.estimateArr = currentCloth.value.estimate ? 
+                currentCloth.value.estimate.split(",") : [];
         }
     });
     getUserByClothCode(clothingNumber).then(res => {
@@ -270,42 +282,10 @@ function getClothInfo() {
 
 /* 初始化列表数据 */
 async function initList() {
-    const promises = [];
-
-    // 获取颜色列表
-    if (colorList.value.length === 0) {
-        const colorPromise = listTagsNoLimit({ tagOrder: '003' }).then(response => {
-            colorList.value = response;
-        });
-        promises.push(colorPromise);
+    // 使用tagsStore中的缓存数据，如果未初始化则进行初始化
+    if (!tagsStore.isInitialized) {
+        await tagsStore.initTags();
     }
-
-    // 获取瑕疵列表
-    if (flawList.value.length === 0) {
-        const flawPromise = listTagsNoLimit({ tagOrder: '001' }).then(response => {
-            flawList.value = response;
-        });
-        promises.push(flawPromise);
-    }
-
-    // 获取预估列表
-    if (estimateList.value.length === 0) {
-        const estimatePromise = listTagsNoLimit({ tagOrder: '002' }).then(response => {
-            estimateList.value = response;
-        });
-        promises.push(estimatePromise);
-    }
-
-    // 获取品牌列表
-    if (brandList.value.length === 0) {
-        const brandPromise = listTagsNoLimit({ tagOrder: '004' }).then(response => {
-            brandList.value = response;
-        });
-        promises.push(brandPromise);
-    }
-
-    // 等待所有异步操作完成防止衣物列表数据加载完后这里的数据没有准备好而出错
-    await Promise.all(promises);
 }
 
 /* 上挂 */
@@ -352,7 +332,7 @@ function hangUp() {
                         }).catch(() => {});
                     } else {
                         // 其他错误的处理
-                        proxy.notify.error(res.msg || '操作失败');
+                        proxy.notify.error(res.message || res.msg || '操作失败');
                     }
                 })
             }
@@ -364,10 +344,13 @@ function hangUp() {
 function closeHangUpDialog() {
     hangForm.value = {
         clothingNumber: null,
-        hangLocationCode: null,
-        hangClothCode: null,
+        clothId: null,
+        hangLocationId: null,
+        hangerNumber: null,
         hangRemark: null
     };
+    currentCloth.value = null;
+    currentUser.value = null;
     props.taggle();
 }
 

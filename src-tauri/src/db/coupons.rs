@@ -168,9 +168,9 @@ impl Coupon {
 }
 
 impl Curd for Coupon {
-    const COUNT_SQL: &'static str = "SELECT COUNT(*) FROM coupons WHERE del_flag = '0' ";
-    const QUERY_SQL: &'static str = "SELECT * FROM coupons WHERE del_flag = '0' ";
-    const BY_ID_SQL: &'static str = "SELECT * FROM coupons WHERE del_flag = '0' AND coupon_id = ?";
+    const COUNT_SQL: &'static str = "SELECT COUNT(*) FROM coupons WHERE 1 = 1";
+    const QUERY_SQL: &'static str = "SELECT * FROM coupons WHERE 1 = 1";
+    const BY_ID_SQL: &'static str = "SELECT * FROM coupons WHERE coupon_id = ?";
     const DELETE_BATCH_SQL: &'static str = "UPDATE coupons SET del_flag = '2' WHERE coupon_id IN (";
 
     fn apply_filters<'a>(&'a self, builder: &mut QueryBuilder<'a, Sqlite>) {
@@ -568,9 +568,9 @@ impl Coupon {
             order_type: Some(0.to_string()),
             total_amount: Some(total_amount),
             payment_amount: Some(amount),
-            payment_status: Some("01".to_string()),
+            payment_status: Some("00".to_string()),
             payment_method: Some(coupon_buy_req.payment_method),
-            order_status: Some("01".to_string()),
+            order_status: Some("00".to_string()),
             create_time: Some(utils::get_timestamp()),
             store_id: Some(store_id),
             ..Default::default()

@@ -3,10 +3,10 @@
     <div class="non-editable-message">
       <div class="non-editable-icon">
         <el-icon v-if="order.paymentStatus === '00'" style="color:var(--el-color-success)"><CircleCheckFilled /></el-icon>
-        <el-icon v-else-if="order.status === '05'" style="color:var(--el-color-danger)"><CircleCloseFilled /></el-icon>
+        <el-icon v-else-if="order.status === '06'" style="color:var(--el-color-danger)"><CircleCloseFilled /></el-icon>
       </div>
       <h2 class="non-editable-title">
-        {{ order.paymentStatus === '00' ? '订单已支付' : order.status === '05' ? '订单已退单' : '订单不可编辑' }}
+        {{ order.paymentStatus === '00' ? '订单已支付' : order.status === '06' ? '订单已退单' : '订单不可编辑' }}
       </h2>
       <p class="non-editable-description">
         {{ order.paymentStatus === '00' ? '该订单已完成支付，不能修改订单信息' : order.status === '05' ? '该订单已办理退款，不能修改订单信息' : '当前状态不允许修改订单信息' }}
@@ -19,7 +19,7 @@
         <div class="order-info-item">
           <span class="info-label">订单状态</span>
           <el-tag size="small" type="success" v-if="order.paymentStatus === '00'">已支付</el-tag>
-          <el-tag size="small" type="danger" v-else-if="order.status === '05'">已退单</el-tag>
+          <el-tag size="small" type="danger" v-else-if="order.status === '06'">已退单</el-tag>
         </div>
         <div class="order-info-item">
           <span class="info-label">衣物数量</span>

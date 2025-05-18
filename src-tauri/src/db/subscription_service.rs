@@ -1,8 +1,12 @@
+use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use tauri::State;
 
 use crate::{
-    db::sms_plan::SmsPlan, error::{Error, Result}, state::AppState, utils
+    db::{PageResult, sms_plan::SmsPlan},
+    error::{Error, Result},
+    state::AppState,
+    utils,
 };
 
 use super::subscription_plan::SubscriptionPlan;
@@ -242,4 +246,54 @@ pub async fn check_alipay_sms_sub_payment(
         .http_client
         .post("/payment/sms-sub/alipay/query", &req, Some(&token))
         .await
+}
+
+/// 短信模板结构体（对应数据库表）
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[serde(default)]
+pub struct SmsTemplate {
+    // --- 阿里云原始字段 ---
+    pub id: i64,                  // 本地数据库主键
+    pub template_code: String,    // 模板CODE（如 SMS_123456）
+    pub template_name: String,    // 模板名称
+    pub template_content: String, // 模板内容（如 "验证码：${code}"）
+    pub template_status: String,  // 审核状态
+    pub template_type: String,    // 模板类型
+    pub reason: Option<String>,   // 审核失败原因（阿里云返回）
+    #[serde(with = "aliyun_date_format")]
+    pub create_time: NaiveDateTime, // 创建时间（阿里云格式：2023-01-01 12:00:00）
+    pub related_sign_name: Option<String>, // 关联签名名称
+
+    // --- 本地管理扩展字段 ---
+    pub is_active: bool,                  // 是否启用（本地控制）
+    pub visible_to_store: bool,           // 是否启用（本地控制）
+    pub update_time: NaiveDateTime,       // 最后更新时间（本地维护）
+    pub sync_time: Option<NaiveDateTime>, // 最后一次与阿里云同步的时间
+}
+
+mod aliyun_date_format {
+    use chrono::NaiveDateTime;
+    use serde::{Deserialize, Deserializer, Serializer};
+
+    pub fn serialize<S>(dt: &NaiveDateTime, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&dt.format("%Y-%m-%d %H:%M:%S").to_string())
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<NaiveDateTime, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        NaiveDateTime::parse_from_str(&s, "%Y-%m-%d %H:%M:%S").map_err(serde::de::Error::custom)
+    }
+}
+
+#[tauri::command]
+pub async fn sms_template_list(state: State<'_, AppState>) -> Result<PageResult<SmsTemplate>> {
+    let token = state.try_get_token().await?;
+    state.http_client.get("/sms/templates", Some(&token)).await
 }

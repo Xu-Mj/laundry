@@ -294,6 +294,7 @@ fn handle_command<R: Runtime>(invoke: Invoke<R>) -> bool {
         subscription_service::check_alipay_qr_code_payment_status,
         subscription_service::check_alipay_sms_sub_payment,
         subscription_service::get_alipay_sms_sub_qr_code,
+        subscription_service::sms_template_list,
     ];
     handler(invoke);
 

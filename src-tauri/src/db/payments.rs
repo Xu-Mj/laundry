@@ -163,6 +163,19 @@ impl Payment {
 
         Ok(result)
     }
+
+    // update
+    pub async fn update_payment_status(&self, tr: &mut Transaction<'_, Sqlite>) -> Result<bool> {
+        let query = r#"
+        UPDATE payments SET payment_status = ? WHERE pay_id = ?
+        "#;
+        let result = sqlx::query(query)
+            .bind(&self.payment_status)
+            .bind(&self.pay_id)
+            .execute(&mut **tr)
+            .await?;
+        Ok(result.rows_affected() > 0)
+    }
 }
 
 fn days_in_month(year: i32, month: u32) -> u32 {
@@ -210,17 +223,18 @@ pub async fn get_monthly_payment_summary(
         current_date = current_date + Duration::days(1);
     }
 
-    // 查询收入数据
-    let income_data: HashMap<String, f64> = sqlx::query(
+    // 查询正常收入数据（排除储值卡支付，避免重复统计）
+    let normal_income_data: HashMap<String, f64> = sqlx::query(
         r#"
         SELECT
             strftime('%Y-%m-%d', datetime(create_time/1000, 'unixepoch')) as date,
             SUM(payment_amount) as income
         FROM payments
         WHERE create_time BETWEEN ? AND ?
-          AND payment_status = '01'
+          AND payment_status = '00'
           AND payment_amount > 0
-          AND store_id =?
+          AND payment_method != '06' -- 排除储值卡支付
+          AND store_id = ?
         GROUP BY date
         ORDER BY date
         "#,
@@ -238,6 +252,35 @@ pub async fn get_monthly_payment_summary(
     .into_iter()
     .collect();
 
+    // 查询储值卡销售收入（统计售卡收入，而不是使用储值卡的支付）
+    // 避免储值卡的双重统计：1.购买时计入；2.使用时不重复计入
+    // let storage_card_income_data: HashMap<String, f64> = sqlx::query(
+    //     r#"
+    //     SELECT
+    //         strftime('%Y-%m-%d', datetime(uc.create_time/1000, 'unixepoch')) as date,
+    //         SUM(uc.total_amount) as income
+    //     FROM user_coupons uc
+    //     JOIN coupons c ON uc.coupon_id = c.coupon_id
+    //     WHERE uc.create_time BETWEEN ? AND ?
+    //       AND c.coupon_type = '000' -- 储值卡类型
+    //       AND uc.store_id = ?
+    //     GROUP BY date
+    //     ORDER BY date
+    //     "#,
+    // )
+    // .bind(start_timestamp)
+    // .bind(end_timestamp)
+    // .bind(store_id)
+    // .map(|row: SqliteRow| {
+    //     let date: String = row.get("date");
+    //     let income: f64 = row.get("income");
+    //     (date, income)
+    // })
+    // .fetch_all(pool)
+    // .await?
+    // .into_iter()
+    // .collect();
+
     // 查询支出数据
     let expense_data: HashMap<String, f64> = sqlx::query(
         r#"
@@ -246,7 +289,7 @@ pub async fn get_monthly_payment_summary(
             SUM(exp_amount) as expense
         FROM expenditure
         WHERE create_time BETWEEN ? AND ?
-        AND store_id =?
+        AND store_id = ?
         GROUP BY date
         ORDER BY date
         "#,
@@ -264,10 +307,12 @@ pub async fn get_monthly_payment_summary(
     .into_iter()
     .collect();
 
-    // 合并数据
+    // 合并数据，总收入 = 正常销售收入 + 储值卡销售收入
     let mut summaries = Vec::new();
     for date in all_dates {
-        let income = *income_data.get(&date).unwrap_or(&0.0);
+        let income = *normal_income_data.get(&date).unwrap_or(&0.0);
+        // let storage_card_income = *storage_card_income_data.get(&date).unwrap_or(&0.0);
+        // let total_income = normal_income + storage_card_income;
         let expense = *expense_data.get(&date).unwrap_or(&0.0);
 
         summaries.push(PaymentSummary {
@@ -377,6 +422,7 @@ async fn get_week_amounts(
     let end_of_week = start_of_week + Duration::days(6);
     query_amounts(pool, store_id, start_of_week, end_of_week).await
 }
+
 async fn query_amounts(
     pool: &Pool<Sqlite>,
     store_id: i64,
@@ -385,15 +431,17 @@ async fn query_amounts(
 ) -> Result<(f64, f64)> {
     let start = start.and_utc().timestamp_millis();
     let end = end.and_utc().timestamp_millis();
-    // 收入查询（带可选支付状态条件）
-    let income = sqlx::query_scalar(
+
+    // 正常销售收入（排除储值卡支付的交易，避免重复统计）
+    let income: f64 = sqlx::query_scalar(
         r#"
         SELECT COALESCE(SUM(payment_amount), 0.0)
         FROM payments
         WHERE create_time BETWEEN ? AND ?
-          AND payment_status = '01'
+          AND payment_status = '00'
           AND payment_amount > 0
-          AND store_id =?
+          AND payment_method != '06' -- 排除储值卡支付
+          AND store_id = ?
         "#,
     )
     .bind(start)
@@ -402,13 +450,36 @@ async fn query_amounts(
     .fetch_one(pool)
     .await?;
 
-    // 支出查询（公共部分）
+    // 储值卡销售收入（统计售卡收入，而不是使用储值卡的支付）
+    // 这样可以避免储值卡的双重统计问题：
+    // 1. 用户购买储值卡时计入收入
+    // 2. 用户使用储值卡支付时不再重复计入收入
+    // let storage_card_sales: f64 = sqlx::query_scalar(
+    //     r#"
+    //     SELECT COALESCE(SUM(total_amount), 0.0)
+    //     FROM user_coupons uc
+    //     JOIN coupons c ON uc.coupon_id = c.coupon_id
+    //     WHERE uc.create_time BETWEEN ? AND ?
+    //       AND c.coupon_type = '000' -- 储值卡类型
+    //       AND uc.store_id = ?
+    //     "#,
+    // )
+    // .bind(start)
+    // .bind(end)
+    // .bind(store_id)
+    // .fetch_one(pool)
+    // .await?;
+
+    // 总收入 = 正常销售收入 + 储值卡销售收入
+    // let total_income = normal_income + storage_card_sales;
+
+    // 支出查询
     let expense: i64 = sqlx::query_scalar(
         r#"
         SELECT COALESCE(SUM(exp_amount), 0)
         FROM expenditure
         WHERE create_time BETWEEN ? AND ?
-        AND store_id =?
+        AND store_id = ?
         "#,
     )
     .bind(start)
@@ -419,6 +490,7 @@ async fn query_amounts(
 
     Ok((income, expense as f64))
 }
+
 /// 增长率计算函数
 fn calculate_rate(current: f64, previous: f64) -> f64 {
     if previous == 0.0 {

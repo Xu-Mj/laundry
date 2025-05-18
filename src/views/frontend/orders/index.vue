@@ -221,7 +221,7 @@
                   </el-dropdown-item>-->
                   <el-dropdown-item>
                     <el-button link type="danger" icon="Delete" @click="handleDelete(scope.row)">删除</el-button>
-                  </el-dropdown-item> 
+                  </el-dropdown-item>
                   <el-dropdown-item>
                     <el-button link type="primary" icon="Edit"
                       :disabled="scope.row.paymentStatus !== '01' || scope.row.status == '06'"
@@ -601,13 +601,13 @@ function handleUpdate(row) {
 }
 /** 删除按钮操作 */
 function handleDelete(row) {
-  const _orderIds = row.orderId || ids.value;
-  proxy.$modal.confirm('是否确认删除洗护服务订单编号为"' + _orderIds + '"的数据项？').then(function () {
-    return delOrders(_orderIds);
-  }).then(() => {
-    getList();
-    proxy.notify.success("删除成功");
-  }).catch(() => { });
+  const _orderIds = row.orderId ;
+    proxy.$modal.confirm('是否确认删除洗护服务订单编号为"' + row.orderNumber + '"的数据项？').then(function () {
+      return delOrders(_orderIds);
+    }).then(() => {
+      getList();
+      proxy.notify.success("删除成功");
+    }).catch(() => { });
 }
 
 /* 提交通知 */

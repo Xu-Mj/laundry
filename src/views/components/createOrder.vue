@@ -664,7 +664,7 @@ async function handleUpdate() {
         form.value = response;
         form.value.cloths = [];
         // 如果订单已支付或已退单，设置为不可编辑状态
-        if (form.value.paymentStatus === '00' || form.value.status === '05') {
+        if (form.value.paymentStatus === '00' || form.value.status === '06') {
             notEditable.value = true;
         }
         if (!form.value.adjust) {

@@ -7,7 +7,7 @@ import CouponSale from '@/views/frontend/container/couponSaleContainer.vue'; // 
 import HangUp from '@/views/components/hangUp.vue'; // 引入组件
 import User from '@/views/frontend/user/index.vue'; // 引入组件
 import Coupon from '@/views/frontend/coupon/index.vue'; // 引入组件
-import ImageTest from '@/views/frontend/container/imageTest.vue'
+// import ImageTest from '@/views/frontend/container/imageTest.vue'
 /**
  * Note: 路由配置项
  *
@@ -34,22 +34,22 @@ import ImageTest from '@/views/frontend/container/imageTest.vue'
 export const constantRoutes = [
   {
     path: '/',
-    redirect: '/index'
+    redirect: '/login'
   },
   {
     path: '/hang-up',
     component: HangUp
   },
-  {
-    path: '/image-test',
-    component: Layout,
-    children: [
-      {
-        path: '',
-        component: ImageTest,
-      }
-    ]
-  },
+  // {
+  //   path: '/image-test',
+  //   component: Layout,
+  //   children: [
+  //     {
+  //       path: '',
+  //       component: ImageTest,
+  //     }
+  //   ]
+  // },
   {
     path: '/system/coupon',
     component: Layout,

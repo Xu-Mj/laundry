@@ -1,6 +1,6 @@
 <template>
   <div class="app-container">
-    <el-card class="search-card" v-show="showSearch">
+    <!-- <el-card class="search-card" v-show="showSearch">
       <el-form :model="queryParams" ref="queryRef" :inline="true" label-width="68px">
         <el-form-item label="模板名称" prop="tempName">
           <el-input v-model="queryParams.tempName" placeholder="请输入模板名称" clearable @keyup.enter="handleQuery" />
@@ -16,10 +16,10 @@
           <el-button class="hover-flow" icon="Refresh" @click="resetQuery">重置</el-button>
         </el-form-item>
       </el-form>
-    </el-card>
+    </el-card> -->
 
     <el-card class="table-card">
-      <el-row :gutter="10" class="mb8">
+      <!-- <el-row :gutter="10" class="mb8">
         <el-col :span="1.5">
           <el-button type="primary" plain icon="Plus" @click="handleAdd">新增</el-button>
         </el-col>
@@ -27,25 +27,25 @@
           <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleDelete">删除</el-button>
         </el-col>
         <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
-      </el-row>
+      </el-row> -->
 
       <el-table v-loading="loading" :data="templateList" @selection-change="handleSelectionChange" class="modern-table"
         stripe>
         <el-table-column type="selection" width="55" align="center" />
-        <el-table-column label="模板名称" align="center" prop="tempName" />
-        <el-table-column label="通知方式" align="center" prop="noticeMethod">
+        <el-table-column label="模板名称" align="center" prop="templateName" />
+        <!-- <el-table-column label="通知方式" align="center" prop="noticeMethod">
           <template #default="scope">
             <dict-tag :options="sys_notice_method" :value="scope.row.noticeMethod" />
           </template>
-        </el-table-column>
-        <el-table-column label="模板内容" align="center" prop="content" />
-        <el-table-column label="模板类型" align="center" prop="tempType">
+        </el-table-column> -->
+        <el-table-column label="模板内容" align="center" prop="templateContent" />
+        <!-- <el-table-column label="模板类型" align="center" prop="tempType">
           <template #default="scope">
             <dict-tag :options="sys_temp_type" :value="scope.row.tempType" />
           </template>
         </el-table-column>
-        <el-table-column label="备注" align="center" prop="remark" />
-        <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
+        <el-table-column label="备注" align="center" prop="remark" /> -->
+        <!-- <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
           <template #default="scope">
             <el-button link type="primary" icon="Promotion" v-if="scope.row.tempId !== 1"
               @click="handleSendPanel(scope.row)">发送</el-button>
@@ -54,7 +54,7 @@
             <el-button link type="primary" icon="Delete" v-if="scope.row.tempId !== 1"
               @click="handleDelete(scope.row)">删除</el-button>
           </template>
-        </el-table-column>
+        </el-table-column> -->
       </el-table>
 
       <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum"

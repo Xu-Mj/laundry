@@ -387,6 +387,9 @@ const showPaymentDialog = ref(false);
 const showCoupons = ref(true);
 const showScannerDialog = ref(false);
 
+// 添加一个标志来跟踪是否已经手动选择了储值卡
+const hasManualStorageCardSelection = ref(false);
+
 const paymentForm = ref({
     orders: [],
     titles: '',
@@ -444,10 +447,12 @@ const isOrderWithAdjustment = computed(() => {
             props.order.adjust.adjustTotal);
 });
 
-// 支付方式：01 支付宝，02 微信支付，03 美团结转，04 抖音结转，05 现金支付，06 储值卡支付，07 次卡支付 ，09 其他
-// 组合支付：16 支付宝+储值卡，26 微信支付+储值卡， 27 微信支付+次卡，17 支付宝+次卡，18 支付宝+优惠券， 28 微信支付+优惠券
-// 56 现金支付+储值卡，57 现金支付+次卡，58 现金支付+优惠券
-function close() { emit('payment-cancel'); props.toggle(); }
+function close() { 
+    emit('payment-cancel'); 
+    props.toggle(); 
+    // 重置手动选择标志
+    hasManualStorageCardSelection.value = false;
+}
 
 // Helper function to get order amount based on available data
 function getOrderAmount() {
@@ -873,6 +878,9 @@ async function submitPaymentForm(isPickup) {
 
 function changeCoupon(couponType, card) {
     if (couponType == 1) {
+        // 标记用户已经手动选择了储值卡
+        hasManualStorageCardSelection.value = true;
+        
         paymentForm.value.couponId = null;
         paymentForm.value.bonusAmount = 0;
         // 清空次卡选择列表
@@ -902,6 +910,8 @@ function changeCoupon(couponType, card) {
         // 次卡
         // 清空储值卡选择列表
         couponStorageCardId.value = [];
+        // 重置手动选择标志
+        hasManualStorageCardSelection.value = false;
         paymentForm.value.couponId = null;
 
         // 当选择或取消选择分组的次卡时，同步更新所有属于该组的次卡
@@ -979,6 +989,8 @@ function changeCoupon(couponType, card) {
     } else if (couponType == 3) {
         //计算优惠金额
         couponStorageCardId.value = [];
+        // 重置手动选择标志
+        hasManualStorageCardSelection.value = false;
         userCouponList.value.filter(item => item.coupon.couponType === "002").map(item => item.selected = false)
         const coupon = userCouponList.value.find(item => item.ucId == paymentForm.value.couponId);
 
@@ -994,11 +1006,6 @@ function changeCoupon(couponType, card) {
 
             // 使用截断而非四舍五入
             bonusAmount = Math.floor(bonusAmount * 100) / 100;
-
-            // 进一步处理，不保留小数点后的0
-            // if (bonusAmount % 1 === 0) {
-            //     bonusAmount = Math.floor(bonusAmount); // 变为整数
-            // }
 
             if (coupon.coupon.usageLimit != 0 && bonusAmount > coupon.coupon.usageLimit) {
                 bonusAmount = coupon.coupon.usageLimit;
@@ -1145,6 +1152,92 @@ function changeCouponCount() {
     paymentForm.value.paymentAmount = paymentForm.value.totalAmount - (paymentForm.value.bonusAmount ? paymentForm.value.bonusAmount : 0);
 }
 
+// 智能选择储值卡的函数
+function autoSelectStorageCards(isManualTrigger = false) {
+    // 如果用户已经手动选择了储值卡 且 不是手动触发的, 则不进行自动选择
+    if (hasManualStorageCardSelection.value && !isManualTrigger) return;
+    
+    // 如果是手动触发的，则保留用户当前的选择，不重新自动选择卡
+    if (isManualTrigger) {
+        // 仅设置支付方式，计算价格，但不更改卡片选择
+        changeCoupon(1);
+        return;
+    }
+    
+    // 获取所有有效的储值卡
+    const validStorageCards = userCouponList.value.filter(
+        item => item.coupon.couponType === '000' && item.isValid
+    );
+    
+    // 如果没有有效储值卡，直接返回
+    if (validStorageCards.length === 0) return;
+    
+    // 订单总金额
+    const totalAmount = paymentForm.value.totalAmount;
+    
+    // 根据余额从小到大排序储值卡
+    const sortedCards = [...validStorageCards].sort((a, b) => a.availableValue - b.availableValue);
+    
+    // 总可用余额
+    const totalAvailableBalance = sortedCards.reduce((sum, card) => sum + card.availableValue, 0);
+    
+    // 如果总可用余额不足以支付订单金额，选择所有储值卡
+    if (totalAvailableBalance < totalAmount) {
+        couponStorageCardId.value = sortedCards.map(card => card.ucId);
+    } else {
+        // 尝试找到能覆盖订单金额的卡（从小到大选择）
+        let selectedCards = [];
+        let selectedAmount = 0;
+        
+        // 贪心算法：先选小额的卡
+        for (const card of sortedCards) {
+            if (selectedAmount >= totalAmount) break;
+            
+            selectedCards.push(card.ucId);
+            selectedAmount += card.availableValue;
+        }
+        
+        couponStorageCardId.value = selectedCards;
+    }
+    
+    // 仅当自动选择卡片时，不标记为手动选择
+    // 先把标志设为false，然后再触发changeCoupon计算
+    hasManualStorageCardSelection.value = false;
+    // 触发计算逻辑
+    changeCoupon(1);
+}
+
+/* 支付方式变更处理 */
+function handlePaymentMethodChange(value) {
+    // 当选择储值卡支付时，展开储值卡列表
+    if (value === '06') {
+        activeCollapseItem.value = ['storage-card'];
+        
+        // 重置手动选择标志并执行智能选择，除非用户已选择了卡
+        if (!hasManualStorageCardSelection.value) {
+            hasManualStorageCardSelection.value = false;
+            autoSelectStorageCards();
+        } else {
+            // 如果已有手动选择，使用isManualTrigger=true
+            autoSelectStorageCards(true);
+        }
+    }
+    // 当选择次卡支付时，展开次卡列表
+    else if (value === '07') {
+        activeCollapseItem.value = ['time-card'];
+        
+        // 自动选择第一张有效的次卡
+        const validTimeCards = groupedTimeCards.value.filter(card => card.isValid);
+        
+        if (validTimeCards.length > 0) {
+            // 选中第一张有效次卡
+            validTimeCards[0].selected = true;
+            // 触发计算逻辑
+            changeCoupon(2, validTimeCards[0]);
+        }
+    }
+}
+
 // 添加监听，当支付方式变更时，自动展开相应的优惠选项
 watch(() => paymentForm.value.paymentMethod, (newMethod) => {
     if (newMethod === '06') {
@@ -1153,15 +1246,13 @@ watch(() => paymentForm.value.paymentMethod, (newMethod) => {
             activeCollapseItem.value = ['storage-card'];
         }
         
-        // 自动选择第一张有效的储值卡
-        const validStorageCards = userCouponList.value.filter(
-            item => item.coupon.couponType === '000' && item.isValid
-        );
-        
-        if (validStorageCards.length > 0) {
-            couponStorageCardId.value = [validStorageCards[0].ucId];
-            // 触发计算逻辑
-            changeCoupon(1);
+        // 如果没有手动选择，则执行自动选择
+        if (!hasManualStorageCardSelection.value) {
+            hasManualStorageCardSelection.value = false;
+            autoSelectStorageCards();
+        } else {
+            // 如果已有手动选择，使用isManualTrigger=true
+            autoSelectStorageCards(true);
         }
     }
     // 当选择次卡支付时，展开次卡列表
@@ -1177,8 +1268,27 @@ watch(() => paymentForm.value.paymentMethod, (newMethod) => {
             // 触发计算逻辑
             changeCoupon(2, validTimeCards[0]);
         }
+    } else {
+        // 如果切换到其他支付方式，重置手动选择标志
+        hasManualStorageCardSelection.value = false;
     }
 });
+
+// 监听储值卡选择变化
+watch(couponStorageCardId, (newVal, oldVal) => {
+    // 检测是否是用户手动改变了选择
+    if (oldVal.length > 0 || newVal.length > 0) {
+        // 标记为手动选择
+        hasManualStorageCardSelection.value = true;
+        
+        // 如果手动选择了储值卡，自动切换支付方式为储值卡
+        if (newVal.length > 0 && paymentForm.value.paymentMethod !== '06') {
+            // 使用isManualTrigger=true调用自动选择函数，这样不会覆盖用户的选择
+            paymentForm.value.paymentMethod = '06';
+            autoSelectStorageCards(true);
+        }
+    }
+}, { deep: true });
 
 // 初始化多订单表单
 function initMultiOrderForm() {
@@ -1220,39 +1330,6 @@ onMounted(async () => {
     }
 });
 
-/* 支付方式变更处理 */
-function handlePaymentMethodChange(value) {
-    // 当选择储值卡支付时，展开储值卡列表
-    if (value === '06') {
-        activeCollapseItem.value = ['storage-card'];
-        
-        // 自动选择第一张有效的储值卡
-        const validStorageCards = userCouponList.value.filter(
-            item => item.coupon.couponType === '000' && item.isValid
-        );
-        
-        if (validStorageCards.length > 0) {
-            couponStorageCardId.value = [validStorageCards[0].ucId];
-            // 触发计算逻辑
-            changeCoupon(1);
-        }
-    }
-    // 当选择次卡支付时，展开次卡列表
-    else if (value === '07') {
-        activeCollapseItem.value = ['time-card'];
-        
-        // 自动选择第一张有效的次卡
-        const validTimeCards = groupedTimeCards.value.filter(card => card.isValid);
-        
-        if (validTimeCards.length > 0) {
-            // 选中第一张有效次卡
-            validTimeCards[0].selected = true;
-            // 触发计算逻辑
-            changeCoupon(2, validTimeCards[0]);
-        }
-    }
-}
-
 </script>
 
 <style scoped>
@@ -1280,7 +1357,6 @@ function handlePaymentMethodChange(value) {
     display: flex;
     align-items: center;
     background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-8) 100%);
-    /* background: linear-gradient(135deg, var(--el-fill-color-light) 0%, var(--el-fill-color-dark) 100%); */
     border-radius: 12px;
     padding: 1rem;
     box-shadow: var(--el-box-shadow-lighter);

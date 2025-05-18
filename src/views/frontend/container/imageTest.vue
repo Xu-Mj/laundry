@@ -1,4 +1,4 @@
-<template>
+<!-- <template>
     <div class="object-detection">
         <h1>实时物体识别</h1>
         <video ref="videoRef" autoplay playsinline muted></video>
@@ -152,4 +152,4 @@ button {
     margin-top: 20px;
     text-align: left;
 }
-</style>
+</style> -->

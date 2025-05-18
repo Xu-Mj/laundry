@@ -20,12 +20,12 @@
               <el-option v-for="dict in sys_coupon_status" :key="dict.value" :label="dict.label" :value="dict.value" />
             </el-select>
           </el-form-item>
-          <!-- <el-form-item label="删除状态" prop="status">
-        <el-select v-model="queryParams.delFlag" @change="selectChange" placeholder="删除状态" clearable
-          style="width: 120px">
-          <el-option v-for="dict in sys_del_status" :key="dict.value" :label="dict.label" :value="dict.value" />
-        </el-select>
-      </el-form-item> -->
+          <el-form-item label="删除状态" prop="status" size="large">
+            <el-select v-model="queryParams.delFlag" @change="selectChange" placeholder="删除状态" clearable
+              style="width: 120px">
+              <el-option v-for="dict in sys_del_status" :key="dict.value" :label="dict.label" :value="dict.value" />
+            </el-select>
+          </el-form-item>
           <el-form-item>
             <el-button size="large" type="primary" icon="Search" @click="handleQuery">搜索</el-button>
             <el-button size="large" icon="Refresh" @click="resetQuery">重置</el-button>
@@ -102,7 +102,7 @@
         <el-table-column label="限制条件" align="center" prop="usageLimit" v-if="columns[12].visible">
           <template #default="scope">
             {{ scope.row.couponType === '003' ? '最高优惠金额限制' + scope.row.usageLimit + '元' :
-              scope.row.usageLimit == 0 ? '无限制' : scope.row.usageLimit }}
+            scope.row.usageLimit == 0 ? '无限制' : scope.row.usageLimit }}
           </template>
         </el-table-column>
         <el-table-column label="卡券状态" align="center" prop="status" v-if="columns[13].visible">
@@ -112,10 +112,15 @@
         </el-table-column>
         <el-table-column label="卡券描述" align="center" prop="desc" v-if="columns[14].visible" show-overflow-tooltip />
         <el-table-column label="备注" align="center" prop="remark" v-if="columns[15].visible" show-overflow-tooltip />
+        <el-table-column label="删除状态" align="center" prop="delFlag" v-if="columns[16].visible" >
+          <template #default="scope">
+            <dict-tag :options="sys_del_status" :value="scope.row.delFlag" />
+          </template>
+        </el-table-column>
         <el-table-column label="操作" align="center" class-name="small-padding" width="140">
           <template #default="scope">
-            <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)">修改</el-button>
-            <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)">删除</el-button>
+            <el-button link type="primary" icon="Edit" :disabled="scope.row.delFlag == '2'" @click="handleUpdate(scope.row)">修改</el-button>
+            <el-button link type="primary" icon="Delete" v-if="scope.row.delFlag == '0'" @click="handleDelete(scope.row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -383,6 +388,7 @@ const columns = ref([
   { key: 16, label: `卡券状态`, visible: true },
   { key: 17, label: `卡券描述`, visible: true },
   { key: 18, label: `备注`, visible: true },
+  { key: 19, label: `删除状态`, visible: true },
 ]);
 // Save column visibility to local storage
 const saveColumnVisibility = () => {

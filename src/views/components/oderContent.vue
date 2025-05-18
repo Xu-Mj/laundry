@@ -219,11 +219,11 @@
                                         <TakeawayBox />
                                     </el-icon> 取衣
                                 </el-button>
-                                <el-button type="warning" size="small" plain round @click="handleReWash(scope.row)">
+                                <!-- <el-button type="warning" size="small" plain round @click="handleReWash(scope.row)">
                                     <el-icon>
                                         <Refresh />
                                     </el-icon> 复洗
-                                </el-button>
+                                </el-button> -->
                             </div>
                             <span v-else>-</span>
                         </template>
@@ -251,22 +251,23 @@
                 fit="cover" />
         </div>
     </el-dialog> -->
-    
+
     <!-- 展示照片对话框 -->
     <el-dialog title="照片预览" v-model="showPicture" width="600px" :align-center="true" append-to-body
-      class="picture-dialog">
-      <div class="picture-container">
-        <el-empty v-if="pictureList.length === 0" description="暂无照片" />
-        <el-carousel v-else :interval="4000" type="card" height="300px">
-          <el-carousel-item v-for="(item, index) in pictureList" :key="index">
-            <el-image :src="item" fit="contain" :preview-src-list="pictureList" preview-teleported class="carousel-image" />
-          </el-carousel-item>
-        </el-carousel>
-        <div class="picture-grid" v-if="pictureList.length > 0">
-          <el-image v-for="(item, index) in pictureList" :key="index" :src="item" fit="cover"
-            :preview-src-list="pictureList" class="grid-image" />
+        class="picture-dialog">
+        <div class="picture-container">
+            <el-empty v-if="pictureList.length === 0" description="暂无照片" />
+            <el-carousel v-else :interval="4000" type="card" height="300px">
+                <el-carousel-item v-for="(item, index) in pictureList" :key="index">
+                    <el-image :src="item" fit="contain" :preview-src-list="pictureList" preview-teleported
+                        class="carousel-image" />
+                </el-carousel-item>
+            </el-carousel>
+            <div class="picture-grid" v-if="pictureList.length > 0">
+                <el-image v-for="(item, index) in pictureList" :key="index" :src="item" fit="cover"
+                    :preview-src-list="pictureList" class="grid-image" />
+            </div>
         </div>
-      </div>
     </el-dialog>
     <!-- 派送对话框 -->
     <DeliveryDialog v-model:visible="showDeliveryDialog" :user="currentUser" :selected-cloths="selectedCloths"
@@ -277,7 +278,11 @@
         :refresh="() => { selectedCloths = []; getList(); }" :key="showRewashDialog"
         :toggle="() => { showRewashDialog = !showRewashDialog }" />
 
-        <Pay         :visible="showPaymentDialog"         :user="currentUser"         :orders="orders"         :clothsList="clothsList"        :userCouponList="userCouponList"         :couponTypeList="couponTypeList"         :showPickupButton="true"         :refresh="getList"        :key="showPaymentDialog"         :toggle="() => { showPaymentDialog = !showPaymentDialog }"        @payment-success="handlePaymentSuccess"         @success="handlePaymentSuccess"         @pickup="handlePaymentPickup"        @payment-failed="handlePaymentFailed"     />
+    <Pay :visible="showPaymentDialog" :user="currentUser" :orders="orders" :clothsList="clothsList"
+        :userCouponList="userCouponList" :couponTypeList="couponTypeList" :showPickupButton="true" :refresh="getList"
+        :key="showPaymentDialog" :toggle="() => { showPaymentDialog = !showPaymentDialog }"
+        @payment-success="handlePaymentSuccess" @success="handlePaymentSuccess" @pickup="handlePaymentPickup"
+        @payment-failed="handlePaymentFailed" />
 
 </template>
 
@@ -577,7 +582,7 @@ function handleClothSelectionChange(selectedItems, row) {
 async function initList() {
     // 使用store中的tags缓存
     const tagsStore = useTagsStore();
-    
+
     // 获取颜色列表
     if (colorList.value.length === 0) {
         colorList.value = tagsStore.getTagsByOrder('003');
@@ -798,9 +803,9 @@ async function reprintReceipt(order) {
         } else {
             paymentMethod = '未付款';
         }
-        
+
         console.log('orderContent.vue loaded:', paymentMethod);
-        await printReceipt({ ...order, paymentMethod  });
+        await printReceipt({ ...order, paymentMethod });
         proxy.notify.success('小票补打成功');
     } catch (e) {
         proxy.notify.error('小票补打失败');
@@ -955,33 +960,33 @@ async function reprintReceipt(order) {
 
 /* 照片对话框 */
 .picture-container {
-  padding: 10px 0;
+    padding: 10px 0;
 }
 
 .carousel-image {
-  width: 100%;
-  height: 100%;
-  border-radius: 4px;
+    width: 100%;
+    height: 100%;
+    border-radius: 4px;
 }
 
 .picture-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-  gap: 10px;
-  margin-top: 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 10px;
+    margin-top: 20px;
 }
 
 .grid-image {
-  width: 100%;
-  height: 100px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.3s ease;
+    width: 100%;
+    height: 100px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
 }
 
 .grid-image:hover {
-  transform: scale(1.05);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .service-type {

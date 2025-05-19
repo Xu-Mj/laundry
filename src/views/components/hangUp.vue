@@ -266,12 +266,12 @@ function getClothInfo() {
             hangupBtnDisabled.value = false;
             // 找到了，确认上挂获取焦点
             hangUpBtnRef.value.$el.focus();
-            
+
             // 安全地处理可能为null的字段
-            currentCloth.value.flawListArr = currentCloth.value.clothingFlaw ? 
+            currentCloth.value.flawListArr = currentCloth.value.clothingFlaw ?
                 currentCloth.value.clothingFlaw.split(",") : [];
-                
-            currentCloth.value.estimateArr = currentCloth.value.estimate ? 
+
+            currentCloth.value.estimateArr = currentCloth.value.estimate ?
                 currentCloth.value.estimate.split(",") : [];
         }
     });
@@ -292,49 +292,57 @@ async function initList() {
 function hangUp() {
     if (currentCloth.value) {
         //校验上挂表单内容
-        proxy.$refs["hangUpRef"].validate(valid => {
+        proxy.$refs["hangUpRef"].validate(async valid => {
             if (valid) {
                 console.log(currentCloth.value)
                 console.log(hangForm.value)
-                hangup(hangForm.value).then(res => {
-                    proxy.notify.success("上挂成功");
-                    open.value = false;
+                proxy.$modal.loading("上挂中...");
+                await hangup(hangForm.value).then(res => {
+                    proxy.notify.success("上挂成功"); open.value = false;
                     props.taggle();
                 }).catch(res => {
-                    // 处理特定的错误类型
-                    if (res.kind === 'SmsNotSubscribed') {
-                        // 未订阅短信服务的处理
-                        proxy.$modal.confirm(
-                            '您尚未订阅短信服务，无法发送短信通知给客户。是否前往订阅？',
-                            '未订阅短信服务',
-                            {
-                                confirmButtonText: '去订阅',
-                                cancelButtonText: '取消',
-                                type: 'warning'
-                            }
-                        ).then(() => {
-                            // 跳转到短信订阅页面
-                            proxy.$router.push('/profile?tab=sms');
-                        }).catch(() => {});
-                    } else if (res.kind === 'SmsRemainShort') {
-                        // 短信余量不足的处理
-                        proxy.$modal.confirm(
-                            '短信余量不足，无法发送短信通知给客户。是否前往充值？',
-                            '短信余量不足',
-                            {
-                                confirmButtonText: '去充值',
-                                cancelButtonText: '取消',
-                                type: 'warning'
-                            }
-                        ).then(() => {
-                            // 跳转到短信充值页面
-                            proxy.$router.push('/profile?tab=sms');
-                        }).catch(() => {});
-                    } else {
-                        // 其他错误的处理
-                        proxy.notify.error(res.message || res.msg || '操作失败');
+                    // proxy.notify.error(res.msg);
+                    console.log(res);
+                    if (res.kind && res.kind == 'SmsNotSubscribed') {
+                        proxy.notify.success("上挂成功");
+                        open.value = false;
+                        props.taggle();
                     }
-                })
+                });
+                proxy.$modal.closeLoading();
+                // // 处理特定的错误类型
+                // if (res.kind === 'SmsNotSubscribed') {
+                //     // 未订阅短信服务的处理
+                //     proxy.$modal.confirm(
+                //         '您尚未订阅短信服务，无法发送短信通知给客户。是否前往订阅？',
+                //         '未订阅短信服务',
+                //         {
+                //             confirmButtonText: '去订阅',
+                //             cancelButtonText: '取消',
+                //             type: 'warning'
+                //         }
+                //     ).then(() => {
+                //         // 跳转到短信订阅页面
+                //         proxy.$router.push('/profile?tab=sms');
+                //     }).catch(() => {});
+                // } else if (res.kind === 'SmsRemainShort') {
+                //     // 短信余量不足的处理
+                //     proxy.$modal.confirm(
+                //         '短信余量不足，无法发送短信通知给客户。是否前往充值？',
+                //         '短信余量不足',
+                //         {
+                //             confirmButtonText: '去充值',
+                //             cancelButtonText: '取消',
+                //             type: 'warning'
+                //         }
+                //     ).then(() => {
+                //         // 跳转到短信充值页面
+                //         proxy.$router.push('/profile?tab=sms');
+                //     }).catch(() => {});
+                // } else {
+                //     // 其他错误的处理
+                //     proxy.notify.error('操作失败');
+                // }
             }
         });
     }

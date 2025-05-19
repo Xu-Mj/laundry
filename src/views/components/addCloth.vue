@@ -1127,6 +1127,8 @@ function createCloth() {
     data.categoryId = form.value.categoryId;
     data.styleId = form.value.styleId;
     data.title = clothNameInput.value;
+    data.orderNum = 0;
+    data.clothingDegree = 0;
 
     createClothingCreateOrder(data).then(async response => {
         proxy.notify.success("新增衣物成功");
@@ -1696,5 +1698,110 @@ onMounted(async () => {
     display: flex;
     justify-content: center;
     align-items: center;
+}
+
+/* 分类提示弹窗样式 */
+.prompt-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+    padding: 2rem 0;
+    background-color: var(--el-bg-color);
+}
+
+.prompt-icon {
+    font-size: 2.5rem;
+    color: var(--el-color-warning);
+    animation: pulse 2s infinite;
+}
+
+.prompt-content span {
+    font-size: 1.1rem;
+    color: var(--el-text-color-primary);
+    line-height: 1.5;
+}
+
+.dialog-footer {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    padding: 1.5rem 0;
+    background-color: var(--el-bg-color);
+}
+
+.dialog-footer .el-button {
+    min-width: 140px;
+    height: 40px;
+    font-size: 1rem;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.dialog-footer .el-button--default {
+    background-color: var(--el-fill-color-light);
+    border-color: var(--el-border-color);
+    color: var(--el-text-color-regular);
+}
+
+.dialog-footer .el-button--default:hover {
+    background-color: var(--el-fill-color);
+    border-color: var(--el-border-color-darker);
+    color: var(--el-text-color-primary);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.dialog-footer .el-button--primary {
+    background-color: var(--el-color-primary);
+    border-color: var(--el-color-primary);
+    color: white;
+}
+
+.dialog-footer .el-button--primary:hover {
+    background-color: var(--el-color-primary-light-3);
+    border-color: var(--el-color-primary-light-3);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(64, 158, 255, 0.2);
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* 自定义弹窗样式 */
+:deep(.el-dialog) {
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+}
+
+:deep(.el-dialog__header) {
+    margin: 0;
+    padding: 1.5rem;
+    background-color: var(--el-bg-color);
+}
+
+:deep(.el-dialog__title) {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+}
+
+:deep(.el-dialog__body) {
+    padding: 0;
+}
+
+:deep(.el-dialog__footer) {
+    padding: 0;
+    background-color: var(--el-bg-color);
 }
 </style>

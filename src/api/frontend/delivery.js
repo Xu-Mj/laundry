@@ -7,17 +7,17 @@ export function delivery(data) {
   
   // 完成派送
   export function completeDelivery(deliveryId) {
-    return invoke('complete_delivery', { delivery_id: deliveryId });
+    return invoke('complete_delivery', { deliveryId });
   }
   
   // 取消派送
   export function cancelDelivery(deliveryId) {
-    return invoke('cancel_delivery', { delivery_id: deliveryId });
+    return invoke('cancel_delivery', { deliveryId });
   }
   
   // 获取派送详情
   export function getDeliveryById(deliveryId) {
-    return invoke('get_delivery_by_id', { delivery_id: deliveryId });
+    return invoke('get_delivery_by_id', { deliveryId });
   }
   
   // 获取派送列表
@@ -28,5 +28,5 @@ export function delivery(data) {
   
   // 获取可派送的衣物列表
   export function listDeliveryEligibleClothes(userId) {
-    return invoke('list_delivery_eligible_clothes', { user_id: userId });
+    return invoke('list_delivery_eligible_clothes', { userId });
   }

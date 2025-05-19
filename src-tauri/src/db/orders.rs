@@ -12,7 +12,6 @@ use sqlx::{
 use crate::db::adjust_price::OrderClothAdjust;
 use crate::db::cloth_price::ClothPrice;
 use crate::db::configs::Config;
-use crate::db::expenditure::Expenditure;
 use crate::db::order_clothes::OrderCloth;
 use crate::db::payments::Payment;
 use crate::db::user::User;
@@ -45,11 +44,13 @@ const SUB_CARD_NUMBER: &str = "004";
 const SERVICE_TYPE_EMERGENCY: &str = "001";
 const SERVICE_TYPE_SINGLE_WASH: &str = "002";
 
+const PAYMENT_METHOD_TIME_BASED: &str = "07";
 const PAYMENT_METHOD_MEITUAN: &str = "03";
 const PAYMENT_METHOD_DOUYIN: &str = "04";
-const PAYMENT_METHOD_COMBINATION_ALIPAY_COUPON: &str = "18";
-const PAYMENT_METHOD_COMBINATION_WECHAT_COUPON: &str = "28";
-const PAYMENT_METHOD_COMBINATION_CASH_COUPON: &str = "58";
+const PAYMENT_METHOD_DOCOUPON: &str = "06";
+const PAYMENT_METHOD_COMBINATION_ALIPAY_COUPON: &str = "16";
+const PAYMENT_METHOD_COMBINATION_WECHAT_COUPON: &str = "26";
+const PAYMENT_METHOD_COMBINATION_CASH_COUPON: &str = "56";
 
 const DEFAULT_DESIRE_DAYS: i64 = 7;
 
@@ -161,6 +162,7 @@ impl FromRow<'_, SqliteRow> for Order {
             create_time: row.try_get("p_create_time").unwrap_or_default(),
             update_time: row.try_get("p_update_time").unwrap_or_default(),
             store_id: row.try_get("p_store_id").unwrap_or_default(),
+            refund_reason: row.try_get("refund_reason").unwrap_or_default(),
         };
 
         let order_id = row.try_get("order_id").unwrap_or_default();
@@ -239,6 +241,7 @@ const SQL: &str = "SELECT
  p.create_time as p_create_time,
  p.update_time as p_update_time,
  p.store_id as p_store_id,
+ p.refund_reason,
  u.nick_name,
  u.phonenumber,
  a.adjust_id,
@@ -271,6 +274,7 @@ const SQL_BY_CLOTHING_NAME: &str = "SELECT
     p.create_time as p_create_time,
     p.update_time as p_update_time,
     p.store_id as p_store_id,
+    p.refund_reason,
     u.nick_name,
     u.phonenumber,
     a.adjust_id,
@@ -914,6 +918,13 @@ impl Order {
                 return Err(Error::bad_request("卡券信息不正确，存在未入库的卡券"));
             }
             is_time_based = true;
+            payment.uc_id = Some(
+                ids.iter()
+                    .map(|&id| id.to_string())
+                    .collect::<Vec<_>>()
+                    .join(","),
+            );
+            payment.payment_amount_vip = Some((ids.len()) as f64);
             coupons
         } else {
             vec![]
@@ -1217,7 +1228,7 @@ impl Order {
                     storage_card.available_value = Some(new_balance.to_f64().unwrap_or_default());
                     payment.payment_method = Some("06".to_string());
                     // 储值卡类型不计算卡券优惠金额
-                    payment.payment_amount_vip = None;
+                    // payment.payment_amount_vip = None;
                     // update user coupon
                     if !storage_card.update(tr).await? {
                         return Err(Error::internal("update user coupon failed"));
@@ -1227,7 +1238,7 @@ impl Order {
                     // 使用储值卡支付部分金额
                     total_amount_decimal -= available_value_decimal;
                     storage_card.available_value = Some(0.0);
-                    storage_card.uc_count = Some(0);
+                    // storage_card.uc_count = Some(0);
                     // update user coupon
                     if !storage_card.update(tr).await? {
                         return Err(Error::internal("update user coupon failed"));
@@ -1466,10 +1477,13 @@ impl Order {
             || Some(PAYMENT_METHOD_COMBINATION_WECHAT_COUPON) == payment_method.as_deref()
         {
             order.payment_bonus_count = Some(payment.payment_amount_vip.unwrap_or_default());
-            order.diff_price = Some(payment.payment_amount.unwrap_or_default());
+            order.diff_price = Some(payment.payment_amount_mv.unwrap_or_default());
         } else if Some(PAYMENT_METHOD_MEITUAN) == payment_method.as_deref()
             || Some(PAYMENT_METHOD_DOUYIN) == payment_method.as_deref()
         {
+        } else if Some(PAYMENT_METHOD_DOCOUPON) == payment_method.as_deref() {
+            order.payment_bonus_count = Some(payment.payment_amount_vip.unwrap_or_default());
+            order.diff_price = Some(0.0)
         } else {
             order.payment_bonus_count = Some(payment.payment_amount_vip.unwrap_or_default());
             order.diff_price = Some(payment.payment_amount.unwrap_or_default());
@@ -1619,11 +1633,13 @@ impl Order {
         Ok(list)
     }
 
-    pub async fn refund(pool: &Pool<Sqlite>, store_id: i64, exp: Expenditure) -> Result<()> {
-        if exp.order_id.is_none() {
-            return Err(Error::bad_request("order_id is required"));
-        }
-        let mut order = Order::get_by_id(pool, store_id, exp.order_id.unwrap())
+    pub async fn refund(
+        pool: &Pool<Sqlite>,
+        store_id: i64,
+        order_id: i64,
+        refund_reason: String,
+    ) -> Result<()> {
+        let mut order = Order::get_by_id(pool, store_id, order_id)
             .await?
             .ok_or(Error::not_found("order not found"))?;
 
@@ -1663,10 +1679,8 @@ impl Order {
         }
 
         let mut payment = payment.unwrap();
-        // generate expenditure recorde
-        // if payment.payment_amount_mv.is_some() && payment.payment_amount_mv.unwrap() > 0. {
-        //     exp.create(&mut tx).await?;
-        // }
+        // Add refund reason to payment
+        payment.refund_reason = Some(refund_reason);
 
         // check if user used coupon
         let uc_id = &payment.uc_id;
@@ -1706,15 +1720,96 @@ impl Order {
             return Err(Error::internal("卡券信息不正确，无法退还"));
         }
 
-        // Check if there are storage card type coupons
+        // Query clothes to determine how many times were used
+        let order_clothes = OrderCloth::get_by_order_id(pool, order_id).await?;
+        let cloth_count = order_clothes.len();
+        tracing::debug!("[退款] 订单包含的衣物数量: {}", cloth_count);
+        // Check if there are storage card type coupons or time-based cards involved
         let is_type_000 = user_coupons.iter().any(|coupon| {
             coupon.coupon.is_some()
                 && coupon.coupon.as_ref().unwrap().coupon_type.as_deref()
                     == Some(STORAGE_CARD_NUMBER)
         });
-
-        if is_type_000 {
-            // Sort storage cards by available value (ascending)
+        // Check if this is a time-based payment by looking at payment_amount_vip value
+        // and checking if it's a whole number matching cloth count
+        let is_time_based = payment.payment_method.as_deref() == Some(PAYMENT_METHOD_TIME_BASED);
+        tracing::debug!(
+            "[退款] 支付类型: 储值卡: {}, 次卡: {}",
+            is_type_000,
+            is_time_based
+        );
+        if is_time_based {
+            // Handle time-based card refunds
+            tracing::debug!("[退款] 处理次卡退款");
+            // The payment_amount_vip field should equal the total number of times used
+            let total_times_used = payment.payment_amount_vip.unwrap_or(0.0) as i32;
+            let mut remaining_times = total_times_used;
+            tracing::debug!("[退款] 需要退还的总次数: {}", remaining_times);
+            if total_times_used <= 0 {
+                tracing::debug!("[退款] 没有次数需要退还");
+                tx.commit().await?;
+                return Ok(());
+            }
+            // Sort user coupons by available value (ascending)
+            // This is the reverse order of how they were likely consumed
+            let mut sorted_coupons = user_coupons.clone();
+            sorted_coupons.sort_by(|a, b| {
+                a.available_value
+                    .partial_cmp(&b.available_value)
+                    .unwrap_or(Ordering::Equal)
+            });
+            for user_coupon in sorted_coupons.iter_mut() {
+                if remaining_times <= 0 {
+                    break;
+                }
+                if let Some(coupon) = &user_coupon.coupon {
+                    // Get maximum capacity of this coupon
+                    let max_capacity = user_coupon.uc_count.unwrap_or(0)
+                        * coupon.usage_value.unwrap_or(0.0) as i32;
+                    // Current available uses
+                    let current_available = user_coupon.available_value.unwrap_or(0.0) as i32;
+                    // Calculate how many uses were consumed from this coupon
+                    let used_from_this_coupon = if max_capacity > 0 {
+                        // If max_capacity is defined, calculate based on that
+                        max_capacity - current_available
+                    } else {
+                        // Otherwise assume all remaining times came from this coupon
+                        remaining_times
+                    };
+                    tracing::debug!(
+                        "[退款] 处理次卡 ID: {}，当前剩余次数: {}，最大容量: {}，已使用次数: {}",
+                        user_coupon.uc_id.unwrap_or_default(),
+                        current_available,
+                        max_capacity,
+                        used_from_this_coupon
+                    );
+                    // Determine how many times to refund to this coupon
+                    let times_to_refund = std::cmp::min(remaining_times, used_from_this_coupon);
+                    if times_to_refund > 0 {
+                        // Refund times to this coupon
+                        let new_available = current_available + times_to_refund;
+                        user_coupon.available_value = Some(new_available as f64);
+                        tracing::debug!(
+                            "[退款] 退还给次卡 ID: {} 的次数: {}，新的剩余次数: {}",
+                            user_coupon.uc_id.unwrap_or_default(),
+                            times_to_refund,
+                            new_available
+                        );
+                        // Update the coupon in the database
+                        if !user_coupon.update(&mut tx).await? {
+                            return Err(Error::internal("退还次卡失败"));
+                        }
+                        // Reduce remaining times
+                        remaining_times -= times_to_refund;
+                    }
+                }
+            }
+            // Check if all times were refunded
+            if remaining_times > 0 {
+                tracing::warn!("[退款] 警告：还有 {} 次未能退还给任何次卡", remaining_times);
+            }
+        } else if is_type_000 {
+            // Sort storage cards by available value (descending) - reverse of payment order
             let mut storage_cards: Vec<_> = user_coupons
                 .iter_mut()
                 .filter(|coupon| {
@@ -1723,21 +1818,21 @@ impl Order {
                             == Some(STORAGE_CARD_NUMBER)
                 })
                 .collect();
-
+            tracing::debug!("[退款] 找到储值卡数量: {}", storage_cards.len());
             storage_cards.sort_by(|a, b| {
-                a.available_value
-                    .partial_cmp(&b.available_value)
+                b.available_value
+                    .partial_cmp(&a.available_value)
                     .unwrap_or(Ordering::Equal)
             });
-
             // Total amount used in this order
             let total_amount = payment.payment_amount_vip;
             if total_amount.is_none() {
+                tracing::debug!("[退款] 支付金额为空，无需退款");
                 tx.commit().await?;
                 return Ok(());
             }
             let mut total_amount = Decimal::from_f64(total_amount.unwrap()).unwrap_or_default();
-
+            tracing::debug!("[退款] 需要退款的总金额: {}", total_amount);
             for user_coupon in storage_cards {
                 if let Some(coupon) = &user_coupon.coupon {
                     // 使用Decimal进行所有计算，避免浮点精度问题
@@ -1748,28 +1843,39 @@ impl Order {
                         Decimal::from_f64(user_coupon.uc_count.unwrap_or_default() as f64)
                             .unwrap_or_default();
                     let old_value = usage_value * uc_count;
-
                     // 当前可用余额
                     let available_value =
                         Decimal::from_f64(user_coupon.available_value.unwrap_or_default())
                             .unwrap_or_default();
-
                     // Amount used in this order for this storage card
                     let used_value = old_value - available_value;
-
+                    tracing::debug!(
+                        "[退款] 处理储值卡 ID: {}，原始面值: {}，原始数量: {}，总价值: {}，当前余额: {}，已使用金额: {}",
+                        user_coupon.uc_id.unwrap_or_default(),
+                        usage_value,
+                        uc_count,
+                        old_value,
+                        available_value,
+                        used_value
+                    );
                     if total_amount > used_value {
                         // Refund the full value
                         user_coupon.available_value = Some(old_value.to_f64().unwrap_or_default());
+                        tracing::debug!(
+                            "[退款] 全额退款，新余额: {}，剩余需退款金额: {}",
+                            old_value,
+                            total_amount - used_value
+                        );
                         if !user_coupon.update(&mut tx).await? {
                             return Err(Error::internal("退还储值卡失败"));
                         }
-
                         total_amount -= used_value;
                     } else {
                         // Refund only part of the value
                         let new_available = available_value + total_amount;
                         user_coupon.available_value =
                             Some(new_available.to_f64().unwrap_or_default());
+                        tracing::debug!("[退款] 部分退款，新余额: {}，退款完成", new_available);
                         if !user_coupon.update(&mut tx).await? {
                             return Err(Error::internal("退还储值卡失败"));
                         }
@@ -1780,7 +1886,37 @@ impl Order {
         } else {
             if let Some(user_coupon) = user_coupons.first_mut() {
                 // Refund usage count for non-storage card coupons
-                user_coupon.uc_count = user_coupon.uc_count.map(|c| c + 1);
+                tracing::debug!(
+                    "[退款] 处理优惠券退款 - 优惠券ID: {}, 当前使用次数: {}, 优惠券类型: {}",
+                    user_coupon.uc_id.unwrap_or_default(),
+                    user_coupon.uc_count.unwrap_or_default(),
+                    user_coupon.coupon.as_ref().map_or("未知", |c| c.coupon_type.as_deref().unwrap_or("未知"))
+                );
+
+                if let Some(coupon) = &user_coupon.coupon {
+                    match coupon.coupon_type.as_deref() {
+                        Some(OFF_CARD_NUMBER) => {
+                            tracing::debug!("[退款] 处理折扣券退款");
+                            // 折扣券只需要恢复使用次数
+                            user_coupon.uc_count = user_coupon.uc_count.map(|c| c + 1);
+                        },
+                        Some(SUB_CARD_NUMBER) => {
+                            tracing::debug!("[退款] 处理满减券退款");
+                            // 满减券只需要恢复使用次数
+                            user_coupon.uc_count = user_coupon.uc_count.map(|c| c + 1);
+                        },
+                        _ => {
+                            tracing::warn!("[退款] 未知的优惠券类型: {}", coupon.coupon_type.as_deref().unwrap_or("未知"));
+                        }
+                    }
+                }
+
+                tracing::debug!(
+                    "[退款] 优惠券退款后 - 优惠券ID: {}, 新的使用次数: {}",
+                    user_coupon.uc_id.unwrap_or_default(),
+                    user_coupon.uc_count.unwrap_or_default()
+                );
+
                 if !user_coupon.update(&mut tx).await? {
                     return Err(Error::internal("退还优惠券失败"));
                 }
@@ -1972,9 +2108,13 @@ pub async fn get_refund_info(
 }
 
 #[tauri::command]
-pub async fn refund_order(state: tauri::State<'_, AppState>, exp: Expenditure) -> Result<()> {
+pub async fn refund_order(
+    state: tauri::State<'_, AppState>,
+    order_id: i64,
+    refund_reason: String,
+) -> Result<()> {
     let store_id = utils::get_user_id(&state).await?;
-    Order::refund(&state.pool, store_id, exp).await
+    Order::refund(&state.pool, store_id, order_id, refund_reason).await
 }
 
 #[tauri::command]

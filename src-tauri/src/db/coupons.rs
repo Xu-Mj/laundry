@@ -466,7 +466,7 @@ impl Coupon {
         info: &CouponIdCount,
     ) -> Result<i64> {
         let now = utils::get_now();
-        let user_coupon = UserCoupon {
+        let mut user_coupon = UserCoupon {
             uc_id: None,
             store_id: coupon.store_id,
             user_id: Some(req.user_id),
@@ -481,6 +481,11 @@ impl Coupon {
             remark: coupon.remark.clone(),
             coupon: None,
         };
+
+        // change available_value by coupon_type
+        if coupon.coupon_type == Some("003".to_string()) || coupon.coupon_type == Some("004".to_string()) {
+            user_coupon.available_value = coupon.usage_value;
+        }
 
         user_coupon.validate()?;
 

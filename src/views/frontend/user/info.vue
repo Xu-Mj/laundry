@@ -210,19 +210,24 @@
         </el-dialog>
 
         <!-- 卡券历史弹窗 -->
-        <el-dialog v-model="showCouponHistory" title="历史卡券" width="780px" align-center custom-class="coupon-history-dialog" :show-close="true">
+        <el-dialog v-model="showCouponHistory" title="历史卡券" width="780px" align-center
+            custom-class="coupon-history-dialog" :show-close="true">
             <div v-if="historyCoupons && historyCoupons.length > 0" class="coupon-history-container">
-                <div v-for="(item, index) in historyCoupons" :key="index" class="coupon-history-item" 
-                    :class="[`coupon-type-${item.coupon.couponType}`, item.ucCount > 0 ? 'coupon-active' : 'coupon-inactive']">
+                <div v-for="(item, index) in historyCoupons" :key="index" class="coupon-history-item"
+                    :class="[`coupon-type-${item.coupon.couponType}`, getActiveClass(item)]">
                     <div class="coupon-left">
                         <div class="coupon-value">
                             <template v-if="item.coupon.couponType === '000'">
                                 <span class="amount">{{ item.availableValue || 0 }}</span>
                                 <span class="unit">元</span>
                             </template>
-                            <template v-else-if="item.coupon.couponType === '001'">
-                                <span class="amount">{{ item.coupon.discount }}</span>
+                            <template v-else-if="item.coupon.couponType === '003'">
+                                <span class="amount">{{ item.coupon.usageValue / 10 }}</span>
                                 <span class="unit">折</span>
+                            </template>
+                            <template v-else-if="item.coupon.couponType === '002'">
+                                <span class="amount">{{ item.availableValue }}</span>
+                                <span class="unit">次</span>
                             </template>
                             <template v-else>
                                 <span class="amount">{{ item.ucCount }}</span>
@@ -238,21 +243,27 @@
                         <div class="coupon-desc" v-if="item.coupon.couponDesc">{{ item.coupon.couponDesc }}</div>
                         <div class="coupon-meta">
                             <div class="coupon-meta-item">
-                                <el-icon><Calendar /></el-icon>
+                                <el-icon>
+                                    <Calendar />
+                                </el-icon>
                                 <span>有效期至: {{ item.coupon.validTo ? formatTime(item.coupon.validTo) : '永久有效' }}</span>
                             </div>
                             <div class="coupon-meta-item" v-if="item.coupon.couponType === '000'">
-                                <el-icon><Wallet /></el-icon>
+                                <el-icon>
+                                    <Wallet />
+                                </el-icon>
                                 <span>可用余额: {{ item.availableValue || 0 }}元</span>
                             </div>
                             <div class="coupon-meta-item" v-else>
-                                <el-icon><Ticket /></el-icon>
+                                <el-icon>
+                                    <Ticket />
+                                </el-icon>
                                 <span>剩余数量: {{ item.ucCount }}张</span>
                             </div>
                         </div>
                         <div class="coupon-status">
-                            <el-tag size="small" :type="item.availableValue > 0 ? 'success' : 'info'" effect="light">
-                                {{ item.availableValue > 0 ? '可用' : '已用完' }}
+                            <el-tag size="small" :type="getAvailable(item) ? 'success' : 'info'" effect="light">
+                                {{ getAvailable(item) ? '可用' : '已用完' }}
                             </el-tag>
                         </div>
                     </div>
@@ -289,13 +300,25 @@ const showCouponHistory = ref(false);
 const historyCoupons = ref([]);
 const couponTypeList = ref(new Set());
 
+function getActiveClass(item) {
+    if (item.coupon.couponType === '000' || item.coupon.couponType === '002') {
+        return item.availableValue > 0 ? 'coupon-active' : 'coupon-inactive';
+    }
+    return item.ucCount > 0 ? 'coupon-active' : 'coupon-inactive';
+}
+
+function getAvailable(item) {
+    if (item.coupon.couponType === '000' || item.coupon.couponType === '002') {
+        return item.availableValue > 0;
+    }
+    return item.ucCount > 0;
+}
 // 获取卡券类型名称
 const getCouponTypeName = (type) => {
     const typeMap = {
         '000': '储值卡',
-        '001': '折扣券',
         '002': '次卡',
-        '003': '代金券',
+        '003': '折扣券',
         '004': '满减券'
     };
     return typeMap[type] || '未知类型';
@@ -317,6 +340,7 @@ const getCouponTypeTag = (type) => {
 const fetchHistoryCoupons = () => {
     if (props.user && props.user.userId) {
         listUserCouponNoPage({ userId: props.user.userId }).then(response => {
+            console.log(response);
             historyCoupons.value = response || [];
         });
     }
@@ -389,7 +413,7 @@ function handleCouponBought() {
 
 // 获取会员优惠券列表
 if (props.user && props.user.userId) {
-    listUserCouponWithValidTime(props.user.userId ).then(response => {
+    listUserCouponWithValidTime(props.user.userId).then(response => {
         // 合并相同卡券数量，如果couponId相同，那么计算该couponId的ucCount总和
         const mergedCoupons = response.reduce((acc, cur) => {
             const existing = acc.find(item => item.coupon.couponId === cur.coupon.couponId && item.coupon.couponType !== '000');
@@ -590,16 +614,26 @@ const storageCardBalance = computed(() => {
 /* 卡券历史弹窗样式 */
 :deep(.coupon-history-dialog) {
     border-radius: 8px;
+    max-height: 80vh;
+    /* Limit dialog height */
+    display: flex;
+    flex-direction: column;
 }
 
 :deep(.coupon-history-dialog .el-dialog__header) {
     padding: 20px;
     margin-right: 0;
     border-bottom: 1px solid var(--el-border-color-light);
+    flex-shrink: 0;
+    /* Prevent header from shrinking */
 }
 
 :deep(.coupon-history-dialog .el-dialog__body) {
     padding: 20px;
+    overflow: hidden;
+    /* Hide overflow from dialog body */
+    flex: 1;
+    /* Let body take available space */
 }
 
 .coupon-history-container {
@@ -609,6 +643,7 @@ const storageCardBalance = computed(() => {
     max-height: 60vh;
     overflow-y: auto;
     padding-right: 5px;
+    padding-bottom: 10px;
 }
 
 .coupon-history-item {
@@ -618,6 +653,7 @@ const storageCardBalance = computed(() => {
     box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
     transition: all 0.3s;
     position: relative;
+    min-height: 120px;
 }
 
 .coupon-history-item:hover {
@@ -633,6 +669,7 @@ const storageCardBalance = computed(() => {
     justify-content: center;
     align-items: center;
     color: #fff;
+    flex-shrink: 0;
 }
 
 .coupon-right {
@@ -641,6 +678,9 @@ const storageCardBalance = computed(() => {
     position: relative;
     background-color: #fff;
     border-left: 1px dashed #e8e8e8;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 .coupon-right:before {
@@ -690,6 +730,7 @@ const storageCardBalance = computed(() => {
     font-weight: bold;
     margin-bottom: 5px;
     color: var(--el-text-color-primary);
+    line-height: 1.4;
 }
 
 .coupon-desc {
@@ -697,6 +738,8 @@ const storageCardBalance = computed(() => {
     color: var(--el-text-color-secondary);
     margin-bottom: 10px;
     line-height: 1.4;
+    max-height: 50px;
+    overflow-y: auto;
 }
 
 .coupon-meta {
@@ -704,6 +747,7 @@ const storageCardBalance = computed(() => {
     flex-wrap: wrap;
     gap: 10px;
     margin-top: 10px;
+    margin-bottom: 5px;
 }
 
 .coupon-meta-item {
@@ -751,6 +795,7 @@ const storageCardBalance = computed(() => {
 }
 
 .coupon-inactive .coupon-left {
-    background-color: #909399 !important; /* Override any type-specific background color */
+    background-color: #909399 !important;
+    /* Override any type-specific background color */
 }
 </style>

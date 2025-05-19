@@ -2,10 +2,6 @@
     <el-dialog v-model="dialogVisible" title="选择预定义分类" width="60%" align-center :close-on-click-modal="false"
         class="category-dialog" @close="handleClose">
         <div class="predefined-categories">
-            <div class="category-header">
-                <span class="header-title">分类名称</span>
-                <span class="header-styles">包含样式</span>
-            </div>
             <el-checkbox-group v-model="selectedCategories" class="category-group">
                 <el-checkbox v-for="category in predefinedCategories" :key="category.categoryName" :label="category"
                     class="category-checkbox">
@@ -56,7 +52,7 @@ const { proxy } = getCurrentInstance();
 const predefinedCategories = ref([
     {
         categoryName: '上衣',
-        styles: ['T恤', '衬衫', '卫衣', '毛衣', '外套', '羽绒服', '西装', '马甲']
+        styles: ['T恤', '衬衫', '卫衣', '毛衣', '外套', '羽绒服', '西装']
     },
     {
         categoryName: '下装',
@@ -143,83 +139,87 @@ function handleClose() {
     :deep(.el-dialog__body) {
         padding: 0;
     }
+
+    :deep(.el-dialog__header) {
+        margin: 0;
+        padding: 24px 32px;
+        border-bottom: 1px solid var(--el-border-color-lighter);
+    }
 }
 
 .predefined-categories {
-    max-height: 500px;
-    overflow-y: auto;
-    padding: 20px;
-    background-color: var(--el-bg-color-page);
+    padding: 32px;
+    background-color: var(--el-bg-color);
 }
 
 .category-header {
     display: flex;
-    padding: 12px 16px;
-    background-color: var(--el-bg-color);
-    border-bottom: 1px solid var(--el-border-color-light);
-    font-weight: bold;
-    color: var(--el-text-color-primary);
-    position: sticky;
-    top: 0;
-    z-index: 1;
+    padding: 0 0 16px 0;
+    margin-bottom: 24px;
+    border-bottom: 1px solid var(--el-border-color-lighter);
+    font-weight: 500;
+    color: var(--el-text-color-regular);
 }
 
 .header-title {
-    width: 120px;
+    width: 160px;
+    font-size: 15px;
 }
 
 .header-styles {
     flex: 1;
+    font-size: 15px;
 }
 
 .category-group {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding: 12px 0;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 5rem;
+    width: 100%;
 }
 
 .category-checkbox {
-    display: block;
-    margin: 0;
-    padding: 0;
-    border: none;
-    transition: all 0.3s;
+    transition: all 0.2s ease;
+    width: 100%;
 }
 
 .category-checkbox:hover {
-    background-color: var(--el-fill-color-light);
+    transform: translateY(-1px);
 }
 
 .category-checkbox:deep(.el-checkbox__label) {
     width: 100%;
     padding: 0;
+    display: block;
+}
+
+.category-checkbox:deep(.el-checkbox__input) {
+    display: none;
 }
 
 .category-item {
     width: 100%;
-    padding: 12px 16px;
-    border: 1px solid var(--el-border-color);
-    border-radius: 4px;
+    padding: 24px;
+    border: 1px solid var(--el-border-color-lighter);
+    border-radius: 12px;
     background-color: var(--el-bg-color);
+    transition: all 0.2s ease;
+    cursor: pointer;
 }
 
 .category-info {
     display: flex;
-    align-items: flex-start;
-    gap: 20px;
+    flex-direction: column;
+    gap: 16px;
 }
 
 .category-name {
-    width: 120px;
-    font-weight: bold;
+    font-weight: 500;
     font-size: 16px;
     color: var(--el-text-color-primary);
-    padding-top: 4px;
 }
 
 .style-list {
-    flex: 1;
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
@@ -227,21 +227,31 @@ function handleClose() {
 
 .style-tag {
     margin: 0;
+    padding: 6px 12px;
+    background-color: var(--el-fill-color-blank);
+    border: 1px solid var(--el-border-color-lighter);
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--el-text-color-regular);
+    transition: all 0.2s ease;
+}
+
+.style-tag:hover {
     background-color: var(--el-fill-color-light);
-    border: none;
+    border-color: var(--el-border-color);
 }
 
 .dialog-footer {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px;
-    border-top: 1px solid var(--el-border-color-light);
+    padding: 24px 32px;
+    border-top: 1px solid var(--el-border-color-lighter);
     background-color: var(--el-bg-color);
 }
 
 .selection-info {
-    color: var(--el-text-color-secondary);
+    color: var(--el-text-color-regular);
     font-size: 14px;
 }
 
@@ -250,29 +260,16 @@ function handleClose() {
     gap: 12px;
 }
 
-/* 滚动条样式 */
-.predefined-categories::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-}
-
-.predefined-categories::-webkit-scrollbar-thumb {
-    background-color: var(--el-border-color-darker);
-    border-radius: 3px;
-}
-
-.predefined-categories::-webkit-scrollbar-track {
-    background-color: var(--el-fill-color-light);
-}
-
 /* 选中状态的样式 */
 .category-checkbox:deep(.el-checkbox__input.is-checked + .el-checkbox__label .category-item) {
     border-color: var(--el-color-primary);
     background-color: var(--el-color-primary-light-9);
+    box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.08);
 }
 
 /* 悬停状态的样式 */
 .category-checkbox:hover:deep(.el-checkbox__input:not(.is-checked) + .el-checkbox__label .category-item) {
-    border-color: var(--el-color-primary);
+    border-color: var(--el-border-color);
+    box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.08);
 }
 </style>

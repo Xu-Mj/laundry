@@ -33,6 +33,7 @@ pub struct Payment {
     pub create_time: Option<i64>,
     pub update_time: Option<i64>,
     pub store_id: Option<i64>, // 商家ID，用于数据隔离
+    pub refund_reason: Option<String>, // 退款原因
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, FromRow)]
@@ -97,6 +98,7 @@ impl FromRow<'_, SqliteRow> for Payment {
             create_time: row.try_get("create_time").unwrap_or_default(),
             update_time: row.try_get("update_time").unwrap_or_default(),
             store_id: row.try_get("store_id").unwrap_or_default(),
+            refund_reason: row.try_get("refund_reason").unwrap_or_default(),
         })
     }
 }
@@ -106,8 +108,8 @@ impl Payment {
         let query = r#"
         INSERT INTO payments (pay_id, pay_number, order_type, total_amount, payment_amount, payment_amount_vip,
                              payment_amount_mv, payment_status, payment_method, transaction_id,
-                             uc_order_id, uc_id, create_time, order_status, store_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *
+                             uc_order_id, uc_id, create_time, order_status, store_id, refund_reason)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *
     "#;
 
         let result = sqlx::query_as(query)
@@ -126,6 +128,7 @@ impl Payment {
             .bind(utils::get_timestamp())
             .bind(&self.order_status)
             .bind(&self.store_id)
+            .bind(&self.refund_reason)
             .fetch_one(&mut **tr)
             .await?;
 
@@ -167,10 +170,11 @@ impl Payment {
     // update
     pub async fn update_payment_status(&self, tr: &mut Transaction<'_, Sqlite>) -> Result<bool> {
         let query = r#"
-        UPDATE payments SET payment_status = ? WHERE pay_id = ?
+        UPDATE payments SET payment_status = ?, refund_reason = ? WHERE pay_id = ?
         "#;
         let result = sqlx::query(query)
             .bind(&self.payment_status)
+            .bind(&self.refund_reason)
             .bind(&self.pay_id)
             .execute(&mut **tr)
             .await?;

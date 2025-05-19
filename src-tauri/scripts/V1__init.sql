@@ -9,7 +9,8 @@ CREATE TABLE IF NOT EXISTS printers
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     system_name TEXT NOT NULL,
-    driver_name TEXT NOT NULL
+    driver_name TEXT NOT NULL,
+    printer_type TEXT NOT NULL DEFAULT 'business'
 );
 
 CREATE TABLE IF NOT EXISTS local_users
@@ -117,11 +118,11 @@ CREATE TABLE IF NOT EXISTS users
     integral    INTEGER       DEFAULT 0,
     identify    TEXT          DEFAULT '00',
     login_ip    TEXT          DEFAULT '',
-    login_date  TIMESTAMP     DEFAULT NULL,
+    login_date  INTEGER     DEFAULT NULL,
     create_by   TEXT          DEFAULT '',
-    create_time TIMESTAMP,
+    create_time INTEGER,
     update_by   TEXT          DEFAULT '',
-    update_time TIMESTAMP,
+    update_time INTEGER,
     remark      TEXT          DEFAULT NULL
 );
 CREATE INDEX idx_users_store_id ON users (store_id);
@@ -346,7 +347,8 @@ CREATE TABLE payments
     uc_id              TEXT,
     create_time        INTEGER,
     update_time        INTEGER,
-    order_status       TEXT   NOT NULL
+    order_status       TEXT   NOT NULL,
+    refund_reason      TEXT
 );
 
 CREATE INDEX idx_payments_order_type ON payments (order_type); -- 支付记录索引
@@ -424,7 +426,6 @@ CREATE TABLE orders
     order_number         TEXT      NOT NULL,
     business_type        TEXT      NOT NULL,
     user_id              INTEGER   NOT NULL,
-    price_id             INTEGER,
     desire_complete_time TIMESTAMP NOT NULL,
     cost_time_alarm      TEXT,
     pickup_code          TEXT,
@@ -450,11 +451,19 @@ CREATE INDEX idx_cost_time_alarm ON orders (cost_time_alarm);
 
 CREATE INDEX idx_orders_payment_status ON orders (payment_status);
 CREATE INDEX idx_orders_store_id ON orders (store_id);
-
+-- 创建订单价格关系表
+CREATE TABLE IF NOT EXISTS order_price_relations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_id INTEGER NOT NULL,
+    price_id INTEGER NOT NULL,
+    create_time DATETIME,
+    FOREIGN KEY (order_id) REFERENCES orders(order_id),
+    FOREIGN KEY (price_id) REFERENCES cloth_price(price_id)
+);
 -- 衣物清单表
 CREATE TABLE order_clothes
 (
-    cloth_id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    cloth_id            TEXT PRIMARY KEY,
     store_id            INTEGER NOT NULL,
     order_id            INTEGER NULL,
     clothing_id         INTEGER NOT NULL,

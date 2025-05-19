@@ -1,1 +1,0 @@
-   ALTER TABLE printers ADD COLUMN printer_type TEXT NOT NULL DEFAULT 'business';

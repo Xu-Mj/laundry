@@ -60,7 +60,7 @@ const DEFAULT_DESIRE_DAYS: i64 = 7;
 pub struct Order {
     pub order_id: Option<i64>,
     /// for validate
-    pub cloth_ids: Option<Vec<i64>>,
+    pub cloth_ids: Option<Vec<String>>,
     pub cloth_codes: Option<Vec<String>>,
     pub order_number: Option<String>,
     pub business_type: Option<String>,
@@ -1890,7 +1890,10 @@ impl Order {
                     "[退款] 处理优惠券退款 - 优惠券ID: {}, 当前使用次数: {}, 优惠券类型: {}",
                     user_coupon.uc_id.unwrap_or_default(),
                     user_coupon.uc_count.unwrap_or_default(),
-                    user_coupon.coupon.as_ref().map_or("未知", |c| c.coupon_type.as_deref().unwrap_or("未知"))
+                    user_coupon
+                        .coupon
+                        .as_ref()
+                        .map_or("未知", |c| c.coupon_type.as_deref().unwrap_or("未知"))
                 );
 
                 if let Some(coupon) = &user_coupon.coupon {
@@ -1899,14 +1902,17 @@ impl Order {
                             tracing::debug!("[退款] 处理折扣券退款");
                             // 折扣券只需要恢复使用次数
                             user_coupon.uc_count = user_coupon.uc_count.map(|c| c + 1);
-                        },
+                        }
                         Some(SUB_CARD_NUMBER) => {
                             tracing::debug!("[退款] 处理满减券退款");
                             // 满减券只需要恢复使用次数
                             user_coupon.uc_count = user_coupon.uc_count.map(|c| c + 1);
-                        },
+                        }
                         _ => {
-                            tracing::warn!("[退款] 未知的优惠券类型: {}", coupon.coupon_type.as_deref().unwrap_or("未知"));
+                            tracing::warn!(
+                                "[退款] 未知的优惠券类型: {}",
+                                coupon.coupon_type.as_deref().unwrap_or("未知")
+                            );
                         }
                     }
                 }
@@ -1986,7 +1992,7 @@ impl Order {
         let mut tx = pool.begin().await?;
         for order_id in ids {
             // delete related order clothes
-            let cloth_ids: Vec<i64> = OrderCloth::get_by_order_id(pool, *order_id)
+            let cloth_ids: Vec<String> = OrderCloth::get_by_order_id(pool, *order_id)
                 .await?
                 .into_iter()
                 .filter_map(|c| c.cloth_id)

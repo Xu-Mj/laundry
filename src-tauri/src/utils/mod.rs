@@ -10,9 +10,14 @@ use rand::prelude::StdRng;
 use rand::{Rng, SeedableRng};
 use sqlx::types::chrono::{DateTime, FixedOffset, Utc};
 use tauri::State;
+use uuid::Uuid;
 
 use crate::error::{Error, Result};
 use crate::state::AppState;
+
+pub fn gen_uuid() -> String {
+    Uuid::new_v4().to_string()
+}
 
 pub async fn get_user_id(state: &State<'_, AppState>) -> Result<i64> {
     Ok(state

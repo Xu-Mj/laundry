@@ -30,7 +30,7 @@ const ORDER_STATUS_PAID: &str = "00";
 #[serde(rename_all = "camelCase")]
 #[serde(default)]
 pub struct OrderCloth {
-    pub cloth_id: Option<i64>,
+    pub cloth_id: Option<String>,
     pub store_id: Option<i64>,
     pub order_id: Option<i64>,
     pub clothing_id: Option<i64>,
@@ -110,7 +110,7 @@ impl FromRow<'_, SqliteRow> for OrderCloth {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct HangReq {
-    pub cloth_id: i64,
+    pub cloth_id: String,
     pub hang_location_id: i64,
     pub hanger_number: i32,
     pub hang_remark: Option<String>,
@@ -168,15 +168,16 @@ impl OrderCloth {
     pub async fn add(&self, tr: &mut Transaction<'_, Sqlite>) -> Result<Self> {
         let cloth = sqlx::query_as(
             "INSERT INTO order_clothes
-        (clothing_id, store_id, category_id, style_id, clothing_color,
+        (cloth_id, clothing_id, store_id, category_id, style_id, clothing_color,
          clothing_flaw, estimate, clothing_brand, service_type, service_requirement,
          before_pics, after_pics, notes, process_markup, price_value,
         hang_type, hang_location_code, hanger_number, hang_cloth_code, hang_remark,
         create_time, pickup_time, pickup_method, clothing_status, remark)
          VALUES
-         (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          RETURNING *",
         )
+        .bind(&self.cloth_id)
         .bind(&self.clothing_id)
         .bind(&self.store_id)
         .bind(&self.category_id)
@@ -207,7 +208,7 @@ impl OrderCloth {
         Ok(cloth)
     }
 
-    pub async fn get_by_id(pool: &Pool<Sqlite>, id: i64) -> Result<Option<Self>> {
+    pub async fn get_by_id(pool: &Pool<Sqlite>, id: &str) -> Result<Option<Self>> {
         let cloth = sqlx::query_as(&format!("{} WHERE cloth_id = ?", SQL))
             .bind(id)
             .fetch_optional(pool)
@@ -215,13 +216,12 @@ impl OrderCloth {
         Ok(cloth)
     }
 
-    /// only need basic information, no necessary to query clothing or hangers info
-    pub async fn get_by_ids(pool: &Pool<Sqlite>, id: &[i64]) -> Result<Vec<Self>> {
+    pub async fn get_by_ids(pool: &Pool<Sqlite>, ids: &[String]) -> Result<Vec<Self>> {
         let mut builder =
             sqlx::QueryBuilder::new("SELECT * FROM order_clothes WHERE cloth_id IN (");
 
         // bind ids
-        for (i, id) in id.iter().enumerate() {
+        for (i, id) in ids.iter().enumerate() {
             if i > 0 {
                 builder.push(", ");
             }
@@ -319,7 +319,7 @@ impl OrderCloth {
     pub async fn update_order_id(
         tr: &mut Transaction<'_, Sqlite>,
         order_id: i64,
-        clothes_id: &[i64],
+        clothes_id: &[String],
     ) -> Result<bool> {
         if clothes_id.is_empty() {
             return Ok(true);
@@ -344,7 +344,10 @@ impl OrderCloth {
 
     pub async fn update(&self, tr: &mut Transaction<'_, Sqlite>) -> Result<bool> {
         // 确保有 cloth_id
-        let cloth_id = self.cloth_id.ok_or(Error::bad_request("缺少衣物ID"))?;
+        let cloth_id = self
+            .cloth_id
+            .as_ref()
+            .ok_or(Error::bad_request("缺少衣物ID"))?;
 
         // 执行更新
         let result = sqlx::query(
@@ -399,14 +402,14 @@ impl OrderCloth {
         .bind(&self.pickup_time)
         .bind(&self.pickup_method)
         .bind(&self.clothing_status)
-        .bind(cloth_id)
+        .bind(cloth_id.to_string())
         .execute(&mut **tr)
         .await?;
 
         Ok(result.rows_affected() > 0)
     }
 
-    pub async fn delete_batch(tr: &mut Transaction<'_, Sqlite>, ids: &[i64]) -> Result<u64> {
+    pub async fn delete_batch(tr: &mut Transaction<'_, Sqlite>, ids: &[String]) -> Result<u64> {
         let mut builder = sqlx::QueryBuilder::new("DELETE FROM order_clothes WHERE cloth_id IN (");
 
         ids.iter().enumerate().for_each(|(i, id)| {
@@ -424,7 +427,7 @@ impl OrderCloth {
 
     pub async fn update_cloth_status_delivery(
         tr: &mut Transaction<'_, Sqlite>,
-        cloth_ids: &[i64],
+        cloth_ids: &[String],
         status: &str,
     ) -> Result<bool> {
         if cloth_ids.is_empty() {
@@ -523,6 +526,8 @@ impl OrderCloth {
 
     pub async fn insert_order_cloth(&mut self, pool: &Pool<Sqlite>) -> Result<Self> {
         let mut tr = pool.begin().await?; // 开启事务
+
+        self.cloth_id = Some(utils::gen_uuid());
 
         // 设置时间
         self.create_time = Some(utils::get_now());
@@ -668,7 +673,7 @@ impl OrderCloth {
         Ok(())
     }
 
-    pub async fn delete_by_ids(pool: &Pool<Sqlite>, ids: &[i64]) -> Result<u64> {
+    pub async fn delete_by_ids(pool: &Pool<Sqlite>, ids: &[String]) -> Result<u64> {
         // query clothes by ids
         let clothes = OrderCloth::get_by_ids(pool, ids).await?;
         let mut tr = pool.begin().await?;
@@ -687,7 +692,7 @@ impl OrderCloth {
         let mut tr = pool.begin().await?;
 
         // query cloth information by id
-        let mut cloth = OrderCloth::get_by_id(pool, hang_req.cloth_id)
+        let mut cloth = OrderCloth::get_by_id(pool, &hang_req.cloth_id)
             .await?
             .ok_or(Error::with_kind(ErrorKind::NotFound))?;
 
@@ -893,7 +898,7 @@ impl OrderCloth {
     }
 
     /// clothes may be in different orders
-    pub async fn pickup(pool: &Pool<Sqlite>, store_id: i64, ids: &[i64]) -> Result<()> {
+    pub async fn pickup(pool: &Pool<Sqlite>, store_id: i64, ids: &[String]) -> Result<()> {
         let mut tr = pool.begin().await?;
         // query clothes by ids and change status
         let mut clothes = Self::get_by_ids(pool, ids).await?;
@@ -984,9 +989,9 @@ pub async fn list_order_clothes(
 #[tauri::command]
 pub async fn get_order_cloth_by_id(
     state: State<'_, AppState>,
-    cloth_id: i64,
+    cloth_id: String,
 ) -> Result<Option<OrderCloth>> {
-    OrderCloth::get_by_id(&state.pool, cloth_id).await
+    OrderCloth::get_by_id(&state.pool, &cloth_id).await
 }
 
 #[tauri::command]
@@ -1018,15 +1023,15 @@ pub async fn add_order_cloth(
 #[tauri::command]
 pub async fn remove_pic_from_order_cloth(
     state: State<'_, AppState>,
-    cloth_id: i64,
+    cloth_id: String,
     pic_id: i64,
 ) -> Result<()> {
-    OrderPicture::delete_by_id(&state.pool, pic_id, cloth_id).await?;
+    OrderPicture::delete_by_id(&state.pool, pic_id, &cloth_id).await?;
     Ok(())
 }
 
 #[tauri::command]
-pub async fn pickup_order_cloth(state: State<'_, AppState>, clothes_id: Vec<i64>) -> Result<()> {
+pub async fn pickup_order_cloth(state: State<'_, AppState>, clothes_id: Vec<String>) -> Result<()> {
     let store_id = utils::get_user_id(&state).await?;
     OrderCloth::pickup(&state.pool, store_id, &clothes_id).await
 }
@@ -1037,7 +1042,10 @@ pub async fn hang_order_cloth(state: State<'_, AppState>, hang_req: HangReq) -> 
 }
 
 #[tauri::command]
-pub async fn delete_order_cloth_by_ids(state: State<'_, AppState>, ids: Vec<i64>) -> Result<u64> {
+pub async fn delete_order_cloth_by_ids(
+    state: State<'_, AppState>,
+    ids: Vec<String>,
+) -> Result<u64> {
     OrderCloth::delete_by_ids(&state.pool, &ids).await
 }
 
@@ -1046,12 +1054,12 @@ pub async fn delete_order_cloth_by_ids(state: State<'_, AppState>, ids: Vec<i64>
 pub async fn upload_cloth_pic(
     state: State<'_, AppState>,
     filename: String,
-    cloth_id: i64,
+    cloth_id: String,
     is_pre: bool,
 ) -> Result<Option<i64>> {
     let pool = &state.pool;
     // query cloth information by cloth id
-    let mut cloth = OrderCloth::get_by_id(pool, cloth_id)
+    let mut cloth = OrderCloth::get_by_id(pool, &cloth_id)
         .await?
         .ok_or(Error::not_found("衣物不存在"))?;
 
@@ -1100,7 +1108,7 @@ pub async fn list_delivery_eligible_clothes(
 }
 
 #[tauri::command]
-pub async fn deliver_clothes(state: State<'_, AppState>, cloth_ids: Vec<i64>) -> Result<bool> {
+pub async fn deliver_clothes(state: State<'_, AppState>, cloth_ids: Vec<String>) -> Result<bool> {
     let mut tx = state.pool.begin().await?;
 
     // Update clothes status to delivered
@@ -1116,7 +1124,7 @@ pub async fn deliver_clothes(state: State<'_, AppState>, cloth_ids: Vec<i64>) ->
 #[tauri::command]
 pub async fn get_order_cloths_by_ids(
     state: State<'_, AppState>,
-    cloth_ids: Vec<i64>,
+    cloth_ids: Vec<String>,
 ) -> Result<Vec<OrderCloth>> {
     let store_id = utils::get_user_id(&state).await?;
 

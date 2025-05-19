@@ -253,10 +253,7 @@ impl Delivery {
             .cloth_id
             .clone()
             .ok_or(Error::bad_request("衣物ID不能为空"))?;
-        let ids: Vec<i64> = cloth_ids
-            .split(',')
-            .filter_map(|id| id.parse::<i64>().ok())
-            .collect();
+        let ids: Vec<String> = cloth_ids.split(',').map(|i| i.to_string()).collect();
 
         if ids.is_empty() {
             return Err(Error::bad_request("衣物列表不能为空"));
@@ -270,7 +267,7 @@ impl Delivery {
             if status != CLOTH_STATUS_INITIAL && status != CLOTH_STATUS_WASHED {
                 return Err(Error::bad_request(format!(
                     "衣物 {} 状态不符合派送条件，只能派送正在洗护中和已洗完的衣物",
-                    cloth.cloth_id.unwrap_or(0)
+                    cloth.cloth_id.as_ref().unwrap_or(&String::new())
                 )));
             }
         }
@@ -315,10 +312,7 @@ impl Delivery {
             .cloth_id
             .clone()
             .ok_or(Error::bad_request("衣物ID不能为空"))?;
-        let ids: Vec<i64> = cloth_ids
-            .split(',')
-            .filter_map(|id| id.parse::<i64>().ok())
-            .collect();
+        let ids: Vec<String> = cloth_ids.split(',').map(|i| i.to_string()).collect();
 
         if ids.is_empty() {
             return Err(Error::bad_request("衣物列表不能为空"));

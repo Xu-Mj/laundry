@@ -87,9 +87,9 @@ export function pay(data) {
   return invoke('pay_order', { req: req(data) })
 }
 
-// 退款
-export function refund(data) {
-  return invoke('refund_order', { exp: data })
+// 更新退款接口
+export function refund(orderId, refundReason) {
+  return invoke('refund_order', { orderId, refundReason });
 }
 
 // 删除洗护服务订单

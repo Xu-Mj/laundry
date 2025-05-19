@@ -102,7 +102,7 @@
         <el-table-column label="限制条件" align="center" prop="usageLimit" v-if="columns[12].visible">
           <template #default="scope">
             {{ scope.row.couponType === '003' ? '最高优惠金额限制' + scope.row.usageLimit + '元' :
-            scope.row.usageLimit == 0 ? '无限制' : scope.row.usageLimit }}
+              scope.row.usageLimit == 0 ? '无限制' : scope.row.usageLimit }}
           </template>
         </el-table-column>
         <el-table-column label="卡券状态" align="center" prop="status" v-if="columns[13].visible">
@@ -112,15 +112,17 @@
         </el-table-column>
         <el-table-column label="卡券描述" align="center" prop="desc" v-if="columns[14].visible" show-overflow-tooltip />
         <el-table-column label="备注" align="center" prop="remark" v-if="columns[15].visible" show-overflow-tooltip />
-        <el-table-column label="删除状态" align="center" prop="delFlag" v-if="columns[16].visible" >
+        <el-table-column label="删除状态" align="center" prop="delFlag" v-if="columns[16].visible">
           <template #default="scope">
             <dict-tag :options="sys_del_status" :value="scope.row.delFlag" />
           </template>
         </el-table-column>
         <el-table-column label="操作" align="center" class-name="small-padding" width="140">
           <template #default="scope">
-            <el-button link type="primary" icon="Edit" :disabled="scope.row.delFlag == '2'" @click="handleUpdate(scope.row)">修改</el-button>
-            <el-button link type="primary" icon="Delete" v-if="scope.row.delFlag == '0'" @click="handleDelete(scope.row)">删除</el-button>
+            <el-button link type="primary" icon="Edit" :disabled="scope.row.delFlag == '2'"
+              @click="handleUpdate(scope.row)">修改</el-button>
+            <el-button link type="primary" icon="Delete" v-if="scope.row.delFlag == '0'"
+              @click="handleDelete(scope.row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -319,7 +321,7 @@
       </el-form>
 
       <template #footer>
-        <div class="dialog-footer hover-flow">
+        <div class="dialog-footer">
           <el-button class="hover-flow" size="large" type="danger" @click="closeSell">取消</el-button>
           <el-button class="hover-flow" size="large" type="primary" @click="buy">立即购买</el-button>
         </div>

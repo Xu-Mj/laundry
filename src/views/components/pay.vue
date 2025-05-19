@@ -32,7 +32,7 @@
             </div>
             <div class="member-details">
                 <div class="member-name">{{ currentUser ? (currentUser.nickName || currentUser.userName) : user.nickName
-                    }}
+                }}
                 </div>
                 <div class="member-phone">{{ currentUser ? currentUser.phonenumber : user.phonenumber }}</div>
             </div>
@@ -175,8 +175,7 @@
                                     == '002' && item.isValid).length}}</span>
                             </template>
                             <div class="coupon-times">
-                                <div class="coupon-times-item"
-                                    v-for="card in groupedTimeCards"
+                                <div class="coupon-times-item" v-for="card in groupedTimeCards"
                                     :key="card.coupon.couponId">
                                     <el-checkbox @change="changeCoupon(2, card)" :disabled="!card.isValid"
                                         v-model="card.selected" :label="card.ucId" class="coupon-checkbox">
@@ -256,14 +255,14 @@
                     <span class="price-label">优惠金额</span>
                     <span class="price-value discount">- ¥ {{ (Math.floor(paymentForm.bonusAmount * 100) /
                         100).toFixed(2)
-                    }}</span>
+                        }}</span>
                 </div>
                 <div class="price-divider"></div>
                 <div class="price-row total">
                     <span class="price-label">应付金额</span>
                     <span class="price-value total-amount">¥ {{ (Math.floor(paymentForm.paymentAmount * 100) /
                         100).toFixed(2)
-                    }}</span>
+                        }}</span>
                 </div>
             </div>
 
@@ -419,7 +418,7 @@ const userId = computed(() => {
 const groupedTimeCards = computed(() => {
     // 获取所有次卡但不再合并，直接返回每张卡的独立信息
     const timeCards = userCouponList.value.filter(item => item.coupon.couponType === '002');
-    
+
     // 为每张卡添加必要的属性
     return timeCards.map(card => ({
         ...card,
@@ -447,9 +446,9 @@ const isOrderWithAdjustment = computed(() => {
             props.order.adjust.adjustTotal);
 });
 
-function close() { 
-    emit('payment-cancel'); 
-    props.toggle(); 
+function close() {
+    emit('payment-cancel');
+    props.toggle();
     // 重置手动选择标志
     hasManualStorageCardSelection.value = false;
 }
@@ -543,7 +542,7 @@ function handleScanResult(result) {
 async function initForm() {
     const targetUserId = userId.value;
     if (!targetUserId) return;
-    
+
     // 获取用户信息
     await getUser(targetUserId).then(res => {
         if (props.user && props.user.userId) {
@@ -704,7 +703,7 @@ async function submitPaymentForm(isPickup) {
         proxy.notify.error('您选择了储值卡支付方式，但未选择任何储值卡');
         return;
     }
-    
+
     // 验证：如果选择了次卡支付但未选择任何次卡，则提示错误并阻止提交
     if (paymentForm.value.paymentMethod === '07' && !groupedTimeCards.value.some(card => card.selected)) {
         proxy.notify.error('您选择了次卡支付方式，但未选择任何次卡');
@@ -727,13 +726,7 @@ async function submitPaymentForm(isPickup) {
     if (!paymentForm.value.couponId) {
         if (couponStorageCardId.value.length > 0) {
             // 计算使用了多少储值卡
-            // let storageCardPrice = 0;
-            // userCouponList.value.forEach(item => {
-            //     if (couponStorageCardId.value.includes(item.ucId)) {
-            //         storageCardPrice += item.availableValue;
-            //     }
-            // });
-            // paymentForm.value.paymentAmountVip = storageCardPrice;
+            paymentForm.value.paymentAmountVip = paymentForm.value.paymentAmount - paymentForm.value.priceDiff;
             paymentForm.value.ucId = couponStorageCardId.value.join(',');
             // 使用了储值卡，那么实际从微信/或其他支付方式中扣除的金额为差价
             paymentForm.value.paymentAmountMv = paymentForm.value.priceDiff;
@@ -880,7 +873,7 @@ function changeCoupon(couponType, card) {
     if (couponType == 1) {
         // 标记用户已经手动选择了储值卡
         hasManualStorageCardSelection.value = true;
-        
+
         paymentForm.value.couponId = null;
         paymentForm.value.bonusAmount = 0;
         // 清空次卡选择列表
@@ -932,12 +925,12 @@ function changeCoupon(couponType, card) {
                 }
                 return acc;
             }, 0);
-            
+
             // 计算输入框的数量
             card.count = props.order?.cloths?.length > count ?
                 props.order.cloths.length - count > card.totalAvailableValue ?
                     card.totalAvailableValue : props.order.cloths.length - count : props.order.cloths.length || 1;
-            
+
             // 需要再加上card.count
             count += card.count;
         } else {
@@ -956,9 +949,9 @@ function changeCoupon(couponType, card) {
             paymentForm.value.priceDiff = 0;
         } else {
             // 需要补充差价
-            const clothsList = props.clothsList && props.clothsList.length > 0 ? props.clothsList : 
-                              (props.order && props.order.cloths ? props.order.cloths : []);
-                              
+            const clothsList = props.clothsList && props.clothsList.length > 0 ? props.clothsList :
+                (props.order && props.order.cloths ? props.order.cloths : []);
+
             if (clothsList && clothsList.length > 0) {
                 const diffCount = clothsList.length - count;
                 // 获取diffCount数量的衣物
@@ -968,7 +961,7 @@ function changeCoupon(couponType, card) {
                 paymentForm.value.priceDiff = Math.floor(priceDiff * 100) / 100;
                 let bonusAmount = paymentForm.value.totalAmount - paymentForm.value.priceDiff;
                 paymentForm.value.bonusAmount = Math.floor(bonusAmount * 100) / 100;
-                
+
                 // 如果次卡数量足够支付所有衣物，则使用次卡支付方式
                 if (diffCount <= 0) {
                     paymentForm.value.paymentMethod = '07';
@@ -982,7 +975,7 @@ function changeCoupon(couponType, card) {
                 paymentForm.value.bonusAmount = paymentForm.value.totalAmount;
                 paymentForm.value.paymentMethod = '07'; // 使用次卡支付方式
             }
-            
+
             // 确保支付总金额正确更新
             paymentForm.value.paymentAmount = paymentForm.value.totalAmount - paymentForm.value.bonusAmount;
         }
@@ -1156,31 +1149,31 @@ function changeCouponCount() {
 function autoSelectStorageCards(isManualTrigger = false) {
     // 如果用户已经手动选择了储值卡 且 不是手动触发的, 则不进行自动选择
     if (hasManualStorageCardSelection.value && !isManualTrigger) return;
-    
+
     // 如果是手动触发的，则保留用户当前的选择，不重新自动选择卡
     if (isManualTrigger) {
         // 仅设置支付方式，计算价格，但不更改卡片选择
         changeCoupon(1);
         return;
     }
-    
+
     // 获取所有有效的储值卡
     const validStorageCards = userCouponList.value.filter(
         item => item.coupon.couponType === '000' && item.isValid
     );
-    
+
     // 如果没有有效储值卡，直接返回
     if (validStorageCards.length === 0) return;
-    
+
     // 订单总金额
     const totalAmount = paymentForm.value.totalAmount;
-    
+
     // 根据余额从小到大排序储值卡
     const sortedCards = [...validStorageCards].sort((a, b) => a.availableValue - b.availableValue);
-    
+
     // 总可用余额
     const totalAvailableBalance = sortedCards.reduce((sum, card) => sum + card.availableValue, 0);
-    
+
     // 如果总可用余额不足以支付订单金额，选择所有储值卡
     if (totalAvailableBalance < totalAmount) {
         couponStorageCardId.value = sortedCards.map(card => card.ucId);
@@ -1188,18 +1181,18 @@ function autoSelectStorageCards(isManualTrigger = false) {
         // 尝试找到能覆盖订单金额的卡（从小到大选择）
         let selectedCards = [];
         let selectedAmount = 0;
-        
+
         // 贪心算法：先选小额的卡
         for (const card of sortedCards) {
             if (selectedAmount >= totalAmount) break;
-            
+
             selectedCards.push(card.ucId);
             selectedAmount += card.availableValue;
         }
-        
+
         couponStorageCardId.value = selectedCards;
     }
-    
+
     // 仅当自动选择卡片时，不标记为手动选择
     // 先把标志设为false，然后再触发changeCoupon计算
     hasManualStorageCardSelection.value = false;
@@ -1212,7 +1205,7 @@ function handlePaymentMethodChange(value) {
     // 当选择储值卡支付时，展开储值卡列表
     if (value === '06') {
         activeCollapseItem.value = ['storage-card'];
-        
+
         // 重置手动选择标志并执行智能选择，除非用户已选择了卡
         if (!hasManualStorageCardSelection.value) {
             hasManualStorageCardSelection.value = false;
@@ -1225,10 +1218,10 @@ function handlePaymentMethodChange(value) {
     // 当选择次卡支付时，展开次卡列表
     else if (value === '07') {
         activeCollapseItem.value = ['time-card'];
-        
+
         // 自动选择第一张有效的次卡
         const validTimeCards = groupedTimeCards.value.filter(card => card.isValid);
-        
+
         if (validTimeCards.length > 0) {
             // 选中第一张有效次卡
             validTimeCards[0].selected = true;
@@ -1245,7 +1238,7 @@ watch(() => paymentForm.value.paymentMethod, (newMethod) => {
         if (!activeCollapseItem.value.includes('storage-card')) {
             activeCollapseItem.value = ['storage-card'];
         }
-        
+
         // 如果没有手动选择，则执行自动选择
         if (!hasManualStorageCardSelection.value) {
             hasManualStorageCardSelection.value = false;
@@ -1258,10 +1251,10 @@ watch(() => paymentForm.value.paymentMethod, (newMethod) => {
     // 当选择次卡支付时，展开次卡列表
     else if (newMethod === '07') {
         activeCollapseItem.value = ['time-card'];
-        
+
         // 自动选择第一张有效的次卡
         const validTimeCards = groupedTimeCards.value.filter(card => card.isValid);
-        
+
         if (validTimeCards.length > 0) {
             // 选中第一张有效次卡
             validTimeCards[0].selected = true;
@@ -1280,7 +1273,7 @@ watch(couponStorageCardId, (newVal, oldVal) => {
     if (oldVal.length > 0 || newVal.length > 0) {
         // 标记为手动选择
         hasManualStorageCardSelection.value = true;
-        
+
         // 如果手动选择了储值卡，自动切换支付方式为储值卡
         if (newVal.length > 0 && paymentForm.value.paymentMethod !== '06') {
             // 使用isManualTrigger=true调用自动选择函数，这样不会覆盖用户的选择

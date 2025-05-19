@@ -29,7 +29,7 @@
     </div>
     
     <div class="select-dropdown" v-show="isDropdownVisible" ref="dropdownRef">
-      <div class="select-dropdown-list" ref="listRef">
+      <div class="select-dropdown-list" ref="listRef" @scroll="handleScroll">
         <div 
           v-for="(item, index) in filteredUserList" 
           :key="item.userId"
@@ -45,9 +45,20 @@
         </div>
         
         <!-- 无数据提示 -->
-        <div v-if="filteredUserList.length === 0" class="no-data">
+        <div v-if="filteredUserList.length === 0 && !isLoading" class="no-data">
           无匹配数据
         </div>
+        
+        <!-- 加载中提示 -->
+        <div v-if="isLoading" class="loading-data">
+          <div class="loading-spinner"></div>
+          <span>加载中...</span>
+        </div>
+        
+        <!-- 没有更多数据提示 -->
+        <!-- <div v-if="filteredUserList.length > 0 && !hasMoreData && !isLoading" class="no-more-data">
+          没有更多数据
+        </div> -->
       </div>
     </div>
   </div>
@@ -56,6 +67,7 @@
 <script setup>
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue';
 import { Phone, CircleClose } from '@element-plus/icons-vue';
+import { listUser } from '@/api/system/user'; // 导入用户API
 
 const props = defineProps({
   modelValue: {
@@ -72,7 +84,8 @@ const props = defineProps({
   },
   searchMethod: {
     type: Function,
-    required: true
+    required: false, // 改为可选的
+    default: null
   },
   allUsers: {
     type: Array,
@@ -96,6 +109,12 @@ const isValidInput = ref(true);
 const isClearing = ref(false);
 const hasTriggeredCreateUser = ref(false);
 const isCreatingUser = ref(false);
+
+// 分页状态
+const currentPage = ref(1);
+const pageSize = ref(6); // 初始加载6条数据
+const isLoading = ref(false);
+const hasMoreData = ref(true);
 
 // 计算属性
 const shouldCreateUser = computed(() => {
@@ -214,10 +233,66 @@ const handleFocus = () => {
 };
 
 // 加载所有用户
-const loadAllUsers = () => {
-  props.searchMethod('').then(result => {
-    filteredUserList.value = result;
+const loadAllUsers = (loadMore = false) => {
+  if (isLoading.value || (!loadMore && !hasMoreData.value)) return;
+  
+  isLoading.value = true;
+  
+  // 如果不是加载更多，重置分页参数
+  if (!loadMore) {
+    currentPage.value = 1;
+    filteredUserList.value = [];
+    hasMoreData.value = true;
+  }
+  
+  // 构造分页查询参数
+  const query = {
+    pageNum: currentPage.value,
+    pageSize: pageSize.value,
+    phonenumber: '',
+    params: {}
+  };
+  
+  // 优先使用父组件提供的searchMethod，如果没有则使用内置API
+  const searchPromise = props.searchMethod 
+    ? props.searchMethod(query) 
+    : listUser(query);
+    
+  // 处理返回结果
+  searchPromise.then(result => {
+    // 判断是否是分页返回的数据结构
+    if (result && typeof result === 'object') {
+      if (result.rows && Array.isArray(result.rows)) {
+        // 如果是加载更多，追加数据，否则替换数据
+        if (loadMore) {
+          filteredUserList.value = [...filteredUserList.value, ...result.rows];
+        } else {
+          filteredUserList.value = result.rows;
+        }
+        
+        // 判断是否还有更多数据
+        hasMoreData.value = result.rows.length === pageSize.value;
+      } else if (Array.isArray(result)) {
+        // 兼容直接返回数组的情况
+        if (loadMore) {
+          filteredUserList.value = [...filteredUserList.value, ...result];
+        } else {
+          filteredUserList.value = result;
+        }
+        
+        // 判断是否还有更多数据
+        hasMoreData.value = result.length === pageSize.value;
+      }
+    }
+    
     isDropdownVisible.value = true;
+    
+    // 更新页码，为下一次加载做准备
+    if (hasMoreData.value) {
+      currentPage.value++;
+    }
+  }).finally(() => {
+    isLoading.value = false;
   });
 };
 
@@ -272,12 +347,36 @@ const search = (query) => {
     return Promise.resolve([]);
   }
   
-  // 重置活动索引
+  // 重置活动索引和分页状态
   activeIndex.value = -1;
+  currentPage.value = 1;
+  isLoading.value = true;
   
-  // 调用父组件提供的搜索方法
-  return props.searchMethod(query).then(result => {
-    filteredUserList.value = result;
+  // 构造查询参数
+  const searchQuery = {
+    pageNum: currentPage.value,
+    pageSize: pageSize.value,
+    phonenumber: query,
+    params: {}
+  };
+  
+  // 优先使用父组件提供的searchMethod，如果没有则使用内置API
+  const searchPromise = props.searchMethod 
+    ? props.searchMethod(searchQuery) 
+    : listUser(searchQuery);
+  
+  // 处理返回结果
+  return searchPromise.then(result => {
+    // 处理返回结果
+    if (result && typeof result === 'object') {
+      if (result.rows && Array.isArray(result.rows)) {
+        filteredUserList.value = result.rows;
+        hasMoreData.value = result.rows.length === pageSize.value;
+      } else if (Array.isArray(result)) {
+        filteredUserList.value = result;
+        hasMoreData.value = result.length === pageSize.value;
+      }
+    }
     
     // 确保下拉列表可见
     isDropdownVisible.value = true;
@@ -295,11 +394,17 @@ const search = (query) => {
       }
     }
     // 如果匹配到了用户，重置创建用户模式
-    else if (result.length > 0) {
+    else if (filteredUserList.value.length > 0) {
       isCreatingUser.value = false;
     }
     
-    return result;
+    // 更新页码，为下一次加载做准备
+    if (hasMoreData.value) {
+      currentPage.value++;
+    }
+    
+    isLoading.value = false;
+    return filteredUserList.value;
   });
 };
 
@@ -424,6 +529,66 @@ const scrollToActive = () => {
   });
 };
 
+// 处理滚动加载更多
+const handleScroll = (event) => {
+  // 获取滚动容器
+  const scrollElement = event.target;
+  
+  // 如果正在加载或者没有更多数据，不处理
+  if (isLoading.value || !hasMoreData.value) return;
+  
+  // 计算是否滚动到底部
+  // 当滚动位置 + 容器高度 >= 滚动内容总高度 - 10px (添加10px的缓冲区)
+  const isBottom = scrollElement.scrollTop + scrollElement.clientHeight >= scrollElement.scrollHeight - 10;
+  
+  // 如果滚动到底部，加载更多数据
+  if (isBottom) {
+    // 如果有搜索内容，使用搜索方法加载更多
+    if (inputValue.value) {
+      const searchQuery = {
+        pageNum: currentPage.value,
+        pageSize: pageSize.value,
+        phonenumber: inputValue.value,
+        params: {}
+      };
+      
+      isLoading.value = true;
+      
+      // 优先使用父组件提供的searchMethod，如果没有则使用内置API
+      const searchPromise = props.searchMethod 
+        ? props.searchMethod(searchQuery) 
+        : listUser(searchQuery);
+      
+      searchPromise.then(result => {
+        // 处理返回结果
+        if (result && typeof result === 'object') {
+          if (result.rows && Array.isArray(result.rows)) {
+            // 追加数据
+            filteredUserList.value = [...filteredUserList.value, ...result.rows];
+            // 判断是否还有更多数据
+            hasMoreData.value = result.rows.length === pageSize.value;
+          } else if (Array.isArray(result)) {
+            // 追加数据
+            filteredUserList.value = [...filteredUserList.value, ...result];
+            // 判断是否还有更多数据
+            hasMoreData.value = result.length === pageSize.value;
+          }
+        }
+        
+        // 更新页码，为下一次加载做准备
+        if (hasMoreData.value) {
+          currentPage.value++;
+        }
+      }).finally(() => {
+        isLoading.value = false;
+      });
+    } else {
+      // 没有搜索内容，使用loadAllUsers加载更多
+      loadAllUsers(true);
+    }
+  }
+};
+
 // 点击外部关闭下拉列表
 const handleClickOutside = (event) => {
   // 如果正在执行清空操作，不关闭下拉列表
@@ -448,6 +613,10 @@ const handleClickOutside = (event) => {
 // 生命周期钩子
 onMounted(() => {
   document.addEventListener('click', handleClickOutside);
+  
+  // 初始加载时重置分页参数
+  currentPage.value = 1;
+  hasMoreData.value = true;
 });
 
 onBeforeUnmount(() => {
@@ -594,5 +763,36 @@ defineExpose({
   padding: 10px 12px;
   color: var(--el-text-color-secondary);
   text-align: center;
+}
+
+.loading-data {
+  padding: 10px 12px;
+  color: var(--el-text-color-secondary);
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loading-spinner {
+  width: 16px;
+  height: 16px;
+  margin-right: 8px;
+  border: 2px solid var(--el-border-color-light);
+  border-radius: 50%;
+  border-top-color: var(--el-color-primary);
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.no-more-data {
+  padding: 8px 12px;
+  color: var(--el-text-color-secondary);
+  text-align: center;
+  font-size: 12px;
+  border-top: 1px dashed var(--el-border-color-light);
 }
 </style> 

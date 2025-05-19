@@ -671,7 +671,6 @@ function handleRefund(row) {
 
 /* 处理退款成功 */
 function handleRefundSuccess() {
-  proxy.notify.success("退款成功，正在刷新数据");
   resetRefundForm();
   getList();
 }

@@ -21,7 +21,7 @@ router.beforeEach((to, from, next) => {
   if (getToken()) {
     /* has token*/
     if (to.path === '/login') {
-      next({ path: '/' })
+      next({ path: '/index' })
       NProgress.done()
     } else if (whiteList.indexOf(to.path) !== -1) {
       next()
@@ -35,7 +35,7 @@ router.beforeEach((to, from, next) => {
         }).catch(err => {
           useUserStore().logOut().then(() => {
             ElMessage.error(err)
-            next({ path: '/' })
+            next({ path: '/login' })
           })
         })
       } else {

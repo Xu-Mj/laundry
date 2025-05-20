@@ -218,7 +218,7 @@ impl OrderCloth {
 
     pub async fn get_by_ids(pool: &Pool<Sqlite>, ids: &[String]) -> Result<Vec<Self>> {
         let mut builder =
-            sqlx::QueryBuilder::new("SELECT * FROM order_clothes WHERE cloth_id IN (");
+            sqlx::QueryBuilder::new(&format!("{} WHERE cloth_id IN ( ", SQL));
 
         // bind ids
         for (i, id) in ids.iter().enumerate() {

@@ -26,14 +26,13 @@
     <el-card class="table-card">
       <el-row :gutter="10" class="mb8">
         <el-col :span="1.5">
-          <el-button type="primary" plain icon="Plus" @click="handleAdd">新增</el-button>
+          <el-button type="primary" plain icon="Plus" @click="handleAdd" v-if="!isGuest">新增</el-button>
         </el-col>
         <el-col :span="1.5">
-          <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleDelete">批量删除</el-button>
+          <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleDelete" v-if="!isGuest">批量删除</el-button>
         </el-col>
         <el-col :span="1.5">
-          <el-button type="success" plain icon="Edit" :disabled="ids.length == 0"
-            @click="showUpdateRefNum = true">设置使用计数</el-button>
+          <el-button type="success" plain icon="Edit" :disabled="ids.length == 0" @click="showUpdateRefNum = true" v-if="!isGuest">设置使用计数</el-button>
         </el-col>
         <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
       </el-row>
@@ -55,8 +54,8 @@
         <el-table-column label="备注" align="center" prop="remark" show-overflow-tooltip />
         <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
           <template #default="scope">
-            <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)">修改</el-button>
-            <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)">删除</el-button>
+            <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-if="!isGuest">修改</el-button>
+            <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-if="!isGuest">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -269,8 +268,13 @@ import { ElMessage } from 'element-plus';
 import { invoke } from '@tauri-apps/api/core';
 import { nanoid } from 'nanoid';
 import { convertFileSrc } from '@tauri-apps/api/core'
+import useUserStore from '@/store/modules/user';
 
 const { proxy } = getCurrentInstance();
+const userStore = useUserStore();
+
+// 检查是否为游客
+const isGuest = computed(() => userStore.trial?.isGuest);
 
 const clothingList = ref([]);
 const open = ref(false);

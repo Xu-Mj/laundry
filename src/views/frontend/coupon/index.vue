@@ -496,7 +496,7 @@ function calValue(type, value) {
     return value + '元';
   }
   if (type === '003') {
-    return value + '折';
+    return value / 10 + '折';
   }
   if (type === '002') {
     return value + '次';

@@ -52,6 +52,11 @@ impl AppState {
     pub async fn check_and_refresh_after_sleep(&self) {
         let token_lock = self.token.lock().await;
         if let Some(token) = token_lock.as_ref() {
+            if token.user.id == Some(0) {
+                tracing::debug!("logined user is guest, no need to refresh");
+                return;
+            }
+
             // 检查 token 是否过期或即将过期
             let now = SystemTime::now()
                 .duration_since(UNIX_EPOCH)
@@ -222,5 +227,15 @@ impl AppState {
     pub async fn try_get_token(&self) -> Result<String> {
         let token = self.token.lock().await;
         Ok(token.as_ref().ok_or(Error::unauthorized())?.token.clone())
+    }
+
+    pub async fn try_token(&self) -> Result<Token> {
+        let token = self.token.lock().await;
+        Ok(token.clone().ok_or(Error::unauthorized())?)
+    }
+
+    pub async fn try_get_user_id(&self) -> Result<i64> {
+        let token = self.token.lock().await;
+        Ok(token.as_ref().ok_or(Error::unauthorized())?.user.id.ok_or(Error::unauthorized())?)
     }
 }

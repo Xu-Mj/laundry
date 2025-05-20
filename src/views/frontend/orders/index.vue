@@ -426,7 +426,7 @@ const columns = ref([
   { key: 6, label: `实际支付`, visible: true },
   { key: 7, label: `衣物编码`, visible: true },
   { key: 8, label: `取件码`, visible: true },
-  { key: 9, label: `业务类型`, visible: true },
+  { key: 9, label: `业务类型`, visible: false },
   { key: 10, label: `收衣时间`, visible: true },
   { key: 11, label: `时效预警`, visible: false },
   { key: 12, label: `订单完成时间`, visible: true },

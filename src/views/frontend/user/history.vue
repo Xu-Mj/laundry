@@ -198,12 +198,6 @@ async function initList() {
     await tagsStore.initTags();
 }
 
-function close() {
-    queryParams.value = { pageNum: 1, pageSize: 10 };
-    show.value = false;
-    props.toggle();
-}
-
 // 提取出价格计算逻辑
 async function calculatePrice(item) {
     // 处理价格方案数组情况

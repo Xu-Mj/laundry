@@ -117,7 +117,8 @@ async function handleConfirm() {
         emit('success');
         handleClose();
     } catch (error) {
-        proxy.notify.error("添加分类失败：" + error);
+        console.error(error);
+        proxy.notify.error("添加分类失败");
     }
 }
 

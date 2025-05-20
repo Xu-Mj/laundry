@@ -168,7 +168,7 @@ impl Curd for User {
     fn apply_filters<'a>(&'a self, builder: &mut QueryBuilder<'a, Sqlite>) {
         self.user_name.as_ref().filter(|u| !u.is_empty()).map(|u| {
             builder
-                .push(" AND user_name LIKE ")
+                .push(" AND u.user_name LIKE ")
                 .push_bind(format!("%{}%", u));
         });
 
@@ -177,7 +177,7 @@ impl Curd for User {
             .filter(|p| !p.is_empty())
             .map(|p| {
                 builder
-                    .push(" AND phonenumber LIKE ")
+                    .push(" AND u.phonenumber LIKE ")
                     .push_bind(format!("%{}%", p));
             });
 
@@ -185,7 +185,7 @@ impl Curd for User {
             builder.push(" AND up.level_id = ").push_bind(l);
         });
 
-        self.store_id.filter(|l| *l != 0).map(|l| {
+        self.store_id.filter(|l| *l >= 0).map(|l| {
             builder.push(" AND u.store_id = ").push_bind(l);
         });
 

@@ -66,7 +66,7 @@ const normalMenus = [
   { 'name': '派送提醒', 'type': 'primary', show: false },
   { 'name': '卡券销售', 'type': 'primary', show: false, path: '/coupon-sale', onClick: () => router.push('/coupon-sale') },
   { 'name': '卡券赠送', 'type': 'primary', show: false, onClick: () => { showCouponGift.value = true } },
-  { 'name': '新增会员', 'type': 'primary', show: true, onClick: () => { showAddUserDialog.value = true } },
+  { 'name': '新增会员', 'type': 'primary', show: true, onClick: addUserClick },
   { 'name': '派送管理', 'type': 'primary', show: true, path: '/delivery', onClick: () => { router.push('/delivery') } },
   { 'name': '事故处理', 'type': 'danger', show: false },
   { 'name': '线上预约', 'type': 'success', show: false },
@@ -137,12 +137,16 @@ function hangupClick() {
     proxy.notify.warning('当前处于游客模式，请先注册！');
     return;
   }
-  // if (userStore.trial.isInTrial) {
-  //   // 弹窗提醒
-  //   proxy.notify.warning('您当前为试用期用户，请升级为正式用户后使用！');
-  //   return;
-  // }
   showHangUp.value = true;
+}
+
+function addUserClick() {
+  // 判断是否是试用期
+  if (userStore.trial.isGuest) {
+    proxy.notify.warning('当前处于游客模式，请先注册！');
+    return;
+  }
+  showAddUserDialog.value = true
 }
 
 const refreshUsersList = () => {

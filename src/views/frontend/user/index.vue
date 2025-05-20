@@ -60,9 +60,9 @@
             </el-table-column>
             <el-table-column label="会员账号" align="center" key="userName" prop="userName" v-if="columns[0].visible"
                :show-overflow-tooltip="true" />
-            <el-table-column label="手机号码" align="center" key="phonenumber" prop="phonenumber" v-if="columns[3].visible"
+            <el-table-column label="手机号码" align="center" key="phonenumber" prop="phonenumber" v-if="columns[2].visible"
                width="120" />
-            <el-table-column label="会员类型" align="center" key="userType" prop="userType" v-if="columns[6].visible">
+            <el-table-column label="会员类型" align="center" key="userType" prop="userType" v-if="columns[3].visible">
                <template #default="scope">
                   <dict-tag :options="sys_user_type" :value="scope.row.userType" />
                </template>
@@ -220,22 +220,22 @@ const levelOptions = ref([]);
 
 // 列显隐信息
 const columns = ref([
-   { key: 1, label: `会员账号`, visible: true },
-   { key: 2, label: `会员姓名`, visible: true },
-   { key: 3, label: `归属组织`, visible: true },
-   { key: 4, label: `手机号码`, visible: true },
-   { key: 5, label: `账号状态`, visible: false },
-   { key: 6, label: `创建时间`, visible: false },
-   { key: 7, label: `会员类型`, visible: false },
-   { key: 8, label: `会员等级`, visible: true },
-   { key: 9, label: `备注信息`, visible: true },
-   { key: 10, label: `微信标识`, visible: false },
-   { key: 11, label: `会员性别`, visible: false },
-   { key: 12, label: `会员积分`, visible: true },
-   { key: 13, label: `会员画像`, visible: true },
-   { key: 14, label: `黑灰名单`, visible: false },
-   { key: 15, label: `会员住址`, visible: false },
-   { key: 16, label: `余额`, visible: true },
+   { key: 0, label: `会员账号`, visible: false },
+   { key: 1, label: `会员姓名`, visible: true },
+   { key: 2, label: `手机号码`, visible: true },
+   { key: 3, label: `会员类型`, visible: false },
+   { key: 4, label: `账号状态`, visible: false },
+   { key: 5, label: `创建时间`, visible: false },
+   { key: 6, label: `会员类型`, visible: false },
+   { key: 7, label: `会员等级`, visible: true },
+   { key: 8, label: `备注信息`, visible: true },
+   { key: 9, label: `微信标识`, visible: false },
+   { key: 10, label: `性别`, visible: false },
+   { key: 11, label: `会员积分`, visible: true },
+   { key: 12, label: `会员画像`, visible: true },
+   { key: 13, label: `黑灰名单`, visible: false },
+   { key: 14, label: `会员住址`, visible: false },
+   { key: 15, label: `余额`, visible: true },
 ]);
 
 const data = reactive({

@@ -374,8 +374,9 @@ function resetQuery() {
 /** 选择条数 */
 function handleSelectionChange(selection) {
   ids.value = selection.map(item => item.deliveryId);
+  // 只有全部为"派送中"时才允许批量取消
+  multiple.value = !selection.length || !selection.every(item => item.deliveryStatus === '01');
   single.value = selection.length !== 1;
-  multiple.value = !selection.length;
 }
 
 /** 新增按钮操作 */
@@ -498,6 +499,12 @@ function handleCancel(row) {
 
 /** 批量删除操作 */
 function handleDelete() {
+  // 再次校验，防止绕过
+  const selectedRows = deliveryList.value.filter(item => ids.value.includes(item.deliveryId));
+  if (!selectedRows.every(item => item.deliveryStatus === '01')) {
+    proxy.$modal.msgError('只能批量取消"派送中"的记录！');
+    return;
+  }
   proxy.$modal.confirm('是否确认取消选中的' + ids.value.length + '条派送记录？').then(function () {
     const promises = ids.value.map(id => cancelDelivery(id));
     return Promise.all(promises);

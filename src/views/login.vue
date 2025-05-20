@@ -165,15 +165,25 @@ function handleLogin() {
 
 // 游客登录处理函数
 function handleGuestLogin() {
-  loading.value = true;
-
-  // 调用登录方法
-  userStore.guestLogin().then((res) => {
-    routeJump();
-  }).catch((err) => {
-    loading.value = false;
-    proxy.notify.error('游客登录失败，请稍后再试');
-    console.error(err);
+  // 显示确认对话框
+  proxy.$confirm('您正在以游客身份登录，请注意：\n\n• 大部分功能将无法使用\n• 可能会遇到无法预知的错误\n• 如需体验完整功能，请注册账号并登录', '游客登录提示', {
+    confirmButtonText: '继续登录',
+    cancelButtonText: '返回',
+    type: 'warning'
+  }).then(() => {
+    // 用户确认后继续登录
+    loading.value = true;
+    
+    // 调用登录方法
+    userStore.guestLogin().then((res) => {
+      routeJump();
+    }).catch((err) => {
+      loading.value = false;
+      proxy.notify.error('游客登录失败，请稍后再试');
+      console.error(err);
+    });
+  }).catch(() => {
+    // 用户取消，不执行任何操作
   });
 }
 

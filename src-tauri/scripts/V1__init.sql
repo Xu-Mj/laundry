@@ -1041,3 +1041,21 @@ VALUES (7, 'gsyyzy', '公司运营专员', 7, '0', '2024-08-22 15:29:21', '2024-
         '公司运营专员，无实体店铺，主要管理系统中各分店铺的账号与数据');
 INSERT INTO membership_level (level_id, level_code, level_name, level_sort, status, create_time, update_time, remark)
 VALUES (8, 'boss', 'BOSS', 8, '0', '2024-08-22 15:30:43', '2024-08-22 15:30:58', '最高权限的管理，用于公司高级领导');
+
+-- 为游客添加一条衣物品类数据
+-- INSERT INTO clothing_categories (category_id, store_id, category_code, category_name, order_num, remark, del_flag, created_at, updated_at) 
+-- VALUES (0, 0, '000', '服装洗护', 0, '游客默认品类', '0', strftime('%s', 'now'), strftime('%s', 'now'));
+
+-- 为游客添加一条衣物分类数据
+-- INSERT INTO clothing_styles (style_id, store_id, category_id, style_code, style_name, order_num, remark, del_flag, created_at, updated_at)
+-- VALUES (0, 0, 0, '000', '上衣', 0, '游客默认分类', '0', strftime('%s', 'now'), strftime('%s', 'now'));
+
+-- 为游客添加一件衣物
+-- INSERT INTO clothing (id, store_id, clothing_number, category_id, style_id, title, etitle, primary_image, images, description_images, 
+--     is_put_on_sale, is_available, is_sold_out, is_default, clothing_base_price, sale_price, clothing_min_price, 
+--     stock_quantity, sold_num, sku_list, spec_list, tag_list, hang_type, order_num, clothing_degree, 
+--     del_flag, create_time, update_time)
+-- VALUES (0, 0, 'G001', 0, 0, '游客示例衣物', 'Guest Sample Clothing', 'images/clothing/default.jpg', '', '',
+--     true, true, false, true, 29.9, 29.9, 29.9,
+--     100, 0, '', '', '', '1', 0, 0,
+--     '0', strftime('%s', 'now'), strftime('%s', 'now'));

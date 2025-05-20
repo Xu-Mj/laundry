@@ -203,36 +203,36 @@ impl Curd for Clothing {
     const ORDER_SQL: Option<&'static str> = Some(" ORDER BY order_num DESC, clothing_degree DESC ");
 
     fn apply_filters<'a>(&'a self, builder: &mut QueryBuilder<'a, Sqlite>) {
-        if self.store_id.is_none() {
-            builder.push(" AND store_id = ").push_bind(self.store_id);
+        if let Some(store_id) = &self.store_id {
+            builder.push(" AND c.store_id = ").push_bind(store_id);
         }
 
         if let Some(id) = &self.id {
-            builder.push(" AND id = ").push_bind(id);
+            builder.push(" AND c.id = ").push_bind(id);
         }
 
         if let Some(title) = &self.title {
             builder
-                .push(" AND title ILIKE ")
+                .push(" AND c.title ILIKE ")
                 .push_bind(format!("%{}%", title));
         }
 
         if let Some(is_put_on_sale) = &self.is_put_on_sale {
             builder
-                .push(" AND is_put_on_sale = ")
+                .push(" AND c.is_put_on_sale = ")
                 .push_bind(is_put_on_sale);
         }
 
         if let Some(is_available) = &self.is_available {
-            builder.push(" AND is_available = ").push_bind(is_available);
+            builder.push(" AND c.is_available = ").push_bind(is_available);
         }
 
         if let Some(is_sold_out) = &self.is_sold_out {
-            builder.push(" AND is_sold_out = ").push_bind(is_sold_out);
+            builder.push(" AND c.is_sold_out = ").push_bind(is_sold_out);
         }
 
         if let Some(del_flag) = &self.del_flag {
-            builder.push(" AND del_flag = ").push_bind(del_flag);
+            builder.push(" AND c.del_flag = ").push_bind(del_flag);
         }
     }
 }
@@ -537,14 +537,6 @@ pub async fn add_clothing(state: State<'_, AppState>, mut clothing: Clothing) ->
         };
     }
 
-    if clothing.clothing_degree.is_none() {
-        clothing.clothing_degree = Some(0);
-    }
-
-    if clothing.order_num.is_none() {
-        clothing.order_num = Some(0);
-    }
-
     tracing::debug!("clothing: {:?}", clothing);
     // 保存本地图片路径的副本
     let local_primary_image = clothing.primary_image.clone();
@@ -590,6 +582,13 @@ pub async fn add_clothing(state: State<'_, AppState>, mut clothing: Clothing) ->
         clothing.images_vec = local_images;
     }
 
+    if clothing.clothing_degree.is_none() {
+        clothing.clothing_degree = Some(0);
+    }
+
+    if clothing.order_num.is_none() {
+        clothing.order_num = Some(0);
+    }
     let clothing = clothing.insert(&mut tx).await?;
 
     tx.commit().await?;
@@ -747,7 +746,15 @@ pub async fn create_clothing_4_create_order(
     tracing::debug!("clothing: {:?}", clothing);
 
     let mut tx = state.pool.begin().await?;
-    let clothing = clothing.create_request(&state).await?;
+    let mut clothing = clothing.create_request(&state).await?;
+
+    if clothing.clothing_degree.is_none() {
+        clothing.clothing_degree = Some(0);
+    }
+
+    if clothing.order_num.is_none() {
+        clothing.order_num = Some(0);
+    }
 
     let clothing = clothing.insert(&mut tx).await?;
 

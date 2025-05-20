@@ -80,7 +80,7 @@ impl Curd for ClothingStyle {
     const ORDER_SQL: Option<&'static str> = Some("ORDER BY order_num ASC");
 
     fn apply_filters<'a>(&'a self, builder: &mut QueryBuilder<'a, Sqlite>) {
-        if self.store_id > 0 {
+        if self.store_id >= 0 {
             builder.push(" AND store_id = ").push_bind(self.store_id);
         }
 

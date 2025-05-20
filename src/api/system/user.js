@@ -5,7 +5,6 @@ import invoke from '@/utils/invoke'
 export function listUser(query) {
   const pageParams = { pageSize: query.pageSize, page: query.pageNum, params: query.params };
   const user = { userName: query.userName, phonenumber: query.phonenumber, levelId: query.levelId };
-  console.log(query)
   return invoke('get_users_pagination', { pageParams, user })
 }
 

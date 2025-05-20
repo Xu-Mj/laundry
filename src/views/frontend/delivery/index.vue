@@ -89,49 +89,76 @@
     </el-card>
 
     <!-- 查看派送详情 -->
-    <el-dialog :title="'派送详情 #' + deliveryDetail.deliveryId" v-model="viewVisible" width="600px" append-to-body
-      align-center>
-      <el-descriptions :column="1" border>
-        <el-descriptions-item label="派送编号">{{ deliveryDetail.deliveryId }}</el-descriptions-item>
-        <el-descriptions-item label="客户信息">
-          <div class="user-info">
-            <el-avatar :size="32" :src="deliveryDetail.user?.avatar" icon="UserFilled"></el-avatar>
-            <div class="user-details">
-              <div class="user-name">{{ deliveryDetail.user?.nickName || '未知客户' }}</div>
-              <div class="user-phone">{{ deliveryDetail.user?.phonenumber || '-' }}</div>
-            </div>
+    <el-dialog :title="'派送详情 #' + deliveryDetail.deliveryId" v-model="viewVisible" width="550px" append-to-body
+      align-center destroy-on-close class="delivery-detail-dialog">
+      <div class="detail-container">
+        <div class="detail-header">
+          <div class="status-container">
+            <span class="status-label">派送状态:</span>
+            <el-tag class="status-tag" :type="getStatusType(deliveryDetail.deliveryStatus)" size="large" effect="light">
+              {{ getStatusLabel(deliveryDetail.deliveryStatus) }}
+            </el-tag>
           </div>
-        </el-descriptions-item>
-        <el-descriptions-item label="派送地址">{{ deliveryDetail.address }}</el-descriptions-item>
-        <el-descriptions-item label="派送时间">{{ parseTime(deliveryDetail.dispatchTime) }}</el-descriptions-item>
-        <el-descriptions-item label="完成时间" v-if="deliveryDetail.completeTime">
-          {{ parseTime(deliveryDetail.completeTime) }}
-        </el-descriptions-item>
-        <el-descriptions-item label="派送状态">
-          <el-tag :type="getStatusType(deliveryDetail.deliveryStatus)">
-            {{ getStatusLabel(deliveryDetail.deliveryStatus) }}
-          </el-tag>
-        </el-descriptions-item>
-        <el-descriptions-item label="备注信息">{{ deliveryDetail.remark || '无' }}</el-descriptions-item>
-      </el-descriptions>
+        </div>
 
-      <div class="delivery-items">
-        <div class="section-title">派送衣物</div>
-        <el-table :data="clothesList" size="small">
-          <el-table-column prop="clothId" label="衣物编号" width="100" />
-          <el-table-column prop="clothInfo.clothingName" label="衣物名称" min-width="120" />
-          <el-table-column prop="hangClothCode" label="衣物编码" width="120" />
-          <el-table-column prop="priceValue" label="价格" width="80">
-            <template #default="scope">
-              <span class="price">￥{{ scope.row.priceValue || 0 }}</span>
-            </template>
-          </el-table-column>
-        </el-table>
+        <div class="detail-section">
+          <h3 class="section-header">基本信息</h3>
+          <el-descriptions :column="1" border>
+            <el-descriptions-item label="客户信息">
+              <div class="user-info-detail">
+                <el-avatar :size="40" :src="deliveryDetail.user?.avatar" icon="UserFilled"></el-avatar>
+                <div class="user-details">
+                  <div class="user-name">{{ deliveryDetail.user?.nickName || '未知客户' }}</div>
+                  <div class="user-phone">{{ deliveryDetail.user?.phonenumber || '-' }}</div>
+                </div>
+              </div>
+            </el-descriptions-item>
+            <el-descriptions-item label="派送地址">{{ deliveryDetail.address }}</el-descriptions-item>
+            <el-descriptions-item label="派送时间">{{ parseTime(deliveryDetail.dispatchTime) }}</el-descriptions-item>
+            <el-descriptions-item label="完成时间" v-if="deliveryDetail.completeTime">
+              {{ parseTime(deliveryDetail.completeTime) }}
+            </el-descriptions-item>
+            <el-descriptions-item label="备注信息">
+              <div class="remark-content">{{ deliveryDetail.remark || '无' }}</div>
+            </el-descriptions-item>
+          </el-descriptions>
+        </div>
+
+        <div class="detail-section">
+          <h3 class="section-header">派送衣物 <span class="item-count">({{ clothesList.length }}件)</span></h3>
+          <el-table :data="clothesList" size="default" border class="items-table">
+            <el-table-column prop="clothInfo.title" label="衣物名称" min-width="120" show-overflow-tooltip />
+            <el-table-column prop="hangClothCode" label="衣物编码" width="120" align="center" />
+            <el-table-column prop="priceValue" label="价格" width="100" align="right">
+              <template #default="scope">
+                <span class="price">￥{{ scope.row.priceValue || 0 }}</span>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
       </div>
+
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="viewVisible = false" plain>关闭</el-button>
+          <el-button v-if="deliveryDetail.deliveryStatus === '00' || deliveryDetail.deliveryStatus === '01'"
+            type="success" @click="handleComplete(deliveryDetail)">
+            <el-icon>
+              <Check />
+            </el-icon>标记完成
+          </el-button>
+          <el-button v-if="deliveryDetail.deliveryStatus === '00' || deliveryDetail.deliveryStatus === '01'"
+            type="danger" @click="handleCancel(deliveryDetail)">
+            <el-icon>
+              <Close />
+            </el-icon>取消派送
+          </el-button>
+        </div>
+      </template>
     </el-dialog>
 
     <!-- 创建派送对话框 -->
-    <el-dialog :title="'创建派送'" v-model="addVisible" width="600px" append-to-body>
+    <!-- <el-dialog :title="'创建派送'" v-model="addVisible" width="600px" append-to-body>
       <el-form :model="deliveryForm" ref="deliveryFormRef" :rules="rules" label-width="100px">
         <el-form-item label="选择客户" prop="userId">
           <el-select v-model="deliveryForm.userId" filterable placeholder="请选择客户" style="width: 100%"
@@ -174,12 +201,12 @@
           <el-button type="primary" @click="submitDelivery">确 定</el-button>
         </div>
       </template>
-    </el-dialog>
+    </el-dialog> -->
   </div>
 </template>
 
 <script setup>
-import { listDeliveries, completeDelivery, cancelDelivery, getDeliveryById, delivery } from "@/api/frontend/delivery";
+import { listDeliveries, completeDelivery, cancelDelivery, delivery } from "@/api/frontend/delivery";
 import { getUserListByIds, listUserWithNoLimit } from "@/api/system/user";
 import { getOrderClothByIds, getDeliveryEligibleClothes } from "@/api/system/orderCloth";
 
@@ -442,7 +469,7 @@ function handleView(row) {
 
   // 加载衣物详情
   if (row.clothId) {
-    const clothIds = row.clothId.split(',').map(id => parseInt(id));
+    const clothIds = row.clothId.split(',');
     getOrderClothByIds(clothIds).then(res => {
       clothesList.value = res || [];
     });
@@ -558,5 +585,134 @@ onMounted(() => {
 
 .cloth-transfer :deep(.el-transfer-panel__list.is-filterable) {
   height: 250px;
+}
+
+/* 派送详情弹窗样式 */
+.delivery-detail-dialog :deep(.el-dialog__header) {
+  padding: 20px 20px 10px;
+  margin-right: 0;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.delivery-detail-dialog :deep(.el-dialog__title) {
+  font-weight: 600;
+  font-size: 18px;
+}
+
+.delivery-detail-dialog :deep(.el-dialog__body) {
+  padding: 20px;
+}
+
+.delivery-detail-dialog :deep(.el-dialog__footer) {
+  padding: 15px 20px;
+  border-top: 1px solid #ebeef5;
+}
+
+.detail-container {
+  padding: 0;
+}
+
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px dashed #ebeef5;
+}
+
+.status-container {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.status-label {
+  font-size: 15px;
+  font-weight: 600;
+  margin-right: 10px;
+  color: #606266;
+}
+
+.status-tag {
+  font-size: 14px;
+  padding: 6px 12px;
+}
+
+.detail-section {
+  margin-bottom: 25px;
+}
+
+.detail-section:last-child {
+  margin-bottom: 0;
+}
+
+.section-header {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+}
+
+.item-count {
+  font-size: 14px;
+  color: #909399;
+  font-weight: normal;
+  margin-left: 8px;
+}
+
+.user-info-detail {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.user-info-detail .user-details {
+  margin-left: 12px;
+}
+
+.remark-content {
+  padding: 5px 0;
+  color: #606266;
+  white-space: pre-line;
+}
+
+.items-table {
+  margin-bottom: 15px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.total-section {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 10px 0;
+}
+
+.total-label {
+  font-size: 15px;
+  font-weight: 600;
+  margin-right: 10px;
+}
+
+.total-value {
+  font-size: 18px;
+  font-weight: 600;
+  color: #F56C6C;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.price {
+  color: #F56C6C;
+  font-weight: 500;
 }
 </style>

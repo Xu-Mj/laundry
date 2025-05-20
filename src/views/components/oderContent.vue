@@ -106,12 +106,12 @@
                     </div>
                 </div>
                 <!-- 订单包含的衣物列表 -->
-                                <el-table v-if="order.clothList && order.clothList.length > 0" :data="order.clothList"
+                <el-table v-if="order.clothList && order.clothList.length > 0" :data="order.clothList"
                     :loading="order.loading" row-key="clothId"
                     @selection-change="selectedItems => handleClothSelectionChange(selectedItems, order)"
                     ref="clothsTableRef" class="modern-table" stripe>
                     <el-table-column type="selection" width="50" align="center" />
-                    <el-table-column label="衣物" align="center" min-width="120">
+                    <el-table-column label="衣物" align="center" min-width="100" show-overflow-tooltip>
                         <template #default="scope">
                             <div class="cloth-name">
                                 {{ scope.row.clothInfo.title }}
@@ -135,12 +135,12 @@
                             </span>
                         </template>
                     </el-table-column>
-                    <el-table-column label="洗护价格" align="center" prop="priceValue" width="90">
+                    <el-table-column label="洗护价格" align="center" prop="priceValue">
                         <template #default="scope">
                             <span class="price-value">¥{{ scope.row.priceValue }}</span>
                         </template>
                     </el-table-column>
-                    <el-table-column label="工艺加价" align="center" prop="processMarkup" width="90">
+                    <el-table-column label="工艺加价" align="center" prop="processMarkup">
                         <template #default="scope">
                             <span v-if="scope.row.processMarkup && scope.row.processMarkup > 0" class="markup-value">
                                 +{{ scope.row.processMarkup }}
@@ -205,7 +205,7 @@
                     </el-table-column>
                     <el-table-column label="上挂位置" align="center" width="120">
                         <template #default="scope">
-                            <el-tag v-if="scope.row.hangLocationCode" type="info">
+                            <el-tag v-if="scope.row.hangLocationCode" type="success">
                                 {{ scope.row.hangerName + '-' + scope.row.hangerNumber }}
                             </el-tag>
                             <span v-else>-</span>
@@ -573,10 +573,10 @@ function handleDeliveryCancel() {
 function handleClothSelectionChange(selectedItems, row) {
     // 获取当前订单的所有衣物，用于对比哪些被选中哪些未被选中
     const orderId = row.orderId;
-    
+
     // 先移除当前订单下所有选中的衣物
     selectedCloths.value = selectedCloths.value.filter(cloth => cloth.orderId !== orderId);
-    
+
     // 只添加新选中的衣物，这样就不会选择整个订单的衣物
     if (selectedItems && selectedItems.length > 0) {
         selectedCloths.value.push(...selectedItems);
@@ -611,7 +611,10 @@ async function initList() {
 
 /** 查询洗护服务订单列表 */
 async function getList() {
-    if (queryParams.value.pickupCode === '' && queryParams.value.phonenumber === '' && queryParams.value.orderNumber === '' && queryParams.value.paymentStatus === '') {
+    if (queryParams.value.pickupCode === ''
+        && queryParams.value.phonenumber === ''
+        && queryParams.value.orderNumber === ''
+        && queryParams.value.paymentStatus === '') {
         return;
     }
     loading.value = true;

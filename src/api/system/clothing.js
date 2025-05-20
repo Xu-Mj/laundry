@@ -15,8 +15,8 @@ export function listClothing(query) {
 }
 
 // 查询衣物管理列表
-export function listClothingWithNoLimit() {
-  return invoke('list_clothing_all', { clothing: {} })
+export function listClothingWithNoLimit(clothing) {
+  return invoke('list_clothing_all', { clothing })
 }
 
 // 查询衣物管理详细

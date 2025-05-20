@@ -493,7 +493,6 @@ const showCategoryPrompt = ref(false);
 const showRackInitCheck = ref(false);
 
 // 添加这些缺少的变量声明
-const currentCloth = ref();
 const cateName = ref();
 const clothNameRef = ref();
 const prePictureList2 = ref(new Set()); // 洗前图片
@@ -557,6 +556,14 @@ watch(() => props.clothes, (newClothes) => {
     }
 }, { immediate: true });
 
+// 监听userId的变化，当有userId时才加载数据
+watch(() => props.userId, async (newUserId) => {
+    if (newUserId) {
+        await initList();
+        handleAdd();
+    }
+}, { immediate: true });
+
 const transitionName = ref('slide-right');
 
 watch(step, (newStep, oldStep) => {
@@ -572,7 +579,6 @@ const openCamera = async () => {
     showCameraModal.value = true;
     try {
         const devices = await navigator.mediaDevices.enumerateDevices();
-        console.log('devices:', devices);
         const videoDevices = devices.filter(device => device.kind === 'videoinput');
         if (videoDevices.length === 0) {
             proxy.notify.error('没有可用的摄像头设备');
@@ -696,6 +702,10 @@ function jumpToStep(stepNum) {
         proxy.notify.error("请先选择衣物类别");
         return;
     }
+    // 如果跳转到步骤1且还没有加载衣物列表，则加载
+    if (stepNum == 1 && clothingListFilterResult.value.length === 0) {
+        loadClothingByCategory();
+    }
     if (stepNum != 1 && !form.value.clothingId) {
         proxy.notify.error("请先选择衣物");
         return;
@@ -749,19 +759,38 @@ function handlePredefinedCategoriesSuccess() {
     // 刷新分类列表
     listCategoryAll().then(response => {
         categoryList.value = response;
+        if (categoryList.value.length > 0) {
+            form.value.categoryId = categoryList.value[0].categoryId;
+        }
         cateChange();
     });
 }
 
 // 当品类发生变化时动态查询子分类列表
 function cateChange() {
-    if (form.value.categoryId) {
-        listStyleByCategoryId(form.value.categoryId).then(res => {
-            clothStyleList.value = res.map(item => ({
-                dictValue: item.styleId,
-                dictLabel: item.styleName
-            }));
-        })
+    if (!form.value.categoryId) return;
+
+    listStyleByCategoryId(form.value.categoryId).then(res => {
+        clothStyleList.value = res.map(item => ({
+            dictValue: item.styleId,
+            dictLabel: item.styleName
+        }));
+    });
+}
+
+// 根据分类加载衣物列表
+function loadClothingByCategory() {
+    if (form.value.categoryId && form.value.styleId) {
+        const params = {
+            category_id: form.value.categoryId,
+            style_id: form.value.styleId
+        };
+
+        listClothingWithNoLimit(params).then(response => {
+            clothingList.value = response;
+            // 更新过滤后的结果
+            clothingListFilterResult.value = clothingList.value;
+        });
     }
 }
 
@@ -817,16 +846,13 @@ async function initList() {
             if (categoryList.value.length === 0) {
                 showCategoryPrompt.value = true;
             }
+            // 如果只有一个品类，自动选择该品类
+            else if (categoryList.value.length > 0) {
+                form.value.categoryId = categoryList.value[0].categoryId;
+                // 这里不调用cateChange，因为会在handleAdd中处理
+            }
         });
         promises.push(categoryPromise);
-    }
-
-    // 获取衣物列表
-    if (clothingList.value.length === 0) {
-        const clothingPromise = listClothingWithNoLimit().then(response => {
-            clothingList.value = response;
-        });
-        promises.push(clothingPromise);
     }
 
     // 使用store初始化标签数据
@@ -838,11 +864,7 @@ async function initList() {
 
 /** 新增按钮操作 */
 function handleAdd() {
-    reset();
-    // 如果有品类数据，初始化分类列表
-    if (form.value.categoryId) {
-        cateChange();
-    }
+    cateChange();
 }
 
 /** 提交按钮 */
@@ -979,30 +1001,17 @@ function nextStep() {
     }
 
     if (step.value === 1) {
-        clothingListFilterResult.value = clothingList.value.filter(item =>
-            item.categoryId === form.value.categoryId
-            && item.styleId === form.value.styleId);
-        console.log(form.value)
-        console.log(clothingListFilterResult.value)
+        // 这里不再过滤，因为已经在loadClothingByCategory中获取了过滤后的结果
+        loadClothingByCategory();
     }
     if (step.value === 1 && clothNameRef.value) {
         clothNameRef.value.focus();
     }
-
 }
 
 /* 跳过后续步骤 */
 function jump2last() {
     step.value = maxStepNum;
-}
-
-/* 获取衣物列表 */
-async function getClothingList() {
-    clothListloading.value = true;
-    listClothingWithNoLimit().then(res => {
-        clothingList.value = res.rows;
-        clothListloading.value = false;
-    });
 }
 
 // 获取颜色label的拼音首字母
@@ -1160,15 +1169,15 @@ function createCloth() {
         clothingList.value.push(newCloth);
 
         // 确保新添加的衣物被选中 - 强制触发一次更新
-        nextTick(() => {
-            // 这里添加一个小延迟，确保UI能正确反映选中状态
-            setTimeout(() => {
-                const selectedCloth = clothingListFilterResult.value.find(item => item.id === newCloth.id);
-                if (selectedCloth) {
-                    console.log("已选中衣物:", selectedCloth.title);
-                }
-            }, 100);
-        });
+        // nextTick(() => {
+        //     // 这里添加一个小延迟，确保UI能正确反映选中状态
+        //     setTimeout(() => {
+        //         const selectedCloth = clothingListFilterResult.value.find(item => item.id === newCloth.id);
+        //         if (selectedCloth) {
+        //             console.log("已选中衣物:", selectedCloth.title);
+        //         }
+        //     }, 100);
+        // });
 
         // 自动进入下一步
         nextStep();
@@ -1254,11 +1263,13 @@ async function addTag(type, tagName) {
 
 /* 衣物发生变化时要将最后一步的价格设置为选中衣物中的价格 */
 function step2ClothChange() {
-    if (form.value.clothingId) {
+    if (form.value.clothingId != null) {
         const cloth = clothingList.value.find(item => item.id == form.value.clothingId);
-        form.value.priceValue = cloth.clothingBasePrice;
-        form.value.hangType = cloth.hangType;
-        nextStep();
+        if (cloth) {
+            form.value.priceValue = cloth.clothingBasePrice;
+            form.value.hangType = cloth.hangType;
+            nextStep();
+        }
     }
 }
 
@@ -1280,11 +1291,10 @@ const handleRackSetupComplete = (completed) => {
 };
 
 // 监听衣物删除事件
-onMounted(async () => {
-    await initList();  // 确保 initList 完成
-    handleAdd();
-
-    // 监听衣物删除事件
+onMounted(() => {
+    reset();
+    // 不再在onMounted中直接调用initList
+    // 只设置监听事件
     eventBus.on('cloth-deleted', (clothId) => {
         // 如果当前正在编辑被删除的衣物，则重置表单
         if (form.value.clothId === clothId) {
@@ -1293,7 +1303,6 @@ onMounted(async () => {
     });
 });
 </script>
-<style></style>
 <style scoped>
 .app-container {
     width: 100%;
@@ -1769,9 +1778,11 @@ onMounted(async () => {
     0% {
         transform: scale(1);
     }
+
     50% {
         transform: scale(1.1);
     }
+
     100% {
         transform: scale(1);
     }

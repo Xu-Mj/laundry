@@ -68,6 +68,7 @@
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue';
 import { Phone, CircleClose } from '@element-plus/icons-vue';
 import { listUser } from '@/api/system/user'; // 导入用户API
+import eventBus from "@/utils/eventBus";
 
 const props = defineProps({
   modelValue: {
@@ -610,6 +611,23 @@ const handleClickOutside = (event) => {
   }
 };
 
+// 处理用户创建事件，添加新用户到列表并选中
+const handleUserCreated = (newUser) => {
+  // 检查用户是否已在列表中
+  const userExists = filteredUserList.value.some(user => user.userId === newUser.userId);
+  
+  if (!userExists) {
+    // 将新用户添加到列表中
+    filteredUserList.value = [newUser, ...filteredUserList.value];
+  }
+  
+  // 如果当前没有选中用户，或者用户正在创建状态，则选中新创建的用户
+  if (isCreatingUser.value || !props.modelValue) {
+    selectOption(newUser);
+    isCreatingUser.value = false;
+  }
+};
+
 // 生命周期钩子
 onMounted(() => {
   document.addEventListener('click', handleClickOutside);
@@ -617,10 +635,16 @@ onMounted(() => {
   // 初始加载时重置分页参数
   currentPage.value = 1;
   hasMoreData.value = true;
+  
+  // 监听用户创建事件
+  eventBus.on('user-created', handleUserCreated);
 });
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleClickOutside);
+  
+  // 移除事件监听
+  eventBus.off('user-created', handleUserCreated);
 });
 
 // 暴露方法给父组件

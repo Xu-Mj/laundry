@@ -182,16 +182,16 @@
                                         <div class="coupon-card" :class="{ 'disabled': !card.isValid }">
                                             <div class="coupon-title">{{ card.coupon.couponTitle }}</div>
                                             <div class="coupon-value">剩余: {{ card.totalAvailableValue }}次</div>
-                                            <div v-if="card.groupCount > 1" class="coupon-group-info">
+                                            <!-- <div v-if="card.groupCount > 1" class="coupon-group-info">
                                                 已合并 {{ card.groupCount }} 张同类卡
-                                            </div>
+                                            </div> -->
                                             <div v-if="!card.isValid" class="coupon-invalid">{{ card.unValidReason }}
                                             </div>
                                         </div>
                                     </el-checkbox>
-                                    <el-input-number v-if="card.selected" v-model="card.count"
+                                    <!-- <el-input-number v-if="card.selected" v-model="card.count"
                                         @change="changeCouponCount(card)" :min="1" :max="card.totalAvailableValue"
-                                        controls-position="right" class="count-input" />
+                                        controls-position="right" class="count-input" /> -->
                                 </div>
                             </div>
                         </el-collapse-item>
@@ -1097,54 +1097,6 @@ function setDefaultActivePanel() {
     }
 }
 
-// 此卡数量改变
-function changeCouponCount() {
-    // 计算默认数量
-    // 计算选中的次卡数量
-    const count = userCouponList.value.filter(item => item.selected).reduce((acc, item) => {
-        if (item.coupon.couponType == '002') {
-            acc += item.count;
-        }
-        return acc;
-    }, 0);
-
-    timeCardCount.value = count;
-
-    if (count == 0) {
-        paymentForm.value.paymentMethod = '02';
-        paymentForm.value.bonusAmount = 0;
-    } else {
-        // 需要补充差价
-        const clothsList = props.clothsList && props.clothsList.length > 0 ? props.clothsList :
-            (props.order && props.order.cloths ? props.order.cloths : []);
-
-        if (clothsList.length > 0) {
-            if (clothsList.length > count) {
-                const diffCount = clothsList.length - count;
-                // 获取diffCount数量的衣物
-                const diffCloths = clothsList.slice(0, diffCount);
-                // 计算差价
-                let priceDiff = diffCloths.reduce((acc, cloth) => acc + cloth.priceValue, 0);
-                paymentForm.value.priceDiff = Math.floor(priceDiff * 100) / 100;
-                let bonusAmount = paymentForm.value.totalAmount - paymentForm.value.priceDiff;
-                paymentForm.value.bonusAmount = Math.floor(bonusAmount * 100) / 100;
-                paymentForm.value.paymentMethod = '02';
-            } else {
-                paymentForm.value.priceDiff = 0;
-                paymentForm.value.paymentMethod = '07';
-                paymentForm.value.bonusAmount = paymentForm.value.totalAmount;
-            }
-        } else {
-            // 如果没有衣物列表，使用订单金额
-            paymentForm.value.priceDiff = 0;
-            paymentForm.value.bonusAmount = paymentForm.value.totalAmount;
-            paymentForm.value.paymentMethod = '07';
-        }
-    }
-
-    paymentForm.value.paymentAmount = paymentForm.value.totalAmount - (paymentForm.value.bonusAmount ? paymentForm.value.bonusAmount : 0);
-}
-
 // 智能选择储值卡的函数
 function autoSelectStorageCards(isManualTrigger = false) {
     // 如果用户已经手动选择了储值卡 且 不是手动触发的, 则不进行自动选择
@@ -1227,6 +1179,22 @@ function handlePaymentMethodChange(value) {
             validTimeCards[0].selected = true;
             // 触发计算逻辑
             changeCoupon(2, validTimeCards[0]);
+        }
+    } else {
+        activeCollapseItem.value = [];
+        
+        // 清除次卡的选中状态
+        groupedTimeCards.value.forEach(card => {
+            card.selected = false;
+        });
+        userCouponList.value.filter(item => item.coupon.couponType === "002").forEach(item => {
+            item.selected = false;
+        });
+        
+        // 重置价格差额和优惠金额
+        if (paymentForm.value.bonusAmount > 0) {
+            paymentForm.value.bonusAmount = 0;
+            paymentForm.value.paymentAmount = paymentForm.value.totalAmount;
         }
     }
 }

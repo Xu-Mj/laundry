@@ -22,13 +22,13 @@
     <el-card class="table-card">
       <el-row :gutter="10" class="mb8">
         <el-col :span="1.5">
-          <el-button type="primary" plain icon="Plus" @click="handleAdd">新增</el-button>
+          <el-button type="primary" plain icon="Plus" @click="handleAdd" v-if="!isGuest">新增</el-button>
         </el-col>
         <el-col :span="1.5">
-          <el-button type="success" plain icon="Edit" :disabled="single" @click="handleUpdate">修改</el-button>
+          <el-button type="success" plain icon="Edit" :disabled="single" @click="handleUpdate" v-if="!isGuest">修改</el-button>
         </el-col>
         <el-col :span="1.5">
-          <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleDelete">删除</el-button>
+          <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleDelete" v-if="!isGuest">删除</el-button>
         </el-col>
         <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
       </el-row>
@@ -50,8 +50,8 @@
         </el-table-column>
         <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
           <template #default="scope">
-            <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)">修改</el-button>
-            <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)">删除</el-button>
+            <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-if="!isGuest">修改</el-button>
+            <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-if="!isGuest">删除</el-button>
             <router-link :to="'/system/clothingStyle?categoryId=' + scope.row.categoryId" class="link-type">
               <el-button link type="primary" icon="View">查看分类</el-button>
             </router-link>
@@ -113,9 +113,14 @@
 <script setup>
 import { listCategory, getCategory, delCategory, addCategory, updateCategory } from "@/api/system/clothingCategory";
 import { ElMessageBox } from 'element-plus';
-import { ref, reactive, toRefs, onMounted } from 'vue';
+import { ref, reactive, toRefs, onMounted, computed } from 'vue';
+import useUserStore from '@/store/modules/user';
 
 const { proxy } = getCurrentInstance();
+const userStore = useUserStore();
+
+// 检查是否为游客
+const isGuest = computed(() => userStore.trial?.isGuest);
 
 const data = reactive({
   // 遮罩层

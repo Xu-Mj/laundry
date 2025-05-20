@@ -32,22 +32,19 @@
             </div>
             <el-row :gutter="10" class="mb8">
                 <el-col :span="1.5">
-                    <el-button type="primary" plain icon="Plus" @click="handleAdd">新增</el-button>
+                    <el-button type="primary" plain icon="Plus" @click="handleAdd" v-if="!isGuest">新增</el-button>
                 </el-col>
                 <el-col :span="1.5">
-                    <el-button type="success" plain icon="Edit" :disabled="single" @click="handleUpdate">修改</el-button>
+                    <el-button type="success" plain icon="Edit" :disabled="single" @click="handleUpdate" v-if="!isGuest">修改</el-button>
                 </el-col>
                 <el-col :span="1.5">
-                    <el-button type="danger" plain icon="Delete" :disabled="multiple"
-                        @click="handleDelete">删除</el-button>
+                    <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleDelete" v-if="!isGuest">删除</el-button>
                 </el-col>
                 <el-col :span="1.5">
                     <el-button type="warning" plain icon="Back" @click="handleClose">返回</el-button>
                 </el-col>
                 <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
             </el-row>
-
-
 
             <el-table v-loading="loading" :data="styleList" @selection-change="handleSelectionChange"
                 class="modern-table" border stripe>
@@ -71,8 +68,8 @@
                 </el-table-column>
                 <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
                     <template #default="scope">
-                        <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)">修改</el-button>
-                        <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)">删除</el-button>
+                        <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-if="!isGuest">修改</el-button>
+                        <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-if="!isGuest">删除</el-button>
                     </template>
                 </el-table-column>
             </el-table>
@@ -136,12 +133,16 @@ import { listStyle, getStyle, delStyle, addStyle, updateStyle } from "@/api/syst
 import { listCategoryAll } from "@/api/system/clothingCategory";
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { useRoute, useRouter } from 'vue-router';
+import useUserStore from '@/store/modules/user';
 
 const { proxy } = getCurrentInstance();
-
 const route = useRoute();
 const router = useRouter();
+const userStore = useUserStore();
 const categoryName = ref('');
+
+// 检查是否为游客
+const isGuest = computed(() => userStore.trial?.isGuest);
 
 const data = reactive({
     // 遮罩层

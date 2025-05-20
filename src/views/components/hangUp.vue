@@ -152,11 +152,11 @@
 
         <template #footer>
             <div class="dialog-footer">
-                <el-button @click="open = false" plain>
-                    取消
-                </el-button>
-                <el-button type="primary" ref="hangUpBtnRef" :disabled="hangupBtnDisabled" @click="hangUp">
+                <el-button type="primary" ref="hangUpBtnRef" :disabled="hangupBtnDisabled" @click="hangUp" icon="Check">
                     确认上挂
+                </el-button>
+                <el-button type="danger" icon="Close" @click="open = false" plain>
+                    取消
                 </el-button>
             </div>
         </template>
@@ -165,10 +165,8 @@
 
 <script setup name="HangUp">
 import { getClothByCode, hangup } from "@/api/system/cloths";
-import { listTagsNoLimit } from "@/api/system/tags";
 import { listRack } from "@/api/system/rack";
 import { getUserByClothCode } from "@/api/system/user";
-import { Search, Location, Goods, Warning, Timer, Memo } from '@element-plus/icons-vue';
 import useTagsStore from "@/store/modules/tags";
 
 const props = defineProps({
@@ -294,15 +292,11 @@ function hangUp() {
         //校验上挂表单内容
         proxy.$refs["hangUpRef"].validate(async valid => {
             if (valid) {
-                console.log(currentCloth.value)
-                console.log(hangForm.value)
                 proxy.$modal.loading("上挂中...");
                 await hangup(hangForm.value).then(res => {
                     proxy.notify.success("上挂成功"); open.value = false;
                     props.taggle();
                 }).catch(res => {
-                    // proxy.notify.error(res.msg);
-                    console.log(res);
                     if (res.kind && res.kind == 'SmsNotSubscribed') {
                         proxy.notify.success("上挂成功");
                         open.value = false;

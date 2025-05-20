@@ -82,7 +82,7 @@
                     </el-icon>
                     <span>{{ submitting ? '提交中...' : '确 定' }}</span>
                 </el-button>
-                <el-button type="danger" @click="cancel" icon="Close">取 消</el-button>
+                <el-button type="danger" @click="cancel" icon="Close" plain>取 消</el-button>
             </div>
         </template>
     </el-dialog>

@@ -25,10 +25,10 @@
                     已选择 {{ selectedCategories.length }} 个分类
                 </div>
                 <div class="footer-buttons">
-                    <el-button @click="handleCancel">取消</el-button>
                     <el-button type="primary" @click="handleConfirm">
                         确认添加
                     </el-button>
+                    <el-button type="danger" plain @click="handleCancel">取消</el-button>
                 </div>
             </div>
         </template>

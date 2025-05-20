@@ -123,7 +123,7 @@
         <template #footer>
             <div class="dialog-footer">
                 <el-button type="primary" @click="submitForm" icon="Check">确 定</el-button>
-                <el-button type="danger" @click="cancel" icon="Close">取 消</el-button>
+                <el-button type="danger" @click="cancel" icon="Close" plain>取 消</el-button>
             </div>
         </template>
     </el-dialog>

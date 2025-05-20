@@ -377,10 +377,10 @@
             </div>
             <template #footer>
                 <span class="dialog-footer">
-                    <el-button @click="handleCategoryPrompt(false)">暂不添加</el-button>
                     <el-button type="primary" @click="handleCategoryPrompt(true)">
                         添加预定义分类
                     </el-button>
+                    <el-button type="danger" @click="handleCategoryPrompt(false)" plain>暂不添加</el-button>
                 </span>
             </template>
         </el-dialog>
@@ -390,7 +390,6 @@
 
 <script setup name="AddCloth">
 import { addCloths, updateCloths } from "@/api/system/cloths";
-import { CoffeeCup, CollectionTag, CopyDocument, PictureRounded, User, WarningFilled } from "@element-plus/icons-vue";
 import { listClothingWithNoLimit, createClothingCreateOrder } from "@/api/system/clothing";
 import { listCategoryAll } from "@/api/system/clothingCategory";
 import { listStyleByCategoryId, addStyle } from "@/api/system/clothingStyle";
@@ -468,8 +467,6 @@ const clothList = ref([]);
 const clothingList = ref([]);
 const clothingListFilterResult = ref([]);
 const clothStyleList = ref([]);
-// 该用户洗过的衣物历史记录
-const showUploadPicture = ref(false);
 const showPriceContent = ref(false);
 const showAddClothBtn = ref(false);
 const showAddColorBtn = ref(false);
@@ -477,7 +474,6 @@ const showAddFlawBtn = ref(false);
 const showAddEstimateBtn = ref(false);
 const showAddBrandBtn = ref(false);
 const showHistory = ref(false);
-const clothListloading = ref(false);
 const step = ref(0);
 const clothNameInput = ref(null);
 const clothColorInput = ref(null);

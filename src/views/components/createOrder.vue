@@ -32,11 +32,10 @@
                         <el-row :gutter="20">
                             <el-col :span="12">
                                 <el-form-item size="large" label="会员：" prop="userId">
-                                    <UserSelect v-model="form.userInfo" :disabled="notEditable"
-                                        :search-method="searchUserMethod" @change="selectUser" @blur="handleBlur"
-                                        @need-create-user="handleNeedCreateUser" @update-phone="handleUpdatePhone"
-                                        @validate="handleUserValidate" @clear-validation="clearUserValidation"
-                                        ref="userSelectRef" />
+                                    <UserSelect v-model="form.userInfo" :disabled="notEditable" @change="selectUser"
+                                        @blur="handleBlur" @need-create-user="handleNeedCreateUser"
+                                        @update-phone="handleUpdatePhone" @validate="handleUserValidate"
+                                        @clear-validation="clearUserValidation" ref="userSelectRef" />
                                 </el-form-item>
                             </el-col>
                             <el-col :span="12">
@@ -220,7 +219,7 @@
 import { ElMessageBox } from 'element-plus'
 import { getOrders, addOrders, updateOrders, updateAdjust } from "@/api/system/orders";
 import { listPrice } from "@/api/system/price";
-import { listUserWithNoLimit, addUser, getUser } from "@/api/system/user";
+import { addUser, getUser } from "@/api/system/user";
 import { delCloths } from "@/api/system/cloths";
 import { listUserCouponWithValidTime } from '@/api/system/user_coupon';
 import { listCloths } from "@/api/system/cloths";
@@ -267,9 +266,6 @@ const { sys_price_order_type, sys_payment_method } = proxy.useDict("sys_price_or
 const router = useRouter();
 const route = useRoute();
 
-// 用户列表，创建/更新订单时选择框使用
-const userList = ref([]);
-const userListRes = ref([]);
 // 用户卡券列表
 const userCouponList = ref([]);
 // 用户卡券种类列表
@@ -632,7 +628,6 @@ function reset() {
 function sourceChanged() {
     // 获取价格列表
     listPrice({ orderType: form.value.source, status: 0 }).then(res => {
-        console.log('res', res)
         priceList.value = res;
         form.value.priceIds = [];
         adjustInput();
@@ -647,9 +642,7 @@ function handleAdd() {
         const days = res ? Number(res.configValue) : 7;
         form.value.desireCompleteTime = getFutureDate(days);
     });
-    listUserWithNoLimit().then(res => {
-        userList.value = res;
-    });
+
     // 获取价格列表
     listPrice({ orderType: form.value.source, status: 0 }).then(res => {
         priceList.value = res;
@@ -699,11 +692,6 @@ async function handleUpdate() {
         currentUser.value = res;
         // 设置userInfo
         form.value.userInfo = res;
-    });
-
-    await listUserWithNoLimit().then(res => {
-        userList.value = res;
-        userListRes.value = userList.value;
     });
 
     // 获取用户卡券列表
@@ -758,10 +746,13 @@ async function submitForm() {
 
                     showCreateUser.value = false;
                     // 将新用户添加到用户列表中
-                    userList.value.push(res);
+                    // userList.value.push(res);
+
+                    // 通知UserSelect组件刷新用户列表
+                    eventBus.emit('user-created', res);
                 } catch (err) {
                     proxy.notify.error(err);
-                    return;
+                    return; // 当 addUser 出错时，中断执行
                 }
             }
             if (form.value.orderId != null) {
@@ -830,16 +821,15 @@ async function createAndGo2Pay() {
                         nickName: form.value.nickName
                     });
                     showCreateUser.value = false;
-                    // 重新拉取用户列表
-                    listUserWithNoLimit().then(res => {
-                        userList.value = res;
-                    });
+                    // 不需要重新拉取用户列表
 
                     form.value.userId = res.userId; // 设置返回的用户ID
                     form.value.userInfo = res; // 设置userInfo
 
-                    // 将新用户添加到用户列表中
-                    userList.value.push(res);
+                    // 不需要将新用户添加到用户列表中
+
+                    // 通知UserSelect组件刷新用户列表
+                    eventBus.emit('user-created', res);
 
                     await listUserCouponWithValidTime(form.value.userId).then(response => {
                         userCouponList.value = response;
@@ -861,7 +851,6 @@ async function createAndGo2Pay() {
 }
 /* 收衣收款 */
 async function createAndPay(callback) {
-    console.log('createAndPay', form.value);
     // 手动设置验证触发类型为submit
     const validateOptions = { trigger: 'submit' };
 
@@ -897,18 +886,25 @@ async function createAndPay(callback) {
                 form.value.clothIds = form.value.cloths.map(item => item.clothId);
 
                 proxy.$modal.loading("正在创建订单，请稍候");
-                const response = await addOrders(form.value);
-                proxy.$modal.closeLoading();
-                if (!response.adjust) {
-                    response.adjust = {};
+                try {
+
+                    const response = await addOrders(form.value);
+                    proxy.$modal.closeLoading();
+                    if (!response.adjust) {
+                        response.adjust = {};
+                    }
+                    form.value.orderId = response.orderId;
+                    callback(response);
+                    form.value.orderNumber = response.orderNumber;
+                    // 确保订单的总价与前端计算的一致，特别是当使用价格方案时
+                    form.value.totalPrice = totalPrice.value;
+                    // 截断为两位小数（不四舍五入）
+                    form.value.totalPrice = Math.floor(form.value.totalPrice * 100) / 100;
+                } catch (e) {
+                    console.error(e);
+                } finally {
+                    proxy.$modal.closeLoading();
                 }
-                form.value.orderId = response.orderId;
-                callback(response);
-                form.value.orderNumber = response.orderNumber;
-                // 确保订单的总价与前端计算的一致，特别是当使用价格方案时
-                form.value.totalPrice = totalPrice.value;
-                // 截断为两位小数（不四舍五入）
-                form.value.totalPrice = Math.floor(form.value.totalPrice * 100) / 100;
             } else {
                 // 确保订单的总价与前端计算的一致，特别是当使用价格方案时
                 form.value.totalPrice = totalPrice.value;
@@ -949,42 +945,6 @@ async function handlePaymentSuccess(paymentInfo) {
     }
 }
 
-// 修改searchUserByTel为返回Promise的函数
-const searchUserMethod = (query) => {
-    return new Promise((resolve) => {
-        // 如果没有查询条件，返回所有用户（但限制数量）
-        if (!query) {
-            const limitedUsers = userList.value.slice(0, 20); // 限制返回前20条
-            userListRes.value = limitedUsers;
-            resolve(limitedUsers);
-            return;
-        }
-
-        // 确保输入是数字
-        if (query && typeof query === 'string') {
-            query = query.replace(/\D/g, ''); // 移除所有非数字字符
-        }
-
-        // 验证手机号格式 - 中国大陆手机号格式（11位数字，以1开头）
-        const validPhoneRegex = /^1[3-9]\d{9}$/;
-
-        // 如果输入的不是有效手机号，但已经输入了11位，给出提示
-        if (query.length === 11 && !validPhoneRegex.test(query)) {
-            // proxy.notify.warning("请输入有效的手机号");
-            resolve([]);
-            return;
-        }
-
-        // 使用本地筛选，而不是API调用
-        const filteredUsers = userList.value.filter(user =>
-            user.phonenumber && user.phonenumber.includes(query)
-        );
-
-        userListRes.value = filteredUsers;
-        resolve(filteredUsers);
-    });
-};
-
 // 处理需要创建用户的情况
 const handleNeedCreateUser = (phoneNumber) => {
     showCreateUser.value = true;
@@ -1004,11 +964,6 @@ const handleNeedCreateUser = (phoneNumber) => {
     // 触发事件，通知其他组件刷新
     eventBus.emit('user-selected', { isNewUser: true, phonenumber: phoneNumber });
 };
-
-// 不再需要handleVisibleChange函数
-function handleVisibleChange() {
-    // 不再需要此函数的功能
-}
 
 /* 选择会员信息 */
 async function selectUser(val) {
@@ -1066,8 +1021,6 @@ function adjustInput() {
 
     form.value.adjust.adjustValueSub = form.value.adjust.adjustValueSub ?
         Number(form.value.adjust.adjustValueSub) : null;
-
-    console.log('adjust input', form.value.adjust);
 
     // 处理 adjustTotal
     form.value.adjust.adjustTotal = form.value.adjust.adjustTotal ?
@@ -1163,8 +1116,10 @@ async function printCloth() {
             phonenumber: currentUser.value.phonenumber
         };
     } else {
-        // Find existing user in userList
-        userData = userList.value.find(user => user.userId == form.value.userId);
+        // Use the current user information from currentUser ref
+        userData = currentUser.value && Object.keys(currentUser.value).length > 0
+            ? currentUser.value
+            : null;
 
         // If user not found but we have enough information, create a temporary user object
         if (!userData && form.value.nickName) {
@@ -1271,59 +1226,6 @@ const handleRouteLeave = (to, from, next) => {
         });
 };
 
-
-// 引导完成后的处理函数
-const handleTourFinished = () => {
-    console.log('订单创建引导已完成');
-};
-
-onMounted(async () => {
-    router.beforeEach((to, from, next) => {
-        if (from.path === route.path) {
-            handleRouteLeave(to, from, next);
-        } else {
-            next();
-        }
-    });
-    if (props.visible) {
-        if (props.orderId !== 0) {
-            handleUpdate();
-        } else {
-            handleAdd();
-        }
-        showDialog.value = true;
-    }
-
-    // 监听用户卡券更新事件
-    // eventBus.on('user-coupons-updated', handleCouponsUpdated);
-
-    // 监听卡券购买成功事件
-    eventBus.on('coupon-purchase-success', handleCouponPurchase);
-});
-
-// 组件卸载时移除事件监听
-onUnmounted(() => {
-    // eventBus.off('user-coupons-updated', handleCouponsUpdated);
-    eventBus.off('coupon-purchase-success', handleCouponPurchase);
-});
-
-// 处理用户卡券更新事件
-// function handleCouponsUpdated(data) {
-//     // 检查是否是当前用户的卡券更新
-//     if (data.userId && data.userId == form.value.userId) {
-//         // 更新卡券数据
-//         userCouponList.value = data.coupons;
-//         couponTypeList.value = data.couponTypeList;
-
-//         // 如果当前用户信息不完整，更新用户信息
-//         if (!currentUser.value || Object.keys(currentUser.value).length === 0) {
-//             getUser(data.userId).then(res => {
-//                 currentUser.value = res;
-//             });
-//         }
-//     }
-// }
-
 // 处理卡券购买成功事件
 function handleCouponPurchase(data) {
     // 检查是否是当前用户购买的卡券
@@ -1345,26 +1247,6 @@ function handleCouponPurchase(data) {
     }
 }
 
-defineExpose({
-    cancel,
-});
-
-// 添加文字溢出检测函数
-const isTextOverflow = (text) => {
-    const span = document.createElement('span');
-    span.style.visibility = 'hidden';
-    span.style.position = 'absolute';
-    span.style.whiteSpace = 'nowrap';
-    span.style.fontSize = '14px';
-    span.style.padding = '0 4px';
-    span.textContent = text;
-    document.body.appendChild(span);
-
-    const isOverflow = span.offsetWidth > 100; // 100px 是 payment-method-card 的宽度
-
-    document.body.removeChild(span);
-    return isOverflow;
-};
 
 // 清除用户选择组件的验证提示
 function clearUserValidation() {
@@ -1430,6 +1312,37 @@ function cancelSelf() {
             // 用户取消操作，不关闭对话框
         });
 }
+
+onMounted(async () => {
+    router.beforeEach((to, from, next) => {
+        if (from.path === route.path) {
+            handleRouteLeave(to, from, next);
+        } else {
+            next();
+        }
+    });
+    if (props.visible) {
+        if (props.orderId !== 0) {
+            handleUpdate();
+        } else {
+            handleAdd();
+        }
+        showDialog.value = true;
+    }
+
+    // 监听卡券购买成功事件
+    eventBus.on('coupon-purchase-success', handleCouponPurchase);
+});
+
+// 组件卸载时移除事件监听
+onUnmounted(() => {
+    // eventBus.off('user-coupons-updated', handleCouponsUpdated);
+    eventBus.off('coupon-purchase-success', handleCouponPurchase);
+});
+
+defineExpose({
+    cancel,
+});
 </script>
 
 <style scoped>

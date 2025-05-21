@@ -19,6 +19,7 @@ pub struct DryingRack {
     pub(crate) rack_type: Option<String>,
     pub(crate) capacity: Option<i32>,
     pub(crate) remaining_capacity: Option<i32>,
+    pub(crate) is_sys: Option<bool>,
 }
 
 impl DryingRack {
@@ -40,8 +41,8 @@ impl DryingRack {
     /// Insert a new drying rack.
     pub async fn add(self, pool: &Pool<Sqlite>) -> Result<DryingRack> {
         let result = sqlx::query_as::<_, DryingRack>(
-            "INSERT INTO drying_rack (name, capacity, position, rack_type, remaining_capacity, store_id)
-                values ( ?, ?, ?, ?, ?, ?)
+            "INSERT INTO drying_rack (name, capacity, position, rack_type, remaining_capacity, store_id, is_sys)
+                values ( ?, ?, ?, ?, ?, ?, ?)
              RETURNING *",
         )
         .bind(&self.name)
@@ -50,6 +51,7 @@ impl DryingRack {
         .bind(&self.rack_type)
         .bind(&self.remaining_capacity)
         .bind(&self.store_id)
+        .bind(&self.is_sys)
         .fetch_one(pool)
         .await?;
 
@@ -95,6 +97,14 @@ impl DryingRack {
             query_builder
                 .push(" remaining_capacity = ")
                 .push_bind(remaining_capacity);
+            has_update = true;
+        }
+
+        if let Some(is_sys) = &self.is_sys {
+            if has_update {
+                query_builder.push(", ");
+            }
+            query_builder.push(" is_sys = ").push_bind(is_sys);
         }
 
         if has_update {
@@ -260,22 +270,16 @@ pub async fn update_rack(state: State<'_, AppState>, mut rack: DryingRack) -> Re
         rack.capacity.unwrap()
             - (result.capacity.unwrap_or_default() - rack.remaining_capacity.unwrap_or_default()),
     );
+
+    // 如果当前位置大于容量，则设置为容量
+    if rack.position.unwrap_or_default() > rack.capacity.unwrap_or_default() {
+        rack.position = Some(rack.capacity.unwrap_or_default());
+    }
+
     let result = rack.update(&mut tr).await?;
     tr.commit().await?;
     Ok(result)
 }
-
-// #[tauri::command]
-// pub async fn get_position(state: State<'_, AppState>, rack_type: String) -> Result<DryingRack> {
-//     let pool = &state.pool;
-//     let rack = DryingRack::get_position(pool, rack_type).await?;
-//     let mut tr = pool.begin().await?;
-//     if !rack.update(&mut tr).await? {
-//         return Err(Error::internal("更新衣架位置失败"));
-//     }
-//     tr.commit().await?;
-//     Ok(rack)
-// }
 
 #[tauri::command]
 pub async fn delete_racks(state: State<'_, AppState>, ids: Vec<i64>) -> Result<u64> {
@@ -311,6 +315,7 @@ pub async fn check_rack_initial_data(state: State<'_, AppState>) -> Result<bool>
             remaining_capacity: Some(100),
             rack_type: Some("1".to_string()),
             position: Some(1),
+            is_sys: Some(true),
             ..Default::default()
         };
         rack.add(pool).await?;
@@ -321,6 +326,7 @@ pub async fn check_rack_initial_data(state: State<'_, AppState>) -> Result<bool>
             remaining_capacity: Some(100),
             rack_type: Some("2".to_string()),
             position: Some(1),
+            is_sys: Some(true),
             ..Default::default()
         };
         rack.add(pool).await?;
@@ -331,6 +337,7 @@ pub async fn check_rack_initial_data(state: State<'_, AppState>) -> Result<bool>
             remaining_capacity: Some(100),
             rack_type: Some("3".to_string()),
             position: Some(1),
+            is_sys: Some(true),
             ..Default::default()
         };
         rack.add(pool).await?;

@@ -32,7 +32,7 @@
             </div>
             <div class="member-details">
                 <div class="member-name">{{ currentUser ? (currentUser.nickName || currentUser.userName) : user.nickName
-                    }}
+                }}
                 </div>
                 <div class="member-phone">{{ currentUser ? currentUser.phonenumber : user.phonenumber }}</div>
             </div>
@@ -255,14 +255,14 @@
                     <span class="price-label">优惠金额</span>
                     <span class="price-value discount">- ¥ {{ (Math.floor(paymentForm.bonusAmount * 100) /
                         100).toFixed(2)
-                    }}</span>
+                        }}</span>
                 </div>
                 <div class="price-divider"></div>
                 <div class="price-row total">
                     <span class="price-label">应付金额</span>
                     <span class="price-value total-amount">¥ {{ (Math.floor(paymentForm.paymentAmount * 100) /
                         100).toFixed(2)
-                    }}</span>
+                        }}</span>
                 </div>
             </div>
 
@@ -299,8 +299,8 @@
     </el-dialog>
 
     <!-- 卡券购买弹窗 -->
-    <el-dialog v-model="showCouponSale" width="800px" append-to-body lock-scroll modal :align-center="true"
-        :close-on-click-modal="false" :show-close="false">
+    <el-dialog v-model="showCouponSale" width="800px" lock-scroll modal align-center :close-on-click-modal="false"
+        :show-close="false">
         <CouponSale :userId="userId" :key="showCouponSale" :taggle="() => { showCouponSale = !showCouponSale }"
             :visible="showCouponSale" :couponTypeList="couponTypeList" :submit="submitCouponSale" />
     </el-dialog>
@@ -399,13 +399,11 @@ const paymentForm = ref({
     paymentAmount: 0,
     bonusAmount: 0
 });
-const totalPrice = ref(0);
 const couponStorageCardId = ref([]);
 const user = ref({});
 const currentUser = ref(null);
 const showCouponSale = ref(false);
 const activeCollapseItem = ref(['storage-card']); // Track expanded collapse items
-const timeCardCount = ref(0);
 const userCouponList = ref(props.userCouponList);
 const couponTypeList = ref(props.couponTypeList);
 // Computed properties to handle different component scenarios

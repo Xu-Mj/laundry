@@ -9,21 +9,21 @@
     <el-tour-step :target="menuRefs['取衣取鞋']" title="取衣取鞋" placement="right" description="处理客户取衣取鞋业务">
       <div>点击此按钮处理客户取衣取鞋业务，查找和完成已有订单</div>
     </el-tour-step>
-    <el-tour-step :target="menuRefs['订单管理']" title="订单管理" placement="right" description="查看和管理所有订单">
+    <!-- <el-tour-step :target="menuRefs['订单管理']" title="订单管理" placement="right" description="查看和管理所有订单">
       <div>点击此按钮查看和管理所有订单，包括订单状态、详情和历史记录</div>
-    </el-tour-step>
+    </el-tour-step> -->
     <el-tour-step :target="menuRefs['衣物上挂']" title="衣物上挂" placement="right" description="管理衣物上挂流程">
       <div>点击此按钮管理衣物上挂流程，记录衣物位置和状态</div>
     </el-tour-step>
-    <el-tour-step :target="menuRefs['卡券管理']" title="卡券管理" placement="right" description="管理店铺的各类卡券">
+    <!-- <el-tour-step :target="menuRefs['卡券管理']" title="卡券管理" placement="right" description="管理店铺的各类卡券">
       <div>点击此按钮管理店铺的各类卡券，包括创建、查看和修改卡券</div>
-    </el-tour-step>
+    </el-tour-step> -->
     <el-tour-step :target="menuRefs['新增会员']" title="新增会员" placement="right" description="添加新的会员信息">
       <div>点击此按钮添加新的会员信息，记录会员基本资料和联系方式</div>
     </el-tour-step>
-    <el-tour-step :target="menuRefs['会员管理']" title="会员管理" placement="right" description="查看和管理所有会员信息">
+    <!-- <el-tour-step :target="menuRefs['会员管理']" title="会员管理" placement="right" description="查看和管理所有会员信息">
       <div>点击此按钮查看和管理所有会员信息，包括会员详情和消费记录</div>
-    </el-tour-step>
+    </el-tour-step> -->
     <el-tour-step :target="menuRefs['支出录入']" title="支出录入" placement="right" description="记录店铺的各项支出">
       <div>点击此按钮记录店铺的各项支出，包括水电费、租金等日常开销</div>
     </el-tour-step>

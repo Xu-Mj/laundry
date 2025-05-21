@@ -32,6 +32,11 @@ export function addCategory(data) {
   return invoke('add_clothing_category', { category: data });
 }
 
+// 新增衣物品类
+export function addClothingCategoryBatch(cates) {
+  return invoke('add_clothing_category_batch', { cates });
+}
+
 // 修改衣物品类
 export function updateCategory(data) {
   return invoke('update_clothing_category', { category: data });

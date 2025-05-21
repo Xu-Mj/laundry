@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use sqlx::sqlite::SqliteRow;
-use sqlx::{FromRow, Pool, QueryBuilder, Row, Sqlite};
+use sqlx::{FromRow, Pool, QueryBuilder, Row, Sqlite, Transaction};
 use tauri::State;
 
 use crate::error::{Error, ErrorKind, Result};
@@ -214,10 +214,56 @@ impl ClothingStyle {
 
         Ok(result)
     }
+
+    pub async fn insert_batch(
+        tx: &mut Transaction<'_, Sqlite>,
+        styles: &[ClothingStyle],
+    ) -> Result<()> {
+        if styles.is_empty() {
+            return Ok(());
+        }
+        let now = utils::get_timestamp();
+        let mut builder = QueryBuilder::new(
+            "INSERT INTO clothing_styles (style_id, store_id, category_id, style_code, style_name, order_num, remark, del_flag, created_at, updated_at) ",
+        );
+        builder.push_values(styles.iter(), |mut b, style| {
+            b.push_bind(style.style_id)
+                .push_bind(style.store_id)
+                .push_bind(style.category_id)
+                .push_bind(&style.style_code)
+                .push_bind(&style.style_name)
+                .push_bind(style.order_num.unwrap_or(0))
+                .push_bind(&style.remark)
+                .push_bind("0")
+                .push_bind(now)
+                .push_bind(now);
+        });
+        let query = builder.build();
+        query.execute(&mut **tx).await?;
+        Ok(())
+    }
 }
 
 impl Request for ClothingStyle {
     const URL: &'static str = "/clothing/style";
+}
+
+impl ClothingStyle {
+    pub async fn create_batch_request(
+        state: &AppState,
+        categories: &[ClothingStyle],
+    ) -> Result<Vec<ClothingStyle>> {
+        let token = state.try_token().await?;
+        if token.user.id == Some(0) {
+            return Ok(Vec::new());
+        }
+
+        let result = state
+            .http_client
+            .post("/clothing/style/batch", categories, Some(&token.token))
+            .await?;
+        Ok(result)
+    }
 }
 
 // Tauri命令接口

@@ -1,8 +1,9 @@
 use serde::{Deserialize, Serialize};
 use sqlx::sqlite::SqliteRow;
-use sqlx::{FromRow, Pool, QueryBuilder, Row, Sqlite};
+use sqlx::{FromRow, Pool, QueryBuilder, Row, Sqlite, Transaction};
 use tauri::State;
 
+use crate::db::clothing_style::ClothingStyle;
 use crate::error::{Error, ErrorKind, Result};
 use crate::state::AppState;
 use crate::utils;
@@ -100,7 +101,7 @@ impl Curd for ClothingCategory {
 
 impl ClothingCategory {
     /// 创建新的衣物品类
-    pub async fn insert(self, pool: &Pool<Sqlite>) -> Result<Self> {
+    pub async fn insert(&self, pool: &Pool<Sqlite>) -> Result<Self> {
         let now = utils::get_timestamp();
         let result = sqlx::query_as::<_, Self>(
             "INSERT INTO clothing_categories (category_id, store_id, category_code, category_name, order_num, remark, del_flag, created_at, updated_at)
@@ -183,14 +184,52 @@ impl ClothingCategory {
 
         Ok(result)
     }
+
+    pub async fn insert_batch(
+        tx: &mut Transaction<'_, Sqlite>,
+        categories: &[ClothingCategory],
+    ) -> Result<()> {
+        if categories.is_empty() {
+            return Ok(());
+        }
+        let now = utils::get_timestamp();
+        let mut builder = QueryBuilder::new(
+            "INSERT INTO clothing_categories (category_id, store_id, category_code, category_name, order_num, remark, del_flag, created_at, updated_at) ",
+        );
+        builder.push_values(categories.iter(), |mut b, cat| {
+            b.push_bind(cat.category_id)
+                .push_bind(cat.store_id)
+                .push_bind(&cat.category_code)
+                .push_bind(&cat.category_name)
+                .push_bind(cat.order_num.unwrap_or(0))
+                .push_bind(&cat.remark)
+                .push_bind("0")
+                .push_bind(now)
+                .push_bind(now);
+        });
+        let query = builder.build();
+        query.execute(&mut **tx).await?;
+        Ok(())
+    }
 }
 
 impl Request for ClothingCategory {
     const URL: &str = "/clothing/category";
-    async fn delete_request(state: &State<'_, AppState>, body: StoreIdWithIds) -> Result<bool> {
+}
+
+impl ClothingCategory {
+    async fn create_batch_request(
+        state: &AppState,
+        categories: &[ClothingCategory],
+    ) -> Result<Vec<ClothingCategory>> {
+        let token = state.try_token().await?;
+        if token.user.id == Some(0) {
+            return Ok(Vec::new());
+        }
+
         let result = state
             .http_client
-            .delete(Self::URL, body, Some(&state.try_get_token().await?))
+            .post("/clothing/category/batch", categories, Some(&token.token))
             .await?;
         Ok(result)
     }
@@ -290,4 +329,114 @@ pub async fn delete_clothing_category_batch(
 
     tx.commit().await?;
     Ok(true)
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct ClothingCategoryRequest {
+    pub name: String,
+    pub styles: Vec<String>,
+}
+
+#[tauri::command]
+pub async fn add_clothing_category_batch(
+    state: State<'_, AppState>,
+    cates: Vec<ClothingCategoryRequest>,
+) -> Result<String> {
+    let store_id = utils::get_user_id(&state).await?; // 检查用户是否登录
+    let pool = &state.pool;
+    let mut tx = pool.begin().await?;
+
+    // 用于记录已存在的品类和样式名称
+    let mut existing_categories = Vec::new();
+    let mut existing_styles = Vec::new();
+
+    // 有效的品类和样式列表，用于批量插入
+    let mut valid_categories = Vec::new();
+    let now = utils::get_timestamp();
+
+    // 遍历所有传入的品类
+    for cate_req in &cates {
+        // 检查品类名称是否已存在
+        if ClothingCategory::exists_by_name(pool, store_id, &cate_req.name, None).await? {
+            existing_categories.push(cate_req.name.clone());
+            continue; // 跳过已存在的品类
+        }
+
+        // 创建新品类
+        let category = ClothingCategory {
+            category_id: None,
+            store_id,
+            category_code: String::new(), // 可以根据需要生成编码
+            category_name: cate_req.name.clone(),
+            order_num: Some(0),
+            remark: None,
+            del_flag: Some("0".to_string()),
+            created_at: now,
+            updated_at: now,
+        };
+        valid_categories.push(category);
+    }
+
+    // 批量上传到服务器
+    let cates_result = ClothingCategory::create_batch_request(&state, &valid_categories).await?;
+    ClothingCategory::insert_batch(&mut tx, &cates_result).await?;
+
+    // 遍历所有上传成功的品类
+    let mut styles = Vec::new();
+    for cate in &cates_result {
+        // 遍历所有传入的样式
+        if let Some(c) = cates.iter().find(|c| c.name == cate.category_name) {
+            for style_name in &c.styles {
+                if let Some(category_id) = cate.category_id {
+                    if ClothingStyle::exists_by_name(pool, store_id, category_id, style_name, None)
+                        .await?
+                    {
+                        existing_styles.push(style_name.clone());
+                        continue; // 跳过已存在的品类
+                    }
+                    // 创建新的样式
+                    let style = ClothingStyle {
+                        style_id: None,
+                        store_id,
+                        category_id,
+                        style_code: String::new(), // 可以根据需要生成编码
+                        style_name: style_name.clone(),
+                        order_num: Some(0),
+                        remark: None,
+                        del_flag: Some("0".to_string()),
+                        created_at: now,
+                        updated_at: now,
+                    };
+                    styles.push(style);
+                }
+            }
+        }
+    }
+    // 批量上传到服务器
+    let styles_result = ClothingStyle::create_batch_request(&state, &styles).await?;
+    ClothingStyle::insert_batch(&mut tx, &styles_result).await?;
+    // 提交事务
+    tx.commit().await?;
+
+    // 构建返回信息
+    let mut result = String::new();
+
+    if !existing_categories.is_empty() {
+        result.push_str(&format!(
+            "以下品类已存在: {}\n",
+            existing_categories.join(", ")
+        ));
+    }
+
+    if !existing_styles.is_empty() {
+        result.push_str(&format!("以下样式已存在: {}\n", existing_styles.join(", ")));
+    }
+
+    if valid_categories.is_empty() {
+        result.push_str("没有新增任何品类和样式");
+    } else {
+        result.push_str(&format!("成功添加 {} 个品类", valid_categories.len()));
+    }
+
+    Ok(result)
 }

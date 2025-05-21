@@ -99,6 +99,7 @@ fn handle_command<R: Runtime>(invoke: Invoke<R>) -> bool {
         clothing_category::add_clothing_category,
         clothing_category::update_clothing_category,
         clothing_category::delete_clothing_category_batch,
+        clothing_category::add_clothing_category_batch,
         // clothing style
         clothing_style::list_clothing_style_pagination,
         clothing_style::list_clothing_style_all,
@@ -151,6 +152,7 @@ fn handle_command<R: Runtime>(invoke: Invoke<R>) -> bool {
         drying_rack::get_rack_by_id,
         drying_rack::update_rack,
         drying_rack::delete_racks,
+        drying_rack::check_rack_initial_data,
         // cloth price
         cloth_price::add_cloth_price,
         cloth_price::get_cloth_price,

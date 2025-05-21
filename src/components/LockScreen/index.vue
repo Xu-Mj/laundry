@@ -38,7 +38,6 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
 import useUserStore from '@/store/modules/user';
 import { validatePwd } from '@/api/login';
 import { getConfigKey } from '@/api/system/config';
@@ -71,6 +70,8 @@ const defaultTimeoutLength = 300; // 默认5分钟
 const timeOut = ref(defaultTimeoutLength);
 let warningTimeoutId;
 let lockTimeoutId;
+
+const hasEventListeners = ref(false);
 
 // 监听props.isLocked的变化
 watch(() => props.isLocked, (newVal) => {
@@ -112,6 +113,9 @@ const resetTimeout = (timeoutLength = defaultTimeoutLength) => {
 
     // 如果已经锁定，不重置计时器
     if (localIsLocked.value) return;
+
+    // 如果超时时间为0，不设置锁定
+    if (timeoutLength <= 0) return;
 
     warningTimeoutId = setTimeout(() => {
         // 锁定屏幕
@@ -228,20 +232,35 @@ const handleKeyDown = (event) => {
   }
 };
 
+const addEventListeners = () => {
+    window.addEventListener('mousemove', handleUserInteraction);
+    window.addEventListener('keydown', handleUserInteraction);
+    window.addEventListener('keydown', handleKeyDown);
+    hasEventListeners.value = true;
+};
+
+const removeEventListeners = () => {
+    if (hasEventListeners.value) {
+        window.removeEventListener('mousemove', handleUserInteraction);
+        window.removeEventListener('keydown', handleUserInteraction);
+        window.removeEventListener('keydown', handleKeyDown);
+        hasEventListeners.value = false;
+    }
+};
+
 onMounted(async () => {
     // 从服务器获取超时时间
     try {
         const config = await getConfigKey('logout_timeout');
         timeOut.value = config ? Number(config.configValue) : defaultTimeoutLength;
-        // timeOut.value = 5;
+        // 只有当超时时间大于0时才设置锁定和事件监听
+        if (timeOut.value > 0) {
+            resetTimeout(timeOut.value);
+            addEventListeners();
+        }
     } catch (error) {
         console.error('获取超时配置失败:', error);
     }
-
-      resetTimeout(timeOut.value);
-    window.addEventListener('mousemove', handleUserInteraction);
-    window.addEventListener('keydown', handleUserInteraction);
-    window.addEventListener('keydown', handleKeyDown);
 });
 
 onBeforeUnmount(() => {
@@ -254,9 +273,7 @@ onBeforeUnmount(() => {
     if (lockoutTimerId) {
         clearInterval(lockoutTimerId);
     }
-    window.removeEventListener('mousemove', handleUserInteraction);
-    window.removeEventListener('keydown', handleUserInteraction);
-    window.removeEventListener('keydown', handleKeyDown);
+    removeEventListeners();
 });
 </script>
 

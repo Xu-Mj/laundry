@@ -24,3 +24,7 @@ export function updateRack(data) {
 export function delRack(id) {
   return invoke('delete_racks', { ids: [].concat(id) })
 }
+
+export function checkRackInitialData() {
+  return invoke('check_rack_initial_data')
+}

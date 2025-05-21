@@ -1,5 +1,5 @@
 <template>
-    <el-dialog v-model="dialogVisible" title="选择预定义分类" width="60%" align-center :close-on-click-modal="false"
+    <el-dialog v-model="dialogVisible" title="选择预定义分类" width="800" align-center :close-on-click-modal="false"
         class="category-dialog" @close="handleClose">
         <div class="predefined-categories">
             <el-checkbox-group v-model="selectedCategories" class="category-group">
@@ -7,7 +7,7 @@
                     class="category-checkbox">
                     <div class="category-item">
                         <div class="category-info">
-                            <span class="category-name">{{ category.categoryName }}</span>
+                            <span class="category-name">{{ category.name }}</span>
                             <div class="style-list">
                                 <el-tag v-for="style in category.styles" :key="style" size="small" class="style-tag"
                                     effect="plain">
@@ -36,8 +36,7 @@
 </template>
 
 <script setup>
-import { addCategory } from "@/api/system/clothingCategory";
-import { addStyle } from "@/api/system/clothingStyle";
+import { addClothingCategoryBatch } from "@/api/system/clothingCategory";
 
 const props = defineProps({
     modelValue: {
@@ -51,23 +50,23 @@ const { proxy } = getCurrentInstance();
 // 预定义的分类数据
 const predefinedCategories = ref([
     {
-        categoryName: '上衣',
+        name: '上衣',
         styles: ['T恤', '衬衫', '卫衣', '毛衣', '外套', '羽绒服', '西装']
     },
     {
-        categoryName: '下装',
+        name: '下装',
         styles: ['长裤', '短裤', '牛仔裤', '休闲裤', '运动裤', '裙子']
     },
     {
-        categoryName: '内衣',
+        name: '内衣',
         styles: ['文胸', '内裤', '袜子', '睡衣', '家居服']
     },
     {
-        categoryName: '配饰',
+        name: '配饰',
         styles: ['帽子', '围巾', '手套', '腰带', '领带']
     },
     {
-        categoryName: '鞋类',
+        name: '鞋类',
         styles: ['运动鞋', '皮鞋', '休闲鞋', '靴子', '凉鞋']
     }
 ]);
@@ -96,24 +95,9 @@ async function handleConfirm() {
 
     try {
         // 创建选中的分类和样式
-        const promises = selectedCategories.value.map(category => {
-            // 创建分类
-            return addCategory({ categoryName: category.categoryName }).then(categoryRes => {
-                // 创建该分类下的所有样式
-                const stylePromises = category.styles.map(styleName => {
-                    return addStyle({
-                        categoryId: categoryRes.categoryId,
-                        styleName: styleName,
-                        styleCode: "",
-                        orderNum: 0
-                    });
-                });
-                return Promise.all(stylePromises);
-            });
-        });
+        const res = await addClothingCategoryBatch(selectedCategories.value);
 
-        await Promise.all(promises);
-        proxy.notify.success("分类添加成功");
+        proxy.notify.success(res);
         emit('success');
         handleClose();
     } catch (error) {
@@ -175,11 +159,12 @@ function handleClose() {
 .category-group {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 5rem;
+    gap: 1rem;
     width: 100%;
 }
 
 .category-checkbox {
+    height: auto !important;
     transition: all 0.2s ease;
     width: 100%;
 }

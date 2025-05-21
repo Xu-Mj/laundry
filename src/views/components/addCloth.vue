@@ -890,7 +890,7 @@ function submitForm() {
                     handleAdd();
                 }).catch(error => {
                     console.error(error);
-                    proxy.notify.error("修改失败");
+                    proxy.notify.error("新增衣物失败");
                 });
             }
         }

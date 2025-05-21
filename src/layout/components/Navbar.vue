@@ -69,9 +69,10 @@ const showChangePwd = ref(false);
 // 处理密码修改成功事件
 function handlePwdSuccess() {
   proxy.notify.success('密码修改成功，正在退出登录');
-  userStore.logOut().then(() => {
-    location.href = '/index';
-  });
+  setTimeout(() => {
+      userStore.logOut();
+    }, 0);
+  location.href = '/login';
 }
 
 function handleCommand(command) {

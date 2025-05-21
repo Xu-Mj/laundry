@@ -27,7 +27,7 @@ import './permission' // permission control
 
 import { useDict } from '@/utils/dict'
 import { parseTime, formatTime, resetForm, addDateRange, handleTree, selectDictLabel, selectDictLabels } from '@/utils/ruoyi'
-import Notification  from '@/utils/notification'
+import Notification from '@/utils/notification'
 
 // 分页组件
 import Pagination from '@/components/Pagination'
@@ -83,3 +83,19 @@ app.use(ElementPlus, {
 })
 
 app.mount('#app')
+
+import { listen } from '@tauri-apps/api/event';
+import { ElMessageBox } from 'element-plus';
+import useUserStore from '@/store/modules/user'
+// 监听tauri退出事件
+listen('app://logout', () => {
+  ElMessageBox.alert('登陆已过期，请重新登录', '提示', {
+    confirmButtonText: '确定',
+    callback: () => {
+      setTimeout(() => {
+        useUserStore().logOut();
+      }, 0);
+      location.href = '/login';
+    }
+  })
+})

@@ -9,22 +9,21 @@
                             <el-col :span="6">
                                 <h3 class="section-title1">会员信息</h3>
                             </el-col>
-                            <el-col :span="6"
-                                v-if="form.userId && Object.keys(currentUser).length > 0 && currentUser.userId && !showCreateUser">
+                            <el-col :span="6" v-if="showUserInfoRow">
                                 <div class="info-item">
                                     <div class="info-label">余额</div>
                                     <div class="info-value">{{ currentUser.balance ? currentUser.balance : 0 }}元</div>
                                 </div>
                             </el-col>
-                            <el-col :span="6"
-                                v-if="form.userId && Object.keys(currentUser).length > 0 && currentUser.userId && !showCreateUser">
+                            <el-col :span="6" v-if="showUserInfoRow">
                                 <div class="info-item">
                                     <div class="info-label">积分</div>
                                     <div class="info-value">{{ currentUser.integral ? currentUser.integral : 0 }}分</div>
                                 </div>
                             </el-col>
-                            <el-col :span="6" class="info-action"
-                                v-if="form.userId && Object.keys(currentUser).length > 0 && currentUser.userId && !showCreateUser">
+                            <el-col :span="6" class="info-action" v-if="showUserInfoRow">
+                                <el-button type="primary" plain icon="Money" link style="outline: none;"
+                                    @click="showCouponSale = true">充值</el-button>
                                 <el-button type="primary" plain icon="DArrowRight" link style="outline: none;"
                                     @click="showInfoDialog = true">详情</el-button>
                             </el-col>
@@ -116,7 +115,8 @@
                     </div>
                     <div class="order-list-card" ref="clothListRef">
                         <h3 class="section-title">衣物列表</h3>
-                        <CustomTable :table-data="form.cloths" @delete="handleDelete" :disabled="notEditable" @selected="handleClothSelected" />
+                        <CustomTable :table-data="form.cloths" @delete="handleDelete" :disabled="notEditable"
+                            @selected="handleClothSelected" />
                     </div>
                     <div class="order-list-card" ref="adjustPriceRef">
                         <h3 class="section-title">店主调价</h3>
@@ -159,7 +159,7 @@
                                 <div class="summary-item">
                                     <div class="summary-label">单据打印</div>
                                     <div class="summary-value">
-                                        <el-input-number :min="1" v-model="printCount" controls-position="right"
+                                        <el-input-number style="width: 100%;" :min="1" v-model="printCount" controls-position="right"
                                             size="large" />
                                     </div>
                                 </div>
@@ -193,7 +193,14 @@
                     :disabled="notEditable" :key="form.userId + '-' + (form.orderId || 0)" :clothes="form.cloths" />
             </div>
         </div>
-
+        <!-- 卡券购买弹窗 -->
+        <el-dialog v-model="showCouponSale" width="800px" lock-scroll modal align-center :close-on-click-modal="false"
+            :show-close="false">
+            <CouponSale :userId="currentUser.userId" :key="showCouponSale"
+                :taggle="() => { showCouponSale = !showCouponSale }" :visible="showCouponSale"
+                :couponTypeList="couponTypeList" :submit="() => showCouponSale = false" />
+        </el-dialog>
+        <!-- 支付弹窗 -->
         <Pay :visible="showPaymentDialog" :key="showPaymentDialog" :order="form" :refresh="reset"
             :toggle="() => { showPaymentDialog = !showPaymentDialog }" :createOrder="createAndPay"
             :userCouponList="userCouponList" :couponTypeList="couponTypeList" :showPickupButton="false"
@@ -216,6 +223,7 @@
 </template>
 
 <script setup name="CreateOrders">
+import CouponSale from './couponSale.vue';
 import { ElMessageBox } from 'element-plus'
 import { getOrders, addOrders, updateOrders, updateAdjust } from "@/api/system/orders";
 import { listPrice } from "@/api/system/price";
@@ -285,6 +293,7 @@ const ordersRef = ref();
 const printCount = ref(1);
 const phoneRegex = /^1[3-9]\d{9}$/;
 
+const showCouponSale = ref(false);
 const showInfoDialog = ref(false);
 
 const notEditable = ref(false);
@@ -376,6 +385,10 @@ const data = reactive({
 });
 
 const { form, rules } = toRefs(data);
+
+const showUserInfoRow = computed(() => {
+    return form.value.userId && Object.keys(currentUser.value).length > 0 && currentUser.value.userId && !showCreateUser.value
+});
 
 // 处理子组件传过来的数据
 function submitClothes(cloth) {
@@ -757,12 +770,8 @@ async function submitForm() {
                         }
                     })();
                     await Promise.all([printClothPromise, printReceiptPromise]);
-                    reset();
+                    handleAdd();
                     props.refresh();
-                    // 确保订单的总价与前端计算的一致，特别是当使用价格方案时
-                    form.value.totalPrice = totalPrice.value;
-                    // 截断为两位小数（不四舍五入）
-                    form.value.totalPrice = Math.floor(form.value.totalPrice * 100) / 100;
                 });
             }
         }
@@ -770,7 +779,6 @@ async function submitForm() {
 }
 
 async function createAndGo2Pay() {
-
     // 检查订单是否已支付或退单
     if (form.value.orderId && (form.value.paymentStatus === '00' || form.value.status === '05')) {
         proxy.notify.error("订单已支付或已退单，不能修改信息");
@@ -1564,14 +1572,6 @@ defineExpose({
 :deep(.price-group .el-radio.is-checked) {
     background-color: var(--el-color-primary-light-9);
 }
-
-/* h3 {
-    font-size: 20px;
-    padding-bottom: 0.75rem;
-    margin-bottom: 1.25rem;
-    color: var(--el-color-primary-dark-2);
-    font-weight: 600;
-} */
 
 /* 新增卡片样式 */
 .member-card,

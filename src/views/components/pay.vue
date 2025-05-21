@@ -32,7 +32,7 @@
             </div>
             <div class="member-details">
                 <div class="member-name">{{ currentUser ? (currentUser.nickName || currentUser.userName) : user.nickName
-                }}
+                    }}
                 </div>
                 <div class="member-phone">{{ currentUser ? currentUser.phonenumber : user.phonenumber }}</div>
             </div>
@@ -255,14 +255,14 @@
                     <span class="price-label">优惠金额</span>
                     <span class="price-value discount">- ¥ {{ (Math.floor(paymentForm.bonusAmount * 100) /
                         100).toFixed(2)
-                        }}</span>
+                    }}</span>
                 </div>
                 <div class="price-divider"></div>
                 <div class="price-row total">
                     <span class="price-label">应付金额</span>
                     <span class="price-value total-amount">¥ {{ (Math.floor(paymentForm.paymentAmount * 100) /
                         100).toFixed(2)
-                        }}</span>
+                    }}</span>
                 </div>
             </div>
 
@@ -1182,7 +1182,7 @@ function handlePaymentMethodChange(value) {
         }
     } else {
         activeCollapseItem.value = [];
-        
+
         // 清除次卡的选中状态
         groupedTimeCards.value.forEach(card => {
             card.selected = false;
@@ -1190,7 +1190,7 @@ function handlePaymentMethodChange(value) {
         userCouponList.value.filter(item => item.coupon.couponType === "002").forEach(item => {
             item.selected = false;
         });
-        
+
         // 重置价格差额和优惠金额
         if (paymentForm.value.bonusAmount > 0) {
             paymentForm.value.bonusAmount = 0;
@@ -1446,16 +1446,13 @@ onMounted(async () => {
 .coupon-radio-group {
     display: flex;
     flex-wrap: wrap;
-    gap: 12px;
-    row-gap: 3.2rem;
-}
-
-.coupon-checkbox-group {
-    row-gap: 2rem;
+    gap: 1rem;
+    row-gap: .5rem;
 }
 
 .coupon-checkbox,
 .coupon-radio {
+    height: auto !important;
     margin-right: 0 !important;
     margin-bottom: 12px;
 }
@@ -1512,7 +1509,7 @@ onMounted(async () => {
     padding-top: .8rem;
     display: flex;
     flex-direction: column;
-    gap: 2rem;
+    gap: .5rem;
 }
 
 .coupon-times-item {

@@ -42,7 +42,7 @@
           <el-button 
             type="danger" 
             icon="Delete" 
-            @click="handleDelete(item.clothId, item.clothInfo.title)" 
+            @click.stop="handleDelete(item.clothId, item.clothInfo.title)" 
             :disabled="disabled"
           />
         </div>
@@ -111,7 +111,7 @@ const { sys_service_requirement } = proxy.useDict("sys_service_requirement");
 const setSelectedCloth = inject('setSelectedCloth');
 
 // 定义 Emits
-const emit = defineEmits(['delete']);
+const emit = defineEmits(['delete', 'selected']);
 
 // 使用标签store
 const tagsStore = useTagsStore();
@@ -149,7 +149,8 @@ const getEstimateById = (tagId) => {
 
 // 处理行点击事件
 const handleRowClick = (row) => {
-  setSelectedCloth(row);
+  emit('selected', row);
+  console.log('customTable', row);
 };
 
 onMounted(async () => {

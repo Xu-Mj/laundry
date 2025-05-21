@@ -116,7 +116,7 @@
                     </div>
                     <div class="order-list-card" ref="clothListRef">
                         <h3 class="section-title">衣物列表</h3>
-                        <CustomTable :table-data="form.cloths" @delete="handleDelete" :disabled="notEditable" />
+                        <CustomTable :table-data="form.cloths" @delete="handleDelete" :disabled="notEditable" @selected="handleClothSelected" />
                     </div>
                     <div class="order-list-card" ref="adjustPriceRef">
                         <h3 class="section-title">店主调价</h3>
@@ -175,7 +175,7 @@
                     <div class="btn-container">
                         <el-button size="large" icon="Close" type="danger" @click="cancelSelf">{{ form.orderId ? '关 闭' :
                             '取 消'
-                        }}</el-button>
+                            }}</el-button>
                         <el-button size="large" icon="Check" type="primary" color="#626aef" @click="submitForm"
                             :disabled="notEditable || (!(form.source === '03') && (!form.priceIds || form.priceIds.length === 0))"
                             v-if="form.source !== '01' && form.source !== '02'" ref="submitButtonRef">取衣收款</el-button>
@@ -377,42 +377,13 @@ const data = reactive({
 
 const { form, rules } = toRefs(data);
 
-// 共享的状态
-const selectedCloth = ref(null);
-
-// 提供共享的状态和方法
-provide('selectedCloth', selectedCloth);
-provide('setSelectedCloth', (cloth) => {
-    console.log(cloth)
-    selectedCloth.value = cloth;
-});
-
 // 处理子组件传过来的数据
-function submitClothes(list) {
-    // 在编辑模式下，确保我们不清空现有的衣物列表
-    if (form.value.orderId) {
-        // 这是编辑模式，我们需要合并列表而不是替换
-        // 将传入的list与现有的form.value.cloths合并，
-        // 如果有相同的clothId则更新，否则添加
-        const updatedCloths = [...form.value.cloths];
-
-        list.forEach(newCloth => {
-            const existingIndex = updatedCloths.findIndex(cloth =>
-                cloth.clothId === newCloth.clothId);
-
-            if (existingIndex >= 0) {
-                // 更新现有项
-                updatedCloths[existingIndex] = newCloth;
-            } else {
-                // 添加新项
-                updatedCloths.push(newCloth);
-            }
-        });
-
-        form.value.cloths = updatedCloths;
+function submitClothes(cloth) {
+    const index = form.value.cloths.findIndex(item => item.clothId === cloth.clothId);
+    if (index === -1) {
+        form.value.cloths.push(cloth);
     } else {
-        // 创建模式，直接设置列表
-        form.value.cloths = list;
+        form.value.cloths[index] = cloth;
     }
 
     adjustInput();
@@ -710,7 +681,6 @@ async function handleUpdate() {
 
 /** 提交按钮 */
 async function submitForm() {
-    console.log('submitForm', form.value);
     // 手动设置验证触发类型为submit
     const validateOptions = { trigger: 'submit' };
 
@@ -1313,6 +1283,10 @@ function cancelSelf() {
         });
 }
 
+function handleClothSelected(cloth) {
+    eventBus.emit('cloth-selected', cloth);
+}
+
 onMounted(async () => {
     router.beforeEach((to, from, next) => {
         if (from.path === route.path) {
@@ -1336,7 +1310,6 @@ onMounted(async () => {
 
 // 组件卸载时移除事件监听
 onUnmounted(() => {
-    // eventBus.off('user-coupons-updated', handleCouponsUpdated);
     eventBus.off('coupon-purchase-success', handleCouponPurchase);
 });
 

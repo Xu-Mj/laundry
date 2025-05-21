@@ -11,8 +11,8 @@ pub mod tray;
 pub mod update;
 pub mod utils;
 
-use tauri::Runtime;
 use tauri::ipc::Invoke;
+use tauri::{AppHandle, Manager, PhysicalSize, Runtime, Size};
 use tauri_plugin_fs::FsExt;
 
 use crate::db::{
@@ -21,6 +21,27 @@ use crate::db::{
     message, notice_temp, order_clothes, orders, payments, qrcode_payments, subscription_service,
     subscriptions, tags, user, user_coupons, user_tours, wechat_config,
 };
+
+fn set_window_size<R: tauri::Runtime>(app_handle: &AppHandle<R>) {
+    // 获取屏幕尺寸
+    if let Some(window) = app_handle.get_webview_window("main") {
+        if let Ok(Some(monitor)) = window.current_monitor() {
+            let size = monitor.size();
+            let width = size.width;
+            let height = size.height;
+            // 判断窗口是否小于1920*1080
+            if width < 1920 || height < 1080 {
+                if let Err(err) = window.set_fullscreen(true) {
+                    tracing::error!("Failed to set window size: {:?}", err);
+                }
+            } else {
+                if let Err(err) = window.set_size(Size::Physical(PhysicalSize::new(1920, 1080))) {
+                    tracing::error!("Failed to set window size: {:?}", err);
+                }
+            }
+        }
+    }
+}
 
 pub fn create_app<R: tauri::Runtime, T: Send + Sync + 'static>(
     builder: tauri::Builder<R>,
@@ -36,6 +57,8 @@ pub fn create_app<R: tauri::Runtime, T: Send + Sync + 'static>(
                 .expect("msg");
 
             let handle = app.handle().clone();
+            set_window_size(&handle);
+
             tauri::async_runtime::spawn(async move {
                 update::update(handle).await.unwrap();
             });

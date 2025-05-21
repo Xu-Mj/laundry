@@ -536,14 +536,6 @@ impl User {
 
 impl Request for User {
     const URL: &'static str = "/users";
-
-    // async fn del_request(&self, state: &State<'_, AppState>) -> Result<bool> {
-    //     let result = state
-    //         .http_client
-    //         .delete(&format!("{}/{}", Self::USER_URL, self.user_id.unwrap()))
-    //         .await?;
-    //     Ok(result)
-    // }
 }
 
 #[tauri::command]

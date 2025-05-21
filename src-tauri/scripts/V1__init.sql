@@ -570,11 +570,12 @@ CREATE TABLE drying_rack
     rack_type          TEXT             DEFAULT '1',
     capacity           INTEGER NOT NULL,
     remaining_capacity INTEGER NOT NULL,
-    position           INTEGER NOT NULL DEFAULT 0
+    position           INTEGER NOT NULL DEFAULT 0,
+    is_sys             INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX idx_drying_rack_store_id ON drying_rack (store_id);
 -- 写一条游客使用的数据
-INSERT INTO drying_rack (store_id, name, rack_type, capacity, remaining_capacity, position) VALUES (0, '游客使用晾衣架', '1', 100, 100, 0);
+INSERT INTO drying_rack (store_id, name, rack_type, capacity, remaining_capacity, position, is_sys) VALUES (0, '游客使用晾衣架', '1', 100, 100, 0, 1);
 
 
 -- 用来存储衣物的编码最大值

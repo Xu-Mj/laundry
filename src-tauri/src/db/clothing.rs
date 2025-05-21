@@ -319,10 +319,10 @@ impl Clothing {
                 images, description_images, is_put_on_sale, is_available, 
                 is_sold_out, is_default, clothing_base_price, sale_price, clothing_min_price, 
                 stock_quantity, sold_num, sku_list, spec_list, order_num, clothing_degree,
-                tag_list, del_flag, create_time, update_time
+                tag_list, hang_type, del_flag, create_time, update_time
             ) VALUES (
                 ?, ?, ? , ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                ?, ?, ?, ?, ?, '0', ?, ?
+                ?, ?, ?, ?, ?, ?, '0', ?, ?
             ) RETURNING *
             "#,
         )
@@ -350,6 +350,7 @@ impl Clothing {
         .bind(self.order_num)
         .bind(self.clothing_degree)
         .bind(self.tag_list)
+        .bind(self.hang_type)
         .bind(now)
         .bind(now)
         .fetch_one(&mut **tx)
@@ -383,6 +384,7 @@ impl Clothing {
                 sku_list = ?,
                 spec_list = ?,
                 tag_list = ?,
+                hang_type = ?,
                 order_num =?,
                 clothing_degree =?,
                 update_time = ?
@@ -407,6 +409,7 @@ impl Clothing {
         .bind(&self.sku_list)
         .bind(&self.spec_list)
         .bind(&self.tag_list)
+        .bind(&self.hang_type)
         .bind(self.order_num)
         .bind(self.clothing_degree)
         .bind(now)
@@ -573,23 +576,27 @@ pub async fn add_clothing(state: State<'_, AppState>, mut clothing: Clothing) ->
     }
 
     let mut tx = state.pool.begin().await?;
-    let mut clothing = clothing.create_request(&state).await?;
+    let mut cloth = clothing.create_request(&state).await?;
 
     // 恢复本地图片路径，用于本地存储
-    clothing.primary_image = local_primary_image;
+    cloth.primary_image = local_primary_image;
     if !local_images.is_empty() {
-        clothing.images = Some(local_images.join(","));
-        clothing.images_vec = local_images;
+        cloth.images = Some(local_images.join(","));
+        cloth.images_vec = local_images;
     }
 
-    if clothing.clothing_degree.is_none() {
-        clothing.clothing_degree = Some(0);
+    cloth.clothing_degree = clothing.clothing_degree;
+    cloth.order_num = clothing.order_num;
+    cloth.hang_type = clothing.hang_type;
+
+    if cloth.clothing_degree.is_none() {
+        cloth.clothing_degree = Some(0);
     }
 
-    if clothing.order_num.is_none() {
-        clothing.order_num = Some(0);
+    if cloth.order_num.is_none() {
+        cloth.order_num = Some(0);
     }
-    let clothing = clothing.insert(&mut tx).await?;
+    let clothing = cloth.insert(&mut tx).await?;
 
     tx.commit().await?;
 

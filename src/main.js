@@ -44,6 +44,8 @@ import ImagePreview from "@/components/ImagePreview"
 // 字典标签组件
 import DictTag from '@/components/DictTag'
 
+import { useWindowStore } from '@/store/modules/window'
+
 const app = createApp(App)
 
 // 全局方法挂载
@@ -81,6 +83,10 @@ app.use(ElementPlus, {
   // 支持 large、default、small
   size: Cookies.get('size') || 'default'
 })
+
+// 初始化窗口
+const windowStore = useWindowStore()
+windowStore.initWindow()
 
 app.mount('#app')
 

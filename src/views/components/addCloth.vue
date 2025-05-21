@@ -368,7 +368,7 @@
         </el-dialog>
         <PredefinedCategories v-model="showCategoryDialog" @success="handlePredefinedCategoriesSuccess"
             @cancel="showCategoryDialog = false" />
-        <el-dialog v-model="showCategoryPrompt" title="提示" width="30%" :close-on-click-modal="false" align-center>
+        <el-dialog v-model="showCategoryPrompt" title="提示" width="450" :close-on-click-modal="false" align-center>
             <div class="prompt-content">
                 <el-icon class="prompt-icon">
                     <Warning />
@@ -384,7 +384,6 @@
                 </span>
             </template>
         </el-dialog>
-        <RackInitCheck v-model:visible="showRackInitCheck" @setup-complete="handleRackSetupComplete" />
     </div>
 </template>
 
@@ -402,9 +401,6 @@ import { invoke } from '@tauri-apps/api/core';
 import { Close } from '@element-plus/icons-vue';
 import RadioButton from '@/components/RadioButton.vue'
 import PredefinedCategories from './PredefinedCategories.vue'
-import { checkRackInitialized } from '@/api/system/rackCheck';
-import RackInitCheck from '@/components/RackInitCheck/index.vue';
-import { onMounted, inject } from 'vue';
 import eventBus from "@/utils/eventBus";
 import useTagsStore from '@/store/modules/tags';
 
@@ -440,7 +436,6 @@ const props = defineProps({
     }
 });
 
-const selectedCloth = inject('selectedCloth');
 const { proxy } = getCurrentInstance();
 const { sys_service_type, sys_service_requirement } =
     proxy.useDict(
@@ -460,8 +455,6 @@ const featureList = [
 const categoryList = ref([]);
 // 步数
 const maxStepNum = 6;
-// 添加衣物的列表
-const clothList = ref([]);
 
 // 选择衣物时展示的衣物列表
 const clothingList = ref([]);
@@ -484,9 +477,6 @@ const brandInput = ref(null);
 // 弹窗控制
 const showCategoryDialog = ref(false);
 const showCategoryPrompt = ref(false);
-
-// 衣挂初始化检查相关状态
-const showRackInitCheck = ref(false);
 
 // 添加这些缺少的变量声明
 const cateName = ref();
@@ -533,24 +523,6 @@ const video = ref(null);
 const canvas = ref(null);
 const capturedImages = ref([]);
 const takePhotoBtnDisabled = ref(true);
-
-// 监听 selectedCloth 的变化
-watch(selectedCloth, (newVal) => {
-    if (newVal) {
-        Object.assign(form.value, newVal);
-        step.value = 0;
-        cateChange();
-    } else {
-        reset(); // 如果没有选中任何衣物，则重置表单
-    }
-});
-
-// 监听props.clothes的变化，初始化clothList
-watch(() => props.clothes, (newClothes) => {
-    if (newClothes && newClothes.length > 0) {
-        clothList.value = [...newClothes];
-    }
-}, { immediate: true });
 
 // 监听userId的变化，当有userId时才加载数据
 watch(() => props.userId, async (newUserId) => {
@@ -860,6 +832,7 @@ async function initList() {
 
 /** 新增按钮操作 */
 function handleAdd() {
+    reset();
     cateChange();
 }
 
@@ -893,37 +866,13 @@ function submitForm() {
                 submitData.beforePics = Array.from(prePictureList2.value).join(',');
             }
             if (form.value.clothId != null) {
-                console.log(clothList.value, form.value)
                 updateCloths(submitData).then(() => {
                     proxy.notify.success("修改成功");
-                    // 更新衣物列表
-                    const clothIndex = clothList.value.findIndex(item => item.clothId == form.value.clothId);
-                    if (clothIndex !== -1) {
-                        const cloth = clothList.value[clothIndex];
-                        const clothInfo = cloth.clothInfo;
-                        clothList.value[clothIndex] = form.value; // 替换整个对象
-                        clothList.value[clothIndex].clothInfo = clothInfo;
-                    }
-                    props.submit(clothList.value);
+                    props.submit(form.value);
                     handleAdd();
                 }).catch(error => {
-                    // 如果是notfound那么检查是否配置了晾衣架
-                    if (error.kind == "NotFound" && error.details == '没有可用的衣架') {
-                        // 检查衣挂是否已初始化
-                        checkRackInitialized().then(isInitialized => {
-                            if (!isInitialized) {
-                                // 如果未初始化，显示衣挂初始化设置对话框
-                                showRackInitCheck.value = true;
-                            } else {
-                                proxy.notify.error("没有可用的衣架，请检查衣架配置");
-                            }
-                        }).catch(err => {
-                            console.error('检查衣挂初始化状态失败:', err);
-                            proxy.notify.error("检查衣挂状态失败");
-                        });
-                        return;
-                    }
-                    proxy.notify.error("操作失败：" + error);
+                    console.error(error);
+                    proxy.notify.error("修改失败");
                 });
             } else {
                 if (props.orderId) {
@@ -937,26 +886,11 @@ function submitForm() {
                     form.value.clothingFlawArr = flaw;
                     form.value.estimateArr = estimate;
                     form.value.clothInfo = clothingList.value.find(item => item.id == submitData.clothingId);
-                    clothList.value.push(form.value);
-                    props.submit(clothList.value);
+                    props.submit(form.value);
                     handleAdd();
                 }).catch(error => {
-                    // 如果是notfound那么检查是否配置了晾衣架
-                    if (error.kind == "NotFound" && error.details == '没有可用的衣架') {
-                        // 检查衣挂是否已初始化
-                        checkRackInitialized().then(isInitialized => {
-                            if (!isInitialized) {
-                                // 如果未初始化，显示衣挂初始化设置对话框
-                                showRackInitCheck.value = true;
-                            } else {
-                                proxy.notify.error("没有可用的衣架，请检查衣架配置");
-                            }
-                        }).catch(err => {
-                            console.error('检查衣挂初始化状态失败:', err);
-                            proxy.notify.error("检查衣挂状态失败");
-                        });
-                        return;
-                    }
+                    console.error(error);
+                    proxy.notify.error("修改失败");
                 });
             }
         }
@@ -1164,35 +1098,11 @@ function createCloth() {
         clothingListFilterResult.value.push(newCloth);
         clothingList.value.push(newCloth);
 
-        // 确保新添加的衣物被选中 - 强制触发一次更新
-        // nextTick(() => {
-        //     // 这里添加一个小延迟，确保UI能正确反映选中状态
-        //     setTimeout(() => {
-        //         const selectedCloth = clothingListFilterResult.value.find(item => item.id === newCloth.id);
-        //         if (selectedCloth) {
-        //             console.log("已选中衣物:", selectedCloth.title);
-        //         }
-        //     }, 100);
-        // });
-
         // 自动进入下一步
         nextStep();
     }).catch(error => {
-        // 错误处理（保持不变）
-        if (error.kind == "notfound" && error.details == '没有可用的衣架') {
-            checkRackInitialized().then(isInitialized => {
-                if (!isInitialized) {
-                    showRackInitCheck.value = true;
-                } else {
-                    proxy.notify.error("没有可用的衣架，请检查衣架配置");
-                }
-            }).catch(err => {
-                console.error('检查衣挂初始化状态失败:', err);
-                proxy.notify.error("检查衣挂状态失败");
-            });
-            return;
-        }
-        proxy.notify.error("操作失败：" + error);
+        console.error(error);
+        proxy.notify.error("修改失败");
     });
 }
 
@@ -1277,15 +1187,6 @@ function handleCategoryPrompt(confirm) {
     }
 }
 
-// 处理衣挂初始化检查完成
-const handleRackSetupComplete = (completed) => {
-    showRackInitCheck.value = false;
-    if (completed) {
-        // 如果完成了初始化，可以继续之前的操作
-        proxy.notify.success("衣挂配置完成");
-    }
-};
-
 // 监听衣物删除事件
 onMounted(() => {
     reset();
@@ -1296,6 +1197,12 @@ onMounted(() => {
         if (form.value.clothId === clothId) {
             reset();
         }
+    });
+    // 监听衣物选中事件
+    eventBus.on('cloth-selected', (cloth) => {
+        console.log("衣物选中事件触发");
+        form.value = cloth;
+        step.value = 0;
     });
 });
 </script>
@@ -1698,7 +1605,6 @@ onMounted(() => {
     left: 0;
     width: 100%;
     height: 100%;
-    /* background-color: rgba(0, 0, 0, 0.5); */
     z-index: 999;
     display: flex;
     justify-content: center;
@@ -1732,7 +1638,6 @@ onMounted(() => {
     justify-content: center;
     gap: 1.5rem;
     padding: 1.5rem 0;
-    background-color: var(--el-bg-color);
 }
 
 .dialog-footer .el-button {
@@ -1741,33 +1646,6 @@ onMounted(() => {
     font-size: 1rem;
     border-radius: 8px;
     transition: all 0.3s ease;
-}
-
-.dialog-footer .el-button--default {
-    background-color: var(--el-fill-color-light);
-    border-color: var(--el-border-color);
-    color: var(--el-text-color-regular);
-}
-
-.dialog-footer .el-button--default:hover {
-    background-color: var(--el-fill-color);
-    border-color: var(--el-border-color-darker);
-    color: var(--el-text-color-primary);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.dialog-footer .el-button--primary {
-    background-color: var(--el-color-primary);
-    border-color: var(--el-color-primary);
-    color: white;
-}
-
-.dialog-footer .el-button--primary:hover {
-    background-color: var(--el-color-primary-light-3);
-    border-color: var(--el-color-primary-light-3);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(64, 158, 255, 0.2);
 }
 
 @keyframes pulse {

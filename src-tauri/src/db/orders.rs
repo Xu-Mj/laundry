@@ -8,6 +8,7 @@ use sqlx::{
     FromRow, Pool, QueryBuilder, Row, Sqlite, Transaction,
     types::chrono::{DateTime, FixedOffset, NaiveDate, Utc},
 };
+use tauri::{AppHandle, Manager, Runtime};
 
 use crate::db::adjust_price::OrderClothAdjust;
 use crate::db::cloth_price::ClothPrice;
@@ -23,6 +24,9 @@ use crate::state::AppState;
 use crate::utils;
 use crate::utils::chrono_serde::deserialize_date;
 use crate::utils::request::Request;
+use std::sync::Arc;
+use tokio::sync::Mutex;
+use tokio::task::JoinHandle;
 
 const PAY_STATUS_NOT_PAID: &str = "01";
 const PAY_STATUS_REFUND: &str = "05";
@@ -35,6 +39,8 @@ const CLOTHING_STATUS_PICKED_UP: &str = "00";
 const STATUS_LAUNDRY: &str = "01";
 const STATUS_COMPLETED: &str = "04";
 const NORMAL_ALARM: &str = "00";
+const WARNING_ALARM: &str = "01";
+const OVERDUE_ALARM: &str = "02";
 const BUSINESS_MAIN: &str = "00";
 const DESIRE_COMPLETE_TIME_KEY: &str = "desire_complete_time";
 const STORAGE_CARD_NUMBER: &str = "000";
@@ -740,6 +746,83 @@ impl Order {
             .await?;
 
         Ok(count)
+    }
+
+    /// 检查订单时效并更新预警状态
+    pub async fn check_time_warning(pool: &Pool<Sqlite>, store_id: i64) -> Result<()> {
+        let now = Utc::now();
+        let warning_threshold = now + chrono::Duration::days(1);
+
+        // 查询所有未完成且需要检查的订单
+        let orders = sqlx::query_as::<_, Order>(
+            "SELECT * FROM orders 
+            WHERE store_id = ? 
+            AND status NOT IN ('04', '05', '06') 
+            AND desire_complete_time IS NOT NULL",
+        )
+        .bind(store_id)
+        .fetch_all(pool)
+        .await?;
+
+        let mut tx = pool.begin().await?;
+
+        for mut order in orders {
+            if let Some(desire_time) = order.desire_complete_time {
+                // 将 NaiveDate 转换为 DateTime<Utc>
+                let desire_datetime = desire_time
+                    .and_hms_opt(0, 0, 0)
+                    .map(|ndt| DateTime::<Utc>::from_naive_utc_and_offset(ndt, Utc))
+                    .unwrap_or_else(|| now);
+
+                let current_alarm = order.cost_time_alarm.as_deref().unwrap_or(NORMAL_ALARM);
+                let new_alarm = if desire_datetime < now {
+                    // 已超时
+                    OVERDUE_ALARM
+                } else if desire_datetime <= warning_threshold {
+                    // 即将到期
+                    WARNING_ALARM
+                } else {
+                    // 正常
+                    NORMAL_ALARM
+                };
+
+                // 如果预警状态发生变化，则更新
+                if current_alarm != new_alarm {
+                    order.cost_time_alarm = Some(new_alarm.to_string());
+                    if !order.update(&mut tx).await? {
+                        return Err(Error::internal("更新订单预警状态失败"));
+                    }
+
+                    // 记录预警日志
+                    match new_alarm {
+                        OVERDUE_ALARM => {
+                            tracing::warn!(
+                                "订单 {} 已超时，期望完成时间: {}",
+                                order.order_number.unwrap_or_default(),
+                                desire_time
+                            );
+                        }
+                        WARNING_ALARM => {
+                            tracing::info!(
+                                "订单 {} 即将到期，期望完成时间: {}",
+                                order.order_number.unwrap_or_default(),
+                                desire_time
+                            );
+                        }
+                        _ => {
+                            tracing::info!(
+                                "订单 {} 恢复正常状态，期望完成时间: {}",
+                                order.order_number.unwrap_or_default(),
+                                desire_time
+                            );
+                        }
+                    }
+                }
+            }
+        }
+
+        tx.commit().await?;
+        Ok(())
     }
 }
 
@@ -2132,4 +2215,54 @@ pub async fn get_count_by_user_id(state: tauri::State<'_, AppState>, user_id: i6
         ..Default::default()
     };
     order.count(&state.pool).await
+}
+
+/// 订单时效预警管理器
+#[derive(Debug, Clone)]
+pub struct TimeWarningManager {
+    task_handle: Arc<Mutex<Option<JoinHandle<()>>>>,
+}
+
+impl TimeWarningManager {
+    pub fn new() -> Self {
+        Self {
+            task_handle: Arc::new(Mutex::new(None)),
+        }
+    }
+
+    /// 启动时效检查任务
+    pub async fn start<R: Runtime>(&self, app_handle: AppHandle<R>) -> Result<()> {
+        let state = app_handle.state::<AppState>();
+        let pool = state.pool.clone();
+        let store_id = utils::get_user_id(&state).await?;
+        let task_handle = self.task_handle.clone();
+
+        // 先停止已存在的任务
+        self.stop().await;
+
+        // 创建新任务
+        let handle = tokio::spawn(async move {
+            let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(3600)); // 每小时检查一次
+            loop {
+                interval.tick().await;
+                if let Err(e) = Order::check_time_warning(&pool, store_id).await {
+                    tracing::error!("检查订单时效失败: {}", e);
+                }
+            }
+        });
+
+        // 保存任务句柄
+        let mut handle_guard = task_handle.lock().await;
+        *handle_guard = Some(handle);
+
+        Ok(())
+    }
+
+    /// 停止时效检查任务
+    pub async fn stop(&self) {
+        let mut handle_guard = self.task_handle.lock().await;
+        if let Some(handle) = handle_guard.take() {
+            handle.abort();
+        }
+    }
 }

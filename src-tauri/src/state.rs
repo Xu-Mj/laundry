@@ -10,6 +10,7 @@ use tokio::{task::JoinHandle, time::sleep};
 
 use crate::{
     error::Error,
+    orders::TimeWarningManager,
     utils::request::{HttpClient, Token},
 };
 use crate::{error::Result, local_users::LocalUser};
@@ -28,7 +29,8 @@ pub struct AppState {
     pub pool: Pool<Sqlite>,
     pub http_client: HttpClient,
     pub token: Arc<TokioMutex<Option<Token>>>,
-    pub token_refresh_handle: Arc<Mutex<Option<JoinHandle<()>>>>,
+    pub token_refresh_handle: Arc<TokioMutex<Option<JoinHandle<()>>>>,
+    pub time_warning_check_handle: TimeWarningManager,
     pub last_activity_time: Arc<Mutex<SystemTime>>,
 }
 
@@ -38,7 +40,8 @@ impl AppState {
             pool,
             http_client: HttpClient::new(base_url.to_string()),
             token: Arc::new(TokioMutex::new(None)),
-            token_refresh_handle: Arc::new(Mutex::new(None)),
+            token_refresh_handle: Arc::new(TokioMutex::new(None)),
+            time_warning_check_handle: TimeWarningManager::new(),
             last_activity_time: Arc::new(Mutex::new(SystemTime::now())),
         }
     }
@@ -96,13 +99,22 @@ impl AppState {
         Ok(())
     }
 
+    pub async fn start_jobs<R: Runtime>(&self, app_handle: AppHandle<R>) -> Result<()> {
+        tracing::info!("start jobs");
+        self.start_token_refresh_task(app_handle.clone()).await;
+        self.time_warning_check_handle
+            .start(app_handle.clone())
+            .await?;
+        Ok(())
+    }
+
     pub async fn start_token_refresh_task<R: Runtime>(&self, app_handle: AppHandle<R>) {
         let token = self.token.clone();
         let http_client = self.http_client.clone();
         let token_refresh_handle = self.token_refresh_handle.clone();
 
         // 检查是否已经有正在运行的 token 刷新任务
-        if token_refresh_handle.lock().unwrap().is_some() {
+        if token_refresh_handle.lock().await.is_some() {
             return;
         }
 
@@ -183,7 +195,7 @@ impl AppState {
             }
         });
 
-        *token_refresh_handle.lock().unwrap() = Some(handle);
+        *token_refresh_handle.lock().await = Some(handle);
     }
 
     fn is_token_expired(exp: &i64) -> Result<bool> {
@@ -194,17 +206,18 @@ impl AppState {
                 .as_secs() as i64)
     }
 
-    pub fn stop_token_refresh_task(&self) {
-        if let Some(handle) = self.token_refresh_handle.lock().unwrap().take() {
+    pub async fn stop_token_refresh_task(&self) {
+        if let Some(handle) = self.token_refresh_handle.lock().await.take() {
             handle.abort();
         }
     }
 
     pub async fn logout(&self) {
-        self.stop_token_refresh_task();
+        self.stop_token_refresh_task().await;
         // 清除 token
         let mut token = self.token.lock().await;
         *token = None; // 将 token 置为 None
+        self.time_warning_check_handle.stop().await;
     }
 
     pub async fn get_user_info(&self) -> Option<LocalUser> {
@@ -236,6 +249,11 @@ impl AppState {
 
     pub async fn try_get_user_id(&self) -> Result<i64> {
         let token = self.token.lock().await;
-        Ok(token.as_ref().ok_or(Error::unauthorized())?.user.id.ok_or(Error::unauthorized())?)
+        Ok(token
+            .as_ref()
+            .ok_or(Error::unauthorized())?
+            .user
+            .id
+            .ok_or(Error::unauthorized())?)
     }
 }

@@ -412,9 +412,9 @@ impl LoginReq {
         // 更新 AppState 中的 token
         let mut app_token = state.token.lock().await;
         *app_token = Some(token.clone());
-
+        drop(app_token);
         // 启动 token 刷新任务
-        state.start_token_refresh_task(app_handle.clone()).await;
+        state.start_jobs(app_handle.clone()).await?;
 
         Ok(token)
     }

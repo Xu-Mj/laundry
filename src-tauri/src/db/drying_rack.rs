@@ -295,3 +295,45 @@ fn find_first_available_hanger(used_hangers: &[i32], capacity: i32) -> Option<i3
     // 查找第一个未被占用的挂钩号，从1开始
     (1..=capacity).find(|&i| !hanger_used[i as usize])
 }
+
+// check initial data
+#[tauri::command]
+pub async fn check_rack_initial_data(state: State<'_, AppState>) -> Result<bool> {
+    let store_id = utils::get_user_id(&state).await?;
+    let pool = &state.pool;
+    let list = DryingRack::list(pool, store_id).await?;
+    if list.is_empty() {
+        // init data
+        let rack = DryingRack {
+            store_id: Some(store_id),
+            name: Some("输送线".to_string()),
+            capacity: Some(100),
+            remaining_capacity: Some(100),
+            rack_type: Some("1".to_string()),
+            position: Some(1),
+            ..Default::default()
+        };
+        rack.add(pool).await?;
+        let rack = DryingRack {
+            store_id: Some(store_id),
+            name: Some("鞋柜".to_string()),
+            capacity: Some(100),
+            remaining_capacity: Some(100),
+            rack_type: Some("2".to_string()),
+            position: Some(1),
+            ..Default::default()
+        };
+        rack.add(pool).await?;
+        let rack = DryingRack {
+            store_id: Some(store_id),
+            name: Some("其他".to_string()),
+            capacity: Some(100),
+            remaining_capacity: Some(100),
+            rack_type: Some("3".to_string()),
+            position: Some(1),
+            ..Default::default()
+        };
+        rack.add(pool).await?;
+    }
+    Ok(true)
+}

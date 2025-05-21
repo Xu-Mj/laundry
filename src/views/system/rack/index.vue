@@ -17,7 +17,7 @@
         <template #empty>
           <el-empty description="暂无数据" />
         </template>
-        <el-table-column type="selection" width="55" align="center" />
+        <el-table-column type="selection" width="55" align="center" :selectable="(row) => !row.isSys" />
         <el-table-column label="架子名称" align="center" prop="name" />
         <el-table-column label="架子类型" align="center" prop="rackType">
           <template #default="scope">
@@ -32,7 +32,7 @@
         <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
           <template #default="scope">
             <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)">修改</el-button>
-            <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)">删除</el-button>
+            <el-button link type="primary" icon="Delete" v-if="!scope.row.isSys" @click="handleDelete(scope.row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -140,7 +140,7 @@ function reset() {
 
 // 多选框选中数据
 function handleSelectionChange(selection) {
-  ids.value = selection.map(item => item.id);
+  ids.value = selection.filter(item => !item.isSys).map(item => item.id);
   single.value = selection.length != 1;
   multiple.value = !selection.length;
 }

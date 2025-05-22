@@ -1,7 +1,7 @@
 <template>
     <div data-tauri-drag-region class="close-bar">
         <el-button link icon="Minus" @click="minimizeWindow" />
-        <el-button v-if="showMaximizeButton" link :icon="isMaximized ? 'FullScreen' : 'Crop'"
+        <el-button v-if="showMaximizeButton" link :icon="isMaximized ? 'FullScreen' : 'CopyDocument'"
             @click="maximizeOrRestoreWindow" />
         <el-button link icon="Close" @click="closeWindow" />
     </div>

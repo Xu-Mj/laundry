@@ -142,9 +142,9 @@
                 </el-form-item>
               </el-col>
               <el-col :span="12">
-                <el-form-item label="折扣系数" prop="priceDiscount">
-                  <el-input-number v-model="form.priceDiscount" controls-position="right" placeholder="请输入折扣系数"
-                    :disabled="isPriceDiscountDisabled" class="custom-input-number">
+                <el-form-item v-if="form.orderType == '03'" label="折扣系数" prop="priceDiscount">
+                  <el-input-number v-model="form.priceDiscount" controls-position="right" :min="0" :max="100"
+                    placeholder="请输入折扣系数" :disabled="isPriceDiscountDisabled" class="custom-input-number">
                     <template #prefix>
                       <el-icon>
                         <Discount />
@@ -158,7 +158,7 @@
             <div class="price-info" v-if="form.priceValue || form.priceDiscount">
               <el-alert type="info" :closable="false" show-icon>
                 <template #title>
-                  <span>{{ form.priceValue ? '已设置固定价格' : '已设置折扣系数' }}</span>
+                  <span>{{ form.priceValue ? '已设置固定价格' : '已设置折扣系数：' + form.priceDiscount + '%' }}</span>
                 </template>
                 <template #default>
                   <p>{{ form.priceValue && form.priceDiscount ? '价格和折扣系数只能设置一个' : '请设置价格或折扣系数其中一项' }}</p>
@@ -456,10 +456,10 @@ function submitForm() {
 /** 删除按钮操作 */
 function handleDelete(row) {
   const _priceIds = row.priceId || ids.value;
-  
+
   // 获取要删除的价格名称
   let confirmMessage;
-  
+
   if (row.priceId) {
     // 单个删除
     confirmMessage = `是否确认删除价格"${row.priceName}"?`;
@@ -469,10 +469,10 @@ function handleDelete(row) {
       .filter(item => ids.value.includes(item.priceId))
       .map(item => item.priceName)
       .join("、");
-    
+
     confirmMessage = `是否确认删除以下价格: ${priceNames}?`;
   }
-  
+
   proxy.$modal.confirm(confirmMessage, "警告", {
     confirmButtonText: "确定",
     cancelButtonText: "取消",

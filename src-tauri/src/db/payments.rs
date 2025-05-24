@@ -256,35 +256,6 @@ pub async fn get_monthly_payment_summary(
     .into_iter()
     .collect();
 
-    // 查询储值卡销售收入（统计售卡收入，而不是使用储值卡的支付）
-    // 避免储值卡的双重统计：1.购买时计入；2.使用时不重复计入
-    // let storage_card_income_data: HashMap<String, f64> = sqlx::query(
-    //     r#"
-    //     SELECT
-    //         strftime('%Y-%m-%d', datetime(uc.create_time/1000, 'unixepoch')) as date,
-    //         SUM(uc.total_amount) as income
-    //     FROM user_coupons uc
-    //     JOIN coupons c ON uc.coupon_id = c.coupon_id
-    //     WHERE uc.create_time BETWEEN ? AND ?
-    //       AND c.coupon_type = '000' -- 储值卡类型
-    //       AND uc.store_id = ?
-    //     GROUP BY date
-    //     ORDER BY date
-    //     "#,
-    // )
-    // .bind(start_timestamp)
-    // .bind(end_timestamp)
-    // .bind(store_id)
-    // .map(|row: SqliteRow| {
-    //     let date: String = row.get("date");
-    //     let income: f64 = row.get("income");
-    //     (date, income)
-    // })
-    // .fetch_all(pool)
-    // .await?
-    // .into_iter()
-    // .collect();
-
     // 查询支出数据
     let expense_data: HashMap<String, f64> = sqlx::query(
         r#"
@@ -453,29 +424,6 @@ async fn query_amounts(
     .bind(store_id)
     .fetch_one(pool)
     .await?;
-
-    // 储值卡销售收入（统计售卡收入，而不是使用储值卡的支付）
-    // 这样可以避免储值卡的双重统计问题：
-    // 1. 用户购买储值卡时计入收入
-    // 2. 用户使用储值卡支付时不再重复计入收入
-    // let storage_card_sales: f64 = sqlx::query_scalar(
-    //     r#"
-    //     SELECT COALESCE(SUM(total_amount), 0.0)
-    //     FROM user_coupons uc
-    //     JOIN coupons c ON uc.coupon_id = c.coupon_id
-    //     WHERE uc.create_time BETWEEN ? AND ?
-    //       AND c.coupon_type = '000' -- 储值卡类型
-    //       AND uc.store_id = ?
-    //     "#,
-    // )
-    // .bind(start)
-    // .bind(end)
-    // .bind(store_id)
-    // .fetch_one(pool)
-    // .await?;
-
-    // 总收入 = 正常销售收入 + 储值卡销售收入
-    // let total_income = normal_income + storage_card_sales;
 
     // 支出查询
     let expense: i64 = sqlx::query_scalar(

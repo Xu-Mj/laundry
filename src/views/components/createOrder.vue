@@ -49,7 +49,24 @@
                                 </el-form-item>
                             </el-col>
                         </el-row>
-
+                        <el-row :gutter="20" v-if="showUserInfoRow && mergedCoupons.length > 0">
+                            <el-col :span="24">
+                                <el-form-item class="coupon-tags-wrapper">
+                                    <div class="coupon-tags">
+                                        <el-tag
+                                            v-for="(card, index) in mergedCoupons.filter(item => item.coupon.couponType == '002' && item.availableValue > 0)"
+                                            :key="index" type="success" effect="light" class="coupon-tag">
+                                            {{ card.coupon.couponTitle }} - {{ card.ucCount }}张
+                                        </el-tag>
+                                        <el-tag
+                                            v-for="(card, index) in mergedCoupons.filter(item => item.coupon.couponType !== '000' && item.coupon.couponType !== '002' && item.availableValue > 0)"
+                                            :key="index" type="warning" effect="light" class="coupon-tag">
+                                            {{ card.coupon.couponTitle }} - {{ card.ucCount }}张
+                                        </el-tag>
+                                    </div>
+                                </el-form-item>
+                            </el-col>
+                        </el-row>
                     </div>
                     <div class="order-source-card" ref="orderSourceRef">
                         <h3 class="section-title">订单来源</h3>
@@ -159,8 +176,8 @@
                                 <div class="summary-item">
                                     <div class="summary-label">单据打印</div>
                                     <div class="summary-value">
-                                        <el-input-number style="width: 100%;" :min="1" v-model="printCount" controls-position="right"
-                                            size="large" />
+                                        <el-input-number style="width: 100%;" :min="1" v-model="printCount"
+                                            controls-position="right" size="large" />
                                     </div>
                                 </div>
                             </el-col>
@@ -276,6 +293,7 @@ const route = useRoute();
 
 // 用户卡券列表
 const userCouponList = ref([]);
+const mergedCoupons = ref([]);
 // 用户卡券种类列表
 const couponTypeList = ref();
 // 价格列表
@@ -297,7 +315,6 @@ const showCouponSale = ref(false);
 const showInfoDialog = ref(false);
 
 const notEditable = ref(false);
-const showCoupons = ref(true);
 
 // 引导组件需要的ref
 const memberCardRef = ref(null);
@@ -451,6 +468,9 @@ function priceChange(event, priceId) {
                     const item = priceList.value.find(p => p.priceId === id);
                     return !(item && isPriceDiscount(item));
                 });
+                form.value.isDiscount = true;
+            } else {
+                form.value.isDiscount = false;
             }
 
             // 如果已经选择了固定价格，则移除所有固定价格
@@ -681,6 +701,15 @@ async function handleUpdate() {
     // 获取用户卡券列表
     listUserCouponWithValidTime(currentUserId.value).then(response => {
         userCouponList.value = response;
+        mergedCoupons.value = response.reduce((acc, cur) => {
+            const existing = acc.find(item => item.coupon.couponId === cur.coupon.couponId && item.coupon.couponType !== '000');
+            if (existing) {
+                existing.ucCount += cur.ucCount;
+            } else {
+                acc.push(cur);
+            }
+            return acc;
+        }, []);
         userCouponList.value.filter(item => item.coupon.couponType == '002').map(item => {
             item.selected = false;
             item.count = 1;
@@ -792,6 +821,13 @@ async function createAndGo2Pay() {
                 proxy.notify.error("衣物信息不能为空");
                 return;
             }
+            // 如果选择了美团或者抖音，那么需要选择价格标签
+            if (form.value.source == '00' || form.value.source == '01' || form.value.source == '02') {
+                if (!form.value.priceIds || form.value.priceIds.length === 0) {
+                    proxy.notify.error("请选择价格标签");
+                    return;
+                }
+            }
             if (showCreateUser.value) {
                 try {
                     const res = await addUser({
@@ -841,22 +877,6 @@ async function createAndPay(callback) {
     // 提交订单
     await proxy.$refs["ordersRef"].validate(async valid => {
         if (valid) {
-            if (!form.value.cloths || form.value.cloths.length == 0) {
-                proxy.notify.error("衣物信息不能为空");
-                return;
-            }
-            // 如果选择了美团或者抖音，那么需要选择价格标签
-            if (form.value.source == '01' || form.value.source == '02') {
-                if (!form.value.priceIds || form.value.priceIds.length === 0) {
-                    proxy.notify.error("请选择价格标签");
-                    return;
-                }
-            }
-
-            if (form.value.priceIds && form.value.priceIds.length > 0) {
-                showCoupons.value = false;
-            }
-
             form.value.phonenumber = currentUser.value.phonenumber;
 
             // 如果是创建订单，那么要先创建订单，拿到订单编码
@@ -970,6 +990,15 @@ async function selectUser(val) {
         // 获取用户卡券信息
         await listUserCouponWithValidTime(val.userId).then(response => {
             userCouponList.value = response;
+            mergedCoupons.value = response.reduce((acc, cur) => {
+                const existing = acc.find(item => item.coupon.couponId === cur.coupon.couponId && item.coupon.couponType !== '000');
+                if (existing) {
+                    existing.ucCount += cur.ucCount;
+                } else {
+                    acc.push(cur);
+                }
+                return acc;
+            }, []);
             userCouponList.value.filter(item => item.coupon.couponType == '002').map(item => {
                 item.selected = false;
                 item.count = 1;
@@ -1211,6 +1240,15 @@ function handleCouponPurchase(data) {
         // 重新获取用户卡券列表
         listUserCouponWithValidTime(form.value.userId).then(response => {
             userCouponList.value = response;
+            mergedCoupons.value = response.reduce((acc, cur) => {
+                const existing = acc.find(item => item.coupon.couponId === cur.coupon.couponId && item.coupon.couponType !== '000');
+                if (existing) {
+                    existing.ucCount += cur.ucCount;
+                } else {
+                    acc.push(cur);
+                }
+                return acc;
+            }, []);
             userCouponList.value.filter(item => item.coupon.couponType == '002').map(item => {
                 item.selected = false;
                 item.count = 1;
@@ -1631,6 +1669,16 @@ defineExpose({
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+.coupon-tags-wrapper {
+    margin-bottom: 0;
+}
+
+.coupon-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
 }
 
 .price-list {

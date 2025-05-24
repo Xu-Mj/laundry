@@ -320,9 +320,9 @@ const data = reactive({
       { required: true, message: "最低价格不能为空", trigger: "blur" },
       { validator: validateMinPrice, trigger: 'blur' }
     ],
-    primaryImage: [
-      { required: true, message: "主图不能为空", trigger: "blur" }
-    ],
+    // primaryImage: [
+    //   { required: true, message: "主图不能为空", trigger: "blur" }
+    // ],
     hangType: [
       { required: true, message: "挂衣方式不能为空", trigger: "change" }
     ],
@@ -407,7 +407,7 @@ function reset() {
     stockQuantity: 0,
     orderNum: 0,
     clothingDegree: 0,
-    isPutOnSale: true,
+    isPutOnSale: false,
     primaryImage: null,
     images: null,
     imagesVec: [],

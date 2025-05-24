@@ -7,7 +7,7 @@ pub mod home;
 pub mod pay;
 pub mod printer;
 pub mod state;
-pub mod tray;
+// pub mod tray;
 pub mod update;
 pub mod utils;
 

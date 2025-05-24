@@ -655,9 +655,11 @@ function initSingleOrderForm() {
     }
     // 如果选择了价格方案，以前是根据priceId计算的，但现在应该考虑priceIds数组
     else if (props.order.priceIds && props.order.priceIds.length > 0) {
-        // 这里的总价已经在createOrder.vue中计算好并通过totalPrice传递，
-        // 所以这个条件可能永远不会执行，但我们保留它作为后备
-        price = props.order.totalPrice || 0;
+        if (props.order.isDiscount) {
+            price = props.order.originalPrice || 0;
+        } else {
+            price = props.order.totalPrice || 0;
+        }
     }
     // 使用了单一价格方案的遗留代码
     else if (props.order.priceId) {
@@ -828,6 +830,11 @@ async function submitPaymentForm(isPickup) {
         }
     }
     try {
+        // 处理美团或者抖音的价格标签中的价格
+        if (props.order.source == '01' || props.order.source == '02') {
+            paymentForm.value.totalAmount = props.order.originalPrice;
+            paymentForm.value.paymentAmount = props.order.originalPrice;
+        }
         // 等待支付完成
         await pay(paymentForm.value);
 

@@ -750,8 +750,8 @@ function cateChange() {
 function loadClothingByCategory() {
     if (form.value.categoryId && form.value.styleId) {
         const params = {
-            category_id: form.value.categoryId,
-            style_id: form.value.styleId
+            categoryId: form.value.categoryId,
+            styleId: form.value.styleId
         };
 
         listClothingWithNoLimit(params).then(response => {

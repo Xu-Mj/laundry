@@ -153,7 +153,6 @@ const {
 
 const tagsStore = useTagsStore();
 
-const show = ref(false);
 const loading = ref(true);
 
 const orderList = ref([]);
@@ -164,8 +163,6 @@ const currentOrderId = ref();
 const showClothListDialog = ref(false);
 
 const colorList = computed(() => tagsStore.colorList);
-const flawList = computed(() => tagsStore.flawList);
-const estimateList = computed(() => tagsStore.estimateList);
 const brandList = computed(() => tagsStore.brandList);
 const total = ref(0);
 

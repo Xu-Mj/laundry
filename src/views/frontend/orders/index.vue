@@ -70,6 +70,10 @@
               <el-option v-for="dict in sys_order_status" :key="dict.value" :label="dict.label" :value="dict.value" />
             </el-select>
           </el-form-item>
+          <el-form-item label="消费日期">
+            <el-date-picker v-model="dateRange" value-format="YYYY-MM-DD" type="daterange" range-separator="-"
+              start-placeholder="开始日期" end-placeholder="结束日期" style="width: 260px" />
+          </el-form-item>
           <el-button class="hover-flow" type="primary" icon="Search" @click="handleQuery" size="large">搜索</el-button>
           <el-button class="hover-flow" icon="Refresh" @click="resetQuery" size="large">重置</el-button>
         </el-form>
@@ -303,8 +307,8 @@
         </el-form-item>
       </el-form>
     </el-dialog>
-    <ShowClothsModern :orderId="currentOrderId" :visible="showClothListDialog" :flashList="getList"
-      :userId="currentUserId" :key="showClothListDialog"
+    <ShowClothsModern :order="currentOrder" :orderId="currentOrderId" :visible="showClothListDialog"
+      :flashList="getList" :userId="currentUserId" :key="showClothListDialog"
       :toggle="() => { showClothListDialog = !showClothListDialog }" />
     <el-dialog :show-close="false" v-model="open" fullscreen lock-scroll :before-close="cancel"
       :close-on-click-modal="false">
@@ -383,6 +387,7 @@ const currentUserId = ref(0);
 const createOrderRef = ref();
 const paymentTimeBasedSet = new Set(['07', '17', '27', '57']);
 const paymentCouponSet = new Set(['18', '17', '27', '57']);
+const dateRange = ref([]);
 
 const data = reactive({
   refundForm: {},
@@ -396,6 +401,7 @@ const data = reactive({
     pickupCode: null,
     paymentStatus: null,
     status: null,
+    params: {}
   },
   rules: {
     businessType: [
@@ -411,10 +417,9 @@ const data = reactive({
       { required: true, message: "衣物信息不能为空", trigger: "change" }
     ]
   },
-  refundRules: {}
 });
 
-const { queryParams, refundForm, notifyForm, refundRules } = toRefs(data);
+const { queryParams, refundForm, notifyForm } = toRefs(data);
 
 // 列显隐信息
 const columns = ref([
@@ -514,6 +519,13 @@ function go2pay(row) {
 /** 查询洗护服务订单列表 */
 function getList() {
   loading.value = true;
+  if (dateRange.value && dateRange.value.length === 2) {
+    queryParams.value.startTime = dateRange.value[0];
+    queryParams.value.endTime = dateRange.value[1];
+  } else {
+    queryParams.value.startTime = null;
+    queryParams.value.endTime = null;
+  }
   listOrders(queryParams.value).then(response => {
     ordersList.value = response.rows;
     total.value = response.total;
@@ -595,19 +607,20 @@ function handleAdd() {
 /** 修改按钮操作 */
 function handleUpdate(row) {
   reset();
+  currentOrder.value = row;
   currentOrderId.value = row.orderId;
   currentUserId.value = row.userId;
   open.value = true;
 }
 /** 删除按钮操作 */
 function handleDelete(row) {
-  const _orderIds = row.orderId ;
-    proxy.$modal.confirm('是否确认删除洗护服务订单编号为"' + row.orderNumber + '"的数据项？').then(function () {
-      return delOrders(_orderIds);
-    }).then(() => {
-      getList();
-      proxy.notify.success("删除成功");
-    }).catch(() => { });
+  const _orderIds = row.orderId;
+  proxy.$modal.confirm('是否确认删除洗护服务订单编号为"' + row.orderNumber + '"的数据项？').then(function () {
+    return delOrders(_orderIds);
+  }).then(() => {
+    getList();
+    proxy.notify.success("删除成功");
+  }).catch(() => { });
 }
 
 /* 提交通知 */
@@ -627,6 +640,7 @@ function submitNotifyForm() {
 
 /* 展示衣物列表 */
 function showClothList(row) {
+  currentOrder.value = row;
   currentOrderId.value = row.orderId;
   currentUserId.value = row.userId;
   showClothListDialog.value = true;

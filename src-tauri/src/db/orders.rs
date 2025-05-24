@@ -464,6 +464,15 @@ impl Order {
         //     query_builder.push(" AND o.price_ids IN (").push_bind(price_ids.join(",")).push(")");
         // }
 
+        self.nick_name
+            .as_ref()
+            .filter(|nick_name| !nick_name.is_empty())
+            .map(|nick_name| {
+                query_builder
+                    .push(" AND u.nick_name LIKE ")
+                    .push_bind(format!("%{}%", nick_name));
+            });
+
         self.remark
             .as_ref()
             .filter(|remark| !remark.is_empty())
@@ -474,14 +483,33 @@ impl Order {
             });
     }
 
-    async fn count(&self, pool: &Pool<Sqlite>) -> Result<u64> {
-        let mut query_builder = QueryBuilder::new(
+    async fn count(&self, pool: &Pool<Sqlite>, page_params: Option<PageParams>) -> Result<u64> {
+        let mut builder = QueryBuilder::new(
             "SELECT COUNT(*) FROM orders o
                     LEFT JOIN users u ON o.user_id = u.user_id
                     LEFT JOIN order_clothes_adjust a ON o.order_id = a.order_id WHERE 1=1",
         );
-        self.apply_filters(&mut query_builder);
-        let query = query_builder.build_query_scalar::<u64>();
+        self.apply_filters(&mut builder);
+        if let Some(page_params) = &page_params {
+            if let Some(param) = &page_params.params {
+                if let Some(begin_time) = param.get("startTime") {
+                    builder.push(" AND strftime('%Y%m%d', o.create_time) >= strftime('%Y%m%d', ");
+                    builder.push_bind(begin_time);
+                    builder.push(") ");
+                }
+            }
+        }
+
+        if let Some(page_params) = &page_params {
+            if let Some(param) = &page_params.params {
+                if let Some(end_time) = param.get("endTime") {
+                    builder.push(" AND strftime('%Y%m%d', o.create_time) <= strftime('%Y%m%d', ");
+                    builder.push_bind(end_time);
+                    builder.push(") ");
+                }
+            }
+        }
+        let query = builder.build_query_scalar::<u64>();
         Ok(query.fetch_optional(pool).await?.unwrap_or_default())
     }
 
@@ -491,25 +519,44 @@ impl Order {
         condition_prefix: &str,
         page_params: Option<PageParams>,
     ) -> Result<Vec<Order>> {
-        let mut query_builder = QueryBuilder::new(SQL);
+        let mut builder = QueryBuilder::new(SQL);
 
-        query_builder.push(condition_prefix);
+        builder.push(condition_prefix);
 
-        self.apply_filters(&mut query_builder);
+        self.apply_filters(&mut builder);
+        if let Some(page_params) = &page_params {
+            if let Some(param) = &page_params.params {
+                if let Some(begin_time) = param.get("startTime") {
+                    builder.push(" AND strftime('%Y%m%d', o.create_time) >= strftime('%Y%m%d', ");
+                    builder.push_bind(begin_time);
+                    builder.push(") ");
+                }
+            }
+        }
 
-        query_builder.push(" GROUP BY o.order_id");
+        if let Some(page_params) = &page_params {
+            if let Some(param) = &page_params.params {
+                if let Some(end_time) = param.get("endTime") {
+                    builder.push(" AND strftime('%Y%m%d', o.create_time) <= strftime('%Y%m%d', ");
+                    builder.push_bind(end_time);
+                    builder.push(") ");
+                }
+            }
+        }
+
+        builder.push(" GROUP BY o.order_id");
 
         // sort
-        query_builder.push(" ORDER BY o.create_time DESC");
+        builder.push(" ORDER BY o.create_time DESC");
 
-        if let Some(param) = page_params {
-            query_builder.push(" LIMIT ").push_bind(param.page_size);
-            query_builder
+        if let Some(param) = &page_params {
+            builder.push(" LIMIT ").push_bind(param.page_size);
+            builder
                 .push(" OFFSET ")
                 .push_bind((param.page - 1) * param.page_size);
         }
 
-        let orders = query_builder.build_query_as().fetch_all(pool).await?;
+        let orders = builder.build_query_as().fetch_all(pool).await?;
         Ok(orders)
     }
 
@@ -519,9 +566,9 @@ impl Order {
         page_params: PageParams,
     ) -> Result<PageResult<Order>> {
         let rows = self
-            .build_query(pool, " WHERE 1=1 ", Some(page_params))
+            .build_query(pool, " WHERE 1=1 ", Some(page_params.clone()))
             .await?;
-        let total = self.count(pool).await?;
+        let total = self.count(pool, Some(page_params)).await?;
         Ok(PageResult { total, rows })
     }
 
@@ -1564,6 +1611,7 @@ impl Order {
         } else if Some(PAYMENT_METHOD_MEITUAN) == payment_method.as_deref()
             || Some(PAYMENT_METHOD_DOUYIN) == payment_method.as_deref()
         {
+            order.payment_bonus_count = Some(payment.payment_amount_vip.unwrap_or_default());
         } else if Some(PAYMENT_METHOD_DOCOUPON) == payment_method.as_deref() {
             order.payment_bonus_count = Some(payment.payment_amount_vip.unwrap_or_default());
             order.diff_price = Some(0.0)
@@ -2214,7 +2262,7 @@ pub async fn get_count_by_user_id(state: tauri::State<'_, AppState>, user_id: i6
         store_id: Some(store_id),
         ..Default::default()
     };
-    order.count(&state.pool).await
+    order.count(&state.pool, None).await
 }
 
 /// 订单时效预警管理器

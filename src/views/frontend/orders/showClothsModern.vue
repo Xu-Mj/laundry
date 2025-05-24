@@ -90,7 +90,7 @@
                 </div>
                 <div class="info-item full-width">
                   <span class="item-label">价格:</span>
-                  <span class="price-value">¥{{ item.priceValue }}</span>
+                  <span class="price-value">¥{{ calPrice(item.priceValue) }}</span>
                   <span v-if="item.processMarkup && item.processMarkup > 0" class="markup">
                     (工艺加价: ¥{{ item.processMarkup }})
                   </span>
@@ -367,12 +367,12 @@
 
 <script setup name="ClothsModern">
 import { listCloths } from "@/api/system/cloths";
-import { listTagsNoLimit } from "@/api/system/tags";
 import { listRack } from "@/api/system/rack";
 import { hangup } from "@/api/system/cloths";
 import { getUser } from "@/api/system/user";
 import { invoke } from '@tauri-apps/api/core';
 import useUserStore from '@/store/modules/user';
+import useTagsStore from '@/store/modules/tags';
 import CompensationDialog from '@/views/components/CompensationDialog.vue';
 
 const props = defineProps({
@@ -380,6 +380,10 @@ const props = defineProps({
     type: Boolean,
     required: true,
     default: false,
+  },
+  order: {
+    type: Object,
+    required: true,
   },
   orderId: {
     type: Number,
@@ -450,6 +454,14 @@ const data = reactive({
 });
 
 const { hangForm, hangRules } = toRefs(data);
+
+// 计算价格
+function calPrice(price) {
+  if (props.order.source == '00' || props.order.source == '01' || props.order.source == '02') {
+    return (Math.floor(props.order.paymentAmount / clothsList.value.length * 100) / 100).toFixed(2);
+  }
+  return price;
+}
 
 // 关闭对话框
 function close() {
@@ -533,37 +545,15 @@ function updateButtonStatus() {
 async function initList() {
   const promises = [];
 
-  // 获取颜色列表
-  if (colorList.value.length === 0) {
-    const colorPromise = listTagsNoLimit({ tagOrder: '003' }).then(response => {
-      colorList.value = response;
-    });
-    promises.push(colorPromise);
-  }
+  // 使用 tags store 初始化标签数据
+  const tagsStore = useTagsStore();
+  await tagsStore.initTags();
 
-  // 获取瑕疵列表
-  if (flawList.value.length === 0) {
-    const flawPromise = listTagsNoLimit({ tagOrder: '001' }).then(response => {
-      flawList.value = response;
-    });
-    promises.push(flawPromise);
-  }
-
-  // 获取预估列表
-  if (estimateList.value.length === 0) {
-    const estimatePromise = listTagsNoLimit({ tagOrder: '002' }).then(response => {
-      estimateList.value = response;
-    });
-    promises.push(estimatePromise);
-  }
-
-  // 获取品牌列表
-  if (brandList.value.length === 0) {
-    const brandPromise = listTagsNoLimit({ tagOrder: '004' }).then(response => {
-      brandList.value = response;
-    });
-    promises.push(brandPromise);
-  }
+  // 更新本地引用
+  colorList.value = tagsStore.getColorList;
+  flawList.value = tagsStore.getFlawList;
+  estimateList.value = tagsStore.getEstimateList;
+  brandList.value = tagsStore.getBrandList;
 
   // 获取衣挂位置列表
   const rackPromise = listRack().then(res => {
@@ -574,6 +564,50 @@ async function initList() {
   // 等待所有异步操作完成
   await Promise.all(promises);
 }
+// async function initList() {
+//   const promises = [];
+
+//   // 获取颜色列表
+//   if (colorList.value.length === 0) {
+//     const colorPromise = listTagsNoLimit({ tagOrder: '003' }).then(response => {
+//       colorList.value = response;
+//     });
+//     promises.push(colorPromise);
+//   }
+
+//   // 获取瑕疵列表
+//   if (flawList.value.length === 0) {
+//     const flawPromise = listTagsNoLimit({ tagOrder: '001' }).then(response => {
+//       flawList.value = response;
+//     });
+//     promises.push(flawPromise);
+//   }
+
+//   // 获取预估列表
+//   if (estimateList.value.length === 0) {
+//     const estimatePromise = listTagsNoLimit({ tagOrder: '002' }).then(response => {
+//       estimateList.value = response;
+//     });
+//     promises.push(estimatePromise);
+//   }
+
+//   // 获取品牌列表
+//   if (brandList.value.length === 0) {
+//     const brandPromise = listTagsNoLimit({ tagOrder: '004' }).then(response => {
+//       brandList.value = response;
+//     });
+//     promises.push(brandPromise);
+//   }
+
+//   // 获取衣挂位置列表
+//   const rackPromise = listRack().then(res => {
+//     hangLocationList.value = res;
+//   });
+//   promises.push(rackPromise);
+
+//   // 等待所有异步操作完成
+//   await Promise.all(promises);
+// }
 
 // 显示上挂对话框
 function handleShowHangUp(row) {
@@ -770,6 +804,7 @@ onMounted(async () => {
 .cloth-card {
   transition: all 0.3s ease;
   border: 1px solid var(--el-border-color-lighter);
+  border-radius: 10px;
 }
 
 .cloth-card:hover {

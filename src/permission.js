@@ -1,11 +1,11 @@
 import router from './router'
-import { ElMessage } from 'element-plus'
 import NProgress from 'nprogress'
 import 'nprogress/nprogress.css'
 import { getToken } from '@/utils/auth'
 import { isRelogin } from '@/utils/request'
 import useUserStore from '@/store/modules/user'
 import { initTauriWebSocketConnection } from '@/utils/initTauriWebSocket'
+import Notification from '@/utils/notification'
 
 NProgress.configure({ showSpinner: false });
 
@@ -46,7 +46,7 @@ router.beforeEach((to, from, next) => {
         
         // 如果不在订阅白名单中，且订阅已过期，则重定向到个人资料页面的订阅管理标签页
         if (subscriptionWhiteList.indexOf(to.path) === -1 && userStore.trial.isExpired) {
-          ElMessage.warning('您的试用期已过期，请订阅以继续使用')
+          Notification.warning('您的试用期已过期，请订阅以继续使用')
           next({ path: '/profile?tab=subscription' })
         } else {
           next()

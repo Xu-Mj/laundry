@@ -9,9 +9,9 @@
     <el-tour-step :target="menuRefs['取衣取鞋']" title="取衣取鞋" placement="right" description="处理客户取衣取鞋业务">
       <div>点击此按钮处理客户取衣取鞋业务，查找和完成已有订单</div>
     </el-tour-step>
-    <!-- <el-tour-step :target="menuRefs['订单管理']" title="订单管理" placement="right" description="查看和管理所有订单">
+    <el-tour-step :target="menuRefs['订单管理']" title="订单管理" placement="right" description="查看和管理所有订单">
       <div>点击此按钮查看和管理所有订单，包括订单状态、详情和历史记录</div>
-    </el-tour-step> -->
+    </el-tour-step>
     <el-tour-step :target="menuRefs['衣物上挂']" title="衣物上挂" placement="right" description="管理衣物上挂流程">
       <div>点击此按钮管理衣物上挂流程，记录衣物位置和状态</div>
     </el-tour-step>

@@ -61,6 +61,7 @@ const normalMenus = [
   // { 'name': '图片识别', 'type': 'primary', show: true, path: '/image-test', onClick: () => router.push('/image-test') },
   { 'name': '收衣收鞋', 'type': 'primary', show: true, path: '/create-order', onClick: () => router.push('/create-order') },
   { 'name': '取衣取鞋', 'type': 'primary', show: true, path: '/pick-up', onClick: () => router.push('/pick-up') },
+  { 'name': '订单管理', 'type': 'primary', show: true, path: '/order-list', onClick: () => router.push('/order-list') },
   { 'name': '衣物上挂', 'type': 'primary', show: true, path: '/hang-up', onClick: hangupClick },
   { 'name': '交期预警', 'type': 'warning', show: false },
   { 'name': '派送提醒', 'type': 'primary', show: false },
@@ -83,7 +84,6 @@ const normalMenus = [
 
 const manageMenus = [
   { 'name': '首页', 'type': 'primary', show: true, path: '/index', onClick: () => router.push('/index') },
-  { 'name': '订单管理', 'type': 'primary', show: true, path: '/system/order-list', onClick: () => router.push('/system/order-list') },
   { 'name': '卡券管理', 'type': 'primary', show: true, path: '/system/coupon', onClick: () => router.push('/system/coupon') },
   { 'name': '会员管理', 'type': 'primary', show: true, path: '/system/users', onClick: () => { router.push('/system/users') } },
   { 'name': '衣架管理', 'type': 'primary', show: true, path: '/system/rack', onClick: () => router.push('/system/rack') },

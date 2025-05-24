@@ -111,7 +111,7 @@ export const constantRoutes = [
     ]
   },
   {
-    path: '/system/order-list',
+    path: '/order-list',
     component: Layout,
     children: [
       {

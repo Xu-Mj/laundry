@@ -217,6 +217,14 @@ impl Curd for Clothing {
                 .push_bind(format!("%{}%", title));
         }
 
+        if let Some(cate_id) = &self.category_id {
+            builder.push(" AND c.category_id = ").push_bind(cate_id);
+        }
+
+        if let Some(style_id) = &self.style_id {
+            builder.push(" AND c.style_id = ").push_bind(style_id);
+        }
+
         if let Some(is_put_on_sale) = &self.is_put_on_sale {
             builder
                 .push(" AND c.is_put_on_sale = ")
@@ -224,7 +232,9 @@ impl Curd for Clothing {
         }
 
         if let Some(is_available) = &self.is_available {
-            builder.push(" AND c.is_available = ").push_bind(is_available);
+            builder
+                .push(" AND c.is_available = ")
+                .push_bind(is_available);
         }
 
         if let Some(is_sold_out) = &self.is_sold_out {
@@ -542,7 +552,7 @@ pub async fn add_clothing(state: State<'_, AppState>, mut clothing: Clothing) ->
 
     tracing::debug!("clothing: {:?}", clothing);
     // 保存本地图片路径的副本
-    let local_primary_image = clothing.primary_image.clone();
+    let mut local_primary_image = clothing.primary_image.clone();
     let local_images = clothing.images_vec.clone();
 
     // 上传主图到服务端
@@ -554,7 +564,13 @@ pub async fn add_clothing(state: State<'_, AppState>, mut clothing: Clothing) ->
             if !server_paths.is_empty() {
                 clothing.primary_image = Some(server_paths[0].clone());
             }
+        } else {
+            clothing.is_default = Some(true);
+            local_primary_image = Some("images/default_cloth.svg".to_string());
         }
+    } else {
+        clothing.is_default = Some(true);
+        local_primary_image = Some("images/default_cloth.svg".to_string());
     }
 
     // 上传图片集合到服务端
@@ -631,7 +647,7 @@ pub async fn update_clothing(state: State<'_, AppState>, mut clothing: Clothing)
     }
 
     // 保存本地图片路径的副本
-    let local_primary_image = clothing.primary_image.clone();
+    let mut local_primary_image = clothing.primary_image.clone();
     let local_images = clothing.images_vec.clone();
 
     // 上传主图到服务端
@@ -641,7 +657,13 @@ pub async fn update_clothing(state: State<'_, AppState>, mut clothing: Clothing)
             if !server_paths.is_empty() {
                 clothing.primary_image = Some(server_paths[0].clone());
             }
+        } else {
+            clothing.is_default = Some(true);
+            local_primary_image = Some("images/default_cloth.svg".to_string());
         }
+    } else {
+        clothing.is_default = Some(true);
+        local_primary_image = Some("images/default_cloth.svg".to_string());
     }
 
     // 上传图片集合到服务端

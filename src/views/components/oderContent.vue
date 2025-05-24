@@ -347,7 +347,9 @@ const couponTypeList = ref();
 
 const showPicture = ref(false);
 const showDeliveryDialog = ref(false);
-const showCompensationDialog = ref(false);// 当前需要处理的衣物列表const clothsList = ref([]);
+const showCompensationDialog = ref(false);
+// 当前需要处理的衣物列表
+const clothsList = ref([]);
 
 // 当前用户信息
 const currentUser = ref(null);

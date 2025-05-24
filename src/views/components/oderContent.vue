@@ -23,7 +23,7 @@
                     </template>
                 </el-input>
             </el-form-item>
-            <el-form-item label="订单编码" prop="orderNumber" size="large">
+            <!-- <el-form-item label="订单编码" prop="orderNumber" size="large">
                 <el-input style="width: 230px;" v-model="queryParams.orderNumber" placeholder="请输入订单编码" clearable
                     @keyup.enter="handleQuery" size="large">
                     <template #prefix>
@@ -32,7 +32,17 @@
                         </el-icon>
                     </template>
                 </el-input>
-            </el-form-item>
+            </el-form-item> -->
+            <el-form-item label="姓名" prop="nickName" size="large">
+                <el-input style="width: 230px;" v-model="queryParams.nickName" placeholder="请输入姓名" clearable
+                    @keyup.enter="handleQuery" size="large">
+                    <template #prefix>
+                        <el-icon>
+                            <User />
+                        </el-icon>
+                    </template>
+                </el-input>
+            </el-form-item> 
             <el-form-item label="支付状态" prop="paymentStatus" size="large">
                 <el-select size="large" v-model="queryParams.paymentStatus" @change="handleQuery" clearable
                     style="width: 120px;" placeholder="请选择">
@@ -277,19 +287,18 @@
 </template>
 
 <script setup name="OderContent">
-import { listCloths } from "@/api/system/cloths";
 import { pickUp } from "@/api/system/cloths";
-import { listUserCouponWithValidTime } from '@/api/system/user_coupon';
 import { getUser } from '@/api/system/user';
-import { selectListExceptCompleted } from "@/api/system/orders";
 import { getPrice } from "@/api/system/price";
-
+import { listCloths } from "@/api/system/cloths";
+import { printReceipt } from '@/api/system/printer';
+import { selectListExceptCompleted } from "@/api/system/orders";
+import { listUserCouponWithValidTime } from '@/api/system/user_coupon';
 import { ElMessageBox } from 'element-plus';
 import { invoke } from '@tauri-apps/api/core';
 import Pay from "./pay.vue";
 import DeliveryDialog from "./DeliveryDialog.vue";
 import CompensationDialog from "@/views/components/CompensationDialog.vue";
-import { printReceipt } from '@/api/system/printer';
 import useTagsStore from "@/store/modules/tags";
 
 
@@ -318,7 +327,6 @@ const {
         "sys_payment_method",
     );
 
-
 // 订单列表
 const ordersList = ref([]);
 const showPaymentDialog = ref(false);
@@ -337,12 +345,12 @@ const userCouponList = ref([]);
 // 用户卡券种类列表
 const couponTypeList = ref();
 
-const showPicture = ref(false); const showDeliveryDialog = ref(false); const showCompensationDialog = ref(false);// 当前需要处理的衣物列表const clothsList = ref([]);
+const showPicture = ref(false);
+const showDeliveryDialog = ref(false);
+const showCompensationDialog = ref(false);// 当前需要处理的衣物列表const clothsList = ref([]);
 
 // 当前用户信息
 const currentUser = ref(null);
-
-
 
 const phonenumber = ref();
 const orders = ref([]);
@@ -362,8 +370,6 @@ async function go2pay(row) {
     orders.value = [row];
     showPaymentDialog.value = true;
 }
-
-
 
 async function handlePay() {
     if (ordersList.value.length == 0) {
@@ -759,13 +765,13 @@ async function handleShowPicture(row, flag) {
 function handleQuery() {
     queryParams.value = {
         pickupCode: queryParams.value.pickupCode ? queryParams.value.pickupCode.trim() : null,
-        orderNumber: queryParams.value.orderNumber ? queryParams.value.orderNumber.trim() : null,
+        nickName: queryParams.value.nickName ? queryParams.value.nickName.trim() : null,
         phonenumber: queryParams.value.phonenumber ? queryParams.value.phonenumber.trim() : null,
         paymentStatus: queryParams.value.paymentStatus ? queryParams.value.paymentStatus.trim() : null,
     };
     if (isEmpty(queryParams.value.pickupCode) &&
+        isEmpty(queryParams.value.nickName) &&
         isEmpty(queryParams.value.phonenumber) &&
-        isEmpty(queryParams.value.orderNumber) &&
         isEmpty(queryParams.value.paymentStatus)) {
         ordersList.value = []
         return;
@@ -796,12 +802,13 @@ onMounted(async () => {
     phonenumber.value.focus();
     await initList();
     if (isEmpty(queryParams.value.pickupCode) &&
-        isEmpty(queryParams.value.phonenumber) &&
-        isEmpty(queryParams.value.orderNumber)) {
+        isEmpty(queryParams.value.nickName) &&
+        isEmpty(queryParams.value.phonenumber)) {
         return;
     }
     getList();
 });
+
 // 假设有orderId可用
 async function reprintReceipt(order) {
     try {
@@ -812,7 +819,6 @@ async function reprintReceipt(order) {
             paymentMethod = '未付款';
         }
 
-        console.log('orderContent.vue loaded:', paymentMethod);
         await printReceipt({ ...order, paymentMethod });
         proxy.notify.success('小票补打成功');
     } catch (e) {

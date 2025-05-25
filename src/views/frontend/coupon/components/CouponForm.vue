@@ -85,7 +85,7 @@
           </el-row>
 
           <!-- 折扣券 -->
-          <el-row v-if="formData.couponType === '003'" :gutter="20">
+          <el-row v-if="formData.couponType === '003' || formData.couponType === '005'" :gutter="20">
             <el-col :span="12">
               <el-form-item label="售卖价格" prop="couponValue">
                 <el-input-number v-model="formData.couponValue" controls-position="right" placeholder="请输入售卖价格"

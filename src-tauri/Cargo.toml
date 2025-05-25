@@ -1,6 +1,6 @@
 [package]
 name = "app"
-version = "0.5.0"
+version = "0.5.1"
 description = "A Tauri App"
 authors = ["Xu-mj"]
 license = ""
@@ -62,5 +62,6 @@ tokio-native-tls = "0.3.1"
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-updater = "2"
+
 
 

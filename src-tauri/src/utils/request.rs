@@ -111,9 +111,81 @@ impl HttpClient {
     ) -> Result<T> {
         self.check_rate_limit().await;
 
-        let mut retries = 0;
-        loop {
-            match request.try_clone().unwrap().send().await {
+        // 检查是否可以克隆来决定是否支持重试
+        if let Some(cloned) = request.try_clone() {
+            // 支持重试的逻辑
+            let mut retries = 0;
+            let mut current_request = cloned;
+
+            loop {
+                match current_request.send().await {
+                    Ok(response) => {
+                        if response.status().is_success() {
+                            let url = response.url().clone();
+                            match response.json::<T>().await {
+                                Ok(res) => {
+                                    info!("Request successful: {}", url);
+                                    return Ok(res);
+                                }
+                                Err(e) => {
+                                    error!("Failed to parse response: {}", e);
+                                    return Err(Error::with_details(
+                                        ErrorKind::ReqwestError,
+                                        format!("Failed to parse response: {}", e),
+                                    ));
+                                }
+                            }
+                        } else {
+                            let status = response.status();
+
+                            // 处理 401 未授权错误
+                            if status == reqwest::StatusCode::UNAUTHORIZED {
+                                warn!("Received 401 Unauthorized response");
+                                return Err(Error::with_details(
+                                    ErrorKind::UnAuthorized,
+                                    "Authentication required".to_string(),
+                                ));
+                            }
+
+                            let error: Error =
+                                response.json().await.unwrap_or(Error::with_details(
+                                    ErrorKind::ReqwestError,
+                                    format!("Request failed with status: {}", status),
+                                ));
+
+                            if status.is_server_error() && retries < MAX_RETRIES {
+                                retries += 1;
+                                warn!("Retrying request (attempt {}/{})", retries, MAX_RETRIES);
+                                current_request = request.try_clone().unwrap();
+                                continue;
+                            }
+
+                            error!("Request failed: {:?}", error);
+                            return Err(error);
+                        }
+                    }
+                    Err(e) => {
+                        if retries < MAX_RETRIES {
+                            retries += 1;
+                            warn!(
+                                "Retrying request (attempt {}/{}): {}",
+                                retries, MAX_RETRIES, e
+                            );
+                            current_request = request.try_clone().unwrap();
+                            continue;
+                        }
+                        error!("Request failed after {} retries: {}", MAX_RETRIES, e);
+                        return Err(Error::with_details(
+                            ErrorKind::ReqwestError,
+                            format!("Request failed: {}", e),
+                        ));
+                    }
+                }
+            }
+        } else {
+            // 不支持重试，直接发送一次
+            warn!("Request body is not cloneable, sending without retry support");
+            match request.send().await {
                 Ok(response) => {
                     if response.status().is_success() {
                         let url = response.url().clone();
@@ -136,7 +208,6 @@ impl HttpClient {
                         // 处理 401 未授权错误
                         if status == reqwest::StatusCode::UNAUTHORIZED {
                             warn!("Received 401 Unauthorized response");
-                            // 这里可以添加自动刷新 token 的逻辑
                             return Err(Error::with_details(
                                 ErrorKind::UnAuthorized,
                                 "Authentication required".to_string(),
@@ -148,26 +219,12 @@ impl HttpClient {
                             format!("Request failed with status: {}", status),
                         ));
 
-                        if status.is_server_error() && retries < MAX_RETRIES {
-                            retries += 1;
-                            warn!("Retrying request (attempt {}/{})", retries, MAX_RETRIES);
-                            continue;
-                        }
-
-                        error!("Request failed: {:?}", error);
+                        error!("Request failed (no retry): {:?}", error);
                         return Err(error);
                     }
                 }
                 Err(e) => {
-                    if retries < MAX_RETRIES {
-                        retries += 1;
-                        warn!(
-                            "Request failed, retrying (attempt {}/{}): {}",
-                            retries, MAX_RETRIES, e
-                        );
-                        continue;
-                    }
-                    error!("Request failed after {} retries: {}", MAX_RETRIES, e);
+                    error!("Request failed (no retry): {}", e);
                     return Err(Error::with_details(
                         ErrorKind::ReqwestError,
                         format!("Request failed: {}", e),
@@ -231,26 +288,18 @@ impl HttpClient {
         self.send_request(request.json(&body)).await
     }
 
-    pub async fn refresh_token(&self, refresh_token: &str) -> Result<String> {
-        let url = format!(
-            "{}{URL_REFRESH_TOKEN}/{}/true",
-            self.base_url, refresh_token
-        );
-        let request = self.client.get(&url);
-
-        info!("Refreshing token");
-        let result = self.send_request(request).await;
-
-        match result {
-            Ok(token) => {
-                info!("Token refreshed successfully");
-                Ok(token)
-            }
-            Err(e) => {
-                error!("Failed to refresh token: {:?}", e);
-                Err(e)
-            }
-        }
+    pub async fn refresh_token(
+        &self,
+        refresh_token: &str,
+        is_refresh: bool,
+    ) -> Result<TokenResponse> {
+        let url = format!("{}{}", self.base_url, URL_REFRESH_TOKEN);
+        let req = RefreshTokenRequest {
+            refresh_token: refresh_token.to_string(),
+            is_refresh,
+        };
+        let request = self.client.post(&url).json(&req);
+        self.send_request(request).await
     }
 
     /// 上传单个文件
@@ -383,6 +432,13 @@ impl HttpClient {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RefreshTokenRequest {
     pub refresh_token: String,
+    is_refresh: bool,
+}
+
+#[derive(Deserialize)]
+pub struct TokenResponse {
+    token: String,
+    exp: i64,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -396,14 +452,15 @@ pub struct Response {
 #[serde(default)]
 pub struct Token {
     pub user: LocalUser,
-    pub token: String,
+    pub token: String, // access_token
     pub refresh_token: String,
-    pub exp: i64,
+    pub access_exp: i64,  // access_token 过期时间
+    pub refresh_exp: i64, // refresh_token 过期时间（新增）
 }
-
 impl Token {
-    pub fn set_token(&mut self, token: String) {
-        self.token = token;
+    pub fn set_token(&mut self, token: TokenResponse) {
+        self.token = token.token;
+        self.access_exp = token.exp;
     }
 }
 

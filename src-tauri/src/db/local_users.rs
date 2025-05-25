@@ -438,7 +438,8 @@ async fn guest_login_logical(state: &State<'_, AppState>) -> Result<Token> {
     let user = LocalUser::get_by_id(&state.pool, 0).await?;
     let token = Token {
         user,
-        exp: 60 * 60 * 12,
+        access_exp: 60 * 60 * 12,
+        refresh_exp: 60 * 60 * 24,
         token: "guest token".into(),
         refresh_token: "guest refresh token".into(),
     };

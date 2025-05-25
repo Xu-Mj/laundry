@@ -495,7 +495,7 @@ function calValue(type, value) {
   if (type === '000') {
     return value + '元';
   }
-  if (type === '003') {
+  if (type === '003' || type === '005') {
     return value / 10 + '折';
   }
   if (type === '002') {

@@ -1,5 +1,6 @@
 use std::cmp::Ordering;
 
+use chrono::Local;
 use rust_decimal::prelude::*;
 use rust_decimal_macros::dec;
 use serde::{Deserialize, Serialize};
@@ -47,6 +48,7 @@ const STORAGE_CARD_NUMBER: &str = "000";
 // const ONCE_CARD_NUMBER: &str = "002";
 const OFF_CARD_NUMBER: &str = "003";
 const SUB_CARD_NUMBER: &str = "004";
+const DISCOUNT_CARD_NUMBER: &str = "005";
 const SERVICE_TYPE_EMERGENCY: &str = "001";
 const SERVICE_TYPE_SINGLE_WASH: &str = "002";
 
@@ -54,6 +56,7 @@ const PAYMENT_METHOD_TIME_BASED: &str = "07";
 const PAYMENT_METHOD_MEITUAN: &str = "03";
 const PAYMENT_METHOD_DOUYIN: &str = "04";
 const PAYMENT_METHOD_DOCOUPON: &str = "06";
+const PAYMENT_METHOD_DISCOUNT: &str = "08";
 const PAYMENT_METHOD_COMBINATION_ALIPAY_COUPON: &str = "16";
 const PAYMENT_METHOD_COMBINATION_WECHAT_COUPON: &str = "26";
 const PAYMENT_METHOD_COMBINATION_CASH_COUPON: &str = "56";
@@ -643,37 +646,43 @@ impl Order {
         let result = sqlx::query(
             r#"
             UPDATE orders SET
+                store_id = ?,
                 order_number = ?,
                 business_type = ?,
                 user_id = ?,
                 desire_complete_time = ?,
+                cost_time_alarm = ?,
+                pickup_code = ?,
+                complete_time = ?,
                 delivery_mode = ?,
                 source = ?,
                 status = ?,
                 payment_status = ?,
-                order_type = ?,
-                pickup_code = ?,
                 remark = ?,
+                order_type = ?,
                 update_time = ?
             WHERE order_id = ?
             "#,
         )
+        .bind(&self.store_id)
         .bind(&self.order_number)
         .bind(&self.business_type)
         .bind(&self.user_id)
         .bind(&self.desire_complete_time)
+        .bind(&self.cost_time_alarm)
+        .bind(&self.pickup_code)
+        .bind(&self.complete_time)
         .bind(&self.delivery_mode)
         .bind(&self.source)
         .bind(&self.status)
         .bind(&self.payment_status)
-        .bind(&self.order_type)
-        .bind(&self.pickup_code)
         .bind(&self.remark)
+        .bind(&self.order_type)
         .bind(utils::get_timestamp())
         .bind(&self.order_id)
         .execute(&mut **tr)
         .await?;
-
+    
         // Update price relations
         if let Some(order_id) = self.order_id {
             // Delete existing relations
@@ -681,7 +690,7 @@ impl Order {
                 .bind(order_id)
                 .execute(&mut **tr)
                 .await?;
-
+    
             // Insert new relations
             if let Some(price_ids) = &self.price_ids {
                 for price_id in price_ids {
@@ -697,7 +706,7 @@ impl Order {
                 }
             }
         }
-
+    
         Ok(result.rows_affected() > 0)
     }
 
@@ -797,7 +806,7 @@ impl Order {
 
     /// 检查订单时效并更新预警状态
     pub async fn check_time_warning(pool: &Pool<Sqlite>, store_id: i64) -> Result<()> {
-        let now = Utc::now();
+        let now = Local::now();
         let warning_threshold = now + chrono::Duration::days(1);
 
         // 查询所有未完成且需要检查的订单
@@ -818,7 +827,7 @@ impl Order {
                 // 将 NaiveDate 转换为 DateTime<Utc>
                 let desire_datetime = desire_time
                     .and_hms_opt(0, 0, 0)
-                    .map(|ndt| DateTime::<Utc>::from_naive_utc_and_offset(ndt, Utc))
+                    .map(|ndt| DateTime::<Local>::from_naive_utc_and_offset(ndt, now.offset().clone()))
                     .unwrap_or_else(|| now);
 
                 let current_alarm = order.cost_time_alarm.as_deref().unwrap_or(NORMAL_ALARM);
@@ -1326,15 +1335,35 @@ impl Order {
         }
 
         // 校验卡券类型一致性
-        let (storage_cards, other_coupons): (Vec<_>, Vec<_>) =
-            user_coupons.iter_mut().partition(|coupon| {
-                coupon.coupon.as_ref().map_or(false, |c| {
-                    c.coupon_type.as_deref() == Some(STORAGE_CARD_NUMBER)
-                })
-            });
+        let (storage_cards, discount_cards, other_coupons): (Vec<_>, Vec<_>, Vec<_>) = {
+            let mut storage = Vec::new();
+            let mut discount = Vec::new();
+            let mut others = Vec::new();
 
-        if !storage_cards.is_empty() && !other_coupons.is_empty() {
-            return Err(Error::bad_request("不能同时使用储值卡和其他优惠券"));
+            for coupon in user_coupons.iter_mut() {
+                if let Some(c) = coupon.coupon.as_ref() {
+                    match c.coupon_type.as_deref() {
+                        Some(STORAGE_CARD_NUMBER) => storage.push(coupon),
+                        Some(DISCOUNT_CARD_NUMBER) => discount.push(coupon),
+                        _ => others.push(coupon),
+                    }
+                }
+            }
+            (storage, discount, others)
+        };
+
+        // 检查卡券类型冲突
+        let card_types_count = [
+            !storage_cards.is_empty(),
+            !discount_cards.is_empty(),
+            !other_coupons.is_empty(),
+        ]
+        .iter()
+        .filter(|&&x| x)
+        .count();
+
+        if card_types_count > 1 {
+            return Err(Error::bad_request("不能同时使用不同类型的卡券"));
         }
 
         // 储值卡处理逻辑
@@ -1375,6 +1404,83 @@ impl Order {
                     }
                 }
             }
+            return Ok(true);
+        }
+
+        // 折扣卡处理逻辑
+        if !discount_cards.is_empty() {
+            // 验证所有折扣卡的折扣系数是否相同
+            let first_discount_rate = discount_cards[0]
+                .coupon
+                .as_ref()
+                .and_then(|c| c.usage_value)
+                .ok_or(Error::internal("获取折扣卡折扣系数失败"))?;
+
+            for discount_card in &discount_cards {
+                let discount_rate = discount_card
+                    .coupon
+                    .as_ref()
+                    .and_then(|c| c.usage_value)
+                    .ok_or(Error::internal("获取折扣卡折扣系数失败"))?;
+
+                if (discount_rate - first_discount_rate).abs() > 0.01 {
+                    return Err(Error::bad_request("只能同时使用相同折扣系数的折扣卡"));
+                }
+            }
+
+            // 计算折扣后的订单总金额
+            let discount_rate_decimal = Decimal::from_f64(first_discount_rate).unwrap_or_default();
+            let hundred = Decimal::from(100);
+            let discount_multiplier = discount_rate_decimal / hundred;
+            let discounted_total = (total_amount_decimal * discount_multiplier)
+                .round_dp_with_strategy(2, RoundingStrategy::MidpointTowardZero);
+
+            tracing::debug!(
+                "[支付] 折扣卡逻辑: 原订单金额: {}, 折扣系数: {}%, 折扣后金额: {}",
+                total_amount_decimal,
+                first_discount_rate,
+                discounted_total
+            );
+
+            // 按余额升序排序折扣卡
+            let mut sorted_discount_cards = discount_cards
+                .into_iter()
+                .filter(|card| card.available_value.unwrap_or(0.0) > 0.0)
+                .collect::<Vec<_>>();
+            sorted_discount_cards
+                .sort_by(|a, b| a.available_value.partial_cmp(&b.available_value).unwrap());
+
+            let mut remaining_amount = discounted_total;
+
+            for discount_card in sorted_discount_cards {
+                let available_value = discount_card.available_value.unwrap_or(0.0);
+                let available_value_decimal =
+                    Decimal::from_f64(available_value).unwrap_or_default();
+
+                if available_value_decimal >= remaining_amount {
+                    // 使用折扣卡支付足够金额
+                    let new_balance = available_value_decimal - remaining_amount;
+                    discount_card.available_value = Some(new_balance.to_f64().unwrap_or_default());
+
+                    // 更新用户卡券
+                    if !discount_card.update(tr).await? {
+                        return Err(Error::internal("更新用户折扣卡失败"));
+                    }
+                    break;
+                } else {
+                    // 使用折扣卡支付部分金额
+                    remaining_amount -= available_value_decimal;
+                    discount_card.available_value = Some(0.0);
+
+                    // 更新用户卡券
+                    if !discount_card.update(tr).await? {
+                        return Err(Error::internal("更新用户折扣卡失败"));
+                    }
+                }
+            }
+
+            // 设置支付方式为折扣卡
+            payment.payment_method = Some("08".to_string());
             return Ok(true);
         }
 
@@ -1600,28 +1706,39 @@ impl Order {
     }
 
     fn cal_payment_method(order: &mut Order, payment: &mut Payment) {
-        let payment_method = payment.payment_method.clone();
+        // 统一 deref 操作
+        let payment_method = payment.payment_method.as_deref();
 
-        if Some(PAYMENT_METHOD_COMBINATION_ALIPAY_COUPON) == payment_method.as_deref()
-            || Some(PAYMENT_METHOD_COMBINATION_CASH_COUPON) == payment_method.as_deref()
-            || Some(PAYMENT_METHOD_COMBINATION_WECHAT_COUPON) == payment_method.as_deref()
-        {
-            order.payment_bonus_count = Some(payment.payment_amount_vip.unwrap_or_default());
-            order.diff_price = Some(payment.payment_amount_mv.unwrap_or_default());
-        } else if Some(PAYMENT_METHOD_MEITUAN) == payment_method.as_deref()
-            || Some(PAYMENT_METHOD_DOUYIN) == payment_method.as_deref()
-        {
-            order.payment_bonus_count = Some(payment.payment_amount_vip.unwrap_or_default());
-        } else if Some(PAYMENT_METHOD_DOCOUPON) == payment_method.as_deref() {
-            order.payment_bonus_count = Some(payment.payment_amount_vip.unwrap_or_default());
-            order.diff_price = Some(0.0)
-        } else {
-            order.payment_bonus_count = Some(payment.payment_amount_vip.unwrap_or_default());
-            order.diff_price = Some(payment.payment_amount.unwrap_or_default());
+        // 使用模式匹配提升可读性
+        match payment_method {
+            Some(PAYMENT_METHOD_COMBINATION_ALIPAY_COUPON)
+            | Some(PAYMENT_METHOD_COMBINATION_CASH_COUPON)
+            | Some(PAYMENT_METHOD_COMBINATION_WECHAT_COUPON) => {
+                order.payment_bonus_count = payment.payment_amount_vip;
+                order.diff_price = payment.payment_amount_mv;
+            }
+            Some(PAYMENT_METHOD_MEITUAN) | Some(PAYMENT_METHOD_DOUYIN) => {
+                order.payment_bonus_count = payment.payment_amount_vip;
+            }
+            Some(PAYMENT_METHOD_DOCOUPON) => {
+                order.payment_bonus_count = payment.payment_amount_vip;
+                order.diff_price = Some(0.0);
+            }
+            Some(PAYMENT_METHOD_DISCOUNT) => {
+                let total = payment.total_amount.unwrap_or_default();
+                let paid = payment.payment_amount.unwrap_or_default();
+                order.payment_bonus_count =
+                    Some(((total * 100.0) as i64 - (paid * 100.0) as i64) as f64 / 100.0);
+                order.diff_price = Some(paid);
+            }
+            _ => {
+                order.payment_bonus_count = payment.payment_amount_vip;
+                order.diff_price = payment.payment_amount;
+            }
         }
 
-        order.payment_bonus_type = payment_method;
-
+        // 其他字段赋值
+        order.payment_bonus_type = payment.payment_method.clone();
         order.payment_amount = payment.total_amount;
     }
 
@@ -1736,14 +1853,7 @@ impl Order {
     }
 
     pub async fn query_list4home(&self, pool: &Pool<Sqlite>) -> Result<Vec<Self>> {
-        let list = self.list_4_home(pool).await?;
-
-        // for order in list.iter_mut() {
-        //     order.payment =
-        //         Payment::get_by_order_id(pool, order.order_id.unwrap(), store_id).await?;
-        // }
-
-        Ok(list)
+        self.list_4_home(pool).await
     }
 
     pub async fn query_list4history(
@@ -1755,13 +1865,7 @@ impl Order {
         let rows = Self::list_by_cloth_name(pool, store_id, &page_params, &query).await?;
         let total = Self::count_by_cloth_name(pool, store_id, &query).await?;
 
-        let list = PageResult { total, rows };
-
-        // for order in list.rows.iter_mut() {
-        //     order.payment = Payment::get_by_order_id(pool, order.order_id.unwrap()).await?;
-        // }
-
-        Ok(list)
+        Ok(PageResult { total, rows })
     }
 
     pub async fn refund(
@@ -1855,18 +1959,24 @@ impl Order {
         let order_clothes = OrderCloth::get_by_order_id(pool, order_id).await?;
         let cloth_count = order_clothes.len();
         tracing::debug!("[退款] 订单包含的衣物数量: {}", cloth_count);
-        // Check if there are storage card type coupons or time-based cards involved
+        // Check if there are storage card type coupons, discount cards or time-based cards involved
         let is_type_000 = user_coupons.iter().any(|coupon| {
             coupon.coupon.is_some()
                 && coupon.coupon.as_ref().unwrap().coupon_type.as_deref()
                     == Some(STORAGE_CARD_NUMBER)
         });
+        let is_discount_card = user_coupons.iter().any(|coupon| {
+            coupon.coupon.is_some()
+                && coupon.coupon.as_ref().unwrap().coupon_type.as_deref()
+                    == Some(DISCOUNT_CARD_NUMBER)
+        });
         // Check if this is a time-based payment by looking at payment_amount_vip value
         // and checking if it's a whole number matching cloth count
         let is_time_based = payment.payment_method.as_deref() == Some(PAYMENT_METHOD_TIME_BASED);
         tracing::debug!(
-            "[退款] 支付类型: 储值卡: {}, 次卡: {}",
+            "[退款] 支付类型: 储值卡: {}, 折扣卡: {}, 次卡: {}",
             is_type_000,
+            is_discount_card,
             is_time_based
         );
         if is_time_based {
@@ -2012,6 +2122,108 @@ impl Order {
                         }
                         break;
                     }
+                }
+            }
+        } else if is_discount_card {
+            // Handle discount card refunds
+            tracing::debug!("[退款] 处理折扣卡退款");
+
+            // Get the original order amount and discount rate
+            let original_amount = payment.total_amount.unwrap_or_default();
+            let original_amount_decimal = Decimal::from_f64(original_amount).unwrap_or_default();
+
+            // Sort discount cards by available value (descending) - reverse of payment order
+            let mut discount_cards: Vec<_> = user_coupons
+                .iter_mut()
+                .filter(|coupon| {
+                    coupon.coupon.is_some()
+                        && coupon.coupon.as_ref().unwrap().coupon_type.as_deref()
+                            == Some(DISCOUNT_CARD_NUMBER)
+                })
+                .collect();
+
+            tracing::debug!("[退款] 找到折扣卡数量: {}", discount_cards.len());
+
+            discount_cards.sort_by(|a, b| {
+                b.available_value
+                    .partial_cmp(&a.available_value)
+                    .unwrap_or(Ordering::Equal)
+            });
+
+            // Get discount rate from the first card (all should have the same rate)
+            let discount_rate = discount_cards[0]
+                .coupon
+                .as_ref()
+                .and_then(|c| c.usage_value)
+                .unwrap_or(100.0);
+
+            let discount_rate_decimal = Decimal::from_f64(discount_rate).unwrap_or_default();
+            let hundred = Decimal::from(100);
+            let discount_multiplier = discount_rate_decimal / hundred;
+
+            // Calculate the discounted amount that was actually paid
+            let discounted_amount = (original_amount_decimal * discount_multiplier)
+                .round_dp_with_strategy(2, RoundingStrategy::MidpointTowardZero);
+
+            tracing::debug!(
+                "[退款] 折扣卡退款: 原订单金额: {}, 折扣系数: {}%, 实际支付金额: {}",
+                original_amount_decimal,
+                discount_rate,
+                discounted_amount
+            );
+
+            let mut total_amount = discounted_amount;
+
+            for user_coupon in discount_cards {
+                if total_amount <= Decimal::ZERO {
+                    break;
+                }
+
+                let usage_value = user_coupon
+                    .coupon
+                    .as_ref()
+                    .and_then(|c| c.usage_value)
+                    .unwrap_or_default();
+                let uc_count = user_coupon.uc_count.unwrap_or_default();
+                let old_value =
+                    Decimal::from_f64(usage_value).unwrap_or_default() * Decimal::from(uc_count);
+                let available_value =
+                    Decimal::from_f64(user_coupon.available_value.unwrap_or_default())
+                        .unwrap_or_default();
+                // Amount used in this order for this discount card
+                let used_value = old_value - available_value;
+
+                tracing::debug!(
+                    "[退款] 处理折扣卡 ID: {}, 原始面值: {}, 原始数量: {}, 总价值: {}, 当前余额: {}, 已使用金额: {}",
+                    user_coupon.uc_id.unwrap_or_default(),
+                    usage_value,
+                    uc_count,
+                    old_value,
+                    available_value,
+                    used_value
+                );
+
+                if total_amount > used_value {
+                    // Refund the full value
+                    user_coupon.available_value = Some(old_value.to_f64().unwrap_or_default());
+                    tracing::debug!(
+                        "[退款] 全额退款，新余额: {}, 剩余需退款金额: {}",
+                        old_value,
+                        total_amount - used_value
+                    );
+                    if !user_coupon.update(&mut tx).await? {
+                        return Err(Error::internal("退还折扣卡失败"));
+                    }
+                    total_amount -= used_value;
+                } else {
+                    // Refund only part of the value
+                    let new_available = available_value + total_amount;
+                    user_coupon.available_value = Some(new_available.to_f64().unwrap_or_default());
+                    tracing::debug!("[退款] 部分退款，新余额: {}, 退款完成", new_available);
+                    if !user_coupon.update(&mut tx).await? {
+                        return Err(Error::internal("退还折扣卡失败"));
+                    }
+                    break;
                 }
             }
         } else {
@@ -2292,10 +2504,10 @@ impl TimeWarningManager {
         let handle = tokio::spawn(async move {
             let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(3600)); // 每小时检查一次
             loop {
-                interval.tick().await;
                 if let Err(e) = Order::check_time_warning(&pool, store_id).await {
                     tracing::error!("检查订单时效失败: {}", e);
                 }
+                interval.tick().await;
             }
         });
 

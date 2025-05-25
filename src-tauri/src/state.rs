@@ -1,6 +1,6 @@
 use std::{
     sync::{Arc, Mutex},
-    time::{Duration, SystemTime, UNIX_EPOCH},
+    time::Duration,
 };
 
 use sqlx::{Pool, Sqlite};
@@ -11,14 +11,17 @@ use tokio::{task::JoinHandle, time::sleep};
 use crate::{
     error::Error,
     orders::TimeWarningManager,
-    utils::request::{HttpClient, Token},
+    utils::{
+        self,
+        request::{HttpClient, Token},
+    },
 };
 use crate::{error::Result, local_users::LocalUser};
 
 // Token 刷新配置
-const MIN_REFRESH_INTERVAL: u64 = 60; // 最小刷新间隔（秒）
-const MAX_REFRESH_INTERVAL: u64 = 3600; // 最大刷新间隔（秒）
-const REFRESH_THRESHOLD: u64 = 300; // 提前刷新阈值（秒）
+const MIN_REFRESH_INTERVAL: u64 = 60 * 1000; // 最小刷新间隔（秒）
+const MAX_REFRESH_INTERVAL: u64 = 3600 * 1000; // 最大刷新间隔（秒）
+const REFRESH_THRESHOLD: u64 = 300 * 1000; // 提前刷新阈值（秒）
 const MAX_RETRIES: usize = 3; // 最大重试次数
 const INITIAL_RETRY_DELAY: u64 = 2; // 初始重试延迟（秒）
 const SLEEP_REFRESH_DELAY: u64 = 5; // 系统唤醒后延迟刷新时间（秒）
@@ -31,7 +34,7 @@ pub struct AppState {
     pub token: Arc<TokioMutex<Option<Token>>>,
     pub token_refresh_handle: Arc<TokioMutex<Option<JoinHandle<()>>>>,
     pub time_warning_check_handle: TimeWarningManager,
-    pub last_activity_time: Arc<Mutex<SystemTime>>,
+    pub last_activity_time: Arc<Mutex<i64>>,
 }
 
 impl AppState {
@@ -42,13 +45,13 @@ impl AppState {
             token: Arc::new(TokioMutex::new(None)),
             token_refresh_handle: Arc::new(TokioMutex::new(None)),
             time_warning_check_handle: TimeWarningManager::new(),
-            last_activity_time: Arc::new(Mutex::new(SystemTime::now())),
+            last_activity_time: Arc::new(Mutex::new(utils::get_timestamp())),
         }
     }
 
     // 更新最后活动时间
     pub fn update_activity_time(&self) {
-        *self.last_activity_time.lock().unwrap() = SystemTime::now();
+        *self.last_activity_time.lock().unwrap() = utils::get_timestamp();
     }
 
     // 检查是否需要立即刷新 token（系统唤醒后）
@@ -61,12 +64,14 @@ impl AppState {
             }
 
             // 检查 token 是否过期或即将过期
-            let now = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap()
-                .as_secs() as i64;
+            let now = utils::get_timestamp();
 
-            let remaining = token.exp - now;
+            let remaining = token.access_exp - now;
+            tracing::debug!(
+                "now: {now}, Token remaining time: {} seconds; toke: {:?}",
+                remaining,
+                token
+            );
 
             // 如果 token 已过期或即将过期（小于阈值），则刷新
             if remaining <= REFRESH_THRESHOLD as i64 {
@@ -79,7 +84,7 @@ impl AppState {
                 drop(token_lock);
 
                 // 强制刷新 token
-                if let Err(e) = self.refresh_token().await {
+                if let Err(e) = self.refresh_token(false).await {
                     tracing::error!("Failed to refresh token after sleep: {:?}", e);
                 }
             } else {
@@ -88,11 +93,14 @@ impl AppState {
         }
     }
 
-    pub async fn refresh_token(&self) -> Result<()> {
+    pub async fn refresh_token(&self, is_refresh: bool) -> Result<()> {
         let mut token = self.token.lock().await;
         if let Some(token) = token.as_mut() {
-            if Self::is_token_expired(&token.exp)? {
-                let new_token = self.http_client.refresh_token(&token.refresh_token).await?;
+            if Self::is_token_expired(&token.access_exp)? {
+                let new_token = self
+                    .http_client
+                    .refresh_token(&token.refresh_token, is_refresh)
+                    .await?;
                 (*token).set_token(new_token);
             }
         }
@@ -120,22 +128,16 @@ impl AppState {
 
         let handle = tokio::spawn(async move {
             let mut retries = 0;
-            let mut last_refresh_time = SystemTime::now();
+            let mut last_refresh_time = utils::get_timestamp();
 
             loop {
                 let mut token_ref = token.lock().await;
                 if let Some(token) = token_ref.as_mut() {
-                    let now = SystemTime::now()
-                        .duration_since(UNIX_EPOCH)
-                        .unwrap()
-                        .as_secs() as i64;
+                    tracing::debug!("check token refresh:{:?}", token);
+                    let now = utils::get_timestamp();
 
-                    let remaining = token.exp - now;
-                    let time_since_last_refresh = now
-                        - last_refresh_time
-                            .duration_since(UNIX_EPOCH)
-                            .unwrap()
-                            .as_secs() as i64;
+                    let remaining = token.access_exp - now;
+                    let time_since_last_refresh = now - last_refresh_time;
 
                     // 计算下一次刷新时间
                     let next_refresh = if remaining <= REFRESH_THRESHOLD as i64 {
@@ -151,10 +153,10 @@ impl AppState {
 
                     // 检查是否需要刷新
                     if time_since_last_refresh >= next_refresh {
-                        match http_client.refresh_token(&token.refresh_token).await {
+                        match http_client.refresh_token(&token.refresh_token, false).await {
                             Ok(new_token) => {
                                 (*token).set_token(new_token);
-                                last_refresh_time = SystemTime::now();
+                                last_refresh_time = utils::get_timestamp();
                                 retries = 0;
                                 tracing::info!("Token refreshed successfully");
                             }
@@ -199,11 +201,7 @@ impl AppState {
     }
 
     fn is_token_expired(exp: &i64) -> Result<bool> {
-        Ok(*exp
-            < SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap()
-                .as_secs() as i64)
+        Ok(*exp < utils::get_timestamp())
     }
 
     pub async fn stop_token_refresh_task(&self) {

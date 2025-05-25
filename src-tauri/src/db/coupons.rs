@@ -485,6 +485,8 @@ impl Coupon {
         // change available_value by coupon_type
         if coupon.coupon_type == Some("003".to_string()) || coupon.coupon_type == Some("004".to_string()) {
             user_coupon.available_value = coupon.usage_value;
+        } else if coupon.coupon_type == Some("005".to_string())  {
+            user_coupon.available_value = Some(coupon.coupon_value.unwrap() * info.count as f64);
         }
 
         user_coupon.validate()?;

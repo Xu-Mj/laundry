@@ -1,19 +1,20 @@
-# 运行
+# cleanwave
+
+## 运行说明
 
 ```bash
 # 进入项目目录
-cd RuoYi-Vue3
+cd cleanwave
+
+# 安装yarn
+npm install -g yarn
 
 # 安装依赖
 yarn --registry=https://registry.npmmirror.com
+yarn install
 
-# 启动服务
-yarn dev
+# 启动项目
+cargo tauri dev
 
-# 启动electron
-yarn electron
-
-# 构建测试环境 yarn build:stage
-# 构建生产环境 yarn build:prod
-# 前端访问地址 http://localhost:80
-```
+# 打包
+cargo tauri build

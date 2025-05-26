@@ -141,10 +141,13 @@ impl HttpClient {
                             // 处理 401 未授权错误
                             if status == reqwest::StatusCode::UNAUTHORIZED {
                                 warn!("Received 401 Unauthorized response");
-                                return Err(Error::with_details(
-                                    ErrorKind::UnAuthorized,
-                                    "Authentication required".to_string(),
-                                ));
+                                let error: Error =
+                                    response.json().await.unwrap_or(Error::with_details(
+                                        ErrorKind::ReqwestError,
+                                        format!("Request failed with status: {}", status),
+                                    ));
+
+                                return Err(error);
                             }
 
                             let error: Error =
@@ -208,10 +211,13 @@ impl HttpClient {
                         // 处理 401 未授权错误
                         if status == reqwest::StatusCode::UNAUTHORIZED {
                             warn!("Received 401 Unauthorized response");
-                            return Err(Error::with_details(
-                                ErrorKind::UnAuthorized,
-                                "Authentication required".to_string(),
-                            ));
+                            let error: Error =
+                                response.json().await.unwrap_or(Error::with_details(
+                                    ErrorKind::ReqwestError,
+                                    format!("Request failed with status: {}", status),
+                                ));
+
+                            return Err(error);
                         }
 
                         let error: Error = response.json().await.unwrap_or(Error::with_details(

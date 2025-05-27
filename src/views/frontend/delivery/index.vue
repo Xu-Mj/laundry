@@ -116,7 +116,7 @@
             <el-descriptions-item label="派送地址">{{ deliveryDetail.address }}</el-descriptions-item>
             <el-descriptions-item label="派送时间">{{ parseTime(deliveryDetail.dispatchTime) }}</el-descriptions-item>
             <el-descriptions-item label="完成时间" v-if="deliveryDetail.completeTime">
-              {{ parseTime(deliveryDetail.completeTime) }}
+              {{ formatTime(deliveryDetail.completeTime) }}
             </el-descriptions-item>
             <el-descriptions-item label="备注信息">
               <div class="remark-content">{{ deliveryDetail.remark || '无' }}</div>
@@ -129,6 +129,13 @@
           <el-table :data="clothesList" size="default" border class="items-table">
             <el-table-column prop="clothInfo.title" label="衣物名称" min-width="120" show-overflow-tooltip />
             <el-table-column prop="hangClothCode" label="衣物编码" width="120" align="center" />
+            <el-table-column prop="clothingStatus" label="衣物状态" width="100" align="center" >
+              <template #default="scope">
+                <el-tag :type="getStatusType(scope.row.clothingStatus)">
+                  {{ getStatusLabel(scope.row.clothingStatus) }}
+                </el-tag>
+              </template>
+            </el-table-column>
             <el-table-column prop="priceValue" label="价格" width="100" align="right">
               <template #default="scope">
                 <span class="price">￥{{ scope.row.priceValue || 0 }}</span>
@@ -264,10 +271,10 @@ const deliveryFormRef = ref(null);
 
 // 派送状态选项
 const deliveryStatusOptions = [
-  { dictLabel: '待派送', dictValue: '00' },
-  { dictLabel: '派送中', dictValue: '01' },
-  { dictLabel: '已完成', dictValue: '02' },
-  { dictLabel: '已取消', dictValue: '03' }
+  // { dictLabel: '待派送', dictValue: '04' },
+  { dictLabel: '派送中', dictValue: '04' },
+  { dictLabel: '已完成', dictValue: '05' },
+  { dictLabel: '已取消', dictValue: '06' }
 ];
 
 // 查询参数
@@ -339,10 +346,12 @@ function getClothCount(row) {
 /** 获取状态标签 */
 function getStatusLabel(status) {
   const statusMap = {
-    '00': '待派送',
-    '01': '派送中',
-    '02': '已完成',
-    '03': '已取消'
+    '00': '已取走',
+    '01': '洗护中',
+    '02': '已上挂',
+    '04': '派送中',
+    '05': '派送完成',
+    '06': '已取消'
   };
   return statusMap[status] || '未知';
 }
@@ -350,10 +359,10 @@ function getStatusLabel(status) {
 /** 获取状态类型 */
 function getStatusType(status) {
   const typeMap = {
-    '00': 'info',
-    '01': 'warning',
-    '02': 'success',
-    '03': 'danger'
+    // '04': 'info',
+    '04': 'warning',
+    '05': 'success',
+    '06': 'danger'
   };
   return typeMap[status] || 'info';
 }
@@ -451,7 +460,7 @@ function submitDelivery() {
         dispatchTime: deliveryForm.value.dispatchTime,
         clothId: deliveryForm.value.clothIds.join(','),
         remark: deliveryForm.value.remark,
-        deliveryStatus: '00' // 默认为待派送状态
+        deliveryStatus: '04' // 默认为待派送状态
       };
 
       delivery(deliveryData).then(res => {
@@ -483,7 +492,7 @@ function handleComplete(row) {
     return completeDelivery(row.deliveryId);
   }).then(() => {
     getList();
-    proxy.$modal.msgSuccess("派送完成成功");
+    proxy.notify.success("派送完成成功");
   }).catch(() => { });
 }
 
@@ -493,7 +502,7 @@ function handleCancel(row) {
     return cancelDelivery(row.deliveryId);
   }).then(() => {
     getList();
-    proxy.$modal.msgSuccess("派送取消成功");
+    proxy.notify.success("派送取消成功");
   }).catch(() => { });
 }
 
@@ -510,7 +519,7 @@ function handleDelete() {
     return Promise.all(promises);
   }).then(() => {
     getList();
-    proxy.$modal.msgSuccess("批量取消成功");
+    proxy.notify.success("批量取消成功");
   }).catch(() => { });
 }
 

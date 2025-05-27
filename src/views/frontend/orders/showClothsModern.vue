@@ -457,8 +457,12 @@ const { hangForm, hangRules } = toRefs(data);
 
 // 计算价格
 function calPrice(price) {
-  if (props.order.source == '00' || props.order.source == '01' || props.order.source == '02') {
-    return (Math.floor(props.order.paymentAmount / clothsList.value.length * 100) / 100).toFixed(2);
+  if (props.order.payment) {
+    if (props.order.diffPrice) {
+      return (Math.floor(props.order.diffPrice / clothsList.value.length * 100) / 100).toFixed(2);
+    } else {
+      return (Math.floor(props.order.paymentAmount / clothsList.value.length * 100) / 100).toFixed(2);
+    }
   }
   return price;
 }
@@ -564,50 +568,6 @@ async function initList() {
   // 等待所有异步操作完成
   await Promise.all(promises);
 }
-// async function initList() {
-//   const promises = [];
-
-//   // 获取颜色列表
-//   if (colorList.value.length === 0) {
-//     const colorPromise = listTagsNoLimit({ tagOrder: '003' }).then(response => {
-//       colorList.value = response;
-//     });
-//     promises.push(colorPromise);
-//   }
-
-//   // 获取瑕疵列表
-//   if (flawList.value.length === 0) {
-//     const flawPromise = listTagsNoLimit({ tagOrder: '001' }).then(response => {
-//       flawList.value = response;
-//     });
-//     promises.push(flawPromise);
-//   }
-
-//   // 获取预估列表
-//   if (estimateList.value.length === 0) {
-//     const estimatePromise = listTagsNoLimit({ tagOrder: '002' }).then(response => {
-//       estimateList.value = response;
-//     });
-//     promises.push(estimatePromise);
-//   }
-
-//   // 获取品牌列表
-//   if (brandList.value.length === 0) {
-//     const brandPromise = listTagsNoLimit({ tagOrder: '004' }).then(response => {
-//       brandList.value = response;
-//     });
-//     promises.push(brandPromise);
-//   }
-
-//   // 获取衣挂位置列表
-//   const rackPromise = listRack().then(res => {
-//     hangLocationList.value = res;
-//   });
-//   promises.push(rackPromise);
-
-//   // 等待所有异步操作完成
-//   await Promise.all(promises);
-// }
 
 // 显示上挂对话框
 function handleShowHangUp(row) {

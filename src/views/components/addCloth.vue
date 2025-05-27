@@ -28,8 +28,8 @@
                         <el-col :span="21" style="height: 100%; padding-left: .5rem;">
                             <el-form-item label="">
                                 <div class="input-btn-row">
-                                    <el-input size="large" v-model="cateName" placeholder="请输入分类名称" maxlength="20"
-                                        show-word-limit />
+                                    <el-input size="large" v-model="cateName" @input="searchColor" placeholder="请输入分类名称"
+                                        maxlength="20" show-word-limit />
                                     <el-button size="large" type="primary" icon="Plus"
                                         @click="handleAddCate">新增</el-button>
                                 </div>
@@ -983,9 +983,17 @@ function searchColor(color) {
     // 颜色、瑕疵、洗后预估、品牌是从第3步开始渲染的，因此要-2
     const index = step.value - 2;
     switch (index) {
+        case -2:
+            // 查找分类
+            const item4 = clothStyleList.value.find(item => { return item.dictLabel.includes(upperCaseColor) || getPinyinInitials(item.dictLabel).includes(upperCaseColor) });
+            if (item4) {
+                form.value.styleId = item4.dictValue;
+            }
+            break;
         case 0:
             const item = featureList[index].value.find(item => {
-                return item.tagName.includes(upperCaseColor) || getPinyinInitials(item.tagName).includes(upperCaseColor);
+                // 颜色精准匹配
+                return item.tagName == upperCaseColor || getPinyinInitials(item.tagName) == upperCaseColor;
             });
             if (!item) {
                 showAddColorBtn.value = true;

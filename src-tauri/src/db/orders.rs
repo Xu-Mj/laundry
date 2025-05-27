@@ -726,7 +726,7 @@ impl Order {
         Ok(result.rows_affected() > 0)
     }
 
-    pub async fn select_list_with_wait_to_pick_with_user_ids<'a>(
+    pub async fn select_list_with_wait_to_pick_with_user_ids(
         pool: &Pool<Sqlite>,
         store_id: i64,
         user_ids: &[i64],
@@ -1829,11 +1829,15 @@ impl Order {
                 let clothes = OrderCloth::get_by_order_id(pool, id).await?;
 
                 // extract cloth codes
-                let cloth_codes: Vec<String> = clothes
-                    .iter()
-                    .filter_map(|c| c.hang_cloth_code.clone())
-                    .collect();
+                let (cloth_codes, cloth_ids): (Vec<String>, Vec<String>) = clothes
+                .iter()
+                .filter_map(|c| {
+                    // 假设你有两个字段需要收集
+                    Some((c.hang_cloth_code.clone()?, c.cloth_id.clone()?))
+                })
+                .unzip();
                 order.cloth_codes = Some(cloth_codes);
+                order.cloth_ids = Some(cloth_ids);
 
                 // 处理支付方式和金额计算
                 if order.payment.is_some() && order.payment.as_ref().unwrap().pay_id.is_some() {

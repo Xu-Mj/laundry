@@ -94,7 +94,7 @@
                     </div>
                     <div class="section-content clothes-list">
                         <div v-if="filteredCloths.length === 0" class="empty-clothes">
-                            <el-empty description="没有可派送的衣物" />
+                            <el-empty :image-size="40" description="没有可派送的衣物" />
                         </div>
                         <div v-else class="cloth-item" v-for="(cloth, index) in filteredCloths" :key="index">
                             <div class="cloth-info">
@@ -133,7 +133,7 @@
 
 <script setup>
 import { delivery, listDeliveryEligibleClothes } from "@/api/frontend/delivery";
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ElMessageBox } from 'element-plus';
 import { Van, Goods } from '@element-plus/icons-vue';
 
 const props = defineProps({
@@ -155,6 +155,7 @@ const props = defineProps({
 
 const emit = defineEmits(['update:visible', 'success', 'cancel']);
 
+const { proxy } = getCurrentInstance();
 // 对话框可见性
 const dialogVisible = ref(false);
 // 表单加载状态
@@ -215,7 +216,7 @@ async function loadEligibleClothes() {
         }
     } catch (error) {
         console.error('Failed to load eligible clothes:', error);
-        ElMessage.error('加载可派送衣物失败');
+        proxy.notify.error('加载可派送衣物失败');
     }
 }
 
@@ -261,7 +262,7 @@ function submitDelivery() {
         if (!valid) return;
 
         if (filteredCloths.value.length === 0) {
-            ElMessage.warning("没有选中符合条件的衣物");
+            proxy.notify.warning("没有选中符合条件的衣物");
             return;
         }
 
@@ -309,7 +310,7 @@ function submitDelivery() {
             //     }
             // }
 
-            ElMessage.success("派送操作成功");
+            proxy.notify.success("派送操作成功");
             dialogVisible.value = false;
             emit('success');
         } catch (err) {
@@ -317,7 +318,7 @@ function submitDelivery() {
             if (err === 'cancel') {
                 return; // 用户取消了确认，不执行后续操作
             }
-            ElMessage.error(err.message || "派送操作失败");
+            proxy.notify.error(err.message || "派送操作失败");
         } finally {
             loading.value = false;
         }
@@ -333,6 +334,7 @@ function cancelDelivery() {
 // 简单的取消，用于关闭对话框
 function cancel() {
     dialogVisible.value = false;
+    emit('cancel');
 }
 </script>
 

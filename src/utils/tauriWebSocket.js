@@ -261,7 +261,7 @@ class TauriWebSocketManager {
     async handleMessage(msg) {
         try {
             const message = typeof msg === 'string' ? JSON.parse(msg) : msg;
-            console.log('接收到WebSocket消息:', message);
+            // console.log('接收到WebSocket消息:', message);
 
             if (message.type === 'Pong') {
                 console.log('收到服务器心跳响应');

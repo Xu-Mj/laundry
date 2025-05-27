@@ -42,7 +42,7 @@
                         </el-icon>
                     </template>
                 </el-input>
-            </el-form-item> 
+            </el-form-item>
             <el-form-item label="支付状态" prop="paymentStatus" size="large">
                 <el-select size="large" v-model="queryParams.paymentStatus" @change="handleQuery" clearable
                     style="width: 120px;" placeholder="请选择">
@@ -64,7 +64,6 @@
         <!-- 渲染订单抖索结果列表 -->
         <div class="search-result-list">
             <div v-if="ordersList.length === 0" class="no-result">
-                <!-- <h1 style="color: #ccc;">暂无数据</h1> -->
                 <el-empty description="暂无数据" />
             </div>
             <div v-slide-in v-else class="result-item" v-for="order in ordersList" :key="order.orderId">
@@ -80,8 +79,8 @@
                             <User />
                         </el-icon>
                         <span style="display: flex; align-items: center;">会员身份: <strong>{{ order.nickName }}</strong>
-                            ({{
-                                order.phonenumber }})</span>
+                            ({{ order.phonenumber }})
+                        </span>
                     </div>
                     <div class="info-item">
                         <el-icon>
@@ -198,13 +197,6 @@
                                         <Picture />
                                     </el-icon> 洗前
                                 </el-button>
-                                <!-- <el-button link type="primary" size="small"
-                                    :disabled="scope.row.afterPics == null || scope.row.afterPics.length == 0"
-                                    @click="handleShowPicture(scope.row, false)">
-                                    <el-icon>
-                                        <Picture />
-                                    </el-icon> 洗后
-                                </el-button> -->
                             </div>
                         </template>
                     </el-table-column>
@@ -247,18 +239,8 @@
         <el-backtop :right="40" :bottom="180" />
     </div>
 
-    <!-- 展示照片 -->
-    <!-- <el-dialog title="照片" v-model="showPicture" width="400px" :align-center="true" append-to-body>
-        <div class="img-container">
-            <el-image class="img-item" show-progress :zoom-rate="1.2" :max-scale="7" :min-scale="0.2"
-                :preview-src-list="pictureList" :src="item" v-for="(item, index) in pictureList" :key="index"
-                fit="cover" />
-        </div>
-    </el-dialog> -->
-
     <!-- 展示照片对话框 -->
-    <el-dialog title="照片预览" v-model="showPicture" width="600px" :align-center="true" append-to-body
-        class="picture-dialog">
+    <el-dialog title="照片预览" v-model="showPicture" width="600px" :align-center="true" class="picture-dialog">
         <div class="picture-container">
             <el-empty v-if="pictureList.length === 0" description="暂无照片" />
             <el-carousel v-else :interval="4000" type="card" height="300px">
@@ -273,7 +255,7 @@
             </div>
         </div>
     </el-dialog> <!-- 派送对话框 -->
-    <DeliveryDialog v-model:visible="showDeliveryDialog" :user="currentUser" :selected-cloths="selectedCloths"
+    <DeliveryDialog :visible="showDeliveryDialog" :user="currentUser" :selected-cloths="selectedCloths"
         @success="handleDeliverySuccess" @cancel="handleDeliveryCancel" /> <!-- 赔偿对话框 -->
     <CompensationDialog v-model:visible="showCompensationDialog" :selection-list="selectedCloths"
         :order-id="selectedCloths.length > 0 ? selectedCloths[0].orderId : ''"
@@ -658,7 +640,14 @@ async function getList() {
         item.loading = false;
 
         // 优先处理 `adjust` 的情况
-        if (item.adjust) {
+
+        if (item.payment && item.payment.payId) {
+            if (item.payment.paymentMethod == '03' || item.payment.paymentMethod == '04') {
+                item.mount = await calculatePrice(item);
+            } else {
+                item.mount = item.payment.paymentAmount;
+            }
+        } else if (item.adjust) {
             if (item.adjust.adjustTotal) {
                 item.mount = item.adjust.adjustTotal;
             } else {
@@ -672,11 +661,6 @@ async function getList() {
             // 没有 `adjust` 的情况下计算价格
             const price = await calculatePrice(item);
             item.mount = price > 0 ? price : 0;
-        }
-
-        // 如果有totalPrice属性（通过createOrder.vue传递过来的），直接使用它
-        if (item.totalPrice !== undefined && item.totalPrice > 0) {
-            item.mount = item.totalPrice;
         }
 
         // 过滤已取走的衣物
@@ -726,6 +710,7 @@ async function calculatePrice(item) {
         }, 0);
     }
 }
+
 const loadImage = async (id) => {
     try {
         // 调用 Tauri 后端命令获取图片二进制数据

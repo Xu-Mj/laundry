@@ -14,15 +14,14 @@ use super::order_clothes::OrderCloth;
 use super::user::User;
 
 // Delivery status constants
-const DELIVERY_STATUS_PENDING: &str = "00"; // 待派送
+const DELIVERY_STATUS_PENDING: &str = "04"; // 待派送
 // const DELIVERY_STATUS_DELIVERING: &str = "01"; // 派送中
-const DELIVERY_STATUS_COMPLETED: &str = "02"; // 已完成
-const DELIVERY_STATUS_CANCELED: &str = "03"; // 已取消
+const DELIVERY_STATUS_COMPLETED: &str = "05"; // 已完成
+const DELIVERY_STATUS_CANCELED: &str = "06"; // 已取消
 
 // Cloth status constants for delivery
 const CLOTH_STATUS_INITIAL: &str = "01"; // 初始状态（洗护中）
 const CLOTH_STATUS_WASHED: &str = "02"; // 已洗完
-const CLOTH_STATUS_DELIVERED: &str = "03"; // 已派送
 
 // Notice template ID for delivery
 // const DELIVERY_NOTICE_TEMPLATE_ID: i64 = 2; // This should match your actual template ID
@@ -261,19 +260,22 @@ impl Delivery {
 
         // Verify the status of all clothes to make sure they're either washing or washed
         let clothes = OrderCloth::get_by_ids(&state.pool, &ids).await?;
-
-        for cloth in &clothes {
-            let status = cloth.clothing_status.as_deref().unwrap_or("");
-            if status != CLOTH_STATUS_INITIAL && status != CLOTH_STATUS_WASHED {
-                return Err(Error::bad_request(format!(
-                    "衣物 {} 状态不符合派送条件，只能派送正在洗护中和已洗完的衣物",
-                    cloth.cloth_id.as_ref().unwrap_or(&String::new())
-                )));
-            }
+        // let order_ids: HashSet<i64> = clothes.iter().filter_map(|c| c.order_id).collect();
+        if let Some(invalid_cloth) = clothes.iter().find(|cloth| {
+            !matches!(
+                cloth.clothing_status.as_deref(),
+                Some(CLOTH_STATUS_INITIAL) | Some(CLOTH_STATUS_WASHED) | None
+            )
+        }) {
+            return Err(Error::bad_request(format!(
+                "衣物 {} 状态不符合派送条件，只能派送正在洗护中和已洗完的衣物",
+                invalid_cloth.cloth_id.as_deref().unwrap_or("")
+            )));
         }
 
         // Update clothes status
-        if !OrderCloth::update_cloth_status_delivery(&mut tx, &ids, CLOTH_STATUS_DELIVERED).await? {
+        if !OrderCloth::update_cloth_status_delivery(&mut tx, &ids, DELIVERY_STATUS_PENDING).await?
+        {
             return Err(Error::internal("衣物状态更新失败"));
         }
 

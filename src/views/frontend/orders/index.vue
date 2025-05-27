@@ -224,6 +224,11 @@
                       @click="handleNotify(scope.row)">通知</el-button>
                   </el-dropdown-item>-->
                   <el-dropdown-item>
+                    <el-button link type="warning" icon="Van"
+                      :disabled="scope.row.status == '05' || scope.row.status == '04' || scope.row.status == '06'"
+                      @click="handleDelivery(scope.row)">派送</el-button>
+                  </el-dropdown-item>
+                  <el-dropdown-item>
                     <el-button link type="danger" icon="Delete" @click="handleDelete(scope.row)">删除</el-button>
                   </el-dropdown-item>
                   <el-dropdown-item>
@@ -271,42 +276,8 @@
       :order-number="refundForm.orderNumber" @refund-success="handleRefundSuccess"
       @refund-cancel="showRefundDialog = false" @update:visible="showRefundDialog = $event" ref="refundDialogRef" />
 
-    <!-- 派送弹窗 -->
-    <el-dialog v-model="showExpressInfoDialog" width="600px" :align-center="true" append-to-body>
-      <el-form :data="expressInfo">
-        <el-form-item label="配送地址" prop="deliveryAddr">
-          {{ expressInfo.deliveryAddr }}
-        </el-form-item>
-        <el-form-item label="快递公司" prop="deliveryComp">
-          {{ expressInfo.deliveryComp }}
-        </el-form-item>
-        <el-form-item label="邮寄时间" prop="dispatchTime">
-          {{ expressInfo.dispatchTime }}
-        </el-form-item>
-        <el-form-item label="快递单号" prop="deliveryNum">
-          {{ expressInfo.deliveryNum }}
-        </el-form-item>
-        <el-form-item label="备注" prop="remark">
-          {{ expressInfo.remark }}
-        </el-form-item>
-      </el-form>
-    </el-dialog>
-    <el-dialog v-model="showDeliveryInfoDialog" width="600px" :align-center="true" append-to-body>
-      <el-form :data="deliveryInfo">
-        <el-form-item label="配送地址" prop="deliveryAddr">
-          {{ deliveryInfo.deliveryAddr }}
-        </el-form-item>
-        <el-form-item label="派送时间" prop="dispatchTime">
-          {{ deliveryInfo.dispatchTime }}
-        </el-form-item>
-        <el-form-item label="沟通时间" prop="deliveryNum">
-          {{ deliveryInfo.deliveryNum }}
-        </el-form-item>
-        <el-form-item label="备注" prop="remark">
-          {{ deliveryInfo.remark }}
-        </el-form-item>
-      </el-form>
-    </el-dialog>
+    <DeliveryDialog v-model:visible="showDeliveryDialog" :user="currentUser" :selected-cloths="deliveryCloths"
+      @success="handleDeliverySuccess" @cancel="handleDeliveryCancel" />
     <ShowClothsModern :order="currentOrder" :orderId="currentOrderId" :visible="showClothListDialog"
       :flashList="getList" :userId="currentUserId" :key="showClothListDialog"
       :toggle="() => { showClothListDialog = !showClothListDialog }" />
@@ -331,6 +302,7 @@ import { addRecord } from '@/api/system/notice_record';
 import { listTemplate } from '@/api/system/template';
 import ShowClothsModern from './showClothsModern.vue';
 import CreateOrder from "@/views/components/createOrder.vue";
+import DeliveryDialog from "@/views/components/DeliveryDialog.vue";
 import Pay from "@/views/components/pay.vue";
 import { listCloths } from "@/api/system/cloths";
 import RefundDialog from "@/components/refundDialog.vue";
@@ -371,6 +343,7 @@ const open = ref(false);
 const showClothListDialog = ref(false);
 const showExpressInfoDialog = ref(false);
 const showDeliveryInfoDialog = ref(false);
+const showDeliveryDialog = ref(false);
 const showNoticeDialog = ref(false);
 const showRefundDialog = ref(false);
 const loading = ref(true);
@@ -384,6 +357,9 @@ const currentOrder = ref({});
 
 const currentOrderId = ref(0);
 const currentUserId = ref(0);
+const currentUser = ref({});
+const deliveryCloths = ref([]);
+
 const createOrderRef = ref();
 const paymentTimeBasedSet = new Set(['07', '17', '27', '57']);
 const paymentCouponSet = new Set(['18', '17', '27', '57']);
@@ -612,6 +588,26 @@ function handleUpdate(row) {
   currentUserId.value = row.userId;
   open.value = true;
 }
+
+async function handleDelivery(row) {
+  deliveryCloths.value = await listCloths({ orderId: row.orderId });
+  console.log(deliveryCloths.value);
+  currentUser.value = await getUser(row.userId);
+  showDeliveryDialog.value = true;
+}
+
+function handleDeliverySuccess() {
+  showDeliveryDialog.value = false;
+  currentOrder.value = null;
+  getList();
+}
+
+function handleDeliveryCancel() {
+  showDeliveryDialog.value = false;
+  currentOrder.value = null;
+}
+
+
 /** 删除按钮操作 */
 function handleDelete(row) {
   const _orderIds = row.orderId;

@@ -12,7 +12,7 @@
           <el-form-item label="标签类别" prop="tagOrder">
             <el-select v-model="queryParams.tagOrder" @change="selectChange" placeholder="标签类别" clearable
               style="width: 240px">
-              <el-option v-for="dict in sys_tag_order" :key="dict.value" :label="dict.label" :value="dict.value" />
+              <el-option v-for="dict in TagType" :key="dict.value" :label="dict.label" :value="dict.value" />
             </el-select>
           </el-form-item>
           <el-form-item label="状态" prop="status">
@@ -53,7 +53,7 @@
         <el-table-column label="标签编码" align="center" prop="tagNumber" />
         <el-table-column label="标签类别" align="center" prop="tagOrder">
           <template #default="scope">
-            <dict-tag :options="sys_tag_order" :value="scope.row.tagOrder" />
+            <dict-tag :options="TagType" :value="scope.row.tagOrder" />
           </template>
         </el-table-column>
         <el-table-column label="标签名称" align="center" prop="tagName" />
@@ -91,7 +91,7 @@
           <div class="form-row">
             <el-form-item label="标签类别" prop="tagOrder">
               <el-select v-model="form.tagOrder" placeholder="请选择标签类别" clearable class="w-full">
-                <el-option v-for="dict in sys_tag_order" :key="dict.value" :label="dict.label" :value="dict.value" />
+                <el-option v-for="dict in TagType" :key="dict.value" :label="dict.label" :value="dict.value" />
               </el-select>
             </el-form-item>
             
@@ -151,6 +151,7 @@ import { listTags, getTags, delTags, addTags, updateTags, updateTagsRefNum, chan
 import RefCountEditor from "@/components/RefCountEditor/index.vue";
 import { InfoFilled, Setting, Check, Close } from '@element-plus/icons-vue';
 import useTagsStore from "@/store/modules/tags";
+import { TagType } from "@/constants";
 
 const { proxy } = getCurrentInstance();
 const { sys_normal_disable, sys_tag_order } = proxy.useDict("sys_normal_disable", "sys_tag_order");

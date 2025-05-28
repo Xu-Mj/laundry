@@ -3,10 +3,10 @@ import { listTagsNoLimit, addTags } from "@/api/system/tags";
 
 const useTagsStore = defineStore('tags', {
   state: () => ({
-    colorList: [], // 颜色标签 '003'
-    flawList: [], // 瑕疵标签 '001'
-    estimateList: [], // 预估标签 '002'
-    brandList: [], // 品牌标签 '004'
+    colorList: [], // 颜色标签 'Color'
+    flawList: [], // 瑕疵标签 'PreCleaningFlaws'
+    estimateList: [], // 预估标签 'PostCleaningProjection'
+    brandList: [], // 品牌标签 'Brand'
     isInitialized: false
   }),
   getters: {
@@ -23,31 +23,32 @@ const useTagsStore = defineStore('tags', {
       const promises = [];
       
       // 获取颜色列表
-      const colorPromise = listTagsNoLimit({ tagOrder: '003', status: "0" }).then(response => {
+      const colorPromise = listTagsNoLimit({ tagOrder: 'Color', status: "0" }).then(response => {
         this.colorList = response;
       });
       promises.push(colorPromise);
       
       // 获取瑕疵列表
-      const flawPromise = listTagsNoLimit({ tagOrder: '001', status: "0" }).then(response => {
+      const flawPromise = listTagsNoLimit({ tagOrder: 'PreCleaningFlaws', status: "0" }).then(response => {
         this.flawList = response;
       });
       promises.push(flawPromise);
       
       // 获取预估列表
-      const estimatePromise = listTagsNoLimit({ tagOrder: '002', status: "0" }).then(response => {
+      const estimatePromise = listTagsNoLimit({ tagOrder: 'PostCleaningProjection', status: "0" }).then(response => {
         this.estimateList = response;
       });
       promises.push(estimatePromise);
       
       // 获取品牌列表
-      const brandPromise = listTagsNoLimit({ tagOrder: '004', status: "0" }).then(response => {
+      const brandPromise = listTagsNoLimit({ tagOrder: 'Brand', status: "0" }).then(response => {
         this.brandList = response;
       });
       promises.push(brandPromise);
       
       // 等待所有异步操作完成
       await Promise.all(promises);
+      console.log('所有标签数据已初始化', this);
       
       this.isInitialized = true;
     },
@@ -55,13 +56,13 @@ const useTagsStore = defineStore('tags', {
     // 根据标签类型获取标签列表
     getTagsByOrder(tagOrder) {
       switch (tagOrder) {
-        case '001':
+        case 'PreCleaningFlaws':
           return this.flawList;
-        case '002':
+        case 'PostCleaningProjection':
           return this.estimateList;
-        case '003':
+        case 'Color':
           return this.colorList;
-        case '004':
+        case 'Brand':
           return this.brandList;
         default:
           return [];
@@ -75,16 +76,16 @@ const useTagsStore = defineStore('tags', {
         
         // 根据标签类型将新标签添加到相应的列表中
         switch (tagOrder) {
-          case '001':
+          case 'PreCleaningFlaws':
             this.flawList.push(newTag);
             break;
-          case '002':
+          case 'PostCleaningProjection':
             this.estimateList.push(newTag);
             break;
-          case '003':
+          case 'Color':
             this.colorList.push(newTag);
             break;
-          case '004':
+          case 'Brand':
             this.brandList.push(newTag);
             break;
         }
@@ -102,16 +103,16 @@ const useTagsStore = defineStore('tags', {
         const response = await listTagsNoLimit({ tagOrder, status: "0" });
         
         switch (tagOrder) {
-          case '001':
+          case 'PreCleaningFlaws':
             this.flawList = response;
             break;
-          case '002':
+          case 'PostCleaningProjection':
             this.estimateList = response;
             break;
-          case '003':
+          case 'Color':
             this.colorList = response;
             break;
-          case '004':
+          case 'Brand':
             this.brandList = response;
             break;
         }

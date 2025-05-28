@@ -32,8 +32,7 @@
             <el-col :span="12">
               <el-form-item label="订单类别" prop="orderType">
                 <el-select v-model="form.orderType" placeholder="请选择订单类别" class="custom-select">
-                  <el-option v-for="dict in sys_price_order_type" :key="dict.value" :label="dict.label"
-                    :value="dict.value" />
+                  <el-option v-for="dict in OrderSource" :key="dict.value" :label="dict.label" :value="dict.value" />
                 </el-select>
               </el-form-item>
             </el-col>
@@ -64,7 +63,7 @@
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item v-if="form.orderType == '03'" label="折扣系数" prop="priceDiscount">
+              <el-form-item v-if="form.orderType == 'Store'" label="折扣系数" prop="priceDiscount">
                 <el-input-number v-model="form.priceDiscount" controls-position="right" :min="0" :max="100"
                   placeholder="请输入折扣系数" :disabled="isPriceDiscountDisabled" class="custom-input-number">
                   <template #prefix>
@@ -152,6 +151,7 @@
 
 <script setup name="PriceCreateDialog">
 import { addPrice, updatePrice, getPrice } from "@/api/system/price";
+import { OrderSource } from "@/constants";
 
 const props = defineProps({
   modelValue: {
@@ -171,7 +171,7 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'success', 'cancel']);
 
 const { proxy } = getCurrentInstance();
-const { sys_price_order_type, sys_normal_disable } = proxy.useDict("sys_price_order_type", "sys_normal_disable");
+const { sys_normal_disable } = proxy.useDict("sys_normal_disable");
 
 const visible = computed({
   get: () => props.modelValue,

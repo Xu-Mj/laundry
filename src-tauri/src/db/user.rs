@@ -3,6 +3,7 @@ use sqlx::sqlite::SqliteRow;
 use sqlx::{FromRow, Pool, QueryBuilder, Row, Sqlite, Transaction};
 use tauri::State;
 
+use crate::constants::CouponType;
 use crate::db::order_clothes::OrderCloth;
 use crate::db::orders::Order;
 use crate::db::user_coupons::UserCoupon;
@@ -14,8 +15,6 @@ use crate::utils;
 use crate::utils::request::Request;
 
 use super::{Curd, PageParams, PageResult};
-
-const STORAGE_CARD_TYPE: &str = "000";
 
 #[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -503,7 +502,7 @@ impl User {
                     .filter(|c| {
                         if let Some(coupon) = c.coupon.as_ref() {
                             if let Some(valid_to) = coupon.valid_to {
-                                return coupon.coupon_type.as_deref() == Some(STORAGE_CARD_TYPE)
+                                return coupon.coupon_type == Some(CouponType::StoredValueCard)
                                     && utils::get_now() <= valid_to
                                     && c.available_value.is_some()
                                     && c.available_value.unwrap() > 0.;
@@ -574,7 +573,7 @@ pub async fn get_user_by_id(state: State<'_, AppState>, id: i64) -> Result<Optio
         .filter(|c| {
             if let Some(coupon) = c.coupon.as_ref() {
                 if let Some(valid_to) = coupon.valid_to {
-                    return coupon.coupon_type.as_deref() == Some(STORAGE_CARD_TYPE)
+                    return coupon.coupon_type == Some(CouponType::StoredValueCard)
                         && utils::get_now() <= valid_to
                         && c.available_value.is_some()
                         && c.available_value.unwrap() > 0.;

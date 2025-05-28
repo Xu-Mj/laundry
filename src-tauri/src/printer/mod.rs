@@ -10,7 +10,6 @@ use tauri::State;
 
 use crate::db::Curd;
 use crate::db::printer::get_settled_printer;
-use crate::dict_data::DictData;
 use crate::drying_rack::DryingRack;
 use crate::error::Result;
 use crate::error::{Error, ErrorKind};
@@ -255,15 +254,14 @@ async fn gen_receipt_pdf(
             .unwrap_or_default()
             .tag_name
             .unwrap_or_default();
-        let service_type = cloth.service_type.as_deref().unwrap_or("");
-        let st_label = DictData::select_dict_label(pool, "sys_service_type", service_type)
-            .await?
-            .unwrap_or(service_type.to_string());
-        let service_requirement = cloth.service_requirement.as_deref().unwrap_or("");
-        let sr_label =
-            DictData::select_dict_label(pool, "sys_service_requirement", service_requirement)
-                .await?
-                .unwrap_or(service_requirement.to_string());
+        let service_type = cloth
+            .service_type
+            .as_ref()
+            .map_or(String::new(), |s| s.to_string());
+        let service_requirement = cloth
+            .service_requirement
+            .as_ref()
+            .map_or(String::new(), |s| s.to_string());
 
         // 获取瑕疵名称
         let mut flaw_names = Vec::new();
@@ -297,7 +295,13 @@ async fn gen_receipt_pdf(
             cloth.hanger_name.as_deref().unwrap_or("").to_string()
         };
 
-        cloth_details.push((color, st_label, sr_label, flaw_names, hanger_info));
+        cloth_details.push((
+            color,
+            service_type,
+            service_requirement,
+            flaw_names,
+            hanger_info,
+        ));
     }
 
     // 创建PDF文档

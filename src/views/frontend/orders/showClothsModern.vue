@@ -65,6 +65,9 @@
               </div>
               <div class="cloth-status">
                 <dict-tag :options="sys_clothing_status" :value="item.clothingStatus" />
+                <el-tag :type="ClothStatusMap[item.clothingStatus]?.type">
+                  {{ ClothStatusMap[item.clothingStatus]?.label }}
+                </el-tag>
               </div>
             </div>
           </template>
@@ -83,9 +86,13 @@
                 <div class="info-item full-width">
                   <span class="item-label">服务类型:</span>
                   <span class="service-type">
-                    <dict-tag :options="sys_service_type" :value="item.serviceType" />
+                    <el-tag :type="ServiceTypeMap[item.serviceType]?.type">
+                      {{ ServiceTypeMap[item.serviceType]?.label }}
+                    </el-tag>
                     -
-                    <dict-tag :options="sys_service_requirement" :value="item.serviceRequirement" />
+                    <el-tag :type="ServiceRequirmentMap[item.serviceRequirement]?.type">
+                      {{ ServiceRequirmentMap[item.serviceRequirement]?.label }}
+                    </el-tag>
                   </span>
                 </div>
                 <div class="info-item full-width">
@@ -374,6 +381,7 @@ import { invoke } from '@tauri-apps/api/core';
 import useUserStore from '@/store/modules/user';
 import useTagsStore from '@/store/modules/tags';
 import CompensationDialog from '@/views/components/CompensationDialog.vue';
+import { ServiceTypeMap, ServiceRequirmentMap, ClothStatusMap } from '@/constants';
 
 const props = defineProps({
   visible: {
@@ -406,8 +414,8 @@ const props = defineProps({
 
 const { proxy } = getCurrentInstance();
 
-const { sys_delivery_mode, sys_clothing_status, sys_service_type, sys_service_requirement } =
-  proxy.useDict("sys_delivery_mode", "sys_clothing_status", "sys_service_type", "sys_service_requirement");
+const { sys_delivery_mode, sys_clothing_status, } =
+  proxy.useDict("sys_delivery_mode", "sys_clothing_status");
 
 // 状态数据
 const selectionList = ref([]);

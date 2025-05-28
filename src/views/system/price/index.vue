@@ -6,8 +6,7 @@
           <el-form-item label="订单类别" prop="orderType">
             <el-select v-model="queryParams.orderType" @change="selectChange" placeholder="订单类别" clearable
               style="width: 100px;">
-              <el-option v-for="dict in sys_price_order_type" :key="dict.value" :label="dict.label"
-                :value="dict.value" />
+              <el-option v-for="dict in OrderSource" :key="dict.value" :label="dict.label" :value="dict.value" />
             </el-select>
           </el-form-item>
           <el-form-item label="价格名称" prop="priceName">
@@ -45,7 +44,10 @@
         <el-table-column label="价格编码" align="center" prop="priceNumber" />
         <el-table-column label="订单类别" align="center" prop="orderType">
           <template #default="scope">
-            <dict-tag :options="sys_price_order_type" :value="scope.row.orderType" />
+            <!-- <dict-tag :options="sys_price_order_type" :value="scope.row.orderType" /> -->
+            <el-tag :type="OrderSourceMap[scope.row.orderType]?.type">
+              {{ OrderSourceMap[scope.row.orderType]?.label }}
+            </el-tag>
           </template>
         </el-table-column>
         <el-table-column label="价格名称" align="center" prop="priceName" />
@@ -78,12 +80,8 @@
     </el-card>
 
     <!-- 价格创建弹窗组件 -->
-    <PriceCreateDialog 
-      v-model="open" 
-      :price-id="currentPriceId" 
-      @success="handleDialogSuccess" 
-      @cancel="handleDialogCancel" 
-    />
+    <PriceCreateDialog v-model="open" :price-id="currentPriceId" @success="handleDialogSuccess"
+      @cancel="handleDialogCancel" />
 
     <!-- 修改使用次数对话框 -->
     <ref-count-editor v-model="showUpdateRefNum" :initial-value="tagNumForm.refNumber" title="修改使用次数"
@@ -92,13 +90,13 @@
 </template>
 
 <script setup name="Price">
-import { listPricePagination, getPrice, delPrice, addPrice, updatePrice, updatePriceStatus, updatePriceRefNum } from "@/api/system/price";
+import { listPricePagination, delPrice, updatePriceStatus, updatePriceRefNum } from "@/api/system/price";
 import { listClothing } from "@/api/system/clothing";
 import RefCountEditor from "@/components/RefCountEditor/index.vue";
 import PriceCreateDialog from "@/components/PriceCreateDialog/index.vue";
+import { OrderSourceMap, OrderSource } from "@/constants";
 
 const { proxy } = getCurrentInstance();
-const { sys_price_order_type, sys_normal_disable } = proxy.useDict("sys_price_order_type", "sys_normal_disable");
 
 const priceList = ref([]);
 const clothList = ref([]);

@@ -51,7 +51,7 @@
                             <Warning />
                         </el-icon>
                     </template>
-                    <el-option v-for="dict in sys_payment_status" :key="dict.value" :label="dict.label"
+                    <el-option v-for="dict in PaymentStatus" :key="dict.value" :label="dict.label"
                         :value="dict.value" />
                 </el-select>
             </el-form-item>
@@ -87,9 +87,12 @@
                             <Wallet />
                         </el-icon>
                         <span>支付状态:</span>
-                        <dict-tag v-if="order.paymentStatus === '01'" style="cursor: pointer;" @click="go2pay(order)"
-                            :options="sys_payment_status" :value="order.paymentStatus" />
-                        <dict-tag v-else :options="sys_payment_status" :value="order.paymentStatus" />
+                        <el-tag v-if="order.paymentStatus === 'Unpaid'" style="cursor: pointer;" @click="go2pay(order)">
+                            {{ PaymentStatusMap[order.paymentStatus]?.label }}
+                        </el-tag>
+                        <el-tag v-else :type="PaymentStatusMap[order.paymentStatus]?.type">
+                            {{ PaymentStatusMap[order.paymentStatus]?.label }}
+                        </el-tag>
                     </div>
                     <div class="info-item">
                         <el-icon>
@@ -111,7 +114,9 @@
                             <InfoFilled />
                         </el-icon>
                         <span>订单状态:</span>
-                        <dict-tag :options="sys_order_status" :value="order.status" />
+                        <el-tag :type="OrderStatusMap[order.status]?.type">
+                            {{ OrderStatusMap[order.status]?.label }}
+                        </el-tag>
                     </div>
                 </div>
                 <!-- 订单包含的衣物列表 -->
@@ -138,9 +143,13 @@
                     <el-table-column label="服务类型" align="center" width="150">
                         <template #default="scope">
                             <span class="service-type">
-                                <dict-tag :options="sys_service_type" :value="scope.row.serviceType" />
+                                <el-tag :type="ServiceTypeMap[scope.row.serviceType]?.type">
+                                    {{ scope.row.serviceType }}
+                                </el-tag>
                                 <el-divider direction="vertical" class="vertical-divider" />
-                                <dict-tag :options="sys_service_requirement" :value="scope.row.serviceRequirement" />
+                                <el-tag :type="ServiceRequirmentType[scope.row.serviceRequirement]?.type">
+                                    {{ scope.row.serviceRequirement }}
+                                </el-tag>
                             </span>
                         </template>
                     </el-table-column>
@@ -202,7 +211,9 @@
                     </el-table-column>
                     <el-table-column label="洗护状态" align="center" prop="clothingStatus" width="100">
                         <template #default="scope">
-                            <dict-tag :options="sys_clothing_status" :value="scope.row.clothingStatus" />
+                            <el-tag :type="ClothStatusMap[scope.row.clothingStatus]?.type">
+                                {{ scope.row.clothingStatus }}
+                            </el-tag>
                         </template>
                     </el-table-column>
                     <el-table-column label="上挂位置" align="center" width="120">
@@ -282,6 +293,7 @@ import Pay from "./pay.vue";
 import DeliveryDialog from "./DeliveryDialog.vue";
 import CompensationDialog from "@/views/components/CompensationDialog.vue";
 import useTagsStore from "@/store/modules/tags";
+import { PaymentMethodMap, ServiceRequirmentType, ServiceTypeMap, ClothStatusMap, PaymentStatus, PaymentStatusMap, OrderStatusMap } from "@/constants";
 
 
 const props = defineProps({
@@ -292,22 +304,6 @@ const props = defineProps({
 });
 
 const { proxy } = getCurrentInstance();
-const {
-    sys_payment_status,
-    sys_order_status,
-    sys_service_requirement,
-    sys_service_type,
-    sys_clothing_status,
-    sys_payment_method
-} =
-    proxy.useDict(
-        'sys_payment_status',
-        "sys_order_status",
-        "sys_service_requirement",
-        "sys_service_type",
-        "sys_clothing_status",
-        "sys_payment_method",
-    );
 
 // 订单列表
 const ordersList = ref([]);
@@ -801,7 +797,7 @@ async function reprintReceipt(order) {
     try {
         let paymentMethod;
         if (order.payment.payId) {
-            paymentMethod = sys_payment_method.value.find(item => item.value == order.paymentMethod)?.label;
+            paymentMethod = PaymentMethodMap[order.paymentMethod]?.label;
         } else {
             paymentMethod = '未付款';
         }

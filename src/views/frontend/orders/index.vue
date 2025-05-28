@@ -44,8 +44,7 @@
                   <AlarmClock />
                 </el-icon>
               </template>
-              <el-option v-for="dict in sys_cost_time_alarm" :key="dict.value" :label="dict.label"
-                :value="dict.value" />
+              <el-option v-for="dict in AlarmType" :key="dict.value" :label="dict.label" :value="dict.value" />
             </el-select>
           </el-form-item>
           <el-form-item label="支付状态" prop="paymentStatus" size="large">
@@ -56,7 +55,7 @@
                   <Warning />
                 </el-icon>
               </template>
-              <el-option v-for="dict in sys_payment_status" :key="dict.value" :label="dict.label" :value="dict.value" />
+              <el-option v-for="dict in PaymentStatus" :key="dict.value" :label="dict.label" :value="dict.value" />
             </el-select>
           </el-form-item>
           <el-form-item label="洗护状态" prop="status" size="large">
@@ -67,7 +66,7 @@
                   <Warning />
                 </el-icon>
               </template>
-              <el-option v-for="dict in sys_order_status" :key="dict.value" :label="dict.label" :value="dict.value" />
+              <el-option v-for="dict in OrderStatus" :key="dict.value" :label="dict.label" :value="dict.value" />
             </el-select>
           </el-form-item>
           <el-form-item label="消费日期">
@@ -110,7 +109,9 @@
         </el-table-column>
         <el-table-column label="支付方式" align="center" prop="paymentBonusType" v-if="columns[3].visible">
           <template #default="scope">
-            <dict-tag :options="sys_payment_method_show" :value="scope.row.paymentBonusType" />
+            <el-tag :type="PaymentMethodMap[scope.row.paymentBonusType]?.type">
+              {{ PaymentMethodMap[scope.row.paymentBonusType]?.label }}
+            </el-tag>
           </template>
         </el-table-column>
         <el-table-column label="卡券优惠" align="center" prop="paymentBonusCount" v-if="columns[4].visible">
@@ -158,7 +159,9 @@
 
         <el-table-column label="时效预警" align="center" prop="costTimeAlarm" v-if="columns[10].visible">
           <template #default="scope">
-            <dict-tag :options="sys_cost_time_alarm" :value="scope.row.costTimeAlarm" />
+            <el-tag :type="AlarmTypeMap[scope.row.costTimeAlarm]?.type">
+              {{ scope.row.costTimeAlarm }}
+            </el-tag>
           </template>
         </el-table-column>
         <el-table-column label="订单完成时间" align="center" prop="completeTime" min-width="100" v-if="columns[11].visible">
@@ -168,12 +171,16 @@
         </el-table-column>
         <el-table-column label="订单来源" align="center" prop="source" v-if="columns[12].visible">
           <template #default="scope">
-            <dict-tag :options="sys_price_order_type" :value="scope.row.source" />
+            <el-tag :type="OrderSourceMap[scope.row.source]?.type">
+              {{ OrderSourceMap[scope.row.source]?.label }}
+            </el-tag>
           </template>
         </el-table-column>
         <el-table-column label="洗护状态" align="center" prop="status" v-if="columns[13].visible">
           <template #default="scope">
-            <dict-tag :options="sys_order_status" :value="scope.row.status" />
+            <el-tag :type="OrderStatusMap[scope.row.status]?.type">
+              {{ OrderStatusMap[scope.row.status]?.label }}
+            </el-tag>
           </template>
         </el-table-column>
         <el-table-column label="订单类型" align="center" prop="orderType" v-if="columns[14].visible">
@@ -183,9 +190,12 @@
         </el-table-column>
         <el-table-column label="支付状态" align="center" prop="paymentStatus" v-if="columns[15].visible">
           <template #default="scope">
-            <dict-tag v-if="scope.row.paymentStatus === '01'" style="cursor: pointer;" @click="go2pay(scope.row)"
-              :options="sys_payment_status" :value="scope.row.paymentStatus" />
-            <dict-tag v-else :options="sys_payment_status" :value="scope.row.paymentStatus" />
+            <el-tag v-if="scope.row.paymentStatus === 'Unpaid'" style="cursor: pointer;" @click="go2pay(order)">
+              {{ PaymentStatusMap[scope.row.paymentStatus]?.label }}
+            </el-tag>
+            <el-tag v-else :type="PaymentStatusMap[scope.row.paymentStatus]?.type">
+              {{ PaymentStatusMap[scope.row.paymentStatus]?.label }}
+            </el-tag>
           </template>
         </el-table-column>
         <el-table-column label="取回方式" align="center" prop="deliveryMode" v-if="columns[16].visible">
@@ -306,28 +316,19 @@ import DeliveryDialog from "@/views/components/DeliveryDialog.vue";
 import Pay from "@/views/components/pay.vue";
 import { listCloths } from "@/api/system/cloths";
 import RefundDialog from "@/components/refundDialog.vue";
+import { AlarmType, AlarmTypeMap, OrderSourceMap, OrderStatus, OrderStatusMap, PaymentStatus, PaymentStatusMap, PaymentMethodMap } from "@/constants";
 
 const { proxy } = getCurrentInstance();
 const {
-  sys_cost_time_alarm,
-  sys_payment_status,
-  sys_price_order_type,
   sys_business_type,
   sys_delivery_mode,
   sys_order_type,
-  sys_order_status,
-  sys_payment_method_show,
   sys_notice_method,
 } =
   proxy.useDict(
-    'sys_cost_time_alarm',
-    'sys_payment_status',
-    "sys_price_order_type",
     "sys_business_type",
     "sys_delivery_mode",
     "sys_order_type",
-    "sys_order_status",
-    "sys_payment_method_show",
     "sys_notice_method",
   );
 

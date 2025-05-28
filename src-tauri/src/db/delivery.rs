@@ -4,6 +4,7 @@ use sqlx::types::chrono::{DateTime, FixedOffset};
 use sqlx::{FromRow, QueryBuilder, Row, Sqlite, Transaction};
 use tauri::State;
 
+use crate::constants::ClothStatus;
 use crate::db::{Curd, PageParams, PageResult, Validator};
 use crate::error::{Error, Result};
 use crate::state::AppState;
@@ -20,8 +21,8 @@ const DELIVERY_STATUS_COMPLETED: &str = "05"; // 已完成
 const DELIVERY_STATUS_CANCELED: &str = "06"; // 已取消
 
 // Cloth status constants for delivery
-const CLOTH_STATUS_INITIAL: &str = "01"; // 初始状态（洗护中）
-const CLOTH_STATUS_WASHED: &str = "02"; // 已洗完
+// const CLOTH_STATUS_INITIAL: &str = "01"; // 初始状态（洗护中）
+// const CLOTH_STATUS_WASHED: &str = "02"; // 已洗完
 
 // Notice template ID for delivery
 // const DELIVERY_NOTICE_TEMPLATE_ID: i64 = 2; // This should match your actual template ID
@@ -263,8 +264,8 @@ impl Delivery {
         // let order_ids: HashSet<i64> = clothes.iter().filter_map(|c| c.order_id).collect();
         if let Some(invalid_cloth) = clothes.iter().find(|cloth| {
             !matches!(
-                cloth.clothing_status.as_deref(),
-                Some(CLOTH_STATUS_INITIAL) | Some(CLOTH_STATUS_WASHED) | None
+                cloth.clothing_status,
+                Some(ClothStatus::Processing) | Some(ClothStatus::ReadyForPickup) | None
             )
         }) {
             return Err(Error::bad_request(format!(

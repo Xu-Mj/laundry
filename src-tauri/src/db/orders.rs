@@ -11,6 +11,9 @@ use sqlx::{
 };
 use tauri::{AppHandle, Manager, Runtime};
 
+use crate::constants::{
+    ClothStatus, CouponType, OrderStatus, PaymentMethod, PaymentStatus, ServiceRequirmentType,
+};
 use crate::db::adjust_price::OrderClothAdjust;
 use crate::db::cloth_price::ClothPrice;
 use crate::db::configs::Config;
@@ -29,37 +32,37 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
 
-const PAY_STATUS_NOT_PAID: &str = "01";
-const PAY_STATUS_REFUND: &str = "05";
-const ORDER_STATUS_REFUND: &str = "06";
+// const PAY_STATUS_NOT_PAID: &str = "01";
+// const PAY_STATUS_REFUND: &str = "05";
+// const ORDER_STATUS_REFUND: &str = "06";
 // const CLOTH_STATUS_REFUND: &str = "03";
 const PAY_STATUS_PAID: &str = "00";
 const NORMAL_ORDER: &str = "00";
-const CLOTHING_STATUS_PICKED_UP: &str = "00";
+// const CLOTHING_STATUS_PICKED_UP: &str = "00";
 // const REWASH_ORDER: &str = "02";
-const STATUS_LAUNDRY: &str = "01";
-const STATUS_COMPLETED: &str = "04";
+// const STATUS_LAUNDRY: &str = "01";
+// const STATUS_COMPLETED: &str = "04";
 const NORMAL_ALARM: &str = "00";
 const WARNING_ALARM: &str = "01";
 const OVERDUE_ALARM: &str = "02";
 const BUSINESS_MAIN: &str = "00";
 const DESIRE_COMPLETE_TIME_KEY: &str = "desire_complete_time";
-const STORAGE_CARD_NUMBER: &str = "000";
+// const STORAGE_CARD_NUMBER: &str = "000";
 // const ONCE_CARD_NUMBER: &str = "002";
-const OFF_CARD_NUMBER: &str = "003";
-const SUB_CARD_NUMBER: &str = "004";
-const DISCOUNT_CARD_NUMBER: &str = "005";
-const SERVICE_TYPE_EMERGENCY: &str = "001";
-const SERVICE_TYPE_SINGLE_WASH: &str = "002";
+// const OFF_CARD_NUMBER: &str = "003";
+// const SUB_CARD_NUMBER: &str = "004";
+// const DISCOUNT_CARD_NUMBER: &str = "005";
+// const SERVICE_TYPE_EMERGENCY: &str = "001";
+// const SERVICE_TYPE_SINGLE_WASH: &str = "002";
 
-const PAYMENT_METHOD_TIME_BASED: &str = "07";
-const PAYMENT_METHOD_MEITUAN: &str = "03";
-const PAYMENT_METHOD_DOUYIN: &str = "04";
-const PAYMENT_METHOD_DOCOUPON: &str = "06";
-const PAYMENT_METHOD_DISCOUNT: &str = "08";
-const PAYMENT_METHOD_COMBINATION_ALIPAY_COUPON: &str = "16";
-const PAYMENT_METHOD_COMBINATION_WECHAT_COUPON: &str = "26";
-const PAYMENT_METHOD_COMBINATION_CASH_COUPON: &str = "56";
+// const PAYMENT_METHOD_TIME_BASED: &str = "07";
+// const PAYMENT_METHOD_MEITUAN: &str = "03";
+// const PAYMENT_METHOD_DOUYIN: &str = "04";
+// const PAYMENT_METHOD_DOCOUPON: &str = "06";
+// const PAYMENT_METHOD_DISCOUNT: &str = "08";
+// const PAYMENT_METHOD_COMBINATION_ALIPAY_COUPON: &str = "16";
+// const PAYMENT_METHOD_COMBINATION_WECHAT_COUPON: &str = "26";
+// const PAYMENT_METHOD_COMBINATION_CASH_COUPON: &str = "56";
 
 const DEFAULT_DESIRE_DAYS: i64 = 7;
 
@@ -81,8 +84,8 @@ pub struct Order {
     pub complete_time: Option<DateTime<FixedOffset>>,
     pub delivery_mode: Option<String>,
     pub source: Option<String>,
-    pub status: Option<String>,
-    pub payment_status: Option<String>,
+    pub status: Option<OrderStatus>,
+    pub payment_status: Option<PaymentStatus>,
     pub remark: Option<String>,
     pub order_type: Option<String>,
     pub create_time: Option<DateTime<FixedOffset>>,
@@ -98,7 +101,7 @@ pub struct Order {
     // payment
     pub payment: Option<Payment>,
 
-    pub payment_bonus_type: Option<String>,
+    pub payment_bonus_type: Option<PaymentMethod>,
     // coupons count,
     pub payment_bonus_count: Option<f64>,
     pub diff_price: Option<f64>,
@@ -115,7 +118,7 @@ pub struct OrderFromServer {
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
-pub enum PaymentMethod {
+pub enum PaymentReqMethod {
     #[default]
     Alipay,
     Wechat,
@@ -129,10 +132,10 @@ pub struct PaymentReq {
     pub orders: Option<Vec<Order>>,
     pub time_based: Option<Vec<TimeBasedCoupon>>,
     // 扫码支付相关字段
-    pub auth_code: Option<String>,           // 支付授权码
-    pub store_id: Option<i64>,               // 商家ID
-    pub subject: Option<String>,             // 订单标题
-    pub payment_type: Option<PaymentMethod>, // 支付类型：alipay/wechat
+    pub auth_code: Option<String>,              // 支付授权码
+    pub store_id: Option<i64>,                  // 商家ID
+    pub subject: Option<String>,                // 订单标题
+    pub payment_type: Option<PaymentReqMethod>, // 支付类型：alipay/wechat
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
@@ -425,17 +428,12 @@ impl Order {
         }
 
         if let Some(status) = &self.status {
-            if !status.is_empty() {
-                query_builder.push(" AND o.status = ").push_bind(status);
-            }
+            query_builder.push(" AND o.status = ").push_bind(status);
         }
 
-        self.payment_status
-            .as_ref()
-            .filter(|p| !p.is_empty())
-            .map(|p| {
-                query_builder.push(" AND o.payment_status = ").push_bind(p);
-            });
+        self.payment_status.as_ref().map(|p| {
+            query_builder.push(" AND o.payment_status = ").push_bind(p);
+        });
 
         self.order_type.as_ref().filter(|t| !t.is_empty()).map(|t| {
             query_builder.push(" AND o.order_type = ").push_bind(t);
@@ -682,7 +680,7 @@ impl Order {
         .bind(&self.order_id)
         .execute(&mut **tr)
         .await?;
-    
+
         // Update price relations
         if let Some(order_id) = self.order_id {
             // Delete existing relations
@@ -690,7 +688,7 @@ impl Order {
                 .bind(order_id)
                 .execute(&mut **tr)
                 .await?;
-    
+
             // Insert new relations
             if let Some(price_ids) = &self.price_ids {
                 for price_id in price_ids {
@@ -706,7 +704,7 @@ impl Order {
                 }
             }
         }
-    
+
         Ok(result.rows_affected() > 0)
     }
 
@@ -827,7 +825,9 @@ impl Order {
                 // 将 NaiveDate 转换为 DateTime<Utc>
                 let desire_datetime = desire_time
                     .and_hms_opt(0, 0, 0)
-                    .map(|ndt| DateTime::<Local>::from_naive_utc_and_offset(ndt, now.offset().clone()))
+                    .map(|ndt| {
+                        DateTime::<Local>::from_naive_utc_and_offset(ndt, now.offset().clone())
+                    })
                     .unwrap_or_else(|| now);
 
                 let current_alarm = order.cost_time_alarm.as_deref().unwrap_or(NORMAL_ALARM);
@@ -1006,9 +1006,9 @@ impl Order {
     }
 
     fn initial(&mut self) {
-        self.payment_status = Some(PAY_STATUS_NOT_PAID.to_string());
+        self.payment_status = Some(PaymentStatus::Unpaid);
         self.order_type = Some(NORMAL_ORDER.to_string());
-        self.status = Some(STATUS_LAUNDRY.to_string());
+        self.status = Some(OrderStatus::Processing);
         self.cost_time_alarm = Some(NORMAL_ALARM.to_string());
         self.business_type = Some(BUSINESS_MAIN.to_string());
         self.create_time = Some(utils::get_now());
@@ -1088,7 +1088,7 @@ impl Order {
                     .await?
                     .ok_or(Error::bad_request("订单不存在"))?;
 
-                if existing_order.payment_status.as_deref() == Some(PAY_STATUS_PAID) {
+                if existing_order.payment_status == Some(PaymentStatus::Paid) {
                     return Err(Error::bad_request("订单已支付"));
                 }
 
@@ -1122,10 +1122,11 @@ impl Order {
                 }
 
                 // 如果所有衣物状态为 "已取件"，更新订单状态为 "已完成"
-                if clothes.iter().all(|cloth| {
-                    cloth.clothing_status.as_deref() == Some(CLOTHING_STATUS_PICKED_UP)
-                }) {
-                    existing_order.status = Some(STATUS_COMPLETED.to_string());
+                if clothes
+                    .iter()
+                    .all(|cloth| cloth.clothing_status == Some(ClothStatus::PickedUp))
+                {
+                    existing_order.status = Some(OrderStatus::Completed);
                 }
 
                 // 收集订单信息，用于后续扫码支付
@@ -1158,7 +1159,7 @@ impl Order {
                 subject.unwrap_or_else(|| format!("订单支付-{}", order_numbers.join(",")));
 
             // 根据支付类型调用不同的支付接口
-            if payment_type == PaymentMethod::Alipay {
+            if payment_type == PaymentReqMethod::Alipay {
                 if let Some(auth_code) = auth_code {
                     // 使用支付宝付款码支付
                     let req_body = weapay::alipay::prelude::ReqOrderBody {
@@ -1183,7 +1184,7 @@ impl Order {
                                     .ok_or(Error::bad_request("订单不存在"))?;
 
                                 // 更新订单支付状态为已支付
-                                existing_order.payment_status = Some(PAY_STATUS_PAID.to_string());
+                                existing_order.payment_status = Some(PaymentStatus::Paid);
                                 if !existing_order.update(&mut tr).await? {
                                     return Err(Error::internal("update order failed"));
                                 }
@@ -1191,7 +1192,7 @@ impl Order {
                                 // 创建支付记录
                                 payment.pay_id = Some(uuid::Uuid::new_v4().to_string());
                                 payment.order_status = Some(PAY_STATUS_PAID.to_string());
-                                payment.payment_status = Some(PAY_STATUS_PAID.to_string());
+                                payment.payment_status = Some(PaymentStatus::Paid);
                                 payment.pay_number = existing_order.order_number.clone();
                                 payment.uc_order_id = Some(*order_id);
                                 payment.transaction_id = alipay_result
@@ -1260,7 +1261,7 @@ impl Order {
                         return Err(Error::bad_request("支付宝付款码支付状态未知"));
                     }
                 }
-            } else if payment_type == PaymentMethod::Wechat {
+            } else if payment_type == PaymentReqMethod::Wechat {
                 // 微信支付逻辑可以在这里实现
                 // 目前先返回错误，表示功能尚未实现
                 return Err(Error::bad_request("微信扫码支付功能尚未实现"));
@@ -1273,7 +1274,7 @@ impl Order {
                     .ok_or(Error::bad_request("order is not exist"))?;
 
                 // 更新订单支付状态为已支付
-                existing_order.payment_status = Some(PAY_STATUS_PAID.to_string());
+                existing_order.payment_status = Some(PaymentStatus::Paid);
                 if !existing_order.update(&mut tr).await? {
                     return Err(Error::internal("update order failed"));
                 }
@@ -1281,7 +1282,7 @@ impl Order {
                 // 创建支付记录
                 payment.pay_id = Some(uuid::Uuid::new_v4().to_string());
                 payment.order_status = Some(PAY_STATUS_PAID.to_string());
-                payment.payment_status = Some(PAY_STATUS_PAID.to_string());
+                payment.payment_status = Some(PaymentStatus::Paid);
                 payment.pay_number = existing_order.order_number.clone();
                 payment.uc_order_id = Some(*order_id);
                 payment.create_payment(&mut tr).await?;
@@ -1342,9 +1343,9 @@ impl Order {
 
             for coupon in user_coupons.iter_mut() {
                 if let Some(c) = coupon.coupon.as_ref() {
-                    match c.coupon_type.as_deref() {
-                        Some(STORAGE_CARD_NUMBER) => storage.push(coupon),
-                        Some(DISCOUNT_CARD_NUMBER) => discount.push(coupon),
+                    match c.coupon_type {
+                        Some(CouponType::StoredValueCard) => storage.push(coupon),
+                        Some(CouponType::DiscountCard) => discount.push(coupon),
                         _ => others.push(coupon),
                     }
                 }
@@ -1385,7 +1386,7 @@ impl Order {
                     // 使用储值卡支付足够金额
                     let new_balance = available_value_decimal - total_amount_decimal;
                     storage_card.available_value = Some(new_balance.to_f64().unwrap_or_default());
-                    payment.payment_method = Some("06".to_string());
+                    payment.payment_method = Some(PaymentMethod::StoredValueCard);
                     // 储值卡类型不计算卡券优惠金额
                     // payment.payment_amount_vip = None;
                     // update user coupon
@@ -1480,7 +1481,7 @@ impl Order {
             }
 
             // 设置支付方式为折扣卡
-            payment.payment_method = Some("08".to_string());
+            payment.payment_method = Some(PaymentMethod::DiscountCard);
             return Ok(true);
         }
 
@@ -1496,8 +1497,8 @@ impl Order {
                 .as_ref()
                 .ok_or(Error::internal("Invalid coupon data"))?;
 
-            if coupon.coupon_type.as_deref() == Some(OFF_CARD_NUMBER)
-                || coupon.coupon_type.as_deref() == Some(SUB_CARD_NUMBER)
+            if coupon.coupon_type == Some(CouponType::DiscountCoupon)
+                || coupon.coupon_type == Some(CouponType::SpendAndSaveCard)
             {
                 // sub count
                 let uc_count = user_coupon
@@ -1519,7 +1520,7 @@ impl Order {
                 }
 
                 // 计算优惠金额
-                let result = if coupon.coupon_type.as_deref() == Some(OFF_CARD_NUMBER) {
+                let result = if coupon.coupon_type == Some(CouponType::DiscountCoupon) {
                     if coupon.usage_value.is_none() || coupon.usage_limit.is_none() {
                         return Err(Error::internal("get coupon usage value failed"));
                     }
@@ -1706,25 +1707,22 @@ impl Order {
     }
 
     fn cal_payment_method(order: &mut Order, payment: &mut Payment) {
-        // 统一 deref 操作
-        let payment_method = payment.payment_method.as_deref();
-
         // 使用模式匹配提升可读性
-        match payment_method {
-            Some(PAYMENT_METHOD_COMBINATION_ALIPAY_COUPON)
-            | Some(PAYMENT_METHOD_COMBINATION_CASH_COUPON)
-            | Some(PAYMENT_METHOD_COMBINATION_WECHAT_COUPON) => {
+        match payment.payment_method {
+            Some(PaymentMethod::AlipayAndStoredValueCard)
+            | Some(PaymentMethod::WechatPayAndStoredValueCard)
+            | Some(PaymentMethod::CashAndStoredValueCard) => {
                 order.payment_bonus_count = payment.payment_amount_vip;
                 order.diff_price = payment.payment_amount_mv;
             }
-            Some(PAYMENT_METHOD_MEITUAN) | Some(PAYMENT_METHOD_DOUYIN) => {
+            Some(PaymentMethod::Meituan) | Some(PaymentMethod::Douyin) => {
                 order.payment_bonus_count = payment.payment_amount_vip;
             }
-            Some(PAYMENT_METHOD_DOCOUPON) => {
+            Some(PaymentMethod::StoredValueCard) => {
                 order.payment_bonus_count = payment.payment_amount_vip;
                 order.diff_price = Some(0.0);
             }
-            Some(PAYMENT_METHOD_DISCOUNT) => {
+            Some(PaymentMethod::DiscountCard) => {
                 let total = payment.total_amount.unwrap_or_default();
                 let paid = payment.payment_amount.unwrap_or_default();
                 order.payment_bonus_count =
@@ -1753,12 +1751,11 @@ impl Order {
             .map(|cloth| {
                 if let Some(base_price) = cloth.price_value {
                     let base_price = Decimal::from_f64(base_price).unwrap_or_default();
-                    let mut price = if Some(SERVICE_TYPE_EMERGENCY)
-                        == cloth.service_requirement.as_deref()
+                    let mut price = if Some(ServiceRequirmentType::Emergency)
+                        == cloth.service_requirement
                     {
                         base_price * dec!(2.0)
-                    } else if Some(SERVICE_TYPE_SINGLE_WASH) == cloth.service_requirement.as_deref()
-                    {
+                    } else if Some(ServiceRequirmentType::SingleWash) == cloth.service_requirement {
                         base_price * dec!(1.5)
                     } else {
                         base_price
@@ -1830,12 +1827,12 @@ impl Order {
 
                 // extract cloth codes
                 let (cloth_codes, cloth_ids): (Vec<String>, Vec<String>) = clothes
-                .iter()
-                .filter_map(|c| {
-                    // 假设你有两个字段需要收集
-                    Some((c.hang_cloth_code.clone()?, c.cloth_id.clone()?))
-                })
-                .unzip();
+                    .iter()
+                    .filter_map(|c| {
+                        // 假设你有两个字段需要收集
+                        Some((c.hang_cloth_code.clone()?, c.cloth_id.clone()?))
+                    })
+                    .unzip();
                 order.cloth_codes = Some(cloth_codes);
                 order.cloth_ids = Some(cloth_ids);
 
@@ -1883,14 +1880,12 @@ impl Order {
             .ok_or(Error::not_found("order not found"))?;
 
         // check order's payment status
-        if let Some(status) = &order.payment_status {
-            if status == PAY_STATUS_REFUND {
-                return Err(Error::bad_request("订单已经退单，请勿重复退单"));
-            }
+        if order.payment_status == Some(PaymentStatus::Refunded) {
+            return Err(Error::bad_request("订单已经退单，请勿重复退单"));
         }
 
         // update order status to refund
-        order.payment_status = Some(PAY_STATUS_REFUND.to_string());
+        order.payment_status = Some(PaymentStatus::Refunded);
         // update order complete time
         order.complete_time = Some(utils::get_now());
 
@@ -1904,14 +1899,14 @@ impl Order {
         // select payment record
         let payment = Payment::get_by_order_id(pool, order.order_id.unwrap(), store_id).await?;
         if payment.is_none() {
-            order.status = Some(ORDER_STATUS_REFUND.to_string());
+            order.status = Some(OrderStatus::Refunded);
             if !order.update(&mut tx).await? {
                 return Err(Error::internal("update order failed"));
             }
             tx.commit().await?;
             return Ok(());
         } else {
-            order.status = Some(ORDER_STATUS_REFUND.to_string());
+            order.status = Some(OrderStatus::Refunded);
             if !order.update(&mut tx).await? {
                 return Err(Error::internal("update order failed"));
             }
@@ -1925,7 +1920,7 @@ impl Order {
         let uc_id = &payment.uc_id;
         if uc_id.is_none() {
             // update payment status
-            payment.payment_status = Some(PAY_STATUS_REFUND.to_string());
+            payment.payment_status = Some(PaymentStatus::Refunded);
             if !payment.update_payment_status(&mut tx).await? {
                 return Err(Error::internal("更新支付状态失败"));
             }
@@ -1966,17 +1961,15 @@ impl Order {
         // Check if there are storage card type coupons, discount cards or time-based cards involved
         let is_type_000 = user_coupons.iter().any(|coupon| {
             coupon.coupon.is_some()
-                && coupon.coupon.as_ref().unwrap().coupon_type.as_deref()
-                    == Some(STORAGE_CARD_NUMBER)
+                && coupon.coupon.as_ref().unwrap().coupon_type == Some(CouponType::StoredValueCard)
         });
         let is_discount_card = user_coupons.iter().any(|coupon| {
             coupon.coupon.is_some()
-                && coupon.coupon.as_ref().unwrap().coupon_type.as_deref()
-                    == Some(DISCOUNT_CARD_NUMBER)
+                && coupon.coupon.as_ref().unwrap().coupon_type == Some(CouponType::DiscountCard)
         });
         // Check if this is a time-based payment by looking at payment_amount_vip value
         // and checking if it's a whole number matching cloth count
-        let is_time_based = payment.payment_method.as_deref() == Some(PAYMENT_METHOD_TIME_BASED);
+        let is_time_based = payment.payment_method == Some(PaymentMethod::SessionCard);
         tracing::debug!(
             "[退款] 支付类型: 储值卡: {}, 折扣卡: {}, 次卡: {}",
             is_type_000,
@@ -2059,8 +2052,8 @@ impl Order {
                 .iter_mut()
                 .filter(|coupon| {
                     coupon.coupon.is_some()
-                        && coupon.coupon.as_ref().unwrap().coupon_type.as_deref()
-                            == Some(STORAGE_CARD_NUMBER)
+                        && coupon.coupon.as_ref().unwrap().coupon_type
+                            == Some(CouponType::StoredValueCard)
                 })
                 .collect();
             tracing::debug!("[退款] 找到储值卡数量: {}", storage_cards.len());
@@ -2141,8 +2134,8 @@ impl Order {
                 .iter_mut()
                 .filter(|coupon| {
                     coupon.coupon.is_some()
-                        && coupon.coupon.as_ref().unwrap().coupon_type.as_deref()
-                            == Some(DISCOUNT_CARD_NUMBER)
+                        && coupon.coupon.as_ref().unwrap().coupon_type
+                            == Some(CouponType::DiscountCard)
                 })
                 .collect();
 
@@ -2234,32 +2227,26 @@ impl Order {
             if let Some(user_coupon) = user_coupons.first_mut() {
                 // Refund usage count for non-storage card coupons
                 tracing::debug!(
-                    "[退款] 处理优惠券退款 - 优惠券ID: {}, 当前使用次数: {}, 优惠券类型: {}",
+                    "[退款] 处理优惠券退款 - 优惠券ID: {}, 当前使用次数: {}, 优惠券类型: {:?}",
                     user_coupon.uc_id.unwrap_or_default(),
                     user_coupon.uc_count.unwrap_or_default(),
-                    user_coupon
-                        .coupon
-                        .as_ref()
-                        .map_or("未知", |c| c.coupon_type.as_deref().unwrap_or("未知"))
+                    user_coupon.coupon.as_ref().map_or(None, |c| c.coupon_type.as_ref())
                 );
 
                 if let Some(coupon) = &user_coupon.coupon {
-                    match coupon.coupon_type.as_deref() {
-                        Some(OFF_CARD_NUMBER) => {
+                    match coupon.coupon_type {
+                        Some(CouponType::DiscountCoupon) => {
                             tracing::debug!("[退款] 处理折扣券退款");
                             // 折扣券只需要恢复使用次数
                             user_coupon.uc_count = user_coupon.uc_count.map(|c| c + 1);
                         }
-                        Some(SUB_CARD_NUMBER) => {
+                        Some(CouponType::SpendAndSaveCard) => {
                             tracing::debug!("[退款] 处理满减券退款");
                             // 满减券只需要恢复使用次数
                             user_coupon.uc_count = user_coupon.uc_count.map(|c| c + 1);
                         }
                         _ => {
-                            tracing::warn!(
-                                "[退款] 未知的优惠券类型: {}",
-                                coupon.coupon_type.as_deref().unwrap_or("未知")
-                            );
+                            tracing::warn!("[退款] 未知的优惠券类型: {:?}", coupon.coupon_type);
                         }
                     }
                 }
@@ -2277,7 +2264,7 @@ impl Order {
         }
 
         // update payment status
-        payment.payment_status = Some(PAY_STATUS_REFUND.to_string());
+        payment.payment_status = Some(PaymentStatus::Refunded);
         if !payment.update_payment_status(&mut tx).await? {
             return Err(Error::internal("更新支付状态失败"));
         }

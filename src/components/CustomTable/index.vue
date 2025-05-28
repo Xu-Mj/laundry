@@ -16,13 +16,8 @@
         @click="handleRowClick(item)">
         <!-- 上半部分 -->
         <div class="cell title-cell">
-          <el-tooltip
-            :content="item.clothInfo.title"
-            placement="top"
-            :show-after="200"
-            :enterable="false"
-            effect="dark"
-          >
+          <el-tooltip :content="item.clothInfo.title" placement="top" :show-after="200" :enterable="false"
+            effect="dark">
             <div class="ellipsis-text">{{ item.clothInfo.title ? item.clothInfo.title : '-' }}</div>
           </el-tooltip>
         </div>
@@ -30,21 +25,19 @@
           <span class="ellipsis-text">{{ item.priceValue }} 元</span>
         </div>
         <div class="cell markup-cell">
-          <span class="ellipsis-text">{{ item.processMarkup }} 元</span>
+          <span class="ellipsis-text">{{ item.processMarkup ? item.processMarkup + '元' : '-' }}</span>
         </div>
         <div class="cell requirement-cell">
-          <dict-tag :options="sys_service_requirement" :value="item.serviceRequirement" />
+          <el-tag :type="ServiceRequirmentMap[item.serviceRequirement]?.type">
+            {{ ServiceRequirmentMap[item.serviceRequirement]?.label }}
+          </el-tag>
         </div>
         <div class="cell total-cell">
           <span class="ellipsis-text">{{ calculateTotalPrice(item) }} 元</span>
         </div>
         <div class="cell action-cell">
-          <el-button 
-            type="danger" 
-            icon="Delete" 
-            @click.stop="handleDelete(item.clothId, item.clothInfo.title)" 
-            :disabled="disabled"
-          />
+          <el-button type="danger" icon="Delete" @click.stop="handleDelete(item.clothId, item.clothInfo.title)"
+            :disabled="disabled" />
         </div>
 
         <!-- 下半部分 -->
@@ -53,25 +46,29 @@
           <!-- 瑕疵标签 -->
           <div class="tag-container">
             <el-tag v-for="tagId in item.clothingFlawArr" :key="tagId" type="danger" size="small" class="tag-item">
-              <el-tooltip :content="getFlawById(tagId)" placement="top" :show-after="200" :enterable="false" effect="dark">
-                <span class="tag-text">{{getFlawById(tagId)}}</span>
+              <el-tooltip :content="getFlawById(tagId)" placement="top" :show-after="200" :enterable="false"
+                effect="dark">
+                <span class="tag-text">{{ getFlawById(tagId) }}</span>
               </el-tooltip>
             </el-tag>
           </div>
-          
-          <span v-if="item.clothingFlawArr && item.clothingFlawArr.length > 0 && (item.estimateArr && item.estimateArr.length > 0 || item.remark)" class="separator">||</span>
-          
+
+          <span
+            v-if="item.clothingFlawArr && item.clothingFlawArr.length > 0 && (item.estimateArr && item.estimateArr.length > 0 || item.remark)"
+            class="separator">||</span>
+
           <!-- 预估标签 -->
           <div class="tag-container">
             <el-tag v-for="tagId in item.estimateArr" :key="tagId" type="primary" size="small" class="tag-item">
-              <el-tooltip :content="getEstimateById(tagId)" placement="top" :show-after="200" :enterable="false" effect="dark">
-                <span class="tag-text">{{getEstimateById(tagId)}}</span>
+              <el-tooltip :content="getEstimateById(tagId)" placement="top" :show-after="200" :enterable="false"
+                effect="dark">
+                <span class="tag-text">{{ getEstimateById(tagId) }}</span>
               </el-tooltip>
             </el-tag>
           </div>
-          
+
           <span v-if="item.estimateArr && item.estimateArr.length > 0 && item.remark" class="separator">||</span>
-          
+
           <!-- 备注 -->
           <div class="remark-container" v-if="item.remark">
             <el-tooltip :content="item.remark" placement="top" :show-after="200" :enterable="false" effect="dark">
@@ -90,8 +87,8 @@
 </template>
 
 <script setup>
-import { onMounted, inject } from 'vue';
 import useTagsStore from '@/store/modules/tags';
+import { ServiceRequirmentMap } from '@/constants';
 
 // 定义 Props
 const props = defineProps({
@@ -104,11 +101,6 @@ const props = defineProps({
     default: false
   }
 });
-
-const { proxy } = getCurrentInstance();
-const { sys_service_requirement } = proxy.useDict("sys_service_requirement");
-
-const setSelectedCloth = inject('setSelectedCloth');
 
 // 定义 Emits
 const emit = defineEmits(['delete', 'selected']);
@@ -150,7 +142,6 @@ const getEstimateById = (tagId) => {
 // 处理行点击事件
 const handleRowClick = (row) => {
   emit('selected', row);
-  console.log('customTable', row);
 };
 
 onMounted(async () => {

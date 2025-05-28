@@ -7,6 +7,7 @@ use sqlx::{
 };
 use tauri::State;
 
+use crate::constants::{CouponType, PaymentMethod, PaymentStatus};
 use crate::db::coupon_orders::CouponOrder;
 use crate::db::payments::Payment;
 use crate::db::user_coupons::UserCoupon;
@@ -25,7 +26,7 @@ pub struct Coupon {
     pub coupon_id: Option<i64>,           // Coupon ID
     pub store_id: Option<i64>,            // Coupon ID
     pub coupon_number: Option<String>,    // Unique Coupon Number
-    pub coupon_type: Option<String>,      // Coupon Type (e.g., '000')
+    pub coupon_type: Option<CouponType>,  // Coupon Type (e.g., '000')
     pub coupon_title: Option<String>,     // Coupon Title
     pub coupon_value: Option<f64>,        // Coupon Value
     pub min_spend: Option<f64>,           // Minimum Spend
@@ -88,7 +89,7 @@ impl FromRow<'_, SqliteRow> for Coupon {
 pub struct CouponBuyReq {
     pub coupons: Vec<CouponIdCount>,
     pub user_id: i64,
-    pub payment_method: String,
+    pub payment_method: PaymentMethod,
     #[allow(dead_code)]
     pub remark: Option<String>,
 }
@@ -155,7 +156,7 @@ impl Coupon {
         status: impl ToString,
         del_flag: impl ToString,
         title: Option<String>,
-        tp: Option<String>,
+        tp: Option<CouponType>,
     ) -> Self {
         Self {
             status: Some(status.to_string()),
@@ -483,9 +484,11 @@ impl Coupon {
         };
 
         // change available_value by coupon_type
-        if coupon.coupon_type == Some("003".to_string()) || coupon.coupon_type == Some("004".to_string()) {
+        if coupon.coupon_type == Some(CouponType::DiscountCoupon)
+            || coupon.coupon_type == Some(CouponType::SpendAndSaveCard)
+        {
             user_coupon.available_value = coupon.usage_value;
-        } else if coupon.coupon_type == Some("005".to_string())  {
+        } else if coupon.coupon_type == Some(CouponType::DiscountCard) {
             user_coupon.available_value = Some(coupon.coupon_value.unwrap() * info.count as f64);
         }
 
@@ -575,7 +578,7 @@ impl Coupon {
             order_type: Some(0.to_string()),
             total_amount: Some(total_amount),
             payment_amount: Some(amount),
-            payment_status: Some("00".to_string()),
+            payment_status: Some(PaymentStatus::Paid),
             payment_method: Some(coupon_buy_req.payment_method),
             order_status: Some("00".to_string()),
             create_time: Some(utils::get_timestamp()),
@@ -605,7 +608,7 @@ pub async fn get_coupon_list(
 pub async fn get_coupons4sale(
     state: State<'_, AppState>,
     title: Option<String>,
-    tp: Option<String>,
+    tp: Option<CouponType>,
 ) -> Result<Vec<Coupon>> {
     let mut coupon = Coupon::new4sale("0", "0", title, tp);
     let store_id = utils::get_user_id(&state).await?;

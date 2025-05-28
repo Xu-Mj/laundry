@@ -11,7 +11,7 @@
           <el-form-item label="卡券类型" prop="couponType" size="large">
             <el-select size="large" v-model="queryParams.couponType" @change="selectChange" placeholder="卡券类型" clearable
               style="width: 120px">
-              <el-option v-for="dict in sys_coupon_type" :key="dict.value" :label="dict.label" :value="dict.value" />
+              <el-option v-for="dict in CouponType" :key="dict.value" :label="dict.label" :value="dict.value" />
             </el-select>
           </el-form-item>
           <el-form-item label="卡券状态" prop="status" size="large">
@@ -58,7 +58,10 @@
         <el-table-column label="卡券编码" align="center" prop="couponNumber" v-if="columns[1].visible" width="180" />
         <el-table-column label="卡券类型" align="center" prop="couponType" v-if="columns[2].visible">
           <template #default="scope">
-            <dict-tag :options="sys_coupon_type" :value="scope.row.couponType" />
+            <!-- <dict-tag :options="CouponType" :value="scope.row.couponType" /> -->
+            <el-tag :type="CouponTypeMap[scope.row.couponType]?.type">
+              {{ CouponTypeMap[scope.row.couponType]?.label }}
+            </el-tag>
           </template>
         </el-table-column>
         <el-table-column label="售卖价格(元)" align="center" prop="couponValue" v-if="columns[3].visible" />
@@ -95,13 +98,12 @@
         </el-table-column>
         <el-table-column label="卡券价值" align="center" prop="usageValue" v-if="columns[11].visible">
           <template #default="scope">
-            <!-- {{ scope.row.couponType === '003' ? scope.row.usageValue / 10 + '折' : scope.row.usageValue + '元' }} -->
             {{ calValue(scope.row.couponType, scope.row.usageValue) }}
           </template>
         </el-table-column>
         <el-table-column label="限制条件" align="center" prop="usageLimit" v-if="columns[12].visible">
           <template #default="scope">
-            {{ scope.row.couponType === '003' ? '最高优惠金额限制' + scope.row.usageLimit + '元' :
+            {{ scope.row.couponType === 'DiscountCoupon' ? '最高优惠金额限制' + scope.row.usageLimit + '元' :
               scope.row.usageLimit == 0 ? '无限制' : scope.row.usageLimit }}
           </template>
         </el-table-column>
@@ -144,8 +146,8 @@
           <el-button circle @click="cancel" icon="Close" />
         </div>
       </template>
-      <coupon-form :value="form" :coupon-types="sys_coupon_type" :status-options="sys_coupon_status"
-        @submit="submitForm" @cancel="cancel" />
+      <coupon-form :value="form" :coupon-types="CouponType" :status-options="sys_coupon_status" @submit="submitForm"
+        @cancel="cancel" />
     </el-dialog>
 
     <!-- show sell coupon -->
@@ -267,26 +269,11 @@
           <div class="section-content">
             <el-form-item class="payment-method-section">
               <el-radio-group v-model="sellForm.paymentMethod" class="payment-method-group">
-                <el-radio v-for="dict in sys_coupon_payment_method" :key="dict.value" :value="dict.value"
+                <el-radio v-for="dict in CouponPaymentMethod" :key="dict.value" :value="dict.value"
                   class="payment-method-radio">
                   <div class="payment-method-card" :class="{ 'selected': sellForm.paymentMethod === dict.value }">
-                    <el-icon v-if="dict.value === '01'">
-                      <Money />
-                    </el-icon>
-                    <el-icon v-else-if="dict.value === '02'">
-                      <ChatDotRound />
-                    </el-icon>
-                    <el-icon v-else-if="dict.value === '05'">
-                      <Wallet />
-                    </el-icon>
-                    <el-icon v-else-if="dict.value === '06'">
-                      <CreditCard />
-                    </el-icon>
-                    <el-icon v-else-if="dict.value === '07'">
-                      <Ticket />
-                    </el-icon>
-                    <el-icon v-else>
-                      <More />
+                    <el-icon>
+                      <component :is="dict.icon" />
                     </el-icon>
                     <span>{{ dict.label }}</span>
                   </div>
@@ -334,24 +321,21 @@
 import { listCoupon, getCoupon, delCoupon, buyCoupon } from "@/api/system/coupon";
 import { listUserWithNoLimit, addUser } from "@/api/system/user";
 import CouponForm from "./components/CouponForm.vue";
+import { CouponType, CouponTypeMap, CouponPaymentMethod } from "@/constants";
 
 const { proxy } = getCurrentInstance();
 
 const {
   sys_coupon_status,
   sys_del_status,
-  sys_coupon_type,
   sys_coupon_customer_invalid,
   sys_coupon_auto_delay,
-  sys_coupon_payment_method
 } =
   proxy.useDict(
     "sys_coupon_status",
     "sys_del_status",
-    "sys_coupon_type",
     "sys_coupon_customer_invalid",
     "sys_coupon_auto_delay",
-    "sys_coupon_payment_method"
   );
 
 const couponList = ref([]);
@@ -384,9 +368,6 @@ const columns = ref([
   { key: 10, label: `自动延期`, visible: true },
   { key: 11, label: `卡券价值`, visible: true },
   { key: 12, label: `限制条件`, visible: true },
-  // { key: 13, label: `适用品类`, visible: true },
-  // { key: 14, label: `适用分类`, visible: true },
-  // { key: 15, label: `适用衣物`, visible: true },
   { key: 16, label: `卡券状态`, visible: true },
   { key: 17, label: `卡券描述`, visible: true },
   { key: 18, label: `备注`, visible: true },
@@ -492,14 +473,17 @@ const totalPrice = computed(() => {
 
 // 计算卡券价值
 function calValue(type, value) {
-  if (type === '000') {
+  if (type === 'StoredValueCard') {
     return value + '元';
   }
-  if (type === '003' || type === '005') {
+  if (type === 'DiscountCoupon' || type === 'DiscountCard') {
     return value / 10 + '折';
   }
-  if (type === '002') {
+  if (type === 'SessionCard') {
     return value + '次';
+  }
+  if (type === 'SpendAndSaveCard' || type === 'DiscountCoupon') {
+    return value + '张';
   }
 }
 
@@ -524,7 +508,7 @@ function reset() {
   form.value = {
     couponId: null,
     couponNumber: null,
-    couponType: "000",
+    couponType: "StoredValueCard",
     couponTitle: null,
     couponValue: null,
     minSpend: null,
@@ -591,7 +575,7 @@ function handleUpdate(row) {
     if (form.value.applicableCloths) {
       form.value.applicableClothsArr = form.value.applicableCloths.split(",");
     }
-    if (form.value.couponType === '000') {
+    if (form.value.couponType === 'StoredValueCard') {
       form.value.usageValue = form.value.usageValue - form.value.couponValue;
     }
     open.value = true;
@@ -953,7 +937,6 @@ getList();
 
 .payment-method-card .el-icon {
   font-size: 24px;
-  margin-bottom: 8px;
   color: var(--el-color-primary);
 }
 

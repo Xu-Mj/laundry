@@ -44,7 +44,9 @@
             <el-table-column label="卡券名称" align="center" key="couponTitle" prop="couponTitle" />
             <el-table-column label="卡券类型" align="center" key="couponType" prop="couponType">
                 <template #default="scope">
-                    <dict-tag :options="sys_coupon_type" :value="scope.row.couponType" />
+                    <el-tag :type="CouponTypeMap[scope.row.couponType]?.type">
+                        {{ CouponTypeMap[scope.row.couponType].label }}
+                    </el-tag>
                 </template>
             </el-table-column>
             <el-table-column label="价格" align="center" key="couponValue" prop="couponValue" />
@@ -138,6 +140,7 @@ import { getUser, listUserWithNoLimit, addUser } from "@/api/system/user";
 import Information from "@/views/frontend/user/information.vue";
 import eventBus from "@/utils/eventBus";
 import { ref, computed } from "vue";
+import { CouponTypeMap } from "@/constants"
 
 const props = defineProps({
     userId: {
@@ -164,14 +167,7 @@ const props = defineProps({
 
 const { proxy } = getCurrentInstance();
 
-const {
-    sys_coupon_payment_method,
-    sys_coupon_type
-} =
-    proxy.useDict(
-        "sys_coupon_payment_method",
-        "sys_coupon_type"
-    );
+const { sys_coupon_payment_method } = proxy.useDict("sys_coupon_payment_method");
 
 const couponList = ref([]);
 const loading = ref(true);
@@ -346,7 +342,7 @@ function buy() {
             sellForm.value.coupons = coupons;
             buyCoupon(sellForm.value).then(res => {
                 proxy.notify.success("购买成功");
-                
+
                 // 通知全局事件系统卡券已更新
                 eventBus.emit('coupon-purchase-success', {
                     userId: sellForm.value.userId,
@@ -355,14 +351,14 @@ function buy() {
                         paymentMethod: sellForm.value.paymentMethod
                     }
                 });
-                
+
                 // 通知父组件购买成功，传递完整的购买信息
                 props.submit({
                     userId: sellForm.value.userId,
                     purchasedCoupons: coupons,
                     paymentMethod: sellForm.value.paymentMethod
                 });
-                
+
                 resetSellForm();
                 selectedList.value = [];
                 getList();
@@ -499,13 +495,11 @@ onMounted(async () => {
 
 .payment-method-card .el-icon {
     font-size: 24px;
-    margin-bottom: 8px;
     color: var(--el-color-primary);
 }
 
 .payment-method-card span {
     font-size: 14px;
-    line-height: 14px;
 }
 
 .remark-section {

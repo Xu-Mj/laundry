@@ -73,27 +73,12 @@
                         <el-form-item prop="source">
                             <el-radio-group v-model="form.source" @change="sourceChanged" :disabled="notEditable"
                                 class="modern-radio-group">
-                                <el-radio v-for="dict in sys_price_order_type" :key="dict.value" :label="dict.label"
+                                <el-radio v-for="dict in OrderSource" :key="dict.value" :label="dict.label"
                                     :value="dict.value" class="payment-method-radio">
                                     <div class="payment-method-card"
                                         :class="{ 'selected': form.source === dict.value }">
-                                        <el-icon v-if="dict.label === '其他'">
-                                            <More />
-                                        </el-icon>
-                                        <el-icon v-else-if="dict.label === '到店'">
-                                            <School />
-                                        </el-icon>
-                                        <el-icon v-else-if="dict.label === '美团'">
-                                            <Food />
-                                        </el-icon>
-                                        <el-icon v-else-if="dict.label === '抖音'">
-                                            <Goods />
-                                        </el-icon>
-                                        <el-icon v-else-if="dict.label === '小程序'">
-                                            <Iphone />
-                                        </el-icon>
-                                        <el-icon v-else>
-                                            <MostlyCloudy />
+                                        <el-icon>
+                                            <component :is="dict.icon" />
                                         </el-icon>
                                         <span>{{ dict.label }}</span>
                                     </div>
@@ -192,10 +177,10 @@
                     <div class="btn-container">
                         <el-button size="large" icon="Close" type="danger" @click="cancelSelf">{{ form.orderId ? '关 闭' :
                             '取 消'
-                            }}</el-button>
+                        }}</el-button>
                         <el-button size="large" icon="Check" type="primary" color="#626aef" @click="submitForm"
-                            :disabled="notEditable || (!(form.source === '03') && (!form.priceIds || form.priceIds.length === 0))"
-                            v-if="form.source !== '01' && form.source !== '02'" ref="submitButtonRef">取衣收款</el-button>
+                            :disabled="notEditable || (!(form.source === 'Store') && (!form.priceIds || form.priceIds.length === 0))"
+                            v-if="form.source !== 'Meituan' && form.source !== 'Douyin'" ref="submitButtonRef">取衣收款</el-button>
                         <el-button size="large" type="success" @click="createAndGo2Pay" icon="Money"
                             :disabled="notEditable" ref="payButtonRef">收衣收款</el-button>
                     </div>
@@ -258,8 +243,8 @@ import Pay from '@/views/components/pay.vue';
 import eventBus from "@/utils/eventBus";
 import UserSelect from '@/components/UserSelect.vue';
 import OrderNonEditableMessage from '@/components/OrderNonEditableMessage.vue';
-import { nextTick } from 'vue';
 // import OrderTourGuide from '@/components/OrderTourGuide/index.vue';
+import { OrderSource, PaymentMethodMap } from "@/constants";
 
 const props = defineProps({
     visible: {
@@ -286,7 +271,6 @@ const props = defineProps({
     }
 });
 const { proxy } = getCurrentInstance();
-const { sys_price_order_type, sys_payment_method } = proxy.useDict("sys_price_order_type", "sys_payment_method");
 
 const router = useRouter();
 const route = useRoute();
@@ -608,7 +592,7 @@ function reset() {
         pickupCode: null,
         completeTime: null,
         deliveryMode: "00",
-        source: "03",
+        source: "Store",
         status: null,
         paymentStatus: null,
         remark: null,
@@ -920,7 +904,7 @@ async function handlePaymentSuccess(paymentInfo) {
         const printClothPromise = printCloth();
         const printReceiptPromise = (async () => {
             try {
-                const paymentMethod = sys_payment_method.value.find(item => item.value === paymentInfo.paymentMethod)?.label;
+                const paymentMethod = PaymentMethodMap[paymentInfo.paymentMethod]?.label;
                 await printReceipt2({
                     ...form.value,
                     paymentMethod: paymentMethod || '未知',

@@ -119,7 +119,7 @@
                                     <el-input size="large" v-model="clothColorInput" @input="searchColor"
                                         placeholder="请输颜色名称首字母或者颜色名称" maxlength="10" show-word-limit />
                                     <el-button size="large" v-if="showAddColorBtn" type="primary" icon="Plus"
-                                        @click="addTag('003', clothColorInput)">新增</el-button>
+                                        @click="addTag('Color', clothColorInput)">新增</el-button>
                                 </div>
                             </el-form-item>
                         </el-col>
@@ -154,7 +154,7 @@
                                     <el-input size="large" v-model="flawInput" @input="searchColor"
                                         placeholder="请输名称首字母或者名称" maxlength="15" show-word-limit />
                                     <el-button size="large" v-if="showAddFlawBtn" type="primary" icon="Plus"
-                                        @click="addTag('001', flawInput)">新增</el-button>
+                                        @click="addTag('PreCleaningFlaws', flawInput)">新增</el-button>
                                 </div>
                             </el-form-item>
                         </el-col>
@@ -189,7 +189,7 @@
                                     <el-input size="large" v-model="estimateInput" @input="searchColor"
                                         placeholder="请输名称首字母或者名称" maxlength="15" show-word-limit />
                                     <el-button size="large" v-if="showAddEstimateBtn" type="primary" icon="Plus"
-                                        @click="addTag('002', estimateInput)">新增</el-button>
+                                        @click="addTag('PostCleaningProjection', estimateInput)">新增</el-button>
                                 </div>
                             </el-form-item>
                         </el-col>
@@ -225,7 +225,7 @@
                                     <el-input size="large" v-model="brandInput" @input="searchColor"
                                         placeholder="请输品牌名称首字母或者品牌名称" maxlength="20" show-word-limit />
                                     <el-button size="large" v-if="showAddBrandBtn" type="primary" icon="Plus"
-                                        @click="addTag('004', brandInput)">新增</el-button>
+                                        @click="addTag('Brand', brandInput)">新增</el-button>
                                 </div>
                             </el-form-item>
                         </el-col>
@@ -254,45 +254,25 @@
                         <div class="content-inner">
                             <div class="section-title">服务类型</div>
                             <el-radio-group v-model="form.serviceType" class="step6-card">
-                                <template v-for="dict in sys_service_type" :key="dict.value">
-                                    <el-radio v-if="dict.value !== '03' && dict.value !== '04'" :value="dict.value"
-                                        class="payment-method-radio">
-                                        <div class="payment-method-card"
-                                            :class="{ 'selected': form.serviceType === dict.value }">
-                                            <el-icon v-if="dict.value === '000'">
-                                                <TakeawayBox />
-                                            </el-icon>
-                                            <el-icon v-else-if="dict.value === '001'">
-                                                <HotWater />
-                                            </el-icon>
-                                            <el-icon v-else-if="dict.value === '002'">
-                                                <Discount />
-                                            </el-icon>
-                                            <el-icon v-else-if="dict.value === '003'">
-                                                <More />
-                                            </el-icon>
-                                            <span>{{ dict.label }}</span>
-                                        </div>
-                                    </el-radio>
-                                </template>
+                                <el-radio v-for="dict in ServiceType" :key="dict.value" :value="dict.value"
+                                    class="payment-method-radio">
+                                    <div class="payment-method-card"
+                                        :class="{ 'selected': form.serviceType === dict.value }">
+                                        <el-icon>
+                                            <component :is="dict.icon" />
+                                        </el-icon>
+                                        <span>{{ dict.label }}</span>
+                                    </div>
+                                </el-radio>
                             </el-radio-group>
                             <div class="section-title">服务要求</div>
                             <el-radio-group v-model="form.serviceRequirement" class="step6-card">
-                                <el-radio v-for="dict in sys_service_requirement" :key="dict.value" :value="dict.value"
+                                <el-radio v-for="dict in ServiceRequirmentType" :key="dict.value" :value="dict.value"
                                     class="payment-method-radio" :label="dict.label">
                                     <div class="payment-method-card"
                                         :class="{ 'selected': form.serviceRequirement === dict.value }">
-                                        <el-icon v-if="dict.value === '000'">
-                                            <CircleCheck />
-                                        </el-icon>
-                                        <el-icon v-else-if="dict.value === '001'">
-                                            <AlarmClock />
-                                        </el-icon>
-                                        <el-icon v-else-if="dict.value === '002'">
-                                            <Box />
-                                        </el-icon>
-                                        <el-icon v-else-if="dict.value === '003'">
-                                            <More />
+                                        <el-icon>
+                                            <component :is="dict.icon" />
                                         </el-icon>
                                         <span>{{ dict.label }}</span>
                                     </div>
@@ -403,6 +383,7 @@ import RadioButton from '@/components/RadioButton.vue'
 import PredefinedCategories from './PredefinedCategories.vue'
 import eventBus from "@/utils/eventBus";
 import useTagsStore from '@/store/modules/tags';
+import { ServiceType, ServiceRequirmentType } from "@/constants";
 
 
 const props = defineProps({
@@ -437,11 +418,6 @@ const props = defineProps({
 });
 
 const { proxy } = getCurrentInstance();
-const { sys_service_type, sys_service_requirement } =
-    proxy.useDict(
-        "sys_service_type",
-        "sys_service_requirement"
-    );
 
 const tagsStore = useTagsStore();
 const featureList = [
@@ -774,8 +750,8 @@ function reset() {
         clothingFlaw: null,
         estimate: null,
         clothingBrand: null,
-        serviceType: "000",
-        serviceRequirement: "000",
+        serviceType: "Processing",
+        serviceRequirement: "Normal",
         beforePics: null,
         afterPics: null,
         notes: null,
@@ -1123,26 +1099,26 @@ async function addTag(type, tagName) {
 
         // 根据标签类型进行选中
         switch (type) {
-            case "001": // 瑕疵
+            case "PreCleaningFlaws": // 瑕疵
                 // 确保使用字符串类型的值以匹配CheckboxButton中的实现
                 form.value.clothingFlawArr = [String(newTag.tagId)];
                 showAddFlawBtn.value = false;
                 flawInput.value = '';
                 break;
-            case "002": // 预估
+            case "PostCleaningProjection": // 预估
                 // 确保使用字符串类型的值以匹配CheckboxButton中的实现 
                 form.value.estimateArr = [String(newTag.tagId)];
                 showAddEstimateBtn.value = false;
                 estimateInput.value = '';
                 break;
-            case "003": // 颜色
+            case "Color": // 颜色
                 form.value.clothingColor = newTag.tagId;
                 showAddColorBtn.value = false;
                 clothColorInput.value = '';
                 // 自动下一步
                 nextStep();
                 break;
-            case "004": // 品牌
+            case "Brand": // 品牌
                 form.value.clothingBrand = newTag.tagId;
                 showAddBrandBtn.value = false;
                 brandInput.value = '';
@@ -1150,26 +1126,26 @@ async function addTag(type, tagName) {
         }
 
         // 打印表单状态以便调试
-        console.log("新增标签:", type, "tagId:", newTag.tagId, "选中状态:", type === "001" ? form.value.clothingFlawArr : (type === "002" ? form.value.estimateArr : null));
+        console.log("新增标签:", type, "tagId:", newTag.tagId, "选中状态:", type === "PreCleaningFlaws" ? form.value.clothingFlawArr : (type === "PostCleaningProjection" ? form.value.estimateArr : null));
 
         // 确保UI更新
-        nextTick(() => {
-            // 这里通过强制重新渲染来确保选中状态显示
-            if (type === "001" || type === "002") {
-                const temp = [...(type === "001" ? form.value.clothingFlawArr : form.value.estimateArr)];
-                if (type === "001") {
-                    form.value.clothingFlawArr = [];
-                    setTimeout(() => {
-                        form.value.clothingFlawArr = temp;
-                    }, 0);
-                } else {
-                    form.value.estimateArr = [];
-                    setTimeout(() => {
-                        form.value.estimateArr = temp;
-                    }, 0);
-                }
-            }
-        });
+        // nextTick(() => {
+        //     // 这里通过强制重新渲染来确保选中状态显示
+        //     if (type === "PreCleaningFlaws" || type === "PostCleaningProjection") {
+        //         const temp = [...(type === "PreCleaningFlaws" ? form.value.clothingFlawArr : form.value.estimateArr)];
+        //         if (type === "PreCleaningFlaws") {
+        //             form.value.clothingFlawArr = [];
+        //             setTimeout(() => {
+        //                 form.value.clothingFlawArr = temp;
+        //             }, 0);
+        //         } else {
+        //             form.value.estimateArr = [];
+        //             setTimeout(() => {
+        //                 form.value.estimateArr = temp;
+        //             }, 0);
+        //         }
+        //     }
+        // });
     } catch (error) {
         proxy.notify.error("添加标签失败: " + error);
     }

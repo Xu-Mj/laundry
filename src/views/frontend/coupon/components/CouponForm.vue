@@ -31,7 +31,7 @@
         </div>
         <div class="section-content hover-flow">
           <!-- 储值卡 -->
-          <el-row v-if="formData.couponType === '000'" :gutter="20">
+          <el-row v-if="formData.couponType === 'StoredValueCard'" :gutter="20">
             <el-col :span="12">
               <el-form-item label="储值金额" prop="couponValue">
                 <el-input-number v-model="formData.couponValue" controls-position="right" placeholder="请输入储值金额"
@@ -49,7 +49,7 @@
           </el-row>
 
           <!-- 代金券 -->
-          <el-row v-if="formData.couponType === '001'" :gutter="20">
+          <!-- <el-row v-if="formData.couponType === '001'" :gutter="20">
             <el-col :span="12">
               <el-form-item label="售卖价格" prop="couponValue">
                 <el-input-number v-model="formData.couponValue" controls-position="right" placeholder="请输入售卖价格"
@@ -64,10 +64,10 @@
                 <div class="form-tip">可抵扣的金额</div>
               </el-form-item>
             </el-col>
-          </el-row>
+          </el-row> -->
 
           <!-- 次卡 -->
-          <el-row v-if="formData.couponType === '002'" :gutter="20">
+          <el-row v-if="formData.couponType === 'SessionCard'" :gutter="20">
             <el-col :span="12">
               <el-form-item label="售卖价格" prop="couponValue">
                 <el-input-number v-model="formData.couponValue" controls-position="right" placeholder="请输入售卖价格"
@@ -85,7 +85,7 @@
           </el-row>
 
           <!-- 折扣券 -->
-          <el-row v-if="formData.couponType === '003' || formData.couponType === '005'" :gutter="20">
+          <el-row v-if="formData.couponType === 'DiscountCoupon' || formData.couponType === 'DiscountCard'" :gutter="20">
             <el-col :span="12">
               <el-form-item label="售卖价格" prop="couponValue">
                 <el-input-number v-model="formData.couponValue" controls-position="right" placeholder="请输入售卖价格"
@@ -105,7 +105,7 @@
               </el-form-item>
             </el-col>
           </el-row>
-          <el-row v-if="formData.couponType === '003'" :gutter="20">
+          <el-row v-if="formData.couponType === 'DiscountCoupon'" :gutter="20">
             <el-col :span="12">
               <el-form-item label="至多优惠" prop="usageLimit">
                 <el-input-number v-model="formData.usageLimit" controls-position="right" placeholder="折扣券的上限优惠金额"
@@ -116,7 +116,7 @@
           </el-row>
 
           <!-- 满减券 -->
-          <el-row v-if="formData.couponType === '004'" :gutter="20">
+          <el-row v-if="formData.couponType === 'SpendAndSaveCard'" :gutter="20">
             <el-col :span="12">
               <el-form-item label="售卖价格" prop="couponValue">
                 <el-input-number v-model="formData.couponValue" @change="formData.usageValue = formData.couponValue"
@@ -132,7 +132,7 @@
               </el-form-item>
             </el-col>
           </el-row>
-          <el-row v-if="formData.couponType === '004'" :gutter="20">
+          <el-row v-if="formData.couponType === 'SpendAndSaveCard'" :gutter="20">
             <el-col :span="12">
               <el-form-item label="最低消费金额" prop="minSpend">
                 <el-input-number v-model="formData.minSpend" controls-position="right" placeholder="请输入最低消费金额"
@@ -315,7 +315,7 @@ const submitForm = () => {
   couponFormRef.value.validate((valid) => {
     if (valid) {
       // 处理储值卡的特殊逻辑
-      if (formData.value.couponType === '000') {
+      if (formData.value.couponType === 'StoredValueCard') {
         const originalUsageValue = formData.value.usageValue;
         formData.value.usageValue = formData.value.couponValue + originalUsageValue;
       }

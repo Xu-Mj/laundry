@@ -5,6 +5,7 @@ use sqlx::{FromRow, Pool, QueryBuilder, Row, Sqlite, Transaction};
 use std::collections::HashMap;
 use tauri::State;
 
+use crate::constants::{ClothStatus, OrderStatus, PaymentStatus, ServiceRequirmentType, ServiceType};
 use crate::db::cloth_sequence::ClothSequence;
 use crate::db::clothing::Clothing;
 use crate::db::drying_rack::DryingRack;
@@ -17,12 +18,11 @@ use crate::error::{Error, ErrorKind, Result};
 use crate::state::AppState;
 use crate::utils;
 
-const CLOTH_STATUS_HANGED: &str = "02";
 const CLOTH_STATUS_PICKED: &str = "00";
 // const CLOTH_STATUS_WASHED: &str = "02";
 const CLOTH_STATUS_DELIVERED: &str = "03";
-const ORDER_STATUS_COMPLETED: &str = "04";
-const ORDER_STATUS_PAID: &str = "00";
+// const ORDER_STATUS_COMPLETED: &str = "04";
+// const ORDER_STATUS_PAID: &str = "00";
 // const CLOTH_STATUS_DELIVERY: &str = "01";
 // const CLOTH_STATUS_EXPRESS: &str = "02";
 
@@ -42,8 +42,8 @@ pub struct OrderCloth {
     pub clothing_flaw: Option<String>,
     pub estimate: Option<String>,
     pub clothing_brand: Option<i64>,
-    pub service_type: Option<String>,
-    pub service_requirement: Option<String>,
+    pub service_type: Option<ServiceType>,
+    pub service_requirement: Option<ServiceRequirmentType>,
     pub before_pics: Option<String>,
     pub after_pics: Option<String>,
     pub notes: Option<String>,
@@ -58,7 +58,7 @@ pub struct OrderCloth {
     pub create_time: Option<DateTime<FixedOffset>>,
     pub pickup_time: Option<DateTime<FixedOffset>>,
     pub pickup_method: Option<String>,
-    pub clothing_status: Option<String>,
+    pub clothing_status: Option<ClothStatus>,
     pub remark: Option<String>,
     pub cloth_info: Option<Clothing>,
 }
@@ -217,8 +217,7 @@ impl OrderCloth {
     }
 
     pub async fn get_by_ids(pool: &Pool<Sqlite>, ids: &[String]) -> Result<Vec<Self>> {
-        let mut builder =
-            sqlx::QueryBuilder::new(&format!("{} WHERE cloth_id IN ( ", SQL));
+        let mut builder = sqlx::QueryBuilder::new(&format!("{} WHERE cloth_id IN ( ", SQL));
 
         // bind ids
         for (i, id) in ids.iter().enumerate() {
@@ -533,7 +532,7 @@ impl OrderCloth {
         self.create_time = Some(utils::get_now());
 
         // 设置衣物状态为洗护中
-        self.clothing_status = Some("01".to_string());
+        self.clothing_status = Some(ClothStatus::Processing);
 
         // 生成衣物编号
         self.hang_cloth_code = Some(self.generate_clothing_number(&mut tr).await?);
@@ -704,29 +703,26 @@ impl OrderCloth {
         }
 
         // update cloth status
-        cloth.clothing_status = Some(CLOTH_STATUS_HANGED.to_string());
+        cloth.clothing_status = Some(ClothStatus::ReadyForPickup);
         cloth.hang_location_code = Some(hang_req.hang_location_id);
         cloth.hanger_number = Some(hang_req.hanger_number);
         cloth.hang_remark = hang_req.hang_remark;
 
         if !cloth.update(&mut tr).await? {
-            return Err(Error::with_details(
-                ErrorKind::InternalServer,
-                "update cloth information failed",
-            ));
+            return Err(Error::internal("update cloth information failed"));
         }
 
         // query order information
         let mut order = Order::get_by_id(pool, store_id, cloth.order_id.unwrap())
             .await?
-            .ok_or(Error::with_details(ErrorKind::NotFound, "order not found"))?;
+            .ok_or(Error::not_found("order not found"))?;
 
         // check if all clothes are hanged
         let is_all_hanged = OrderCloth::get_by_order_id(pool, order.order_id.unwrap())
             .await?
             .iter()
             .filter(|c| c.cloth_id != cloth.cloth_id)
-            .all(|c| c.clothing_status == Some(CLOTH_STATUS_HANGED.to_string()));
+            .all(|c| c.clothing_status == Some(ClothStatus::ReadyForPickup));
 
         // handle order status and message sending
         if order.pickup_code.is_none() {
@@ -734,7 +730,7 @@ impl OrderCloth {
         }
 
         if is_all_hanged {
-            order.status = Some(CLOTH_STATUS_HANGED.to_string());
+            order.status = Some(OrderStatus::ReadyForPickup);
         }
 
         // Self::update_order_and_notify(&mut tr, state, &mut order, is_all_hanged).await?;
@@ -903,7 +899,7 @@ impl OrderCloth {
         // query clothes by ids and change status
         let mut clothes = Self::get_by_ids(pool, ids).await?;
         for cloth in clothes.iter_mut() {
-            cloth.clothing_status = Some(CLOTH_STATUS_PICKED.to_string());
+            cloth.clothing_status = Some(ClothStatus::PickedUp);
             cloth.pickup_time = Some(utils::get_now());
             cloth.pickup_method = Some(CLOTH_STATUS_PICKED.to_string());
 
@@ -930,15 +926,15 @@ impl OrderCloth {
             let clothes = OrderCloth::get_by_order_id_with_tx(&mut tr, order_id).await?;
             if clothes
                 .iter()
-                .filter(|c| c.clothing_status == Some(CLOTH_STATUS_PICKED.to_string()))
+                .filter(|c| c.clothing_status == Some(ClothStatus::PickedUp))
                 .count()
                 == clothes.len()
             {
                 let order = Order::get_by_id(pool, store_id, order_id).await?;
                 if let Some(mut order) = order {
                     // update order status to complete if it was paid already
-                    if order.payment_status == Some(ORDER_STATUS_PAID.to_string()) {
-                        order.status = Some(ORDER_STATUS_COMPLETED.to_string());
+                    if order.payment_status == Some(PaymentStatus::Paid) {
+                        order.status = Some(OrderStatus::Completed);
                         if !order.update(&mut tr).await? {
                             return Err(Error::with_details(
                                 ErrorKind::InternalServer,

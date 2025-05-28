@@ -8,6 +8,7 @@ use sqlx::{
 use std::collections::HashMap;
 use tauri::State;
 
+use crate::constants::{PaymentMethod, PaymentStatus};
 use crate::db::Validator;
 use crate::error::{Error, Result};
 use crate::state::AppState;
@@ -24,15 +25,15 @@ pub struct Payment {
     pub payment_amount: Option<f64>,
     pub payment_amount_vip: Option<f64>,
     pub payment_amount_mv: Option<f64>,
-    pub payment_status: Option<String>,
-    pub payment_method: Option<String>,
+    pub payment_status: Option<PaymentStatus>,
+    pub payment_method: Option<PaymentMethod>,
     pub transaction_id: Option<i64>,
     pub uc_order_id: Option<i64>,
     pub uc_id: Option<String>,
     pub order_status: Option<String>,
     pub create_time: Option<i64>,
     pub update_time: Option<i64>,
-    pub store_id: Option<i64>, // 商家ID，用于数据隔离
+    pub store_id: Option<i64>,         // 商家ID，用于数据隔离
     pub refund_reason: Option<String>, // 退款原因
 }
 

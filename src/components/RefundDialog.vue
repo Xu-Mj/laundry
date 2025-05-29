@@ -73,9 +73,9 @@
             <div class="payment-item highlight" v-if="paymentDetails.actualPayAmount > 0">
               <div class="payment-method">
                 <el-icon>
-                  <component :is="getPaymentIcon()" />
+                  <component :is="PaymentMethodShowMap[paymentDetails.value.paymentMethod]?.icon" />
                 </el-icon>
-                <span>{{ getPaymentMethodName() }}支付</span>
+                <span>{{ PaymentMethodShowMap[paymentDetails.value.paymentMethod]?.label }}支付</span>
               </div>
               <div class="payment-amount">{{ paymentDetails.actualPayAmount }}元</div>
             </div>
@@ -179,6 +179,7 @@
 
 <script setup>
 import { getRefundInfo, refund } from "@/api/system/orders";
+import { PaymentMethodShowMap } from "@/constants";
 
 const props = defineProps({
   visible: {
@@ -319,7 +320,7 @@ function loadRefundInfo() {
           const couponType = uc.coupon?.couponType;
 
           // 处理次卡 (004或002都是次卡类型)
-          if ( couponType === '002') {
+          if (couponType === '002') {
             paymentDetails.value.hasTimeCard = true;
             paymentDetails.value.timeCardCount = payment.paymentAmountVip || 1;
             paymentDetails.value.timeCardName = uc.coupon?.couponTitle;

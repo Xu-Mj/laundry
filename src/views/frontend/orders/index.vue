@@ -4,8 +4,8 @@
     <transition name="height-fade">
       <el-card class="search-card" v-show="showSearch">
         <el-form :model="queryParams" ref="queryRef" :inline="true" label-width="68px">
-          <el-form-item label="订单编码" prop="orderNumber" size="large">
-            <el-input size="large" v-model="queryParams.orderNumber" placeholder="请输入订单编码" clearable v-number-only
+          <el-form-item label="订单编码" prop="orderNumber">
+            <el-input v-model="queryParams.orderNumber" placeholder="请输入订单编码" clearable v-number-only
               style="width: 220px;" @keyup.enter="handleQuery">
               <template #prefix>
                 <el-icon>
@@ -14,8 +14,8 @@
               </template>
             </el-input>
           </el-form-item>
-          <el-form-item label="手机号" prop="phonenumber" size="large">
-            <el-input size="large" v-model="queryParams.phonenumber" placeholder="请输入会员手机号" clearable
+          <el-form-item label="手机号" prop="phonenumber">
+            <el-input v-model="queryParams.phonenumber" placeholder="请输入会员手机号" clearable
               style="width: 200px;" @keyup.enter="handleQuery" type="number" class="no-spinner"
               @mousewheel.native.prevent @DOMMouseScroll.native.prevent>
               <template #prefix>
@@ -25,8 +25,8 @@
               </template>
             </el-input>
           </el-form-item>
-          <el-form-item label="取件码" prop="pickupCode" size="large">
-            <el-input size="large" v-model="queryParams.pickupCode" placeholder="请输入取件码" clearable style="width: 140px;"
+          <el-form-item label="取件码" prop="pickupCode">
+            <el-input v-model="queryParams.pickupCode" placeholder="请输入取件码" clearable style="width: 140px;"
               @keyup.enter="handleQuery" type="number" class="no-spinner" @mousewheel.native.prevent
               @DOMMouseScroll.native.prevent>
               <template #prefix>
@@ -36,8 +36,8 @@
               </template>
             </el-input>
           </el-form-item>
-          <el-form-item label="时效预警" prop="costTimeAlarm" size="large">
-            <el-select size="large" v-model="queryParams.costTimeAlarm" @change="handleQuery" clearable
+          <el-form-item label="时效预警" prop="costTimeAlarm">
+            <el-select v-model="queryParams.costTimeAlarm" @change="handleQuery" clearable
               style="width: 120px;" placeholder="请选择">
               <template #prefix>
                 <el-icon>
@@ -47,8 +47,8 @@
               <el-option v-for="dict in AlarmType" :key="dict.value" :label="dict.label" :value="dict.value" />
             </el-select>
           </el-form-item>
-          <el-form-item label="支付状态" prop="paymentStatus" size="large">
-            <el-select size="large" v-model="queryParams.paymentStatus" @change="handleQuery" clearable
+          <el-form-item label="支付状态" prop="paymentStatus">
+            <el-select v-model="queryParams.paymentStatus" @change="handleQuery" clearable
               style="width: 120px;" placeholder="请选择">
               <template #prefix>
                 <el-icon>
@@ -58,8 +58,8 @@
               <el-option v-for="dict in PaymentStatus" :key="dict.value" :label="dict.label" :value="dict.value" />
             </el-select>
           </el-form-item>
-          <el-form-item label="洗护状态" prop="status" size="large">
-            <el-select size="large" v-model="queryParams.status" @change="handleQuery" clearable style="width: 120px;"
+          <el-form-item label="洗护状态" prop="status">
+            <el-select v-model="queryParams.status" @change="handleQuery" clearable style="width: 120px;"
               placeholder="请选择">
               <template #prefix>
                 <el-icon>
@@ -73,8 +73,8 @@
             <el-date-picker v-model="dateRange" value-format="YYYY-MM-DD" type="daterange" range-separator="-"
               start-placeholder="开始日期" end-placeholder="结束日期" style="width: 260px" />
           </el-form-item>
-          <el-button class="hover-flow" type="primary" icon="Search" @click="handleQuery" size="large">搜索</el-button>
-          <el-button class="hover-flow" icon="Refresh" @click="resetQuery" size="large">重置</el-button>
+          <el-button class="hover-flow" type="primary" icon="Search" @click="handleQuery">搜索</el-button>
+          <el-button class="hover-flow" icon="Refresh" @click="resetQuery">重置</el-button>
         </el-form>
       </el-card>
     </transition>
@@ -109,8 +109,8 @@
         </el-table-column>
         <el-table-column label="支付方式" align="center" prop="paymentBonusType" v-if="columns[3].visible">
           <template #default="scope">
-            <el-tag :type="PaymentMethodMap[scope.row.paymentBonusType]?.type">
-              {{ PaymentMethodMap[scope.row.paymentBonusType]?.label }}
+            <el-tag :type="PaymentMethodShowMap[scope.row.paymentBonusType]?.type">
+              {{ PaymentMethodShowMap[scope.row.paymentBonusType]?.label }}
             </el-tag>
           </template>
         </el-table-column>
@@ -160,7 +160,7 @@
         <el-table-column label="时效预警" align="center" prop="costTimeAlarm" v-if="columns[10].visible">
           <template #default="scope">
             <el-tag :type="AlarmTypeMap[scope.row.costTimeAlarm]?.type">
-              {{ scope.row.costTimeAlarm }}
+              {{ AlarmTypeMap[scope.row.costTimeAlarm]?.label }}
             </el-tag>
           </template>
         </el-table-column>
@@ -190,7 +190,7 @@
         </el-table-column>
         <el-table-column label="支付状态" align="center" prop="paymentStatus" v-if="columns[15].visible">
           <template #default="scope">
-            <el-tag v-if="scope.row.paymentStatus === 'Unpaid'" style="cursor: pointer;" @click="go2pay(order)">
+            <el-tag v-if="scope.row.paymentStatus === 'Unpaid'" type="danger" style="cursor: pointer;" @click="go2pay(scope.row)">
               {{ PaymentStatusMap[scope.row.paymentStatus]?.label }}
             </el-tag>
             <el-tag v-else :type="PaymentStatusMap[scope.row.paymentStatus]?.type">
@@ -222,7 +222,7 @@
                 <el-dropdown-menu>
                   <el-dropdown-item>
                     <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)">{{ scope.row.status ==
-                      '06' || scope.row.paymentStatus == '00' ? '查看' : '编辑' }}</el-button>
+                      'Refunded' || scope.row.paymentStatus == 'Paid' ? '查看' : '编辑' }}</el-button>
                   </el-dropdown-item>
                   <el-dropdown-item>
                     <el-button link type="primary" icon="Edit" :disabled="scope.row.status == '06'"
@@ -235,7 +235,7 @@
                   </el-dropdown-item>-->
                   <el-dropdown-item>
                     <el-button link type="warning" icon="Van"
-                      :disabled="scope.row.status == '05' || scope.row.status == '04' || scope.row.status == '06'"
+                      :disabled="scope.row.status == 'Cancelled' || scope.row.status == 'Completed' || scope.row.status == 'Refunded'"
                       @click="handleDelivery(scope.row)">派送</el-button>
                   </el-dropdown-item>
                   <el-dropdown-item>
@@ -243,7 +243,7 @@
                   </el-dropdown-item>
                   <el-dropdown-item>
                     <el-button link type="primary" icon="Edit"
-                      :disabled="scope.row.paymentStatus !== '01' || scope.row.status == '06'"
+                      :disabled="scope.row.paymentStatus !== 'Unpaid' || scope.row.status == 'Refunded'"
                       @click="go2pay(scope.row)">收款</el-button>
                   </el-dropdown-item>
                 </el-dropdown-menu>
@@ -316,7 +316,7 @@ import DeliveryDialog from "@/views/components/DeliveryDialog.vue";
 import Pay from "@/views/components/pay.vue";
 import { listCloths } from "@/api/system/cloths";
 import RefundDialog from "@/components/refundDialog.vue";
-import { AlarmType, AlarmTypeMap, OrderSourceMap, OrderStatus, OrderStatusMap, PaymentStatus, PaymentStatusMap, PaymentMethodMap } from "@/constants";
+import { AlarmType, AlarmTypeMap, OrderSourceMap, OrderStatus, OrderStatusMap, PaymentStatus, PaymentStatusMap, PaymentMethodMap, PaymentMethodShowMap } from "@/constants";
 
 const { proxy } = getCurrentInstance();
 const {
@@ -466,9 +466,9 @@ function go2pay(row) {
       // 计算衣物的原始价格总和
       originalPrice = res.reduce((acc, cur) => {
         let priceValue = cur.priceValue;
-        if (cur.serviceRequirement == '001') {
+        if (cur.serviceRequirement == 'Emergency') {
           priceValue *= 2;
-        } else if (cur.serviceRequirement == '002') {
+        } else if (cur.serviceRequirement == 'SingleWash') {
           priceValue *= 1.5;
         }
         return acc + priceValue + (cur.processMarkup || 0);
@@ -481,7 +481,7 @@ function go2pay(row) {
     // 获取用户卡券列表
     await listUserCouponWithValidTime(row.userId).then(response => {
       userCouponList.value = response;
-      userCouponList.value.filter(item => item.coupon.couponType == '002').map(item => {
+      userCouponList.value.filter(item => item.coupon.couponType == 'SessionCard').map(item => {
         item.selected = false;
         item.count = 1;
       });
@@ -507,7 +507,6 @@ function getList() {
     ordersList.value = response.rows;
     total.value = response.total;
     loading.value = false;
-    currentOrder.value = null;
   });
 }
 

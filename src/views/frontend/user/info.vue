@@ -102,9 +102,9 @@
                     </el-icon>
                     <span class="label">次卡:</span>
                     <div class="coupon-tags"
-                        v-if="coupons && coupons.filter(item => item.coupon.couponType == '002' && item.availableValue > 0).length > 0">
+                        v-if="coupons && coupons.filter(item => item.coupon.couponType == 'SessionCard' && item.availableValue > 0).length > 0">
                         <el-tag
-                            v-for="(card, index) in coupons.filter(item => item.coupon.couponType == '002' && item.availableValue > 0)"
+                            v-for="(card, index) in coupons.filter(item => item.coupon.couponType == 'SessionCard' && item.availableValue > 0)"
                             :key="index" type="success" effect="light" class="coupon-tag">
                             {{ card.coupon.couponTitle }} - {{ card.ucCount }}张
                         </el-tag>
@@ -119,9 +119,9 @@
                     </el-icon>
                     <span class="label">优惠券:</span>
                     <div class="coupon-tags"
-                        v-if="coupons && coupons.filter(item => item.coupon.couponType !== '000' && item.coupon.couponType !== '002' && item.availableValue > 0).length > 0">
+                        v-if="coupons && coupons.filter(item => item.coupon.couponType !== 'StoredValueCard' && item.coupon.couponType !== 'SessionCard' && item.availableValue > 0).length > 0">
                         <el-tag
-                            v-for="(card, index) in coupons.filter(item => item.coupon.couponType !== '000' && item.coupon.couponType !== '002' && item.availableValue > 0)"
+                            v-for="(card, index) in coupons.filter(item => item.coupon.couponType !== 'StoredValueCard' && item.coupon.couponType !== 'SessionCard' && item.availableValue > 0)"
                             :key="index" type="warning" effect="light" class="coupon-tag">
                             {{ card.coupon.couponTitle }} - {{ card.ucCount }}张
                         </el-tag>
@@ -217,15 +217,15 @@
                     :class="[`coupon-type-${item.coupon.couponType}`, getActiveClass(item)]">
                     <div class="coupon-left">
                         <div class="coupon-value">
-                            <template v-if="item.coupon.couponType === '000'">
+                            <template v-if="item.coupon.couponType === 'StoredValueCard'">
                                 <span class="amount">{{ item.availableValue || 0 }}</span>
                                 <span class="unit">元</span>
                             </template>
-                            <template v-else-if="item.coupon.couponType === '003'">
+                            <template v-else-if="item.coupon.couponType === 'DiscountCard'">
                                 <span class="amount">{{ item.coupon.usageValue / 10 }}</span>
                                 <span class="unit">折</span>
                             </template>
-                            <template v-else-if="item.coupon.couponType === '002'">
+                            <template v-else-if="item.coupon.couponType === 'SessionCard'">
                                 <span class="amount">{{ item.availableValue }}</span>
                                 <span class="unit">次</span>
                             </template>
@@ -235,7 +235,7 @@
                             </template>
                         </div>
                         <div class="coupon-type">
-                            {{ getCouponTypeName(item.coupon.couponType) }}
+                            {{ CouponTypeMap[item.coupon.couponType]?.label }}
                         </div>
                     </div>
                     <div class="coupon-right">
@@ -248,7 +248,7 @@
                                 </el-icon>
                                 <span>有效期至: {{ item.coupon.validTo ? formatTime(item.coupon.validTo) : '永久有效' }}</span>
                             </div>
-                            <div class="coupon-meta-item" v-if="item.coupon.couponType === '000'">
+                            <div class="coupon-meta-item" v-if="item.coupon.couponType === 'StoredValueCard'">
                                 <el-icon>
                                     <Wallet />
                                 </el-icon>
@@ -281,6 +281,7 @@ import { changeUserStatus, changeUserIdentify } from "@/api/system/user";
 import { listUserCouponWithValidTime, listUserCouponNoPage } from '@/api/system/user_coupon';
 import { ref, computed, watch } from "vue";
 import CouponSale from '@/views/components/couponSale.vue';
+import { CouponTypeMap } from '@/constants';
 
 const { proxy } = getCurrentInstance();
 const { sys_user_tags, sys_user_sex, sys_user_type, sys_user_identify } =
@@ -301,40 +302,18 @@ const historyCoupons = ref([]);
 const couponTypeList = ref(new Set());
 
 function getActiveClass(item) {
-    if (item.coupon.couponType === '000' || item.coupon.couponType === '002') {
+    if (item.coupon.couponType === 'StoredValueCard' || item.coupon.couponType === 'SessionCard') {
         return item.availableValue > 0 ? 'coupon-active' : 'coupon-inactive';
     }
     return item.ucCount > 0 ? 'coupon-active' : 'coupon-inactive';
 }
 
 function getAvailable(item) {
-    if (item.coupon.couponType === '000' || item.coupon.couponType === '002') {
+    if (item.coupon.couponType === 'StoredValueCard' || item.coupon.couponType === 'SessionCard') {
         return item.availableValue > 0;
     }
     return item.ucCount > 0;
 }
-// 获取卡券类型名称
-const getCouponTypeName = (type) => {
-    const typeMap = {
-        '000': '储值卡',
-        '002': '次卡',
-        '003': '折扣券',
-        '004': '满减券'
-    };
-    return typeMap[type] || '未知类型';
-};
-
-// 获取卡券类型标签样式
-const getCouponTypeTag = (type) => {
-    const typeTagMap = {
-        '000': 'danger',
-        '001': 'warning',
-        '002': 'success',
-        '003': 'primary',
-        '004': 'info'
-    };
-    return typeTagMap[type] || '';
-};
 
 // 查询用户历史卡券
 const fetchHistoryCoupons = () => {
@@ -392,7 +371,7 @@ function handleCouponBought() {
         // 添加延迟，确保数据库同步完成
         listUserCouponWithValidTime(props.user.userId).then(response => {
             const mergedCoupons = response.reduce((acc, cur) => {
-                const existing = acc.find(item => item.coupon.couponId === cur.coupon.couponId && item.coupon.couponType !== '000');
+                const existing = acc.find(item => item.coupon.couponId === cur.coupon.couponId && item.coupon.couponType !== 'StoredValueCard');
                 if (existing) {
                     existing.ucCount += cur.ucCount;
                 } else {
@@ -416,7 +395,7 @@ if (props.user && props.user.userId) {
     listUserCouponWithValidTime(props.user.userId).then(response => {
         // 合并相同卡券数量，如果couponId相同，那么计算该couponId的ucCount总和
         const mergedCoupons = response.reduce((acc, cur) => {
-            const existing = acc.find(item => item.coupon.couponId === cur.coupon.couponId && item.coupon.couponType !== '000');
+            const existing = acc.find(item => item.coupon.couponId === cur.coupon.couponId && item.coupon.couponType !== 'StoredValueCard');
             if (existing) {
                 existing.ucCount += cur.ucCount;
             } else {
@@ -436,7 +415,7 @@ const storageCardBalance = computed(() => {
     if (!coupons.value || coupons.value.length === 0) return 0;
 
     return coupons.value
-        .filter(item => item.coupon?.couponType === '000')
+        .filter(item => item.coupon?.couponType === 'StoredValueCard')
         .reduce((acc, cur) => acc + (cur.availableValue || 0), 0);
 });
 
@@ -769,7 +748,7 @@ const storageCardBalance = computed(() => {
 }
 
 /* 卡券类型样式 - 只应用于可用的卡券 */
-.coupon-active.coupon-type-000 .coupon-left {
+.coupon-active.coupon-type-StoredValueCard .coupon-left {
     background-color: var(--el-color-danger);
 }
 
@@ -777,15 +756,19 @@ const storageCardBalance = computed(() => {
     background-color: var(--el-color-warning);
 } */
 
-.coupon-active.coupon-type-002 .coupon-left {
+.coupon-active.coupon-type-SessionCard .coupon-left {
     background-color: var(--el-color-success);
 }
 
-.coupon-active.coupon-type-003 .coupon-left {
+.coupon-active.coupon-type-DiscountCoupon .coupon-left {
     background-color: var(--el-color-primary);
 }
 
-.coupon-active.coupon-type-004 .coupon-left {
+.coupon-active.coupon-type-SpendAndSaveCard .coupon-left {
+    background-color: var(--el-color-warning);
+}
+
+.coupon-active.coupon-type-DiscountCard .coupon-left {
     background-color: var(--el-color-warning);
 }
 

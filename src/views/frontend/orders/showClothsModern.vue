@@ -1,6 +1,6 @@
 <template>
   <el-dialog title="衣物列表" v-model="showClothesDialog" width="1200px" append-to-body lock-scroll modal
-    :close-on-click-modal="false" @closed="close" :align-center="true" class="modern-dialog">
+    :close-on-click-modal="false" @closed="close" align-center class="modern-dialog">
     <!-- 顶部操作栏 -->
     <div class="top-actions">
       <div class="search-bar">
@@ -17,7 +17,7 @@
       </div>
       <div class="filter-actions">
         <el-select v-model="statusFilter" style="width: 120px;" placeholder="状态筛选" clearable @change="filterByStatus">
-          <el-option v-for="item in sys_clothing_status" :key="item.value" :label="item.label" :value="item.value">
+          <el-option v-for="item in ClothStatus" :key="item.value" :label="item.label" :value="item.value">
 
           </el-option>
         </el-select>
@@ -64,7 +64,6 @@
                 </div>
               </div>
               <div class="cloth-status">
-                <dict-tag :options="sys_clothing_status" :value="item.clothingStatus" />
                 <el-tag :type="ClothStatusMap[item.clothingStatus]?.type">
                   {{ ClothStatusMap[item.clothingStatus]?.label }}
                 </el-tag>
@@ -184,7 +183,7 @@
                 :disabled="!item.afterPics || item.afterPics.length === 0" @click.stop="handleShowPicture(item, false)">
                 洗后照片
               </el-button> -->
-              <el-button type="warning" :icon="Top" size="small" v-if="item.clothingStatus == '01'"
+              <el-button type="warning" :icon="Top" size="small" v-if="item.clothingStatus == 'Processing'"
                 @click.stop="handleShowHangUp(item)">
                 上挂
               </el-button>
@@ -381,7 +380,7 @@ import { invoke } from '@tauri-apps/api/core';
 import useUserStore from '@/store/modules/user';
 import useTagsStore from '@/store/modules/tags';
 import CompensationDialog from '@/views/components/CompensationDialog.vue';
-import { ServiceTypeMap, ServiceRequirmentMap, ClothStatusMap } from '@/constants';
+import { ServiceTypeMap, ServiceRequirmentMap, ClothStatus, ClothStatusMap } from '@/constants';
 
 const props = defineProps({
   visible: {
@@ -414,8 +413,7 @@ const props = defineProps({
 
 const { proxy } = getCurrentInstance();
 
-const { sys_delivery_mode, sys_clothing_status, } =
-  proxy.useDict("sys_delivery_mode", "sys_clothing_status");
+const { sys_delivery_mode, } = proxy.useDict("sys_delivery_mode");
 
 // 状态数据
 const selectionList = ref([]);
@@ -548,9 +546,9 @@ function toggleSelection(item) {
 }
 
 function updateButtonStatus() {
-  afterSaleDisabled.value = !selectionList.value.some(item => item.clothingStatus == '00');
-  compensationDisabled.value = !selectionList.value.some(item => item.clothingStatus == '02');
-  pickupDisabled.value = !selectionList.value.some(item => item.clothingStatus == '02');
+  afterSaleDisabled.value = !selectionList.value.some(item => item.clothingStatus == 'PickedUp');
+  compensationDisabled.value = !selectionList.value.some(item => item.clothingStatus == 'ReadyToPickUp');
+  pickupDisabled.value = !selectionList.value.some(item => item.clothingStatus == 'ReadyToPickUp');
 }
 
 // 初始化列表数据

@@ -27,6 +27,23 @@ impl Display for OrderStatus {
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize, sqlx::Type)]
 #[sqlx(type_name = "TEXT")]
+pub enum PaymentOrderType {
+    #[default]
+    Laundry,
+    Coupon,
+}
+
+impl Display for PaymentOrderType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PaymentOrderType::Laundry => write!(f, "Laundry"),
+            PaymentOrderType::Coupon => write!(f, "Coupon"),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize, sqlx::Type)]
+#[sqlx(type_name = "TEXT")]
 pub enum ClothStatus {
     PickedUp,
     #[default]
@@ -165,12 +182,14 @@ impl Display for PaymentStatus {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize, sqlx::Type)]
+#[sqlx(type_name = "TEXT")]
 pub enum AlarmType {
     #[default]
     Normal,
     Warning,
     Overdue,
+    OverdueNotPickedUp,
 }
 
 impl Display for AlarmType {
@@ -179,6 +198,7 @@ impl Display for AlarmType {
             AlarmType::Normal => write!(f, "Normal"),
             AlarmType::Warning => write!(f, "Warning"),
             AlarmType::Overdue => write!(f, "Overdue"),
+            AlarmType::OverdueNotPickedUp => write!(f, "OverdueNotPickedUp"),
         }
     }
 }

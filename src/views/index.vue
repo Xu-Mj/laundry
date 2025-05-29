@@ -118,12 +118,12 @@ import { use } from 'echarts/core';
 import { PieChart, LineChart } from 'echarts/charts';
 import { Close } from '@element-plus/icons-vue';
 import { useWindowSize } from '@vueuse/core';
-import { getDicts } from '@/api/system/dict/data';
 import { CanvasRenderer } from 'echarts/renderers';
 import GaugeChart from '@/components/GaugeChart.vue';
 import { ref, onMounted, nextTick, watch, computed } from 'vue';
 import { TitleComponent, TooltipComponent, LegendComponent, GridComponent } from 'echarts/components';
 import { getCountList, getChartList, getOrderTotalCount, fetchPaymentSummary, fetchMonthlyPaymentSummary } from '../api/home';
+import { OrderSource } from '@/constants';
 
 use([CanvasRenderer, PieChart, LineChart, TitleComponent, TooltipComponent, LegendComponent, GridComponent]);
 
@@ -205,9 +205,8 @@ function setChartRef(el, index) {
 };
 
 const fetchCodeToLabelData = async () => {
-  const res = await getDicts('sys_price_order_type');
-  codeToLabel.value = res.reduce((acc, item) => {
-    acc[item.dictValue] = item.dictLabel;
+  codeToLabel.value = OrderSource.reduce((acc, item) => {
+    acc[item.value] = item.label;
     return acc;
   }, {});
 };

@@ -1,9 +1,9 @@
 <template>
     <div class="result-container">
         <el-form :model="queryParams" class="top-bar" ref="queryRef" :inline="true" label-width="68px">
-            <el-form-item label="取件码" prop="pickupCode" size="large">
+            <el-form-item label="取件码" prop="pickupCode">
                 <el-input style="width: 150px;" v-model="queryParams.pickupCode" placeholder="请输入取件码" clearable
-                    @keyup.enter="handleQuery" size="large" type="number" class="no-spinner" @mousewheel.native.prevent
+                    @keyup.enter="handleQuery" type="number" class="no-spinner" @mousewheel.native.prevent
                     @DOMMouseScroll.native.prevent>
                     <template #prefix>
                         <el-icon>
@@ -12,9 +12,9 @@
                     </template>
                 </el-input>
             </el-form-item>
-            <el-form-item label="手机号" prop="phonenumber" size="large">
+            <el-form-item label="手机号" prop="phonenumber">
                 <el-input ref="phonenumber" style="width: 200px;" v-model="queryParams.phonenumber"
-                    placeholder="请输入会员手机号" clearable @keyup.enter="handleQuery" size="large" type="number"
+                    placeholder="请输入会员手机号" clearable @keyup.enter="handleQuery" type="number"
                     class="no-spinner" @mousewheel.native.prevent @DOMMouseScroll.native.prevent>
                     <template #prefix>
                         <el-icon>
@@ -23,9 +23,9 @@
                     </template>
                 </el-input>
             </el-form-item>
-            <!-- <el-form-item label="订单编码" prop="orderNumber" size="large">
+            <!-- <el-form-item label="订单编码" prop="orderNumber">
                 <el-input style="width: 230px;" v-model="queryParams.orderNumber" placeholder="请输入订单编码" clearable
-                    @keyup.enter="handleQuery" size="large">
+                    @keyup.enter="handleQuery">
                     <template #prefix>
                         <el-icon>
                             <Document />
@@ -33,9 +33,9 @@
                     </template>
                 </el-input>
             </el-form-item> -->
-            <el-form-item label="姓名" prop="nickName" size="large">
+            <el-form-item label="姓名" prop="nickName">
                 <el-input style="width: 230px;" v-model="queryParams.nickName" placeholder="请输入姓名" clearable
-                    @keyup.enter="handleQuery" size="large">
+                    @keyup.enter="handleQuery">
                     <template #prefix>
                         <el-icon>
                             <User />
@@ -43,8 +43,8 @@
                     </template>
                 </el-input>
             </el-form-item>
-            <el-form-item label="支付状态" prop="paymentStatus" size="large">
-                <el-select size="large" v-model="queryParams.paymentStatus" @change="handleQuery" clearable
+            <el-form-item label="支付状态" prop="paymentStatus">
+                <el-select v-model="queryParams.paymentStatus" @change="handleQuery" clearable
                     style="width: 120px;" placeholder="请选择">
                     <template #prefix>
                         <el-icon>
@@ -56,9 +56,9 @@
                 </el-select>
             </el-form-item>
             <el-form-item>
-                <el-button class="hover-flow" type="primary" icon="Search" @click="handleQuery" size="large"
+                <el-button class="hover-flow" type="primary" icon="Search" @click="handleQuery"
                     round>搜索</el-button>
-                <el-button class="hover-flow" icon="Refresh" @click="resetQuery" size="large" round>重置</el-button>
+                <el-button class="hover-flow" icon="Refresh" @click="resetQuery" round>重置</el-button>
             </el-form-item>
         </el-form>
         <!-- 渲染订单抖索结果列表 -->
@@ -98,7 +98,7 @@
                         <el-icon>
                             <Money />
                         </el-icon>
-                        <span>{{ order.paymentStatus === '00' ? '实际支付金额:' : '应支付金额:' }}</span>
+                        <span>{{ order.paymentStatus === 'Paid' ? '实际支付金额:' : '应支付金额:' }}</span>
                         <span class="payment-amount">
                             {{ order.mount }}元
                         </span>
@@ -226,7 +226,7 @@
                     </el-table-column>
                     <el-table-column label="操作" align="center" width="120" fixed="right">
                         <template #default="scope">
-                            <div v-if="scope.row.clothingStatus == '02'" class="action-buttons"> <el-button
+                            <div v-if="scope.row.clothingStatus == 'ReadyForPickup'" class="action-buttons"> <el-button
                                     type="primary" size="small" plain round @click="pickup(scope.row)"> <el-icon>
                                         <TakeawayBox />
                                     </el-icon> 取衣 </el-button> <el-button type="danger" size="small" plain round
@@ -361,13 +361,13 @@ async function handlePay() {
     // 1. 没有选中衣物，只是支付
     if (selectedCloths.value.length == 0) {
         // 遍历所有的查询结果
-        orders.value = ordersList.value.filter(item => item.paymentStatus === '01');
+        orders.value = ordersList.value.filter(item => item.paymentStatus === 'Unpaid');
         clothsList.value = orders.value.flatMap(order => order.clothList) // 展开每个订单的衣物列表
             .sort((a, b) => b.priceValue - a.priceValue);
     } else {
         // 查询选中衣物所属的订单
         const orderIds = new Set(selectedCloths.value.map(item => item.orderId));
-        orders.value = ordersList.value.filter(item => orderIds.has(item.orderId) && item.paymentStatus === '01');
+        orders.value = ordersList.value.filter(item => orderIds.has(item.orderId) && item.paymentStatus === 'Unpaid');
         const ids = orders.value.map(item => item.orderId);
         // 排序
         clothsList.value = selectedCloths.value.filter(item => ids.includes(item.orderId)).sort((a, b) => b.priceValue - a.priceValue);
@@ -386,14 +386,14 @@ async function pickup(cloth) {
         selectedCloths.value = [cloth];
     }
     console.log(selectedCloths.value)
-    const cloths = selectedCloths.value.filter(item => item.clothingStatus !== '00');
+    const cloths = selectedCloths.value.filter(item => item.clothingStatus !== 'PickedUp');
     if (cloths.length == 0) {
         proxy.notify.warning("没有选中符合条件的衣物");
         return;
     }
 
     // 筛选正在洗护中的衣物进行提示
-    const washCloths = cloths.filter(item => item.clothingStatus === '01');
+    const washCloths = cloths.filter(item => item.clothingStatus === 'Processing');
     if (washCloths.length > 0) {
         try {
             // 显示确认弹窗，用户点击确认后才会执行后续逻辑
@@ -413,7 +413,7 @@ async function pickup(cloth) {
     const orderIds = cloths.map(item => item.orderId);
 
     // 判断是否包含未支付的订单
-    const unpaidOrders = ordersList.value.filter(item => orderIds.includes(item.orderId) && item.paymentStatus !== '00');
+    const unpaidOrders = ordersList.value.filter(item => orderIds.includes(item.orderId) && item.paymentStatus !== 'PickedUp');
     if (unpaidOrders.length > 0) {
         // 弹出询问是否确认取走
         proxy.$modal.confirm("当前选中衣物有未支付订单，是否确认取走？").then(async () => {
@@ -453,7 +453,7 @@ function handlePaymentFailed(error) {
 // 处理支付成功并取衣事件
 async function handlePaymentPickup() {
     // 获取当前选中的衣物ID列表
-    const cloths = selectedCloths.value.filter(item => item.clothingStatus !== '00');
+    const cloths = selectedCloths.value.filter(item => item.clothingStatus !== 'PickedUp');
     if (cloths.length > 0) {
         const ids = cloths.map(item => item.clothId);
         try {
@@ -484,7 +484,7 @@ function handleCompensate(cloth) {
     }
 
     // 检查是否有衣物状态为已完成洗护的衣物
-    const validCloths = selectedCloths.value.filter(item => item.clothingStatus === '02');
+    const validCloths = selectedCloths.value.filter(item => item.clothingStatus === 'ReadyForPickup');
     if (validCloths.length === 0) {
         proxy.notify.warning("只能对已完成洗护的衣物进行赔偿");
         return;
@@ -524,7 +524,7 @@ function handleDelivery() {
 
     // 检查选中的衣物是否都已完成洗护或正在洗护中
     const invalidCloths = selectedCloths.value.filter(item =>
-        item.clothingStatus !== '01' && item.clothingStatus !== '02'
+        item.clothingStatus !== 'Processing' && item.clothingStatus !== 'ReadyForPickup'
     );
 
     if (invalidCloths.length > 0) {
@@ -534,7 +534,7 @@ function handleDelivery() {
 
     // 检查选中的衣物是否都已支付
     const orderIds = [...new Set(selectedCloths.value.map(item => item.orderId))];
-    const unpaidOrders = ordersList.value.filter(item => orderIds.includes(item.orderId) && item.paymentStatus !== '00');
+    const unpaidOrders = ordersList.value.filter(item => orderIds.includes(item.orderId) && item.paymentStatus !== 'PickedUp');
 
     if (unpaidOrders.length > 0) {
         proxy.notify.warning("选中的衣物中有未支付的订单，请先完成支付");
@@ -576,22 +576,22 @@ async function initList() {
 
     // 获取颜色列表
     if (colorList.value.length === 0) {
-        colorList.value = tagsStore.getTagsByOrder('003');
+        colorList.value = tagsStore.getTagsByOrder('Color');
     }
 
     // 获取瑕疵列表
     if (flawList.value.length === 0) {
-        flawList.value = tagsStore.getTagsByOrder('001');
+        flawList.value = tagsStore.getTagsByOrder('PreCleaningFlaws');
     }
 
     // 获取预估列表
     if (estimateList.value.length === 0) {
-        estimateList.value = tagsStore.getTagsByOrder('002');
+        estimateList.value = tagsStore.getTagsByOrder('PostCleaningProjection');
     }
 
     // 获取品牌列表
     if (brandList.value.length === 0) {
-        brandList.value = tagsStore.getTagsByOrder('004');
+        brandList.value = tagsStore.getTagsByOrder('Brand');
     }
 }
 
@@ -622,7 +622,7 @@ async function getList() {
         // 计算用户卡券种类
         couponTypeList.value = new Set(userCouponList.value.map(coupon => coupon.coupon.couponType));
         // 初始化次卡信息
-        userCouponList.value.filter(item => item.coupon.couponType == '002').map(item => {
+        userCouponList.value.filter(item => item.coupon.couponType == 'SessionCard').map(item => {
             item.selected = false;
             item.count = 1;
         })
@@ -638,7 +638,7 @@ async function getList() {
         // 优先处理 `adjust` 的情况
 
         if (item.payment && item.payment.payId) {
-            if (item.payment.paymentMethod == '03' || item.payment.paymentMethod == '04') {
+            if (item.payment.paymentMethod == 'Meituan' || item.payment.paymentMethod == 'Douyin') {
                 item.mount = await calculatePrice(item);
             } else {
                 item.mount = item.payment.paymentAmount;
@@ -660,8 +660,8 @@ async function getList() {
         }
 
         // 过滤已取走的衣物
-        if (item.paymentStatus == '00') {
-            item.clothList = item.clothList.filter(cloth => cloth.clothingStatus !== '00');
+        if (item.paymentStatus == 'Paid') {
+            item.clothList = item.clothList.filter(cloth => cloth.clothingStatus !== 'PickedUp');
         }
     }
 }
@@ -697,9 +697,9 @@ async function calculatePrice(item) {
     else {
         return item.clothList.reduce((acc, cur) => {
             let priceValue = cur.priceValue;
-            if (cur.serviceRequirement === '001') {
+            if (cur.serviceRequirement === 'Emergency') {
                 priceValue *= 2;
-            } else if (cur.serviceRequirement === '002') {
+            } else if (cur.serviceRequirement === 'SingleWash') {
                 priceValue *= 1.5;
             }
             return acc + priceValue + cur.processMarkup;

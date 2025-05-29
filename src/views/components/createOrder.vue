@@ -30,7 +30,7 @@
                         </el-row>
                         <el-row :gutter="20">
                             <el-col :span="12">
-                                <el-form-item size="large" label="会员：" prop="userId">
+                                <el-form-item label="会员：" prop="userId">
                                     <UserSelect v-model="form.userInfo" :disabled="notEditable" @change="selectUser"
                                         @blur="handleBlur" @need-create-user="handleNeedCreateUser"
                                         @update-phone="handleUpdatePhone" @validate="handleUserValidate"
@@ -38,7 +38,7 @@
                                 </el-form-item>
                             </el-col>
                             <el-col :span="12">
-                                <el-form-item size="large" label="姓名：" prop="nickName">
+                                <el-form-item label="姓名：" prop="nickName">
                                     <el-input :disabled="notEditable" v-model="form.nickName" placeholder="请输入会员姓名">
                                         <template #prefix>
                                             <el-icon>
@@ -54,12 +54,12 @@
                                 <el-form-item class="coupon-tags-wrapper">
                                     <div class="coupon-tags">
                                         <el-tag
-                                            v-for="(card, index) in mergedCoupons.filter(item => item.coupon.couponType == '002' && item.availableValue > 0)"
+                                            v-for="(card, index) in mergedCoupons.filter(item => item.coupon.couponType == 'SessionCard' && item.availableValue > 0)"
                                             :key="index" type="success" effect="light" class="coupon-tag">
                                             {{ card.coupon.couponTitle }} - {{ card.ucCount }}张
                                         </el-tag>
                                         <el-tag
-                                            v-for="(card, index) in mergedCoupons.filter(item => item.coupon.couponType !== '000' && item.coupon.couponType !== '002' && item.availableValue > 0)"
+                                            v-for="(card, index) in mergedCoupons.filter(item => item.coupon.couponType !== 'StoredValueCard' && item.coupon.couponType !== 'SessionCard' && item.availableValue > 0)"
                                             :key="index" type="warning" effect="light" class="coupon-tag">
                                             {{ card.coupon.couponTitle }} - {{ card.ucCount }}张
                                         </el-tag>
@@ -126,19 +126,19 @@
                         <div class="adjust-price-group">
                             <div class="adjust-price-group-mask" v-if="form.priceIds && form.priceIds.length > 0">
                                 使用了价格方案后不能调价</div>
-                            <el-input size="large" type="number" :min="0" :max="1000" @input="adjustInput" clearable
+                            <el-input type="number" :min="0" :max="1000" @input="adjustInput" clearable
                                 controls-position="right" @change="adjustInputChange"
                                 v-model="form.adjust.adjustValueSub" placeholder="请输入调减金额"
                                 :disabled="(form.priceIds && form.priceIds.length > 0) || notEditable" />
-                            <el-input size="large" type="number" :min="0" :max="1000" @input="adjustInput" clearable
+                            <el-input type="number" :min="0" :max="1000" @input="adjustInput" clearable
                                 controls-position="right" @change="adjustInputChange"
                                 v-model="form.adjust.adjustValueAdd" placeholder="请输入调增金额"
                                 :disabled="(form.priceIds && form.priceIds.length > 0) || notEditable" />
-                            <el-input size="large" type="number" :min="0" :max="Infinity" @input="adjustInput" clearable
+                            <el-input type="number" :min="0" :max="Infinity" @input="adjustInput" clearable
                                 controls-position="right" @change="adjustInputChange" v-model="form.adjust.adjustTotal"
                                 placeholder="请输入总金额"
                                 :disabled="(form.priceIds && form.priceIds.length > 0) || notEditable" />
-                            <el-input size="large" v-model="form.adjust.remark" placeholder="备注信息"
+                            <el-input v-model="form.adjust.remark" placeholder="备注信息"
                                 @change="adjustInputChange"
                                 :disabled="(form.priceIds && form.priceIds.length > 0) || notEditable" />
                         </div>
@@ -162,7 +162,7 @@
                                     <div class="summary-label">单据打印</div>
                                     <div class="summary-value">
                                         <el-input-number style="width: 100%;" :min="1" v-model="printCount"
-                                            controls-position="right" size="large" />
+                                            controls-position="right" />
                                     </div>
                                 </div>
                             </el-col>
@@ -175,13 +175,14 @@
                         <span class="price-value">{{ totalPrice }}元</span>
                     </div>
                     <div class="btn-container">
-                        <el-button size="large" icon="Close" type="danger" @click="cancelSelf">{{ form.orderId ? '关 闭' :
+                        <el-button icon="Close" type="danger" @click="cancelSelf">{{ form.orderId ? '关 闭' :
                             '取 消'
                         }}</el-button>
-                        <el-button size="large" icon="Check" type="primary" color="#626aef" @click="submitForm"
+                        <el-button icon="Check" type="primary" color="#626aef" @click="submitForm"
                             :disabled="notEditable || (!(form.source === 'Store') && (!form.priceIds || form.priceIds.length === 0))"
-                            v-if="form.source !== 'Meituan' && form.source !== 'Douyin'" ref="submitButtonRef">取衣收款</el-button>
-                        <el-button size="large" type="success" @click="createAndGo2Pay" icon="Money"
+                            v-if="form.source !== 'Meituan' && form.source !== 'Douyin'"
+                            ref="submitButtonRef">取衣收款</el-button>
+                        <el-button type="success" @click="createAndGo2Pay" icon="Money"
                             :disabled="notEditable" ref="payButtonRef">收衣收款</el-button>
                     </div>
                 </div>
@@ -645,7 +646,7 @@ async function handleUpdate() {
         form.value = response;
         form.value.cloths = [];
         // 如果订单已支付或已退单，设置为不可编辑状态
-        if (form.value.paymentStatus === '00' || form.value.status === '06') {
+        if (form.value.paymentStatus === 'Paid' || form.value.status === 'Cancelled' || form.value.status === 'Refunded') {
             notEditable.value = true;
         }
         if (!form.value.adjust) {
@@ -686,7 +687,7 @@ async function handleUpdate() {
     listUserCouponWithValidTime(currentUserId.value).then(response => {
         userCouponList.value = response;
         mergedCoupons.value = response.reduce((acc, cur) => {
-            const existing = acc.find(item => item.coupon.couponId === cur.coupon.couponId && item.coupon.couponType !== '000');
+            const existing = acc.find(item => item.coupon.couponId === cur.coupon.couponId && item.coupon.couponType !== 'StoredValueCard');
             if (existing) {
                 existing.ucCount += cur.ucCount;
             } else {
@@ -694,7 +695,7 @@ async function handleUpdate() {
             }
             return acc;
         }, []);
-        userCouponList.value.filter(item => item.coupon.couponType == '002').map(item => {
+        userCouponList.value.filter(item => item.coupon.couponType == 'SessionCard').map(item => {
             item.selected = false;
             item.count = 1;
         });
@@ -711,7 +712,7 @@ async function submitForm() {
     const validateOptions = { trigger: 'submit' };
 
     // 检查订单是否已支付或退单
-    if (form.value.orderId && (form.value.paymentStatus === '00' || form.value.status === '05')) {
+    if (form.value.orderId && (form.value.paymentStatus === 'Paid' || form.value.status === 'Cancelled' || form.value.status === 'Refunded')) {
         proxy.notify.error("订单已支付或已退单，不能修改信息");
         return;
     }
@@ -793,7 +794,7 @@ async function submitForm() {
 
 async function createAndGo2Pay() {
     // 检查订单是否已支付或退单
-    if (form.value.orderId && (form.value.paymentStatus === '00' || form.value.status === '05')) {
+    if (form.value.orderId && (form.value.paymentStatus === 'Paid' || form.value.status === 'Cancelled' || form.value.status === 'Refunded')) {
         proxy.notify.error("订单已支付或已退单，不能修改信息");
         return;
     }
@@ -806,7 +807,7 @@ async function createAndGo2Pay() {
                 return;
             }
             // 如果选择了美团或者抖音，那么需要选择价格标签
-            if (form.value.source == '00' || form.value.source == '01' || form.value.source == '02') {
+            if (form.value.source == 'Douyin' || form.value.source == 'Meituan' || form.value.source == 'MiniProgram') {
                 if (!form.value.priceIds || form.value.priceIds.length === 0) {
                     proxy.notify.error("请选择价格标签");
                     return;
@@ -831,7 +832,7 @@ async function createAndGo2Pay() {
 
                     await listUserCouponWithValidTime(form.value.userId).then(response => {
                         userCouponList.value = response;
-                        userCouponList.value.filter(item => item.coupon.couponType == '002').map(item => {
+                        userCouponList.value.filter(item => item.coupon.couponType == 'SessionCard').map(item => {
                             item.selected = false;
                             item.count = 1;
                         });
@@ -853,7 +854,7 @@ async function createAndPay(callback) {
     const validateOptions = { trigger: 'submit' };
 
     // 检查订单是否已支付或退单
-    if (form.value.orderId && (form.value.paymentStatus === '00' || form.value.status === '05')) {
+    if (form.value.orderId && (form.value.paymentStatus === 'Paid' || form.value.status === 'Cancelled' || from.value.status === 'Refunded')) {
         proxy.notify.error("订单已支付或已退单，不能修改信息");
         return;
     }
@@ -975,7 +976,7 @@ async function selectUser(val) {
         await listUserCouponWithValidTime(val.userId).then(response => {
             userCouponList.value = response;
             mergedCoupons.value = response.reduce((acc, cur) => {
-                const existing = acc.find(item => item.coupon.couponId === cur.coupon.couponId && item.coupon.couponType !== '000');
+                const existing = acc.find(item => item.coupon.couponId === cur.coupon.couponId && item.coupon.couponType !== 'StoredValueCard');
                 if (existing) {
                     existing.ucCount += cur.ucCount;
                 } else {
@@ -983,7 +984,7 @@ async function selectUser(val) {
                 }
                 return acc;
             }, []);
-            userCouponList.value.filter(item => item.coupon.couponType == '002').map(item => {
+            userCouponList.value.filter(item => item.coupon.couponType == 'SessionCard').map(item => {
                 item.selected = false;
                 item.count = 1;
             });
@@ -1039,9 +1040,9 @@ function adjustInput() {
                     // 计算总价
                     // 如果服务要求为加急
                     let priceValue = cur.priceValue;
-                    if (cur.serviceRequirement == '001') {
+                    if (cur.serviceRequirement == 'Emergency') {
                         priceValue *= 2;
-                    } else if (cur.serviceRequirement == '002') {
+                    } else if (cur.serviceRequirement == 'SingleWash') {
                         priceValue *= 1.5;
                     }
                     return acc + priceValue + cur.processMarkup;
@@ -1069,9 +1070,9 @@ function adjustInput() {
                 // 计算总价
                 // 如果服务要求为加急
                 let priceValue = cur.priceValue;
-                if (cur.serviceRequirement == '001') {
+                if (cur.serviceRequirement == 'Emergency') {
                     priceValue *= 2;
-                } else if (cur.serviceRequirement == '002') {
+                } else if (cur.serviceRequirement == 'SingleWash') {
                     priceValue *= 1.5;
                 }
                 return acc + priceValue + cur.processMarkup;
@@ -1225,7 +1226,7 @@ function handleCouponPurchase(data) {
         listUserCouponWithValidTime(form.value.userId).then(response => {
             userCouponList.value = response;
             mergedCoupons.value = response.reduce((acc, cur) => {
-                const existing = acc.find(item => item.coupon.couponId === cur.coupon.couponId && item.coupon.couponType !== '000');
+                const existing = acc.find(item => item.coupon.couponId === cur.coupon.couponId && item.coupon.couponType !== 'StoredValueCard');
                 if (existing) {
                     existing.ucCount += cur.ucCount;
                 } else {
@@ -1233,7 +1234,7 @@ function handleCouponPurchase(data) {
                 }
                 return acc;
             }, []);
-            userCouponList.value.filter(item => item.coupon.couponType == '002').map(item => {
+            userCouponList.value.filter(item => item.coupon.couponType == 'SessionCard').map(item => {
                 item.selected = false;
                 item.count = 1;
             });

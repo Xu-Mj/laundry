@@ -28,10 +28,9 @@
                         <el-col :span="21" style="height: 100%; padding-left: .5rem;">
                             <el-form-item label="">
                                 <div class="input-btn-row">
-                                    <el-input size="large" v-model="cateName" @input="searchColor" placeholder="请输入分类名称"
+                                    <el-input v-model="cateName" @input="searchColor" placeholder="请输入分类名称"
                                         maxlength="20" show-word-limit />
-                                    <el-button size="large" type="primary" icon="Plus"
-                                        @click="handleAddCate">新增</el-button>
+                                    <el-button type="primary" icon="Plus" @click="handleAddCate">新增</el-button>
                                 </div>
                             </el-form-item>
                             <el-scrollbar class="scrollbar-height">
@@ -43,8 +42,8 @@
                             </el-scrollbar>
                         </el-col>
                         <el-row class="footer-btn">
-                            <el-button type="primary" size="large"
-                                :disabled="!props.userId || !form.categoryId || !form.styleId" @click="nextStep">下一步
+                            <el-button type="primary" :disabled="!props.userId || !form.categoryId || !form.styleId"
+                                @click="nextStep">下一步
                                 <el-icon>
                                     <ArrowRight />
                                 </el-icon>
@@ -55,38 +54,36 @@
                 <div class="step" :class="{ active: step === 1 }" key="step1">
                     <el-row>
                         <el-col :span="24">
-                            <el-form-item label="衣物名称" size="large">
+                            <el-form-item label="衣物名称">
                                 <div class="input-btn-row">
-                                    <el-input size="large" v-model="clothNameInput" ref="clothNameRef"
-                                        @input="searchCloth" placeholder="请输衣物名称首字母或衣物名称" maxlength="30"
-                                        show-word-limit />
-                                    <el-button size="large" v-if="showAddClothBtn" type="primary" icon="Plus"
+                                    <el-input v-model="clothNameInput" ref="clothNameRef" @input="searchCloth"
+                                        placeholder="请输衣物名称首字母或衣物名称" maxlength="30" show-word-limit />
+                                    <el-button v-if="showAddClothBtn" type="primary" icon="Plus"
                                         @click="handleAddCloth">新增</el-button>
                                 </div>
                             </el-form-item>
                         </el-col>
                     </el-row>
                     <div v-if="showAddClothBtn && showPriceContent">
-                        <el-form-item size="large" label="洗护价格" v-if="showAddClothBtn && showPriceContent">
+                        <el-form-item label="洗护价格" v-if="showAddClothBtn && showPriceContent">
                             <div class="price-content">
                                 <div class="price-wrapper">
-                                    <el-input-number size="large" v-model="form.clothInfo.clothingBasePrice" :min="0"
+                                    <el-input-number v-model="form.clothInfo.clothingBasePrice" :min="0"
                                         :controls="false" placeholder="请输入基准价格" />
-                                    <el-input-number size="large" v-model="form.clothInfo.clothingMinPrice" :min="0"
+                                    <el-input-number v-model="form.clothInfo.clothingMinPrice" :min="0"
                                         :controls="false" placeholder="请输入最低价格" />
-                                    <!-- <el-input-number size="large" v-model="form.clothInfo.clothingMetuanPrice" :min="0"
+                                    <!-- <el-input-number v-model="form.clothInfo.clothingMetuanPrice" :min="0"
                                         :controls="false" placeholder="请输入美团价格" />
-                                    <el-input-number size="large" v-model="form.clothInfo.clothingDouyinPrice" :min="0"
+                                    <el-input-number v-model="form.clothInfo.clothingDouyinPrice" :min="0"
                                         :controls="false" placeholder="请输入抖音价格" />
-                                    <el-input-number size="large" v-model="form.clothInfo.clothingXiaochenxuPrice"
+                                    <el-input-number v-model="form.clothInfo.clothingXiaochenxuPrice"
                                         :min="0" :controls="false" placeholder="请输入小程序价格" /> -->
                                 </div>
-                                <el-button size="large" type="primary" @click="createCloth"
-                                    icon="CircleCheck">确定添加</el-button>
+                                <el-button type="primary" @click="createCloth" icon="CircleCheck">确定添加</el-button>
                             </div>
                         </el-form-item>
-                        <el-form-item size="large" label="衣挂方式">
-                            <el-radio-group size="large" v-model="form.clothInfo.hangType">
+                        <el-form-item label="衣挂方式">
+                            <el-radio-group v-model="form.clothInfo.hangType">
                                 <el-radio :value="'1'">输送线</el-radio>
                                 <el-radio :value="'3'">鞋柜</el-radio>
                                 <el-radio :value="'2'">其他</el-radio>
@@ -101,24 +98,23 @@
                         </div>
                     </el-scrollbar>
                     <el-row class="footer-btn">
-                        <el-button type="primary" size="large" color="#f5f7fa" icon="ArrowLeft"
-                            @click="preStep">上一步</el-button>
-                        <el-button type="primary" size="large" @click="nextStep" :disabled="!form.clothingId">下一步
+                        <el-button type="primary" color="#f5f7fa" icon="ArrowLeft" @click="preStep">上一步</el-button>
+                        <el-button type="primary" @click="nextStep" :disabled="!form.clothingId">下一步
                             <el-icon>
                                 <ArrowRight />
                             </el-icon>
                         </el-button>
-                        <el-button type="danger" size="large" icon="Refresh" @click="reset">重新录入</el-button>
+                        <el-button type="danger" icon="Refresh" @click="reset">重新录入</el-button>
                     </el-row>
                 </div>
                 <div class="step" :class="{ active: step === 2 }" key="step2">
                     <el-row>
                         <el-col :span="24">
-                            <el-form-item size="large" label="颜色名称">
+                            <el-form-item label="颜色名称">
                                 <div class="input-btn-row">
-                                    <el-input size="large" v-model="clothColorInput" @input="searchColor"
+                                    <el-input v-model="clothColorInput" @input="searchColor"
                                         placeholder="请输颜色名称首字母或者颜色名称" maxlength="10" show-word-limit />
-                                    <el-button size="large" v-if="showAddColorBtn" type="primary" icon="Plus"
+                                    <el-button v-if="showAddColorBtn" type="primary" icon="Plus"
                                         @click="addTag('Color', clothColorInput)">新增</el-button>
                                 </div>
                             </el-form-item>
@@ -135,25 +131,24 @@
                         </el-scrollbar>
                     </el-row>
                     <el-row class="footer-btn">
-                        <el-button type="primary" size="large" color="#f5f7fa" icon="ArrowLeft"
-                            @click="preStep">上一步</el-button>
-                        <el-button type="primary" size="large" @click="nextStep">下一步
+                        <el-button type="primary" color="#f5f7fa" icon="ArrowLeft" @click="preStep">上一步</el-button>
+                        <el-button type="primary" @click="nextStep">下一步
                             <el-icon>
                                 <ArrowRight />
                             </el-icon>
                         </el-button>
-                        <el-button type="danger" size="large" icon="Refresh" @click="reset">重新录入</el-button>
-                        <el-button type="warning" size="large" icon="Promotion" @click="jump2last">跳过后续步骤</el-button>
+                        <el-button type="danger" icon="Refresh" @click="reset">重新录入</el-button>
+                        <el-button type="warning" icon="Promotion" @click="jump2last">跳过后续步骤</el-button>
                     </el-row>
                 </div>
                 <div class="step" :class="{ active: step === 3 }" key="step3">
                     <el-row>
                         <el-col :span="24">
-                            <el-form-item size="large" label="瑕疵名称">
+                            <el-form-item label="瑕疵名称">
                                 <div class="input-btn-row">
-                                    <el-input size="large" v-model="flawInput" @input="searchColor"
-                                        placeholder="请输名称首字母或者名称" maxlength="15" show-word-limit />
-                                    <el-button size="large" v-if="showAddFlawBtn" type="primary" icon="Plus"
+                                    <el-input v-model="flawInput" @input="searchColor" placeholder="请输名称首字母或者名称"
+                                        maxlength="15" show-word-limit />
+                                    <el-button v-if="showAddFlawBtn" type="primary" icon="Plus"
                                         @click="addTag('PreCleaningFlaws', flawInput)">新增</el-button>
                                 </div>
                             </el-form-item>
@@ -170,25 +165,24 @@
                         </CheckboxGroup>
                     </el-scrollbar>
                     <el-row class="footer-btn">
-                        <el-button type="primary" size="large" color="#f5f7fa" icon="ArrowLeft"
-                            @click="preStep">上一步</el-button>
-                        <el-button type="primary" size="large" @click="nextStep">下一步
+                        <el-button type="primary" color="#f5f7fa" icon="ArrowLeft" @click="preStep">上一步</el-button>
+                        <el-button type="primary" @click="nextStep">下一步
                             <el-icon>
                                 <ArrowRight />
                             </el-icon>
                         </el-button>
-                        <el-button type="danger" size="large" icon="Refresh" @click="reset">重新录入</el-button>
-                        <el-button type="warning" size="large" icon="Promotion" @click="jump2last">跳过后续步骤</el-button>
+                        <el-button type="danger" icon="Refresh" @click="reset">重新录入</el-button>
+                        <el-button type="warning" icon="Promotion" @click="jump2last">跳过后续步骤</el-button>
                     </el-row>
                 </div>
                 <div class="step" :class="{ active: step === 4 }" key="step4">
                     <el-row>
                         <el-col :span="24">
-                            <el-form-item size="large" label="洗后预估">
+                            <el-form-item label="洗后预估">
                                 <div class="input-btn-row">
-                                    <el-input size="large" v-model="estimateInput" @input="searchColor"
-                                        placeholder="请输名称首字母或者名称" maxlength="15" show-word-limit />
-                                    <el-button size="large" v-if="showAddEstimateBtn" type="primary" icon="Plus"
+                                    <el-input v-model="estimateInput" @input="searchColor" placeholder="请输名称首字母或者名称"
+                                        maxlength="15" show-word-limit />
+                                    <el-button v-if="showAddEstimateBtn" type="primary" icon="Plus"
                                         @click="addTag('PostCleaningProjection', estimateInput)">新增</el-button>
                                 </div>
                             </el-form-item>
@@ -206,25 +200,24 @@
                         </CheckboxGroup>
                     </el-scrollbar>
                     <el-row class="footer-btn">
-                        <el-button type="primary" size="large" color="#f5f7fa" icon="ArrowLeft"
-                            @click="preStep">上一步</el-button>
-                        <el-button type="primary" size="large" @click="nextStep">下一步
+                        <el-button type="primary" color="#f5f7fa" icon="ArrowLeft" @click="preStep">上一步</el-button>
+                        <el-button type="primary" @click="nextStep">下一步
                             <el-icon>
                                 <ArrowRight />
                             </el-icon>
                         </el-button>
-                        <el-button type="danger" size="large" icon="Refresh" @click="reset">重新录入</el-button>
-                        <el-button type="warning" size="large" icon="Promotion" @click="jump2last">跳过后续步骤</el-button>
+                        <el-button type="danger" icon="Refresh" @click="reset">重新录入</el-button>
+                        <el-button type="warning" icon="Promotion" @click="jump2last">跳过后续步骤</el-button>
                     </el-row>
                 </div>
                 <div class="step" :class="{ active: step === 5 }" key="step5">
                     <el-row>
                         <el-col :span="24">
-                            <el-form-item size="large" label="品牌名称">
+                            <el-form-item label="品牌名称">
                                 <div class="input-btn-row">
-                                    <el-input size="large" v-model="brandInput" @input="searchColor"
-                                        placeholder="请输品牌名称首字母或者品牌名称" maxlength="20" show-word-limit />
-                                    <el-button size="large" v-if="showAddBrandBtn" type="primary" icon="Plus"
+                                    <el-input v-model="brandInput" @input="searchColor" placeholder="请输品牌名称首字母或者品牌名称"
+                                        maxlength="20" show-word-limit />
+                                    <el-button v-if="showAddBrandBtn" type="primary" icon="Plus"
                                         @click="addTag('Brand', brandInput)">新增</el-button>
                                 </div>
                             </el-form-item>
@@ -238,15 +231,14 @@
                         </div>
                     </el-scrollbar>
                     <el-row class="footer-btn">
-                        <el-button type="primary" size="large" color="#f5f7fa" icon="ArrowLeft"
-                            @click="preStep">上一步</el-button>
-                        <el-button type="primary" size="large" @click="nextStep">下一步
+                        <el-button type="primary" color="#f5f7fa" icon="ArrowLeft" @click="preStep">上一步</el-button>
+                        <el-button type="primary" @click="nextStep">下一步
                             <el-icon>
                                 <ArrowRight />
                             </el-icon>
                         </el-button>
-                        <el-button type="danger" size="large" icon="Refresh" @click="reset">重新录入</el-button>
-                        <el-button type="warning" size="large" icon="Promotion" @click="jump2last">跳过后续步骤</el-button>
+                        <el-button type="danger" icon="Refresh" @click="reset">重新录入</el-button>
+                        <el-button type="warning" icon="Promotion" @click="jump2last">跳过后续步骤</el-button>
                     </el-row>
                 </div>
                 <div class="step step6" :class="{ active: step === 6 }" key="step6">
@@ -280,8 +272,8 @@
                             </el-radio-group>
                             <div class="section-title">工艺加价</div>
                             <div class="process-markup">
-                                <el-input-number style="width: 14rem;" size="large" v-model="form.processMarkup"
-                                    :min="0" :max="6000" :precision="2" :value-on-clear="0" />元
+                                <el-input-number style="width: 14rem;" v-model="form.processMarkup" :min="0" :max="6000"
+                                    :precision="2" :value-on-clear="0" />元
                             </div>
                             <div class="section-title">备注信息</div>
                             <div class="step6-card">
@@ -317,9 +309,9 @@
                         </div>
                     </div>
                     <div class="footer-btn">
-                        <el-button type="danger" size="large" icon="Close" @click="reset">取消</el-button>
-                        <el-button type="primary" size="large" icon="Camera" @click="openCamera">拍照留档</el-button>
-                        <el-button type="success" size="large" icon="CircleCheck" @click="submitForm">
+                        <el-button type="danger" icon="Close" @click="reset">取消</el-button>
+                        <el-button type="primary" icon="Camera" @click="openCamera">拍照留档</el-button>
+                        <el-button type="success" icon="CircleCheck" @click="submitForm">
                             {{ form.clothId ? '确认修改' : '确认' }}
                         </el-button>
                     </div>

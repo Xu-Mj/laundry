@@ -237,7 +237,7 @@ function getClothInfo() {
             hangForm.value.hangerNumber = null;
             hangForm.value.hangRemark = null;
             hangupBtnDisabled.value = true;
-        } else if (currentCloth.value.clothingStatus === '02') {
+        } else if (currentCloth.value.clothingStatus === 'ReadyForPickup') {
             proxy.notify.warning("衣物编码关联的衣物已上挂");
             hangupBtnDisabled.value = true;
             hangForm.value = {
@@ -247,7 +247,7 @@ function getClothInfo() {
                 hangerNumber: currentCloth.value.hangerNumber,
                 hangRemark: currentCloth.value.hangRemark,
             };
-        } else if (currentCloth.value.clothingStatus !== '01') {
+        } else if (currentCloth.value.clothingStatus !== 'Processing') {
             // 只允许洗护中的衣物上挂
             proxy.notify.warning("只能上挂正在洗护的衣物");
             hangupBtnDisabled.value = true;

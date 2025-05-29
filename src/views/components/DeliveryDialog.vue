@@ -123,8 +123,8 @@
 
         <template #footer>
             <div class="dialog-footer">
-                <el-button class="hover-flow" size="large" @click="cancelDelivery">取消</el-button>
-                <el-button class="hover-flow" size="large" type="primary" @click="submitDelivery"
+                <el-button class="hover-flow" @click="cancelDelivery">取消</el-button>
+                <el-button class="hover-flow" type="primary" @click="submitDelivery"
                     :loading="loading">确认派送</el-button>
             </div>
         </template>
@@ -208,7 +208,7 @@ async function loadEligibleClothes() {
     try {
         // 如果有selectedCloths，先过滤它们
         if (props.selectedCloths && props.selectedCloths.length > 0) {
-            filteredCloths.value = props.selectedCloths.filter(item => item.clothingStatus === '02' || item.clothingStatus === '01');
+            filteredCloths.value = props.selectedCloths.filter(item => item.clothingStatus === 'ReadyForPickup' || item.clothingStatus === 'Processing');
         } else {
             // 否则从服务器加载该用户的所有可派送衣物
             const res = await listDeliveryEligibleClothes(props.user.userId);

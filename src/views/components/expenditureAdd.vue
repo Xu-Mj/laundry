@@ -17,7 +17,7 @@
                     <span>支出类型</span>
                 </div>
                 <el-form-item prop="expType" class="type-selector">
-                    <el-radio-group v-model="form.expType" size="large">
+                    <el-radio-group v-model="form.expType">
                         <el-radio-button v-for="dict in sys_exp_type" :key="dict.value" :label="dict.value">
                             {{ dict.label }}
                         </el-radio-button>

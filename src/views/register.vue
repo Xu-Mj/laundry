@@ -1,6 +1,6 @@
 <template>
   <div class="close-btn">
-    <el-button link icon="Close" size="large" @click="closeWindow" />
+    <el-button link icon="Close" @click="closeWindow" />
   </div>
   <WaveBackground />
   <SunRays position="top-right" />
@@ -24,7 +24,7 @@
 
         <!-- 商家名称 -->
         <el-form-item prop="name" class="custom-form-item">
-          <el-input v-model="registerForm.name" type="text" size="large" auto-complete="off" placeholder="商家名称"
+          <el-input v-model="registerForm.name" type="text" auto-complete="off" placeholder="商家名称"
             class="custom-input">
             <template #prefix><el-icon class="input-icon">
                 <OfficeBuilding />
@@ -34,7 +34,7 @@
 
         <!-- 联系人姓名 -->
         <el-form-item prop="ownerName" class="custom-form-item">
-          <el-input v-model="registerForm.ownerName" type="text" size="large" auto-complete="off" placeholder="店主姓名"
+          <el-input v-model="registerForm.ownerName" type="text" auto-complete="off" placeholder="店主姓名"
             class="custom-input">
             <template #prefix><svg-icon icon-class="user" class="input-icon" /></template>
           </el-input>
@@ -42,7 +42,7 @@
 
         <!-- 手机号 -->
         <el-form-item prop="ownerPhone" class="custom-form-item">
-          <el-input v-model="registerForm.ownerPhone" type="text" size="large" auto-complete="off" placeholder="手机号码"
+          <el-input v-model="registerForm.ownerPhone" type="text" auto-complete="off" placeholder="手机号码"
             class="custom-input">
             <template #prefix><svg-icon icon-class="phone" class="input-icon" /></template>
           </el-input>
@@ -51,7 +51,7 @@
         <!-- 短信验证码 -->
         <el-form-item prop="verificationCode" class="">
           <div class="sms-code-item">
-            <el-input v-model="registerForm.verificationCode" type="text" size="large" auto-complete="off"
+            <el-input v-model="registerForm.verificationCode" type="text" auto-complete="off"
               placeholder="短信验证码" class="custom-input sms-input">
               <template #prefix><svg-icon icon-class="validCode" class="input-icon" /></template>
             </el-input>
@@ -64,7 +64,7 @@
         <!-- 商家地址 - 省市区选择 -->
         <el-form-item prop="addressRegion" class="custom-form-item">
           <el-cascader v-model="registerForm.addressRegion" :options="regionData" placeholder="请选择省/市/区"
-            class="custom-cascader" size="large" :props="{
+            class="custom-cascader" :props="{
               checkStrictly: false,
               value: 'value',
               label: 'label',
@@ -79,7 +79,7 @@
 
         <!-- 详细地址 -->
         <el-form-item prop="addressdetail" class="custom-form-item">
-          <el-input v-model="registerForm.addressdetail" type="text" size="large" auto-complete="off"
+          <el-input v-model="registerForm.addressdetail" type="text" auto-complete="off"
             placeholder="请输入详细地址（街道、门牌号等）" class="custom-input">
             <template #prefix><el-icon class="input-icon">
                 <Location />
@@ -89,7 +89,7 @@
 
         <!-- 密码 -->
         <el-form-item prop="password" class="custom-form-item">
-          <el-input v-model="registerForm.password" type="password" size="large" auto-complete="off" placeholder="密码"
+          <el-input v-model="registerForm.password" type="password" auto-complete="off" placeholder="密码"
             class="custom-input">
             <template #prefix><svg-icon icon-class="password" class="input-icon" /></template>
           </el-input>
@@ -97,7 +97,7 @@
 
         <!-- 确认密码 -->
         <el-form-item prop="confirmPassword" class="custom-form-item">
-          <el-input v-model="registerForm.confirmPassword" type="password" size="large" auto-complete="off"
+          <el-input v-model="registerForm.confirmPassword" type="password" auto-complete="off"
             placeholder="确认密码" class="custom-input">
             <template #prefix><svg-icon icon-class="password" class="input-icon" /></template>
           </el-input>
@@ -105,7 +105,7 @@
 
         <!-- 图形验证码 -->
         <el-form-item prop="code" v-if="captchaEnabled" class="custom-form-item captcha-item">
-          <el-input v-model="registerForm.code" ref="codeInput" size="large" auto-complete="off" placeholder="验证码"
+          <el-input v-model="registerForm.code" ref="codeInput" auto-complete="off" placeholder="验证码"
             class="custom-input captcha-input">
             <template #prefix><svg-icon icon-class="validCode" class="input-icon" /></template>
           </el-input>
@@ -116,7 +116,7 @@
 
         <!-- 注册按钮 -->
         <el-form-item class="register-button-item">
-          <el-button :loading="loading" size="large" type="primary" class="register-button"
+          <el-button :loading="loading" type="primary" class="register-button"
             @click.prevent="handleRegister">
             <span v-if="!loading">提交注册</span>
             <span v-else>提交中...</span>

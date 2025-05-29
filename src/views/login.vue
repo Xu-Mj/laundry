@@ -1,6 +1,6 @@
 <template>
   <div class="close-btn">
-    <el-button link icon="Close" size="large" @click="closeWindow" />
+    <el-button link icon="Close" @click="closeWindow" />
   </div>
   <WaveBackground />
   <SunRays position="top-right" />
@@ -13,19 +13,19 @@
       </div>
       <el-form ref="loginRef" :model="loginForm" :rules="loginRules" class="login-form">
         <el-form-item prop="account" class="custom-form-item">
-          <el-input v-model="loginForm.account" type="text" size="large" auto-complete="off" placeholder="账号"
+          <el-input v-model="loginForm.account" type="text" auto-complete="off" placeholder="账号"
             class="custom-input">
             <template #prefix><svg-icon icon-class="user" class="input-icon" /></template>
           </el-input>
         </el-form-item>
         <el-form-item prop="password" class="custom-form-item">
-          <el-input v-model="loginForm.password" type="password" size="large" auto-complete="off" placeholder="密码"
+          <el-input v-model="loginForm.password" type="password" auto-complete="off" placeholder="密码"
             @keyup.enter="handleLogin" class="custom-input">
             <template #prefix><svg-icon icon-class="password" class="input-icon" /></template>
           </el-input>
         </el-form-item>
         <el-form-item prop="code" v-if="captchaEnabled" class="custom-form-item captcha-item">
-          <el-input v-model="loginForm.code" ref="codeInput" size="large" auto-complete="off" placeholder="验证码"
+          <el-input v-model="loginForm.code" ref="codeInput" auto-complete="off" placeholder="验证码"
             @keyup.enter="handleLogin" class="custom-input captcha-input">
             <template #prefix><svg-icon icon-class="validCode" class="input-icon" /></template>
           </el-input>
@@ -40,7 +40,7 @@
           </el-button>
         </div>
         <el-form-item style="width: 100%;">
-          <el-button id="loginButton" ref="loginButton" style="width: 100%;" :loading="loading" size="large"
+          <el-button id="loginButton" ref="loginButton" style="width: 100%;" :loading="loading"
             type="primary" class="login-button" @click.prevent="handleLogin">
             <span v-if="!loading">登录</span>
             <span v-else>登录中...</span>

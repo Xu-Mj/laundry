@@ -5,25 +5,25 @@
       <transition name="height-fade">
          <el-card class="search-card" v-show="showSearch">
             <el-form :model="queryParams" ref="queryRef" :inline="true" label-width="68px">
-               <el-form-item label="会员账号" prop="userName" size="large">
-                  <el-input size="large" v-model="queryParams.userName" placeholder="请输入会员账号" clearable
+               <el-form-item label="会员账号" prop="userName">
+                  <el-input v-model="queryParams.userName" placeholder="请输入会员账号" clearable
                      style="width: 240px" @keyup.enter="handleQuery" />
                </el-form-item>
-               <el-form-item label="手机号码" prop="phonenumber" size="large">
-                  <el-input size="large" v-model="queryParams.phonenumber" placeholder="请输入手机号码" clearable
+               <el-form-item label="手机号码" prop="phonenumber">
+                  <el-input v-model="queryParams.phonenumber" placeholder="请输入手机号码" clearable
                      style="width: 240px" @keyup.enter="handleQuery" @input="handleTelQuery" type="number"
                      onkeypress="return event.charCode >= 48 && event.charCode <= 57" />
                </el-form-item>
-               <el-form-item label="会员等级" prop="levelName" size="large">
-                  <el-select size="large" v-model="queryParams.levelId" placeholder="会员等级" clearable
+               <el-form-item label="会员等级" prop="levelName">
+                  <el-select v-model="queryParams.levelId" placeholder="会员等级" clearable
                      style="width: 240px">
                      <el-option v-for="item in levelOptions" :key="item.levelId" :label="item.levelName"
                         :value="item.levelId" :disabled="item.status == 1"></el-option>
                   </el-select>
                </el-form-item>
                <el-form-item>
-                  <el-button type="primary" icon="Search" @click="handleQuery" size="large">搜索</el-button>
-                  <el-button icon="Refresh" @click="resetQuery" size="large">重置</el-button>
+                  <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
+                  <el-button icon="Refresh" @click="resetQuery">重置</el-button>
                </el-form-item>
             </el-form>
          </el-card>
@@ -49,35 +49,24 @@
                <el-empty description="暂无数据" />
             </template>
             <el-table-column type="selection" width="50" align="center" />
-            <!-- <el-table-column label="会员编号" align="center" key="userId" prop="userId" v-if="columns[0].visible" /> -->
+
+            <el-table-column label="会员账号" align="center" key="userName" prop="userName" v-if="columns[0].visible"
+               :show-overflow-tooltip="true" />
+
             <el-table-column label="会员姓名" align="center" v-if="columns[1].visible">
                <template #default="scope">
                   <el-tooltip content="查看会员详情" placement="top">
-                     <el-button link type="primary" @click="showUserInfo(scope.row)">{{ scope.row.nickName
-                        }}</el-button>
+                     <el-button link type="primary" @click="showUserInfo(scope.row)">
+                        {{ scope.row.nickName }}
+                     </el-button>
                   </el-tooltip>
                </template>
             </el-table-column>
-            <el-table-column label="会员账号" align="center" key="userName" prop="userName" v-if="columns[0].visible"
-               :show-overflow-tooltip="true" />
+
             <el-table-column label="手机号码" align="center" key="phonenumber" prop="phonenumber" v-if="columns[2].visible"
                width="120" />
-            <el-table-column label="会员类型" align="center" key="userType" prop="userType" v-if="columns[3].visible">
-               <template #default="scope">
-                  <dict-tag :options="sys_user_type" :value="scope.row.userType" />
-               </template>
-            </el-table-column>
-            <!-- <el-table-column label="会员组织" align="center" key="deptName" prop="dept.deptName" v-if="columns[3].visible"
-         :show-overflow-tooltip="true" /> -->
-            <el-table-column label="微信标识" align="center" prop="openId" :show-overflow-tooltip="true"
-               v-if="columns[9].visible" />
-            <el-table-column label="性别" align="center" key="sex" v-if="columns[10].visible">
-               <template #default="scope">
-                  <dict-tag :options="sys_user_sex" :value="scope.row.sex" />
-               </template>
-            </el-table-column>
-            <el-table-column label="会员住址" align="center" key="address" prop="address" v-if="columns[14].visible" />
-            <el-table-column label="余额" align="center" prop="balance" v-if="columns[15].visible">
+
+            <el-table-column label="余额" align="center" prop="balance" v-if="columns[14].visible">
                <template #default="scope">
                   <span style="color: red;">
                      {{ scope.row.balance }}
@@ -85,17 +74,40 @@
                   元
                </template>
             </el-table-column>
-            <el-table-column label="会员积分" align="center" prop="integral" v-if="columns[11].visible" />
-            <!-- <el-table-column label="会员积分" align="center" v-if="columns[11].visible">
+
+            <el-table-column label="会员类型" align="center" key="userType" prop="userType" v-if="columns[3].visible">
                <template #default="scope">
-                  <el-tooltip content="查看历史记录" placement="top">
-                     <el-button type="primary" link @click="queryIntegralList(scope.row.userId)">
-                        {{ scope.row.integral }}</el-button>
-                  </el-tooltip>
+                  <dict-tag :options="sys_user_type" :value="scope.row.userType" />
                </template>
-            </el-table-column> -->
-            <el-table-column label="会员等级" align="center" key="levelName" prop="levelName" v-if="columns[7].visible" />
-            <el-table-column label="会员画像" align="center" key="userTags" prop="userTags" v-if="columns[12].visible">
+            </el-table-column>
+
+            <el-table-column label="账号状态" align="center" key="status" v-if="columns[4].visible">
+               <template #default="scope">
+                  <el-switch v-model="scope.row.status" active-value="0" inactive-value="1"
+                     @change="handleStatusChange(scope.row)"></el-switch>
+               </template>
+            </el-table-column>
+
+            <el-table-column label="创建时间" align="center" prop="createTime" v-if="columns[5].visible">
+               <template #default="scope">
+                  <span>{{ parseTime(scope.row.createTime) }}</span>
+               </template>
+            </el-table-column>
+
+            <el-table-column label="会员等级" align="center" key="levelName" prop="levelName" v-if="columns[6].visible" />
+
+            <el-table-column label="微信标识" align="center" prop="openId" :show-overflow-tooltip="true"
+               v-if="columns[8].visible" />
+
+            <el-table-column label="性别" align="center" key="sex" v-if="columns[9].visible">
+               <template #default="scope">
+                  <dict-tag :options="sys_user_sex" :value="scope.row.sex" />
+               </template>
+            </el-table-column>
+
+            <el-table-column label="会员积分" align="center" prop="integral" v-if="columns[10].visible" />
+
+            <el-table-column label="会员画像" align="center" key="userTags" prop="userTags" v-if="columns[11].visible">
                <template #default="scope">
                   <!-- 如果 userTags 不为空，则显示 dict-tag，并设置 el-tooltip -->
                   <template v-if="scope.row.userTags && scope.row.userTags.trim() !== ''">
@@ -118,31 +130,21 @@
                   </template>
                </template>
             </el-table-column>
-            <el-table-column label="黑灰名单" align="center" key="identify" v-if="columns[13].visible">
+
+            <el-table-column label="黑灰名单" align="center" key="identify" v-if="columns[12].visible">
                <template #default="scope">
-                  <el-select v-model="scope.row.identify" @change="handleIdentifyChange(scope.row)" size="small" class="identify-select">
-                     <el-option
-                         v-for="dict in sys_user_identify"
-                         :key="dict.value"
-                         :label="dict.label"
-                         :value="dict.value"
-                     />
+                  <el-select v-model="scope.row.identify" @change="handleIdentifyChange(scope.row)" size="small"
+                     class="identify-select">
+                     <el-option v-for="dict in sys_user_identify" :key="dict.value" :label="dict.label"
+                        :value="dict.value" />
                   </el-select>
                </template>
             </el-table-column>
-            <el-table-column label="账号状态" align="center" key="status" v-if="columns[4].visible">
-               <template #default="scope">
-                  <el-switch v-model="scope.row.status" active-value="0" inactive-value="1"
-                     @change="handleStatusChange(scope.row)"></el-switch>
-               </template>
-            </el-table-column>
-            <el-table-column label="创建时间" align="center" prop="createTime" v-if="columns[5].visible">
-               <template #default="scope">
-                  <span>{{ parseTime(scope.row.createTime) }}</span>
-               </template>
-            </el-table-column>
+
+            <el-table-column label="会员住址" align="center" key="address" prop="address" v-if="columns[13].visible" />
+
             <el-table-column label="备注信息" align="center" prop="remark" show-overflow-tooltip
-               v-if="columns[8].visible" />
+               v-if="columns[7].visible" />
             <el-table-column label="操作" align="center" width="150" class-name="small-padding fixed-width">
                <template #default="scope">
                   <el-tooltip content="编辑" placement="top">
@@ -226,16 +228,15 @@ const columns = ref([
    { key: 3, label: `会员类型`, visible: false },
    { key: 4, label: `账号状态`, visible: false },
    { key: 5, label: `创建时间`, visible: false },
-   { key: 6, label: `会员类型`, visible: false },
-   { key: 7, label: `会员等级`, visible: true },
-   { key: 8, label: `备注信息`, visible: true },
-   { key: 9, label: `微信标识`, visible: false },
-   { key: 10, label: `性别`, visible: false },
-   { key: 11, label: `会员积分`, visible: true },
-   { key: 12, label: `会员画像`, visible: true },
-   { key: 13, label: `黑灰名单`, visible: false },
-   { key: 14, label: `会员住址`, visible: false },
-   { key: 15, label: `余额`, visible: true },
+   { key: 6, label: `会员等级`, visible: true },
+   { key: 7, label: `备注信息`, visible: true },
+   { key: 8, label: `微信标识`, visible: false },
+   { key: 9, label: `性别`, visible: false },
+   { key: 10, label: `会员积分`, visible: true },
+   { key: 11, label: `会员画像`, visible: true },
+   { key: 12, label: `黑灰名单`, visible: false },
+   { key: 13, label: `会员住址`, visible: false },
+   { key: 14, label: `余额`, visible: true },
 ]);
 
 const data = reactive({
@@ -247,17 +248,10 @@ const data = reactive({
       phonenumber: undefined,
       levelName: undefined,
       deptId: undefined
-   },
-   rules: {
-      userName: [{ min: 2, max: 20, message: "会员账号长度必须介于 4 和 30 之间", trigger: "blur" }],
-      nickName: [{ required: true, message: "会员姓名不能为空", trigger: "blur" }],
-      password: [{ required: true, message: "会员密码不能为空", trigger: "blur" }, { min: 5, max: 20, message: "会员密码长度必须介于 5 和 20 之间", trigger: "blur" }, { pattern: /^[^<>"'|\\]+$/, message: "不能包含非法字符：< > \" ' \\\ |", trigger: "blur" }],
-      email: [{ type: "email", message: "请输入正确的邮箱地址", trigger: ["blur", "change"] }],
-      phonenumber: [{ required: true, message: "手机号不能为空", trigger: "blur" }, { pattern: /^1[3|4|5|6|7|8|9][0-9]\d{8}$/, message: "请输入正确的手机号码", trigger: "blur" }]
    }
 });
 
-const { queryParams, form, rules } = toRefs(data);
+const { queryParams, form } = toRefs(data);
 
 // Save column visibility to local storage
 const saveColumnVisibility = () => {
@@ -369,7 +363,7 @@ function handleIdentifyChange(row) {
       '02': '加入灰名单'
    };
    const text = identifyMap[row.identify] || '正常';
-   
+
    proxy.$modal.confirm('确认要将"' + row.userName + '"会员' + (row.identify !== '00' ? '设为' + text : '移出黑灰名单') + '吗?').then(function () {
       return changeUserIdentify(row.userId, row.identify);
    }).then(() => {

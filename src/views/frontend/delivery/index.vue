@@ -74,12 +74,11 @@
         </el-table-column>
         <el-table-column label="操作" align="center" width="180" class-name="small-padding fixed-width">
           <template #default="scope">
-            <el-button type="text" icon="View" @click="handleView(scope.row)"
-              v-hasPermi="['system:delivery:query']">查看</el-button>
+            <el-button type="text" icon="View" @click="handleView(scope.row)">查看</el-button>
             <el-button v-if="scope.row.deliveryStatus === '00' || scope.row.deliveryStatus === '01'" type="text"
-              icon="Check" @click="handleComplete(scope.row)" v-hasPermi="['system:delivery:edit']">完成</el-button>
+              icon="Check" @click="handleComplete(scope.row)">完成</el-button>
             <el-button v-if="scope.row.deliveryStatus === '00' || scope.row.deliveryStatus === '01'" type="text"
-              icon="Close" @click="handleCancel(scope.row)" v-hasPermi="['system:delivery:remove']">取消</el-button>
+              icon="Close" @click="handleCancel(scope.row)">取消</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -95,7 +94,7 @@
         <div class="detail-header">
           <div class="status-container">
             <span class="status-label">派送状态:</span>
-            <el-tag class="status-tag" :type="getStatusType(deliveryDetail.deliveryStatus)" size="large" effect="light">
+            <el-tag class="status-tag" :type="getStatusType(deliveryDetail.deliveryStatus)" effect="light">
               {{ getStatusLabel(deliveryDetail.deliveryStatus) }}
             </el-tag>
           </div>
@@ -129,7 +128,7 @@
           <el-table :data="clothesList" size="default" border class="items-table">
             <el-table-column prop="clothInfo.title" label="衣物名称" min-width="120" show-overflow-tooltip />
             <el-table-column prop="hangClothCode" label="衣物编码" width="120" align="center" />
-            <el-table-column prop="clothingStatus" label="衣物状态" width="100" align="center" >
+            <el-table-column prop="clothingStatus" label="衣物状态" width="100" align="center">
               <template #default="scope">
                 <el-tag :type="getStatusType(scope.row.clothingStatus)">
                   {{ getStatusLabel(scope.row.clothingStatus) }}
@@ -233,10 +232,6 @@ const showSearch = ref(true);
 const total = ref(0);
 // 派送列表
 const deliveryList = ref([]);
-// 弹出层标题
-const title = ref("");
-// 是否显示弹出层
-const open = ref(false);
 // 查看详情弹窗
 const viewVisible = ref(false);
 // 创建派送弹窗
@@ -259,22 +254,15 @@ const deliveryForm = ref({
   clothIds: [],
   remark: ''
 });
-// 表单校验规则
-const rules = {
-  userId: [{ required: true, message: '请选择客户', trigger: 'change' }],
-  address: [{ required: true, message: '请输入派送地址', trigger: 'blur' }],
-  dispatchTime: [{ required: true, message: '请选择派送时间', trigger: 'change' }],
-  clothIds: [{ required: true, type: 'array', min: 1, message: '请至少选择一件衣物', trigger: 'change' }]
-};
+
 // 表单引用
 const deliveryFormRef = ref(null);
 
 // 派送状态选项
 const deliveryStatusOptions = [
-  // { dictLabel: '待派送', dictValue: '04' },
-  { dictLabel: '派送中', dictValue: '04' },
-  { dictLabel: '已完成', dictValue: '05' },
-  { dictLabel: '已取消', dictValue: '06' }
+  { dictLabel: '派送中', dictValue: 'Delivering' },
+  { dictLabel: '已完成', dictValue: 'DeliveryCompleted' },
+  { dictLabel: '已取消', dictValue: 'DeliveryCancelled' }
 ];
 
 // 查询参数
@@ -535,17 +523,6 @@ onMounted(() => {
 
 .table-card {
   margin-bottom: 20px;
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.card-header-text {
-  font-size: 16px;
-  font-weight: 600;
 }
 
 .user-info {

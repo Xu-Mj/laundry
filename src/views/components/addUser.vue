@@ -1,5 +1,5 @@
 <template>
-    <el-dialog :align-center="true" v-model="props.visible" width="650px" append-to-body :show-close="false"
+    <el-dialog align-center v-model="props.visible" width="650px" append-to-body :show-close="false"
         :close-on-click-modal="false" :close-on-press-escape="false">
         <template #header>
             <div class="dialog-header  hover-flow">

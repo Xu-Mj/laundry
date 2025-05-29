@@ -464,12 +464,6 @@ const handleSmsSubscribe = () => {
   transition: all 0.3s;
 }
 
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
 .subscription-info {
   padding: 16px 0;
 }

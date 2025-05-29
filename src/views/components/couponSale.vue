@@ -45,7 +45,7 @@
             <el-table-column label="卡券类型" align="center" key="couponType" prop="couponType">
                 <template #default="scope">
                     <el-tag :type="CouponTypeMap[scope.row.couponType]?.type">
-                        {{ CouponTypeMap[scope.row.couponType].label }}
+                        {{ CouponTypeMap[scope.row.couponType]?.label }}
                     </el-tag>
                 </template>
             </el-table-column>
@@ -65,20 +65,15 @@
         </el-row>
         <el-form-item class="payment-method-section">
             <el-radio-group v-model="sellForm.paymentMethod" class="payment-method-group">
-                <template v-for="dict in sys_coupon_payment_method" :key="dict.value">
-                    <template v-if="dict.value == '06'">
-                        <el-radio v-if="props.couponTypeList.has('000')" :value="dict.value"
-                            class="payment-method-radio">
-                            <div class="payment-method-card"
-                                :class="{ 'selected': sellForm.paymentMethod === dict.value }">
-                                <el-icon>
-                                    <CreditCard />
-                                </el-icon>
-                                <span>{{ dict.label }}</span>
-                            </div>
-                        </el-radio>
-                    </template>
-                    <template v-else-if="dict.value == '07'">
+                    <el-radio v-for="dict in CouponPaymentMethod" :key="dict.value" :value="dict.value" class="payment-method-radio">
+                        <div class="payment-method-card" :class="{ 'selected': sellForm.paymentMethod === dict.value }">
+                            <el-icon>
+                                <component :is="dict.icon" />
+                            </el-icon>
+                            <span>{{ dict.label }}</span>
+                        </div>
+                    </el-radio>
+                    <!-- <template v-else-if="dict.value == '07'">
                         <el-radio v-if="props.couponTypeList.has('002')" :value="dict.value"
                             class="payment-method-radio">
                             <div class="payment-method-card"
@@ -108,7 +103,7 @@
                             <span>{{ dict.label }}</span>
                         </div>
                     </el-radio>
-                </template>
+                </template> -->
             </el-radio-group>
         </el-form-item>
         <el-row>
@@ -126,8 +121,8 @@
         </div>
 
         <div class="footer-btn">
-            <el-button type="danger" size="large" @click="props.taggle()">取消</el-button>
-            <el-button type="primary" size="large" @click="buy">立即购买</el-button>
+            <el-button type="danger" @click="props.taggle()">取消</el-button>
+            <el-button type="primary" @click="buy">立即购买</el-button>
         </div>
     </el-form>
     <Information :user="currentUser" :visible="showInfoDialog" :key="showInfoDialog"
@@ -140,7 +135,7 @@ import { getUser, listUserWithNoLimit, addUser } from "@/api/system/user";
 import Information from "@/views/frontend/user/information.vue";
 import eventBus from "@/utils/eventBus";
 import { ref, computed } from "vue";
-import { CouponTypeMap } from "@/constants"
+import { CouponTypeMap, CouponPaymentMethod } from "@/constants"
 
 const props = defineProps({
     userId: {
@@ -167,8 +162,6 @@ const props = defineProps({
 
 const { proxy } = getCurrentInstance();
 
-const { sys_coupon_payment_method } = proxy.useDict("sys_coupon_payment_method");
-
 const couponList = ref([]);
 const loading = ref(true);
 const user = ref({});
@@ -192,7 +185,7 @@ const data = reactive({
     form: {},
     sellForm: {
         userId: props.userId,
-        paymentMethod: "05"
+        paymentMethod: "Alipay"
     },
     selectedList: [],
     rules: {
@@ -310,7 +303,7 @@ function resetSellForm() {
         userId: props.userId,
         coupons: null,
         remark: null,
-        paymentMethod: "05"
+        paymentMethod: "Alipay"
     };
     proxy.resetForm("sellFormRef");
 }
@@ -440,6 +433,7 @@ onMounted(async () => {
     border-radius: 8px;
     padding: 15px;
     box-shadow: var(--el-box-shadow);
+    overflow: hidden;
 }
 
 .section-title {

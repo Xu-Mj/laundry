@@ -18,7 +18,7 @@
                     <el-form-item>
                         <div class="password-container">
                             <el-input v-model="password" type="password" placeholder="请输入密码" autofocus
-                                @keyup.enter="isPasswordValid && handleUnlock" size="large" ref="passwordInput"
+                                @keyup.enter="isPasswordValid && handleUnlock" ref="passwordInput"
                                 :class="['password-input', { 'shake': isShaking }]" :disabled="isLockoutActive">
                                 <template #prefix><svg-icon icon-class="password" class="input-icon" /></template>
                             </el-input>

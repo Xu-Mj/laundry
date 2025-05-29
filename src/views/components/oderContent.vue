@@ -14,8 +14,8 @@
             </el-form-item>
             <el-form-item label="手机号" prop="phonenumber">
                 <el-input ref="phonenumber" style="width: 200px;" v-model="queryParams.phonenumber"
-                    placeholder="请输入会员手机号" clearable @keyup.enter="handleQuery" type="number"
-                    class="no-spinner" @mousewheel.native.prevent @DOMMouseScroll.native.prevent>
+                    placeholder="请输入会员手机号" clearable @keyup.enter="handleQuery" type="number" class="no-spinner"
+                    @mousewheel.native.prevent @DOMMouseScroll.native.prevent>
                     <template #prefix>
                         <el-icon>
                             <Phone />
@@ -44,8 +44,8 @@
                 </el-input>
             </el-form-item>
             <el-form-item label="支付状态" prop="paymentStatus">
-                <el-select v-model="queryParams.paymentStatus" @change="handleQuery" clearable
-                    style="width: 120px;" placeholder="请选择">
+                <el-select v-model="queryParams.paymentStatus" @change="handleQuery" clearable style="width: 120px;"
+                    placeholder="请选择">
                     <template #prefix>
                         <el-icon>
                             <Warning />
@@ -56,8 +56,7 @@
                 </el-select>
             </el-form-item>
             <el-form-item>
-                <el-button class="hover-flow" type="primary" icon="Search" @click="handleQuery"
-                    round>搜索</el-button>
+                <el-button class="hover-flow" type="primary" icon="Search" @click="handleQuery" round>搜索</el-button>
                 <el-button class="hover-flow" icon="Refresh" @click="resetQuery" round>重置</el-button>
             </el-form-item>
         </el-form>
@@ -130,7 +129,7 @@
                             <div class="cloth-name">
                                 {{ scope.row.clothInfo.title }}
                                 <span v-if="scope.row.clothingColor" class="cloth-color">
-                                    {{colorList.find(item => item.tagId == scope.row.clothingColor).tagName}}
+                                    {{colorList.find(item => item.tagId == scope.row.clothingColor)?.tagName}}
                                 </span>
                             </div>
                         </template>
@@ -144,11 +143,11 @@
                         <template #default="scope">
                             <span class="service-type">
                                 <el-tag :type="ServiceTypeMap[scope.row.serviceType]?.type">
-                                    {{ scope.row.serviceType }}
+                                    {{ ServiceTypeMap[scope.row.serviceType]?.label }}
                                 </el-tag>
                                 <el-divider direction="vertical" class="vertical-divider" />
-                                <el-tag :type="ServiceRequirmentType[scope.row.serviceRequirement]?.type">
-                                    {{ scope.row.serviceRequirement }}
+                                <el-tag :type="ServiceRequirmentMap[scope.row.serviceRequirement]?.type">
+                                    {{ ServiceRequirmentMap[scope.row.serviceRequirement]?.label }}
                                 </el-tag>
                             </span>
                         </template>
@@ -171,7 +170,7 @@
                             <div class="tag-container">
                                 <el-tag v-for="tagId in scope.row.clothingFlaw ? scope.row.clothingFlaw.split(',') : []"
                                     :key="tagId" type="danger" size="small" effect="light">
-                                    {{flawList.find(item => item.tagId == tagId).tagName}}
+                                    {{flawList.find(item => item.tagId == tagId)?.tagName}}
                                 </el-tag>
                                 <span v-if="!scope.row.clothingFlaw">-</span>
                             </div>
@@ -182,7 +181,7 @@
                             <div class="tag-container">
                                 <el-tag v-for="tagId in scope.row.estimate ? scope.row.estimate.split(',') : []"
                                     :key="tagId" type="info" size="small" effect="light">
-                                    {{estimateList.find(item => item.tagId == tagId).tagName}}
+                                    {{estimateList.find(item => item.tagId == tagId)?.tagName}}
                                 </el-tag>
                                 <span v-if="!scope.row.estimate">-</span>
                             </div>
@@ -191,7 +190,7 @@
                     <el-table-column label="衣物品牌" align="center" prop="clothingBrand" width="100">
                         <template #default="scope">
                             <el-tag v-if="scope.row.clothingBrand" type="success" size="small" effect="light">
-                                {{brandList.find(item => item.tagId == scope.row.clothingBrand).tagName}}
+                                {{brandList.find(item => item.tagId == scope.row.clothingBrand)?.tagName}}
                             </el-tag>
                             <span v-else>-</span>
                         </template>
@@ -212,7 +211,7 @@
                     <el-table-column label="洗护状态" align="center" prop="clothingStatus" width="100">
                         <template #default="scope">
                             <el-tag :type="ClothStatusMap[scope.row.clothingStatus]?.type">
-                                {{ scope.row.clothingStatus }}
+                                {{ ClothStatusMap[scope.row.clothingStatus]?.label }}
                             </el-tag>
                         </template>
                     </el-table-column>
@@ -293,7 +292,7 @@ import Pay from "./pay.vue";
 import DeliveryDialog from "./DeliveryDialog.vue";
 import CompensationDialog from "@/views/components/CompensationDialog.vue";
 import useTagsStore from "@/store/modules/tags";
-import { PaymentMethodMap, ServiceRequirmentType, ServiceTypeMap, ClothStatusMap, PaymentStatus, PaymentStatusMap, OrderStatusMap } from "@/constants";
+import { PaymentMethodMap, ServiceRequirmentMap, ServiceTypeMap, ClothStatusMap, PaymentStatus, PaymentStatusMap, OrderStatusMap } from "@/constants";
 
 
 const props = defineProps({
@@ -345,18 +344,62 @@ const data = reactive({
 });
 
 const { queryParams } = toRefs(data);
+// 用户校验函数
+function validateSameUser() {
+    if (selectedCloths.value.length === 0) {
+        proxy.notify.warning("请先选择衣物");
+        return false;
+    }
 
+    // 获取选中衣物所属的用户ID
+    const userIds = [...new Set(selectedCloths.value.map(cloth => {
+        const order = ordersList.value.find(o => o.orderId === cloth.orderId);
+        return order ? order.userId : null;
+    }))];
+
+    // 检查是否存在无效的用户ID
+    if (userIds.includes(null)) {
+        proxy.notify.error("选中的衣物中存在无效订单");
+        return false;
+    }
+
+    // 检查是否跨用户操作
+    if (userIds.length > 1) {
+        proxy.notify.warning("不能同时操作不同用户的衣物，请重新选择");
+        return false;
+    }
+
+    return true;
+}
 async function go2pay(row) {
     orders.value = [row];
     showPaymentDialog.value = true;
 }
 
 async function handlePay() {
-    if (ordersList.value.length == 0) {
-        proxy.notify.warning("没有可支付的订单或可取走的衣物");
-        return;
+    // if (ordersList.value.length == 0) {
+    //     proxy.notify.warning("没有可支付的订单或可取走的衣物");
+    //     return;
+    // }
+    // 如果没有选中衣物，检查是否有订单
+    if (selectedCloths.value.length === 0) {
+        if (ordersList.value.length == 0) {
+            proxy.notify.warning("没有可支付的订单或可取走的衣物");
+            return;
+        }
+        
+        // 检查所有订单是否属于同一用户
+        const userIds = [...new Set(ordersList.value.map(order => order.userId))];
+        if (userIds.length > 1) {
+            proxy.notify.warning("当前查询结果包含多个用户的订单，请选择具体衣物进行操作");
+            return;
+        }
+    } else {
+        // 如果选中了衣物，进行用户校验
+        if (!validateSameUser()) {
+            return;
+        }
     }
-
     // 遍历订单列表
     // 1. 没有选中衣物，只是支付
     if (selectedCloths.value.length == 0) {
@@ -385,6 +428,11 @@ async function pickup(cloth) {
     if (cloth) {
         selectedCloths.value = [cloth];
     }
+     // 用户校验
+     if (!validateSameUser()) {
+        return;
+    }
+
     console.log(selectedCloths.value)
     const cloths = selectedCloths.value.filter(item => item.clothingStatus !== 'PickedUp');
     if (cloths.length == 0) {
@@ -413,7 +461,7 @@ async function pickup(cloth) {
     const orderIds = cloths.map(item => item.orderId);
 
     // 判断是否包含未支付的订单
-    const unpaidOrders = ordersList.value.filter(item => orderIds.includes(item.orderId) && item.paymentStatus !== 'PickedUp');
+    const unpaidOrders = ordersList.value.filter(item => orderIds.includes(item.orderId) && item.paymentStatus !== 'Paid');
     if (unpaidOrders.length > 0) {
         // 弹出询问是否确认取走
         proxy.$modal.confirm("当前选中衣物有未支付订单，是否确认取走？").then(async () => {
@@ -482,6 +530,10 @@ function handleCompensate(cloth) {
         proxy.notify.warning("请先选择需要赔偿的衣物");
         return;
     }
+ // 用户校验
+    if (!validateSameUser()) {
+        return;
+    }
 
     // 检查是否有衣物状态为已完成洗护的衣物
     const validCloths = selectedCloths.value.filter(item => item.clothingStatus === 'ReadyForPickup');
@@ -522,6 +574,10 @@ function handleDelivery() {
         return;
     }
 
+ // 用户校验
+    if (!validateSameUser()) {
+        return;
+    }
     // 检查选中的衣物是否都已完成洗护或正在洗护中
     const invalidCloths = selectedCloths.value.filter(item =>
         item.clothingStatus !== 'Processing' && item.clothingStatus !== 'ReadyForPickup'

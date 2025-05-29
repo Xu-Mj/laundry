@@ -572,7 +572,7 @@ impl Order {
     }
 
     pub async fn list_4_home(&self, pool: &Pool<Sqlite>) -> Result<Vec<Order>> {
-        self.build_query(pool, " WHERE o.status != '04' AND o.status != '05' ", None)
+        self.build_query(pool, " WHERE o.status != 'Completed' AND o.status != 'Cancelled' AND o.status != 'Refunded' ", None)
             .await
     }
 

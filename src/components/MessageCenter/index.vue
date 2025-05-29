@@ -140,13 +140,13 @@
             <p>{{ disconnectReason || '与服务器的连接已断开，请检查网络连接。' }}</p>
           </div>
           <div class="dialog-actions">
-            <el-button type="primary" @click="attemptReconnect" :loading="reconnecting" size="large" round>
+            <el-button type="primary" @click="attemptReconnect" :loading="reconnecting" round>
               <el-icon>
                 <RefreshRight />
               </el-icon>
               重新连接
             </el-button>
-            <el-button @click="networkStatusDialogVisible = false" plain size="large" round>
+            <el-button @click="networkStatusDialogVisible = false" plain round>
               关闭
             </el-button>
           </div>

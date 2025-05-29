@@ -10,7 +10,7 @@
             </div>
             <h2 class="expired-title">试用期已结束</h2>
             <p class="expired-message">{{ expiredMessage }}</p>
-            <el-button type="primary" size="large" class="action-button" @click="handleAction">
+            <el-button type="primary" class="action-button" @click="handleAction">
                 {{ actionButtonText }}
             </el-button>
         </div>

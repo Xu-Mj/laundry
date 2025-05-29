@@ -47,7 +47,7 @@
                       v-model="tempNumericValue"
                       :min="1"
                       :max="30"
-                      size="large"
+                     
                       controls-position="right"
                     />
                     <span class="input-suffix">天</span>
@@ -71,7 +71,7 @@
                       :min="60"
                       :max="3600"
                       :step="60"
-                      size="large"
+                     
                       controls-position="right"
                     />
                     <span class="input-suffix">秒</span>
@@ -92,7 +92,7 @@
                 <template v-if="editingItem === index">
                   <el-input 
                     v-model="tempValue" 
-                    size="large"
+                   
                     :placeholder="config.configValue" 
                     @keyup.enter="saveConfig(config)"
                   />

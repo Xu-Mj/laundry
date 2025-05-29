@@ -43,16 +43,16 @@
     <div class="section-title">支付方式</div>
     <div class="payment-method-section">
       <el-radio-group v-model="paymentMethod" class="payment-method-group">
-        <el-radio value="02" class="payment-method-radio">
-          <div class="payment-method-card" :class="{ 'selected': paymentMethod === '02' }">
+        <el-radio value="WechatPay" class="payment-method-radio">
+          <div class="payment-method-card" :class="{ 'selected': paymentMethod === 'WechatPay' }">
             <el-icon>
               <ChatDotRound />
             </el-icon>
             <span>微信支付</span>
           </div>
         </el-radio>
-        <el-radio value="01" class="payment-method-radio">
-          <div class="payment-method-card" :class="{ 'selected': paymentMethod === '01' }">
+        <el-radio value="Alipay" class="payment-method-radio">
+          <div class="payment-method-card" :class="{ 'selected': paymentMethod === 'Alipay' }">
             <el-icon>
               <Money />
             </el-icon>
@@ -65,7 +65,7 @@
     <!-- 订阅选项 -->
     <!-- <div class="section-title">订阅选项</div>
     <div class="subscription-options">
-      <el-checkbox v-model="autoRenew" label="到期后自动续费" size="large" />
+      <el-checkbox v-model="autoRenew" label="到期后自动续费" />
       <el-tooltip content="开启自动续费，系统将在订阅到期前自动为您续费，避免服务中断" placement="top">
         <el-icon class="info-icon">
           <InfoFilled />
@@ -131,7 +131,7 @@
             </el-alert>
           </div>
           <div class="qrcode-tip" v-else>
-            请使用{{ paymentMethod === '01' ? '支付宝' : '微信' }}扫码支付
+            请使用{{ paymentMethod === 'Alipay' ? '支付宝' : '微信' }}扫码支付
           </div>
         </div>
       </div>
@@ -153,8 +153,8 @@
 
     <template #footer>
       <div class="payment-footer">
-        <el-button size="large" type="danger" @click="closeDialog">取消</el-button>
-        <el-button size="large" type="primary" @click="checkPaymentStatus">已完成支付</el-button>
+        <el-button type="danger" @click="closeDialog">取消</el-button>
+        <el-button type="primary" @click="checkPaymentStatus">已完成支付</el-button>
       </div>
     </template>
   </el-dialog>
@@ -184,7 +184,7 @@ const emit = defineEmits(['update:visible', 'payment-success', 'payment-cancel']
 
 const userStore = useUserStore();
 const dialogVisible = ref(false);
-const paymentMethod = ref('01'); // 默认微信支付
+const paymentMethod = ref('Alipay'); // 默认微信支付
 const isLoading = ref(false);
 const qrCodeUrl = ref('');
 const orderNumber = ref('');
@@ -303,10 +303,10 @@ const generateQrCode = async (retryCount = 0, retryDelay = INITIAL_RETRY_DELAY) 
 
     // 根据不同的支付方式生成不同的支付请求参数
     let res;
-    if (paymentMethod.value === '01') {
+    if (paymentMethod.value === 'Alipay') {
       // 支付宝支付
       res = await createSubscriptionPaymentWithAlipay(paymentRequest);
-    } else if (paymentMethod.value === '02') {
+    } else if (paymentMethod.value === 'WechatPay') {
       // 微信支付
       res = await createSubscriptionPaymentWithWechat(paymentRequest);
     }
@@ -437,9 +437,9 @@ const queryPaymentStatus = async () => {
 
     // 根据支付方式选择对应的查询API
     let res;
-    if (paymentMethod.value === '01') {
+    if (paymentMethod.value === 'Alipay') {
       res = await querySubscriptionPaymentWithAlipay(queryRequest);
-    } else if (paymentMethod.value === '02') {
+    } else if (paymentMethod.value === 'WechatPay') {
       res = await querySubscriptionPaymentWithWechat(queryRequest);
     }
 

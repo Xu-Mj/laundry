@@ -5,7 +5,9 @@ use sqlx::{FromRow, Pool, QueryBuilder, Row, Sqlite, Transaction};
 use std::collections::HashMap;
 use tauri::State;
 
-use crate::constants::{ClothStatus, OrderStatus, PaymentStatus, ServiceRequirmentType, ServiceType};
+use crate::constants::{
+    ClothStatus, OrderStatus, PaymentStatus, ServiceRequirmentType, ServiceType,
+};
 use crate::db::cloth_sequence::ClothSequence;
 use crate::db::clothing::Clothing;
 use crate::db::drying_rack::DryingRack;

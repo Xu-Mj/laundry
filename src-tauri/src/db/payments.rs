@@ -8,7 +8,7 @@ use sqlx::{
 use std::collections::HashMap;
 use tauri::State;
 
-use crate::constants::{PaymentMethod, PaymentStatus};
+use crate::constants::{OrderStatus, PaymentMethod, PaymentOrderType, PaymentStatus};
 use crate::db::Validator;
 use crate::error::{Error, Result};
 use crate::state::AppState;
@@ -20,7 +20,7 @@ use crate::utils;
 pub struct Payment {
     pub pay_id: Option<String>,
     pub pay_number: Option<String>,
-    pub order_type: Option<String>,
+    pub order_type: Option<PaymentOrderType>,
     pub total_amount: Option<f64>,
     pub payment_amount: Option<f64>,
     pub payment_amount_vip: Option<f64>,
@@ -30,7 +30,7 @@ pub struct Payment {
     pub transaction_id: Option<i64>,
     pub uc_order_id: Option<i64>,
     pub uc_id: Option<String>,
-    pub order_status: Option<String>,
+    pub order_status: Option<OrderStatus>,
     pub create_time: Option<i64>,
     pub update_time: Option<i64>,
     pub store_id: Option<i64>,         // 商家ID，用于数据隔离
@@ -156,11 +156,16 @@ impl Payment {
             SELECT COALESCE(SUM(payment_amount), 0.0)
             FROM payments p
             INNER JOIN orders o ON p.uc_order_id = o.order_id
-            WHERE o.user_id =? AND p.store_id = ?
+            WHERE o.user_id =? 
+                AND p.store_id = ? 
+                AND p.payment_status = 'Paid'
+                AND p.payment_amount > 0
+                AND p.order_type = ?
             ",
         )
         .bind(user_id)
         .bind(store_id)
+        .bind(PaymentOrderType::Laundry)
         .fetch_optional(pool)
         .await?
         .unwrap_or(0.0);
@@ -236,9 +241,10 @@ pub async fn get_monthly_payment_summary(
             SUM(payment_amount) as income
         FROM payments
         WHERE create_time BETWEEN ? AND ?
-          AND payment_status = '00'
+          AND payment_status = 'Paid'
           AND payment_amount > 0
-          AND payment_method != '06' -- 排除储值卡支付
+          AND payment_method != ? -- 排除储值卡支付
+          AND payment_method != ? -- 排除折扣卡支付
           AND store_id = ?
         GROUP BY date
         ORDER BY date
@@ -246,6 +252,8 @@ pub async fn get_monthly_payment_summary(
     )
     .bind(start_timestamp)
     .bind(end_timestamp)
+    .bind(PaymentMethod::StoredValueCard)
+    .bind(PaymentMethod::DiscountCard)
     .bind(store_id)
     .map(|row: SqliteRow| {
         let date: String = row.get("date");
@@ -414,14 +422,17 @@ async fn query_amounts(
         SELECT COALESCE(SUM(payment_amount), 0.0)
         FROM payments
         WHERE create_time BETWEEN ? AND ?
-          AND payment_status = '00'
+          AND payment_status = 'Paid'
           AND payment_amount > 0
-          AND payment_method != '06' -- 排除储值卡支付
+          AND payment_method != ? -- 排除储值卡支付
+          AND payment_method != ? -- 排除折扣卡支付
           AND store_id = ?
         "#,
     )
     .bind(start)
     .bind(end)
+    .bind(PaymentMethod::StoredValueCard)
+    .bind(PaymentMethod::DiscountCard)
     .bind(store_id)
     .fetch_one(pool)
     .await?;

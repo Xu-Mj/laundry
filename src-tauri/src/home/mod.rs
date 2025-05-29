@@ -1,6 +1,7 @@
 use serde::Serialize;
 use tauri::State;
 
+use crate::constants::OrderStatus;
 use crate::db::orders::{Order, SourceDistribution};
 use crate::db::payments::{
     PaymentSummary, get_daily_payment_summary, get_monthly_payment_summary,
@@ -29,13 +30,13 @@ pub async fn query_count(state: State<'_, AppState>) -> Result<Vec<CountItem>> {
 
     let mut count_list = Vec::<CountItem>::with_capacity(5);
     // select 洗护中订单
-    let count = Order::query_count_by_status(pool, store_id, "01").await?;
+    let count = Order::query_count_by_status(pool, store_id, OrderStatus::Processing).await?;
     count_list.push(CountItem {
         title: "洗护中订单".to_string(),
         count,
     });
     // select 待取
-    let count = Order::query_count_by_status(pool, store_id, "02").await?;
+    let count = Order::query_count_by_status(pool, store_id, OrderStatus::ReadyForPickup).await?;
     count_list.push(CountItem {
         title: "待取订单".to_string(),
         count,

@@ -7,7 +7,7 @@ use sqlx::{
 };
 use tauri::State;
 
-use crate::constants::{CouponType, PaymentMethod, PaymentStatus};
+use crate::constants::{CouponType, OrderStatus, PaymentMethod, PaymentOrderType, PaymentStatus};
 use crate::db::coupon_orders::CouponOrder;
 use crate::db::payments::Payment;
 use crate::db::user_coupons::UserCoupon;
@@ -575,12 +575,12 @@ impl Coupon {
         let payment = Payment {
             pay_id: Some(uuid::Uuid::new_v4().to_string()),
             pay_number: Some(format!("KQ-{}", Utc::now().timestamp_millis())),
-            order_type: Some(0.to_string()),
+            order_type: Some(PaymentOrderType::Coupon),
             total_amount: Some(total_amount),
             payment_amount: Some(amount),
             payment_status: Some(PaymentStatus::Paid),
             payment_method: Some(coupon_buy_req.payment_method),
-            order_status: Some("00".to_string()),
+            order_status: Some(OrderStatus::Completed),
             create_time: Some(utils::get_timestamp()),
             store_id: Some(store_id),
             ..Default::default()

@@ -12,7 +12,8 @@ use sqlx::{
 use tauri::{AppHandle, Manager, Runtime};
 
 use crate::constants::{
-    ClothStatus, CouponType, OrderStatus, PaymentMethod, PaymentStatus, ServiceRequirmentType,
+    AlarmType, ClothStatus, CouponType, OrderStatus, PaymentMethod, PaymentStatus,
+    ServiceRequirmentType,
 };
 use crate::db::adjust_price::OrderClothAdjust;
 use crate::db::cloth_price::ClothPrice;
@@ -36,15 +37,15 @@ use tokio::task::JoinHandle;
 // const PAY_STATUS_REFUND: &str = "05";
 // const ORDER_STATUS_REFUND: &str = "06";
 // const CLOTH_STATUS_REFUND: &str = "03";
-const PAY_STATUS_PAID: &str = "00";
+// const PAY_STATUS_PAID: &str = "00";
 const NORMAL_ORDER: &str = "00";
 // const CLOTHING_STATUS_PICKED_UP: &str = "00";
 // const REWASH_ORDER: &str = "02";
 // const STATUS_LAUNDRY: &str = "01";
 // const STATUS_COMPLETED: &str = "04";
-const NORMAL_ALARM: &str = "00";
-const WARNING_ALARM: &str = "01";
-const OVERDUE_ALARM: &str = "02";
+// const NORMAL_ALARM: &str = "00";
+// const WARNING_ALARM: &str = "01";
+// const OVERDUE_ALARM: &str = "02";
 const BUSINESS_MAIN: &str = "00";
 const DESIRE_COMPLETE_TIME_KEY: &str = "desire_complete_time";
 // const STORAGE_CARD_NUMBER: &str = "000";
@@ -79,7 +80,7 @@ pub struct Order {
     pub user_id: Option<i64>,
     pub price_ids: Option<Vec<i64>>,
     pub desire_complete_time: Option<NaiveDate>,
-    pub cost_time_alarm: Option<String>,
+    pub cost_time_alarm: Option<AlarmType>,
     pub pickup_code: Option<String>,
     pub complete_time: Option<DateTime<FixedOffset>>,
     pub delivery_mode: Option<String>,
@@ -452,14 +453,11 @@ impl Order {
             query_builder.push(" AND o.user_id = ").push_bind(user_id);
         }
 
-        self.cost_time_alarm
-            .as_ref()
-            .filter(|cost_time_alarm| !cost_time_alarm.is_empty())
-            .map(|cost_time_alarm| {
-                query_builder
-                    .push(" AND o.cost_time_alarm = ")
-                    .push_bind(cost_time_alarm);
-            });
+        self.cost_time_alarm.as_ref().map(|cost_time_alarm| {
+            query_builder
+                .push(" AND o.cost_time_alarm = ")
+                .push_bind(cost_time_alarm);
+        });
 
         // if let Some(price_ids) = &self.price_ids {
         //     query_builder.push(" AND o.price_ids IN (").push_bind(price_ids.join(",")).push(")");
@@ -755,7 +753,7 @@ impl Order {
     pub async fn query_count_by_status(
         pool: &Pool<Sqlite>,
         store_id: i64,
-        status: &str,
+        status: OrderStatus,
     ) -> Result<i64> {
         let result =
             sqlx::query_scalar("SELECT COUNT(1) FROM orders WHERE store_id = ? AND status = ?")
@@ -811,7 +809,7 @@ impl Order {
         let orders = sqlx::query_as::<_, Order>(
             "SELECT * FROM orders 
             WHERE store_id = ? 
-            AND status NOT IN ('04', '05', '06') 
+            AND status NOT IN ('Completed', 'Cancelled', 'Refunded') 
             AND desire_complete_time IS NOT NULL",
         )
         .bind(store_id)
@@ -821,59 +819,57 @@ impl Order {
         let mut tx = pool.begin().await?;
 
         for mut order in orders {
-            if let Some(desire_time) = order.desire_complete_time {
-                // 将 NaiveDate 转换为 DateTime<Utc>
-                let desire_datetime = desire_time
-                    .and_hms_opt(0, 0, 0)
-                    .map(|ndt| {
-                        DateTime::<Local>::from_naive_utc_and_offset(ndt, now.offset().clone())
-                    })
-                    .unwrap_or_else(|| now);
+            let Some(desire_time) = order.desire_complete_time else {
+                continue;
+            };
 
-                let current_alarm = order.cost_time_alarm.as_deref().unwrap_or(NORMAL_ALARM);
-                let new_alarm = if desire_datetime < now {
-                    // 已超时
-                    OVERDUE_ALARM
-                } else if desire_datetime <= warning_threshold {
-                    // 即将到期
-                    WARNING_ALARM
-                } else {
-                    // 正常
-                    NORMAL_ALARM
-                };
+            // 时间转换优化
+            let desire_datetime = desire_time
+                .and_hms_opt(0, 0, 0)
+                .map(|ndt| DateTime::<Local>::from_naive_utc_and_offset(ndt, now.offset().clone()))
+                .unwrap_or(now);
 
-                // 如果预警状态发生变化，则更新
-                if current_alarm != new_alarm {
-                    order.cost_time_alarm = Some(new_alarm.to_string());
-                    if !order.update(&mut tx).await? {
-                        return Err(Error::internal("更新订单预警状态失败"));
-                    }
+            let current_alarm = order.cost_time_alarm.as_ref().unwrap_or(&AlarmType::Normal);
+            let status_ref = &order.status;
+            let new_alarm = match (desire_datetime < now, status_ref) {
+                (true, Some(OrderStatus::ReadyForPickup)) => AlarmType::OverdueNotPickedUp,
+                (true, _) => AlarmType::Overdue,
+                (false, _) if desire_datetime <= warning_threshold => match status_ref {
+                    Some(OrderStatus::ReadyForPickup) => AlarmType::Normal,
+                    _ => AlarmType::Warning,
+                },
+                _ => AlarmType::Normal,
+            };
 
-                    // 记录预警日志
-                    match new_alarm {
-                        OVERDUE_ALARM => {
-                            tracing::warn!(
-                                "订单 {} 已超时，期望完成时间: {}",
-                                order.order_number.unwrap_or_default(),
-                                desire_time
-                            );
-                        }
-                        WARNING_ALARM => {
-                            tracing::info!(
-                                "订单 {} 即将到期，期望完成时间: {}",
-                                order.order_number.unwrap_or_default(),
-                                desire_time
-                            );
-                        }
-                        _ => {
-                            tracing::info!(
-                                "订单 {} 恢复正常状态，期望完成时间: {}",
-                                order.order_number.unwrap_or_default(),
-                                desire_time
-                            );
-                        }
-                    }
+            if *current_alarm == new_alarm {
+                continue;
+            }
+
+            // 状态更新
+            order.cost_time_alarm = Some(new_alarm.clone());
+            if !order.update(&mut tx).await? {
+                return Err(Error::internal("更新订单预警状态失败"));
+            }
+
+            // 日志记录优化
+            let order_num = order.order_number.unwrap_or_default();
+            match new_alarm {
+                AlarmType::Overdue => {
+                    tracing::warn!("订单 {} 已超时，期望完成时间: {}", order_num, desire_time)
                 }
+                AlarmType::Warning => {
+                    tracing::info!("订单 {} 即将到期，期望完成时间: {}", order_num, desire_time)
+                }
+                AlarmType::Normal => tracing::info!(
+                    "订单 {} 恢复正常状态，期望完成时间: {}",
+                    order_num,
+                    desire_time
+                ),
+                AlarmType::OverdueNotPickedUp => tracing::info!(
+                    "订单 {} 未在规定时间内取件，期望完成时间: {}",
+                    order_num,
+                    desire_time
+                ),
             }
         }
 
@@ -1009,7 +1005,7 @@ impl Order {
         self.payment_status = Some(PaymentStatus::Unpaid);
         self.order_type = Some(NORMAL_ORDER.to_string());
         self.status = Some(OrderStatus::Processing);
-        self.cost_time_alarm = Some(NORMAL_ALARM.to_string());
+        self.cost_time_alarm = Some(AlarmType::Normal);
         self.business_type = Some(BUSINESS_MAIN.to_string());
         self.create_time = Some(utils::get_now());
     }
@@ -1191,7 +1187,7 @@ impl Order {
 
                                 // 创建支付记录
                                 payment.pay_id = Some(uuid::Uuid::new_v4().to_string());
-                                payment.order_status = Some(PAY_STATUS_PAID.to_string());
+                                payment.order_status = existing_order.status.clone();
                                 payment.payment_status = Some(PaymentStatus::Paid);
                                 payment.pay_number = existing_order.order_number.clone();
                                 payment.uc_order_id = Some(*order_id);
@@ -1281,7 +1277,7 @@ impl Order {
 
                 // 创建支付记录
                 payment.pay_id = Some(uuid::Uuid::new_v4().to_string());
-                payment.order_status = Some(PAY_STATUS_PAID.to_string());
+                payment.order_status = existing_order.status.clone();
                 payment.payment_status = Some(PaymentStatus::Paid);
                 payment.pay_number = existing_order.order_number.clone();
                 payment.uc_order_id = Some(*order_id);
@@ -2230,7 +2226,10 @@ impl Order {
                     "[退款] 处理优惠券退款 - 优惠券ID: {}, 当前使用次数: {}, 优惠券类型: {:?}",
                     user_coupon.uc_id.unwrap_or_default(),
                     user_coupon.uc_count.unwrap_or_default(),
-                    user_coupon.coupon.as_ref().map_or(None, |c| c.coupon_type.as_ref())
+                    user_coupon
+                        .coupon
+                        .as_ref()
+                        .map_or(None, |c| c.coupon_type.as_ref())
                 );
 
                 if let Some(coupon) = &user_coupon.coupon {

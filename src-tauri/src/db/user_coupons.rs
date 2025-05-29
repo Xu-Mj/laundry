@@ -250,8 +250,9 @@ impl UserCoupon {
         store_id: i64,
         uc_ids: &[i64],
     ) -> Result<Vec<UserCoupon>> {
-        let mut builder =
-            QueryBuilder::new(&format!("{SQL} WHERE uc.store_id = {store_id} AND uc.uc_id IN ("));
+        let mut builder = QueryBuilder::new(&format!(
+            "{SQL} WHERE uc.store_id = {store_id} AND uc.uc_id IN ("
+        ));
 
         uc_ids.iter().enumerate().for_each(|(i, id)| {
             if i > 0 {

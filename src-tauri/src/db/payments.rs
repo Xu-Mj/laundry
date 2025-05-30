@@ -18,20 +18,35 @@ use crate::utils;
 #[serde(rename_all = "camelCase")]
 #[serde(default)]
 pub struct Payment {
+    /// 支付id，uuid
     pub pay_id: Option<String>,
+    /// 支付编码，一般为订单号，用于查询
     pub pay_number: Option<String>,
+    /// 订单类型，目前两类， 洗衣/卡券
     pub order_type: Option<PaymentOrderType>,
+    /// 订单总额
     pub total_amount: Option<f64>,
+    /// 支付总额
     pub payment_amount: Option<f64>,
+    /// 卡券优惠
     pub payment_amount_vip: Option<f64>,
+    /// 实际支付金额
     pub payment_amount_mv: Option<f64>,
+    /// 支付状态
     pub payment_status: Option<PaymentStatus>,
+    /// 支付方式
     pub payment_method: Option<PaymentMethod>,
+    /// 交易id， 当扫码支付时，保存扫码交易id
     pub transaction_id: Option<i64>,
+    /// 订单id， 用于关联订单
     pub uc_order_id: Option<i64>,
+    /// 支付所用的卡券id
     pub uc_id: Option<String>,
+    /// 订单状态
     pub order_status: Option<OrderStatus>,
+    /// 创建时间
     pub create_time: Option<i64>,
+    /// 更新时间
     pub update_time: Option<i64>,
     pub store_id: Option<i64>,         // 商家ID，用于数据隔离
     pub refund_reason: Option<String>, // 退款原因

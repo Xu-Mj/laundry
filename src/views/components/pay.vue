@@ -297,16 +297,16 @@
                 </template>
                 <div class="price-row" v-if="paymentForm.bonusAmount">
                     <span class="price-label">优惠金额</span>
-                    <span class="price-value discount">- ¥ {{ (Math.floor(paymentForm.bonusAmount * 100) /
-                        100).toFixed(2)
-                        }}</span>
+                    <span class="price-value discount">
+                        - ¥ {{ (Math.floor(paymentForm.bonusAmount * 100) / 100).toFixed(2) }}
+                    </span>
                 </div>
                 <div class="price-divider"></div>
                 <div class="price-row total">
                     <span class="price-label">应付金额</span>
-                    <span class="price-value total-amount">¥ {{ (Math.floor(paymentForm.paymentAmount * 100) /
-                        100).toFixed(2)
-                        }}</span>
+                    <span class="price-value total-amount">
+                        ¥ {{ (Math.floor(paymentForm.paymentAmount * 100) / 100).toFixed(2) }}
+                    </span>
                 </div>
             </div>
 
@@ -318,8 +318,7 @@
                         <div class="price-diff-input">
                             <span class="price-diff-symbol-left">¥</span>
                             <el-input-number v-model="paymentForm.priceDiff" controls-position="right" :min="0"
-                                :max="paymentForm.paymentAmount" placeholder="请输入补差价"
-                                class="price-diff-number" />
+                                :max="paymentForm.paymentAmount" placeholder="请输入补差价" class="price-diff-number" />
                         </div>
                     </div>
                     <span class="price-diff-desc">使用储值卡或次卡时可能需要补差价</span>
@@ -331,8 +330,7 @@
             <div class="payment-footer">
                 <el-button type="danger" @click="close">取消</el-button>
                 <template v-if="showPickupButton">
-                    <el-button type="primary" color="#626aef"
-                        @click="submitPaymentForm(false)">确认收款</el-button>
+                    <el-button type="primary" color="#626aef" @click="submitPaymentForm(false)">确认收款</el-button>
                     <el-button type="success" @click="submitPaymentForm(true)">收款并取衣</el-button>
                 </template>
                 <template v-else>
@@ -425,8 +423,8 @@ const emit = defineEmits([
 ]);
 
 const { proxy } = getCurrentInstance();
-const { sys_payment_method } = proxy.useDict("sys_payment_method");
 
+console.log(props);
 const showPaymentDialog = ref(false);
 const showCoupons = ref(true);
 const showScannerDialog = ref(false);
@@ -436,14 +434,28 @@ const hasManualStorageCardSelection = ref(false);
 const hasManualDiscountCardSelection = ref(false);
 
 const paymentForm = ref({
+    // 订单信息
     orders: [],
     titles: '',
+
+    // 支付方式和金额
     paymentMethod: 'Alipay',
-    orderType: '1',
-    priceDiff: 0,
     totalAmount: 0,
     paymentAmount: 0,
-    bonusAmount: 0
+    bonusAmount: 0,
+    priceDiff: 0,
+
+    // 卡券相关
+    ucId: '',  // 用于储值卡、折扣卡等单选卡券
+    timeBased: [], // 用于次卡的使用记录
+
+    // 扫码支付相关
+    authCode: '',
+    subject: '',
+    paymentType: '',
+
+    // 其他
+    orderType: 'Laundry'
 });
 const couponStorageCardId = ref([]);
 const couponDiscountCardId = ref([]);
@@ -544,10 +556,12 @@ function handleScanTimeout() {
     proxy.notify.warning('扫码超时，请重试');
 }
 
-/* 处理扫码结果 */
+/**
+ * 处理扫码结果
+ * @param {string} result - 扫码结果
+ */
 function handleScanResult(result) {
     console.log('扫码结果:', result);
-    // 关闭扫码弹窗
     showScannerDialog.value = false;
 
     // 显示全局loading
@@ -557,31 +571,50 @@ function handleScanResult(result) {
         background: 'rgba(0, 0, 0, 0.7)'
     });
 
-    // 根据扫码结果处理支付逻辑
     try {
-        // 示例：根据扫码结果前缀判断支付方式
-        if (result.startsWith('1') || result.startsWith('2') || result.startsWith('3')) {
-            // 支付宝付款码通常以1、2、3开头
-            paymentForm.value.paymentMethod = 'Alipay';
-            proxy.notify.success('已识别为支付宝付款码');
-        } else if (result.startsWith('1')) {
-            // 微信付款码通常以1开头
-            paymentForm.value.paymentMethod = 'WeChatPay';
-            proxy.notify.success('已识别为微信付款码');
+        // 验证并设置扫码支付数据
+        if (setupScanPaymentData(result)) {
+            // 自动提交支付表单
+            submitPaymentForm().finally(() => {
+                loadingInstance.close();
+            });
         } else {
             proxy.notify.warning('无法识别的付款码格式');
-        }
-
-        // 自动提交支付表单
-        submitPaymentForm().finally(() => {
-            // 关闭loading
             loadingInstance.close();
-        });
+        }
     } catch (error) {
         console.error('处理支付出错:', error);
         proxy.notify.error('处理支付出错');
         loadingInstance.close();
     }
+}
+
+/**
+ * 设置扫码支付数据
+ * @param {string} authCode - 授权码
+ * @returns {boolean} 是否设置成功
+ */
+function setupScanPaymentData(authCode) {
+    // 支付宝付款码通常以28开头
+    if (authCode.startsWith('28')) {
+        paymentForm.value.paymentMethod = 'Alipay';
+        paymentForm.value.paymentType = 'alipay';
+        paymentForm.value.authCode = authCode;
+        paymentForm.value.subject = paymentForm.value.titles || '洗衣服务';
+        proxy.notify.success('已识别为支付宝付款码');
+        return true;
+    }
+    // 微信付款码通常以10-15开头
+    else if (/^1[0-5]/.test(authCode)) {
+        paymentForm.value.paymentMethod = 'WeChatPay';
+        paymentForm.value.paymentType = 'wechat';
+        paymentForm.value.authCode = authCode;
+        paymentForm.value.subject = paymentForm.value.titles || '洗衣服务';
+        proxy.notify.success('已识别为微信付款码');
+        return true;
+    }
+
+    return false;
 }
 
 // 初始化表单数据
@@ -632,7 +665,7 @@ async function initForm() {
         paymentForm.value = {
             orders: [],
             paymentMethod: 'Alipay',
-            orderType: '1',
+            orderType: 'Laundry',
             priceDiff: 0,
             totalAmount: 0,
             paymentAmount: 0,
@@ -647,16 +680,30 @@ async function initForm() {
 // 初始化单个订单的表单
 function initSingleOrderForm() {
     paymentForm.value = {
+        // 订单信息
         orders: [props.order],
         ucOrderId: props.order.orderId,
         payNumber: props.order.orderNumber,
+        titles: props.order.orderNumber || '',
+
+        // 支付方式和金额
         paymentMethod: 'Alipay',
-        orderType: '1',
-        priceDiff: 0,
         totalAmount: 0,
         paymentAmount: 0,
         bonusAmount: 0,
-        titles: props.order.orderNumber || ''
+        priceDiff: 0,
+
+        // 卡券相关
+        ucId: '',
+        timeBased: [],
+
+        // 扫码支付相关
+        authCode: '',
+        subject: '',
+        paymentType: '',
+
+        // 其他
+        orderType: 'Laundry'
     };
 
     if (props.order.source == 'Meituan') {
@@ -725,9 +772,9 @@ function initSingleOrderForm() {
             // 计算总价
             // 如果服务要求为加急
             let priceValue = cur.priceValue;
-            if (cur.serviceRequirement == '001') {
+            if (cur.serviceRequirement == 'Emergency') {
                 priceValue *= 2;
-            } else if (cur.serviceRequirement == '002') {
+            } else if (cur.serviceRequirement == 'SingleWash') {
                 priceValue *= 1.5;
             }
             return acc +
@@ -744,186 +791,355 @@ function initSingleOrderForm() {
     checkCoupon();
 }
 
-/* 收款 */
+/**
+ * 提交支付表单
+ * @param {boolean} isPickup - 是否需要取衣
+ * @returns {Promise<void>}
+ */
 async function submitPaymentForm(isPickup) {
-    // 验证：如果选择了储值卡支付但未选择任何储值卡，则提示错误并阻止提交
-    if (paymentForm.value.paymentMethod === 'StoredValueCard' && couponStorageCardId.value.length === 0) {
+    try {
+        // 验证支付方式和选择
+        if (!validatePaymentMethod()) {
+            return;
+        }
+
+        // 处理金额格式化
+        normalizeAmounts();
+
+        // 处理支付方式和优惠券
+        processPaymentMethodAndCoupons();
+
+        // 处理订单数据
+        await prepareOrderData();
+
+        // 处理特殊来源的订单价格
+        handleSpecialSourcePricing();
+
+        // 构造支付请求数据
+        const paymentRequest = buildPaymentRequest();
+
+        // 执行支付
+        await pay(paymentRequest);
+
+        // 支付成功后的处理
+        handlePaymentSuccess(isPickup);
+    } catch (error) {
+        handlePaymentError(error);
+    }
+}
+
+/**
+ * 验证支付方式是否有效
+ * @returns {boolean} 验证是否通过
+ */
+function validatePaymentMethod() {
+    const { paymentMethod } = paymentForm.value;
+
+    // 储值卡支付验证
+    if (paymentMethod === 'StoredValueCard' && couponStorageCardId.value.length === 0) {
         proxy.notify.error('您选择了储值卡支付方式，但未选择任何储值卡');
-        return;
+        return false;
     }
 
-    // 验证：如果选择了次卡支付但未选择任何次卡，则提示错误并阻止提交
-    if (paymentForm.value.paymentMethod === 'SessionCard' && !groupedTimeCards.value.some(card => card.selected)) {
+    // 次卡支付验证
+    if (paymentMethod === 'SessionCard' && !groupedTimeCards.value.some(card => card.selected)) {
         proxy.notify.error('您选择了次卡支付方式，但未选择任何次卡');
-        return;
-    }    // 验证：如果选择了折扣卡支付但未选择任何折扣卡，则提示错误并阻止提交
-    if (paymentForm.value.paymentMethod === 'DiscountCard' && couponDiscountCardId.value.length === 0) {
+        return false;
+    }
+
+    // 折扣卡支付验证
+    if (paymentMethod === 'DiscountCard' && couponDiscountCardId.value.length === 0) {
         proxy.notify.error('您选择了折扣卡支付方式，但未选择任何折扣卡');
-        return;
+        return false;
     }
 
-    // 确保所有金额都使用截断处理
-    paymentForm.value.totalAmount = Math.floor(paymentForm.value.totalAmount * 100) / 100;
-    paymentForm.value.paymentAmount = Math.floor(paymentForm.value.paymentAmount * 100) / 100;
+    return true;
+}
 
-    if (paymentForm.value.bonusAmount) {
-        paymentForm.value.bonusAmount = Math.floor(paymentForm.value.bonusAmount * 100) / 100;
-    }
+/**
+ * 标准化所有金额（截断到小数点后两位）
+ */
+function normalizeAmounts() {
+    const amountFields = ['totalAmount', 'paymentAmount', 'bonusAmount', 'priceDiff'];
 
-    if (paymentForm.value.priceDiff) {
-        paymentForm.value.priceDiff = Math.floor(paymentForm.value.priceDiff * 100) / 100;
-    }
+    amountFields.forEach(field => {
+        if (paymentForm.value[field] !== undefined) {
+            paymentForm.value[field] = Math.floor(paymentForm.value[field] * 100) / 100;
+        }
+    });
+}
 
-    // 判断是否使用了优惠券
+/**
+ * 处理支付方式和优惠券
+ */
+function processPaymentMethodAndCoupons() {
+    // 没有使用优惠券的情况
     if (!paymentForm.value.couponId) {
-        if (couponStorageCardId.value.length > 0) {
-            // 计算使用了多少储值卡
-            paymentForm.value.paymentAmountVip = paymentForm.value.paymentAmount - paymentForm.value.priceDiff;
-            paymentForm.value.ucId = couponStorageCardId.value.join(',');
-            // 使用了储值卡，那么实际从微信/或其他支付方式中扣除的金额为差价
-            paymentForm.value.paymentAmountMv = paymentForm.value.priceDiff;
-            if (paymentForm.value.priceDiff > 0) {
-                // 需要补充差价，那么就是组合支付
-                if (paymentForm.value.paymentMethod == 'Alipay') {
-                    paymentForm.value.paymentMethod = 'AlipayAndStoredValueCard';
-                } else if (paymentForm.value.paymentMethod == 'WeChatPay') {
-                    paymentForm.value.paymentMethod = 'WeChatPayAndStoredValueCard';
-                } else if (paymentForm.value.paymentMethod == 'Cash') {
-                    paymentForm.value.paymentMethod = 'CashAndStoredValueCard';
-                }
-            }
-        } else if (userCouponList.value.filter(item => item.coupon.couponType == 'SessionCard' && item.selected).length > 0) {
-            // 使用了次卡
-            let list = [];
-
-            // 从分组的次卡中获取选中的次卡数据
-            groupedTimeCards.value.filter(card => card.selected).forEach(groupCard => {
-                // 遍历组内的所有次卡
-                groupCard.items.forEach(item => {
-                    // 为组内每张卡设置与组相同的计数
-                    const individualCount = groupCard.count ? Math.ceil(groupCard.count / groupCard.items.length) : 1;
-
-                    list.push({
-                        ucId: item.ucId,
-                        count: individualCount
-                    });
-                });
-            });
-
-            // 如果使用旧方法没有找到次卡（兼容性考虑）
-            if (list.length === 0) {
-                list = userCouponList.value.filter(item => item.coupon.couponType == 'SessionCard' && item.selected).map(item => ({
-                    ucId: item.ucId,
-                    count: item.count || 1,
-                }));
-            }
-
-            paymentForm.value.timeBased = list;
-
-            if (paymentForm.value.priceDiff > 0) {
-                // 需要补充差价，那么就是组合支付
-                if (paymentForm.value.paymentMethod == 'Alipay') {
-                    paymentForm.value.paymentMethod = 'AlipayAndSessionCard';
-                } else if (paymentForm.value.paymentMethod == 'WeChatPay') {
-                    paymentForm.value.paymentMethod = 'WeChatPayAndSessionCard';
-                } else if (paymentForm.value.paymentMethod == 'Cash') {
-                    paymentForm.value.paymentMethod = 'CashAndSessionCard';
-                }
-            }
-        } else {
-            // 什么卡券都没用
-            paymentForm.value.ucId = null;
-            paymentForm.value.paymentAmountMv = paymentForm.value.paymentAmount;
-        }
+        processWithoutCoupon();
     } else {
-        const coupon = userCouponList.value.find(item => item.ucId == paymentForm.value.couponId);
-        if (coupon && coupon.coupon.couponType == 'DiscountCoupon') {
-            // 折扣券
+        processWithCoupon();
+    }
+}
 
-            if (paymentForm.value.paymentMethod == 'Alipay') {
-                paymentForm.value.paymentMethod = 'AlipayAndDiscountCoupon';
-            } else if (paymentForm.value.paymentMethod == 'WeChatPay') {
-                paymentForm.value.paymentMethod = 'WeChatPayAndDiscountCoupon';
-            } else if (paymentForm.value.paymentMethod == 'Cash') {
-                paymentForm.value.paymentMethod = 'CashAndDiscountCoupon';
-            }
-        } else if (coupon && coupon.coupon.couponType == 'SpendAndSaveCard') {
-            // 满减券
-            if (paymentForm.value.paymentMethod == 'Alipay') {
-                paymentForm.value.paymentMethod = 'AlipayAndSpendAndSaveCard';
-            } else if (paymentForm.value.paymentMethod == 'WeChatPay') {
-                paymentForm.value.paymentMethod = 'WeChatPayAndSpendAndSaveCard';
-            } else if (paymentForm.value.paymentMethod == 'Cash') {
-                paymentForm.value.paymentMethod = 'CashAndSpendAndSaveCard';
-            }
-        }
-        paymentForm.value.ucId = String(paymentForm.value.couponId);
-        // 用了优惠券，那么实际从微信/或其他支付方式中扣除的金额为优惠后的总金额
+/**
+ * 处理没有使用优惠券的支付情况
+ */
+function processWithoutCoupon() {
+    // 使用储值卡
+    if (couponStorageCardId.value.length > 0) {
+        processStoredValueCardPayment();
+    }
+    // 使用次卡
+    else if (hasSelectedSessionCards()) {
+        processSessionCardPayment();
+    }
+    // 没有使用任何卡券
+    else {
+        paymentForm.value.ucId = null;
         paymentForm.value.paymentAmountMv = paymentForm.value.paymentAmount;
     }
+}
+
+/**
+ * 检查是否有选中的次卡
+ * @returns {boolean}
+ */
+function hasSelectedSessionCards() {
+    return userCouponList.value.filter(item =>
+        item.coupon.couponType === 'SessionCard' && item.selected
+    ).length > 0;
+}
+
+/**
+ * 处理储值卡支付
+ */
+function processStoredValueCardPayment() {
+    // 计算使用了多少储值卡
+    paymentForm.value.paymentAmountVip = paymentForm.value.paymentAmount - paymentForm.value.priceDiff;
+    paymentForm.value.ucId = couponStorageCardId.value.join(',');
+    // 使用了储值卡，实际从其他支付方式中扣除的金额为差价
+    paymentForm.value.paymentAmountMv = paymentForm.value.priceDiff;
+
+    // 需要补充差价时设置组合支付方式
+    if (paymentForm.value.priceDiff > 0) {
+        paymentForm.value.paymentMethod = getComboPaymentMethod(paymentForm.value.paymentMethod, 'StoredValueCard');
+    }
+}
+
+/**
+ * 处理次卡支付
+ */
+function processSessionCardPayment() {
+    // 获取选中的次卡列表
+    paymentForm.value.timeBased = getSelectedTimeCardsList();
+
+    // 需要补充差价时设置组合支付方式
+    if (paymentForm.value.priceDiff > 0) {
+        paymentForm.value.paymentMethod = getComboPaymentMethod(paymentForm.value.paymentMethod, 'SessionCard');
+    }
+}
+
+/**
+ * 获取选中的次卡列表
+ * @returns {Array} 选中的次卡列表
+ */
+function getSelectedTimeCardsList() {
+    let list = [];
+
+    // 从分组的次卡中获取选中的次卡数据
+    groupedTimeCards.value.filter(card => card.selected).forEach(groupCard => {
+        // 计算每张卡应分配的次数
+        const individualCount = groupCard.count ? Math.ceil(groupCard.count / groupCard.items.length) : 1;
+
+        // 添加组内每张卡
+        groupCard.items.forEach(item => {
+            list.push({
+                ucId: item.ucId,
+                count: individualCount
+            });
+        });
+    });
+
+    // 兼容旧方法
+    if (list.length === 0) {
+        list = userCouponList.value
+            .filter(item => item.coupon.couponType === 'SessionCard' && item.selected)
+            .map(item => ({
+                ucId: item.ucId,
+                count: item.count || 1,
+            }));
+    }
+
+    return list;
+}
+
+/**
+ * 处理使用优惠券的支付情况
+ */
+function processWithCoupon() {
+    const coupon = userCouponList.value.find(item => item.ucId == paymentForm.value.couponId);
+
+    if (coupon) {
+        // 根据优惠券类型设置组合支付方式
+        if (coupon.coupon.couponType === 'DiscountCoupon') {
+            paymentForm.value.paymentMethod = getComboPaymentMethod(paymentForm.value.paymentMethod, 'DiscountCoupon');
+        } else if (coupon.coupon.couponType === 'SpendAndSaveCard') {
+            paymentForm.value.paymentMethod = getComboPaymentMethod(paymentForm.value.paymentMethod, 'SpendAndSaveCard');
+        }
+    }
+
+    paymentForm.value.ucId = String(paymentForm.value.couponId);
+    // 用了优惠券，实际从其他支付方式中扣除的金额为优惠后的总金额
+    paymentForm.value.paymentAmountMv = paymentForm.value.paymentAmount;
+}
+
+/**
+ * 获取组合支付方式
+ * @param {string} baseMethod - 基础支付方式
+ * @param {string} comboType - 组合类型
+ * @returns {string} 组合支付方式
+ */
+function getComboPaymentMethod(baseMethod, comboType) {
+    const methodMap = {
+        'Alipay': `AlipayAnd${comboType}`,
+        'WeChatPay': `WeChatPayAnd${comboType}`,
+        'Cash': `CashAnd${comboType}`
+    };
+
+    return methodMap[baseMethod] || baseMethod;
+}
+
+/**
+ * 准备订单数据
+ */
+async function prepareOrderData() {
     paymentForm.value.totalAmount = Number(paymentForm.value.totalAmount);
 
-    // Handle order preparation based on which mode we're in
+    // 多订单模式
     if (props.orders && props.orders.length > 0) {
-        // Multi-order mode - already prepared in initMultiOrderForm
         paymentForm.value.orders = props.orders;
-    } else {
-        // Single order mode
+    }
+    // 单订单模式
+    else {
         paymentForm.value.orders = [props.order];
 
-        // Handle order creation if necessary
+        // 如果需要创建订单
         if (props.createOrder) {
-            const callback = (res) => {
-                if (res && res.orderId) {
-                    paymentForm.value.orders = [res];
-                }
-            };
-            await props.createOrder(callback);
+            await createOrderIfNeeded();
         }
     }
-    try {
-        // 处理美团或者抖音的价格标签中的价格
-        if (props.order.source == 'Meituan' || props.order.source == 'Douyin') {
-            paymentForm.value.totalAmount = props.order.originalPrice;
-            paymentForm.value.paymentAmount = props.order.originalPrice;
+}
+
+/**
+ * 如果需要，创建订单
+ */
+async function createOrderIfNeeded() {
+    const callback = (res) => {
+        if (res && res.orderId) {
+            paymentForm.value.orders = [res];
         }
-        // 等待支付完成
-        await pay(paymentForm.value);
+    };
+    await props.createOrder(callback);
+}
 
-        // 支付成功后提示
-        proxy.notify.success('支付成功');
-        showPaymentDialog.value = false;
-
-        // 修改订单支付状态
-        paymentForm.value.orders.forEach(item => item.paymentStatus = 'Paid');
-
-        // 关闭支付对话框
-        props.toggle();
-
-        // 刷新数据
-        props.refresh();
-
-        // 发送支付成功回调
-        emit('payment-success', {
-            paymentMethod: paymentForm.value.paymentMethod,
-            amount: paymentForm.value.paymentAmount
-        });
-
-        // 发送成功事件，包含是否需要取衣的信息
-        emit('success', { isPickup });
-
-        // 如果选中了衣物，并且需要取走
-        if (isPickup) {
-            emit('pickup');
-        } else {
-            emit('submit');
-        }
-    } catch (error) {
-        // 发送支付失败回调
-        emit('payment-failed', error.message || '支付失败');
-        console.error('支付失败:', error);
-        proxy.notify.error('支付失败');
+/**
+  * 处理特殊来源订单的价格
+  */
+function handleSpecialSourcePricing() {
+    // 处理美团或抖音的价格标签
+    if (props.order.source === 'Meituan' || props.order.source === 'Douyin') {
+        paymentForm.value.totalAmount = props.order.originalPrice;
+        paymentForm.value.paymentAmount = props.order.originalPrice;
     }
+}
+
+/**
+ * 构造支付请求数据，匹配Rust后端PaymentReq结构
+ * @returns {Object} 支付请求对象
+ */
+function buildPaymentRequest() {
+    // 构造Payment对象
+    const payment = {
+        payNumber: null,
+        ucOrderId: null,
+        orderType: paymentForm.value.orderType,
+        totalAmount: paymentForm.value.totalAmount,
+        paymentStatus: null,
+        paymentMethod: paymentForm.value.paymentMethod,
+        createTime: null,
+        updateTime: null,
+        storeId: null,
+        refundReason: null,
+        paymentMethodDetails: [],
+        couponUsages: []
+    };
+
+    // 构造PaymentReq对象
+    const paymentRequest = {
+        payment: payment,
+        ucIds: paymentForm.value.ucId ? paymentForm.value.ucId.split(',').map(id => parseInt(id)) : null,
+        orders: paymentForm.value.orders,
+        timeBased: paymentForm.value.timeBased && paymentForm.value.timeBased.length > 0 ? paymentForm.value.timeBased : null,
+        authCode: paymentForm.value.authCode || null,
+        storeId: null, // 将由后端设置
+        subject: paymentForm.value.subject || null,
+        paymentType: paymentForm.value.paymentType || null
+    };
+
+    return paymentRequest;
+}
+
+/**
+ * 处理支付成功
+ * @param {boolean} isPickup - 是否需要取衣
+ */
+function handlePaymentSuccess(isPickup) {
+    // 支付成功后提示
+    proxy.notify.success('支付成功');
+    showPaymentDialog.value = false;
+
+    // 更新订单状态
+    paymentForm.value.orders.forEach(item => item.paymentStatus = 'Paid');
+
+    // 关闭对话框并刷新数据
+    props.toggle();
+    props.refresh();
+
+    // 发送事件
+    emitSuccessEvents(isPickup);
+}
+
+/**
+ * 发送成功相关事件
+ * @param {boolean} isPickup - 是否需要取衣
+ */
+function emitSuccessEvents(isPickup) {
+    // 发送支付成功事件
+    emit('payment-success', {
+        paymentMethod: paymentForm.value.paymentMethod,
+        amount: paymentForm.value.paymentAmount
+    });
+
+    // 发送成功事件
+    emit('success', { isPickup });
+
+    // 根据是否取衣发送相应事件
+    if (isPickup) {
+        emit('pickup');
+    } else {
+        emit('submit');
+    }
+}
+
+/**
+ * 处理支付错误
+ * @param {Error} error - 错误对象
+ */
+function handlePaymentError(error) {
+    // 发送支付失败事件
+    emit('payment-failed', error.message || '支付失败');
+    console.error('支付失败:', error);
+    proxy.notify.error('支付失败');
 }
 
 function changeCoupon(couponType, card) {
@@ -1154,6 +1370,7 @@ function changeCoupon(couponType, card) {
 
     // 使用截断而非四舍五入
     paymentForm.value.paymentAmount = Math.floor(paymentForm.value.paymentAmount * 100) / 100;
+    console.log(paymentForm.value);
 }
 
 // 处理选中逻辑
@@ -1459,113 +1676,6 @@ function autoSelectDiscountCards(isManualTrigger = false) {
     changeCoupon(4);
 }
 
-// /* 支付方式变更处理 */
-// function handlePaymentMethodChange(value) {
-//     // 当选择储值卡支付时，展开储值卡列表
-//     if (value === 'StoredValueCard') {
-//         activeCollapseItem.value = ['storage-card'];
-
-//         // 重置手动选择标志并执行智能选择，除非用户已选择了卡
-//         if (!hasManualStorageCardSelection.value) {
-//             hasManualStorageCardSelection.value = false;
-//             autoSelectStorageCards();
-//         } else {
-//             // 如果已有手动选择，使用isManualTrigger=true
-//             autoSelectStorageCards(true);
-//         }
-//     } else if (value === 'DiscountCard') {
-//         activeCollapseItem.value = ['discount-card'];
-
-//         // 重置手动选择标志并执行智能选择，除非用户已选择了卡
-//         if (!hasManualDiscountCardSelection.value) {
-//             hasManualDiscountCardSelection.value = false;
-//             autoSelectDiscountCards();
-//         } else {
-//             // 如果已有手动选择，使用isManualTrigger=true
-//             autoSelectDiscountCards(true);
-//         }
-//     }
-//     // 当选择次卡支付时，展开次卡列表
-//     else if (value === 'SessionCard') {
-//         activeCollapseItem.value = ['time-card'];
-
-//         // 自动选择第一张有效的次卡
-//         const validTimeCards = groupedTimeCards.value.filter(card => card.isValid);
-
-//         if (validTimeCards.length > 0) {
-//             // 选中第一张有效次卡
-//             validTimeCards[0].selected = true;
-//             // 触发计算逻辑
-//             changeCoupon(2, validTimeCards[0]);
-//         }
-//     } else {
-//         activeCollapseItem.value = [];
-
-//         // 清除次卡的选中状态
-//         groupedTimeCards.value.forEach(card => {
-//             card.selected = false;
-//         });
-//         userCouponList.value.filter(item => item.coupon.couponType === "SessionCard").forEach(item => {
-//             item.selected = false;
-//         });
-
-//         // 重置价格差额和优惠金额
-//         if (paymentForm.value.bonusAmount > 0) {
-//             paymentForm.value.bonusAmount = 0;
-//             paymentForm.value.paymentAmount = paymentForm.value.totalAmount;
-//         }
-//     }
-// }
-
-// // 添加监听，当支付方式变更时，自动展开相应的优惠选项
-// watch(() => paymentForm.value.paymentMethod, (newMethod) => {
-//     if (newMethod === 'StoredValueCard') {
-//         // 如果选择了储值卡支付，自动展开储值卡区域
-//         if (!activeCollapseItem.value.includes('storage-card')) {
-//             activeCollapseItem.value = ['storage-card'];
-//         }
-
-//         // 如果没有手动选择，则执行自动选择
-//         if (!hasManualStorageCardSelection.value) {
-//             hasManualStorageCardSelection.value = false;
-//             autoSelectStorageCards();
-//         } else {
-//             // 如果已有手动选择，使用isManualTrigger=true
-//             autoSelectStorageCards(true);
-//         }
-//     }
-//     // 当选择次卡支付时，展开次卡列表
-//     else if (newMethod === 'SessionCard') {
-//         activeCollapseItem.value = ['time-card'];
-
-//         // 自动选择第一张有效的次卡
-//         const validTimeCards = groupedTimeCards.value.filter(card => card.isValid);
-
-//         if (validTimeCards.length > 0) {
-//             // 选中第一张有效次卡
-//             validTimeCards[0].selected = true;
-//             // 触发计算逻辑
-//             changeCoupon(2, validTimeCards[0]);
-//         }
-//     }
-//     // 当选择折扣卡支付时，展开折扣卡列表
-//     else if (newMethod === 'DiscountCard') {
-//         activeCollapseItem.value = ['discount-card'];
-
-//         // 自动选择折扣卡
-//         if (!hasManualDiscountCardSelection.value) {
-//             hasManualDiscountCardSelection.value = false;
-//             autoSelectDiscountCards();
-//         } else {
-//             // 如果已有手动选择，使用isManualTrigger=true
-//             autoSelectDiscountCards(true);
-//         }
-//     } else {
-//         // 如果切换到其他支付方式，重置手动选择标志
-//         hasManualStorageCardSelection.value = false;
-//         hasManualDiscountCardSelection.value = false;
-//     }
-// });
 /* 支付方式变更的公共处理函数 */
 function handlePaymentMethodCommon(paymentMethod) {
     // 重置所有手动选择标志
@@ -1689,14 +1799,28 @@ function initMultiOrderForm() {
     const totalAmount = props.orders.reduce((acc, cur) => acc + cur.mount, 0);
 
     paymentForm.value = {
+        // 订单信息
         orders: props.orders,
+        titles: titles,
+
+        // 支付方式和金额
         paymentMethod: 'Alipay',
-        orderType: '1',
         totalAmount: totalAmount,
-        bonusAmount: 0,
         paymentAmount: totalAmount,
+        bonusAmount: 0,
         priceDiff: 0,
-        titles: titles
+
+        // 卡券相关
+        ucId: '',
+        timeBased: [],
+
+        // 扫码支付相关
+        authCode: '',
+        subject: '',
+        paymentType: '',
+
+        // 其他
+        orderType: 'Laundry'
     };
 
     // 判断储值卡金额是否能够覆盖订单金额

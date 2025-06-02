@@ -199,7 +199,7 @@ const handleCongratsConfirmed = () => {
 
 // 处理支付取消
 const handlePaymentCancel = () => {
-  proxy.notify.warn('支付已取消');
+  proxy.notify.warning('支付已取消');
   subscriptionDialogVisible.value = false;
 };
 

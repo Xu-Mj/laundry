@@ -8,33 +8,55 @@ use sqlx::{
 use std::collections::HashMap;
 use tauri::State;
 
-use crate::constants::{OrderStatus, PaymentMethod, PaymentOrderType, PaymentStatus};
+use crate::constants::{CouponType, PaymentMethod, PaymentOrderType, PaymentStatus};
 use crate::db::Validator;
 use crate::error::{Error, Result};
 use crate::state::AppState;
 use crate::utils;
 
+// 支付主表
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-#[serde(default)]
 pub struct Payment {
     pub pay_id: Option<String>,
     pub pay_number: Option<String>,
+    pub uc_order_id: Option<i64>,
     pub order_type: Option<PaymentOrderType>,
     pub total_amount: Option<f64>,
-    pub payment_amount: Option<f64>,
-    pub payment_amount_vip: Option<f64>,
-    pub payment_amount_mv: Option<f64>,
     pub payment_status: Option<PaymentStatus>,
     pub payment_method: Option<PaymentMethod>,
-    pub transaction_id: Option<i64>,
-    pub uc_order_id: Option<i64>,
-    pub uc_id: Option<String>,
-    pub order_status: Option<OrderStatus>,
     pub create_time: Option<i64>,
     pub update_time: Option<i64>,
-    pub store_id: Option<i64>,         // 商家ID，用于数据隔离
-    pub refund_reason: Option<String>, // 退款原因
+    pub store_id: Option<i64>,
+    pub refund_reason: Option<String>,
+    pub payment_method_details: Vec<PaymentMethodDetail>,
+    pub coupon_usages: Vec<CouponUsage>,
+}
+
+// 支付方式明细表
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PaymentMethodDetail {
+    pub id: Option<i64>,
+    pub store_id: Option<i64>,
+    pub transaction_id: Option<i64>,
+    pub payment_id: String,
+    pub method: Option<PaymentMethod>,
+    pub amount: f64,
+    pub payment_status: Option<PaymentStatus>,
+    pub creat_time: Option<i64>,
+}
+
+// 卡券使用记录表
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CouponUsage {
+    pub id: Option<i64>,
+    pub payment_id: String,
+    pub coupon_id: i64,
+    pub coupon_type: CouponType,
+    pub applied_amount: f64,
+    pub is_refunded: bool,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, FromRow)]
@@ -51,7 +73,10 @@ impl Validator for Payment {
         if self.pay_number.is_none() {
             return Err(Error::bad_request("pay_number is required"));
         }
-
+        if self.uc_order_id.is_none() {
+            // 新增校验
+            return Err(Error::bad_request("uc_order_id is required"));
+        }
         if self.order_type.is_none() {
             return Err(Error::bad_request("order_type is required"));
         }
@@ -60,80 +85,193 @@ impl Validator for Payment {
             return Err(Error::bad_request("total_amount is required"));
         }
 
-        if self.payment_amount.is_none() {
-            return Err(Error::bad_request("payment_amount is required"));
-        }
-
         if self.payment_status.is_none() {
             return Err(Error::bad_request("payment_status is required"));
-        }
-
-        if self.payment_method.is_none() {
-            return Err(Error::bad_request("payment_method is required"));
-        }
-
-        if self.order_status.is_none() {
-            return Err(Error::bad_request("order_status is required"));
         }
 
         Ok(())
     }
 }
 
+const SQL: &str = "SELECT 
+    p.*,
+    COALESCE(
+        (SELECT json_group_array(json_object(
+            'id', pmd.id,
+            'paymentId', pmd.payment_id,
+            'method', pmd.method,
+            'amount', pmd.amount,
+            'transactionId', pmd.transaction_id,
+            'createTime', pmd.create_time
+        )) 
+        FROM payment_method_details pmd
+        WHERE pmd.payment_id = p.pay_id),
+        '[]'
+    ) AS payment_method_details,
+    
+   COALESCE(
+    (SELECT json_group_array(json_object(
+        'id', cu.id,
+        'paymentId', cu.payment_id,
+        'couponId', cu.coupon_id,
+        'couponType', cu.coupon_type,
+        'appliedAmount', cu.applied_amount,
+        'isRefunded', CASE WHEN cu.is_refunded = 1 THEN json('true') ELSE json('false') END  -- 转换为JSON布尔值
+    ))
+    FROM coupon_usages cu
+    WHERE cu.payment_id = p.pay_id),
+    '[]'
+    ) AS coupon_usages
+FROM 
+    payments p ";
+
 impl FromRow<'_, SqliteRow> for Payment {
+    fn from_row(row: &SqliteRow) -> std::result::Result<Self, sqlx::Error> {
+        // Extract the JSON arrays from the query result
+        let payment_method_details_json: String = row.try_get("payment_method_details")?;
+        let coupon_usages_json: String = row.try_get("coupon_usages")?;
+
+        tracing::debug!(
+            "payment_method_details_json: {}",
+            payment_method_details_json
+        );
+        tracing::debug!("coupon_usages_json: {}", coupon_usages_json);
+        // Parse the JSON arrays into vectors of the respective types
+        let payment_method_details: Vec<PaymentMethodDetail> =
+            serde_json::from_str(&payment_method_details_json).map_err(|e| {
+                sqlx::Error::ColumnDecode {
+                    index: "payment_method_details".to_string(),
+                    source: Box::new(e),
+                }
+            })?;
+
+        let coupon_usages: Vec<CouponUsage> =
+            serde_json::from_str(&coupon_usages_json).map_err(|e| sqlx::Error::ColumnDecode {
+                index: "coupon_usages".to_string(),
+                source: Box::new(e),
+            })?;
+
+        // Create and return the Payment object
+        Ok(Self {
+            pay_id: row.try_get("pay_id")?,
+            pay_number: row.try_get("pay_number")?,
+            uc_order_id: row.try_get("uc_order_id")?,
+            order_type: row.try_get("order_type")?,
+            total_amount: row.try_get("total_amount")?,
+            payment_status: row.try_get("payment_status")?,
+            payment_method: row.try_get("payment_method")?,
+            create_time: row.try_get("create_time")?,
+            update_time: row.try_get("update_time")?,
+            store_id: row.try_get("store_id")?,
+            refund_reason: row.try_get("refund_reason")?,
+            payment_method_details,
+            coupon_usages,
+        })
+    }
+}
+
+impl FromRow<'_, SqliteRow> for PaymentMethodDetail {
     fn from_row(row: &'_ SqliteRow) -> std::result::Result<Self, sqlx::Error> {
         Ok(Self {
-            pay_id: row.try_get("pay_id").unwrap_or_default(),
-            pay_number: row.try_get("pay_number").unwrap_or_default(),
-            order_type: row.try_get("order_type").unwrap_or_default(),
-            total_amount: row.try_get("total_amount").unwrap_or_default(),
-            payment_amount: row.try_get("payment_amount").unwrap_or_default(),
-            payment_amount_vip: row.try_get("payment_amount_vip").unwrap_or_default(),
-            payment_amount_mv: row.try_get("payment_amount_mv").unwrap_or_default(),
-            payment_status: row.try_get("payment_status").unwrap_or_default(),
-            payment_method: row.try_get("payment_method").unwrap_or_default(),
-            transaction_id: row.try_get("transaction_id").unwrap_or_default(),
-            uc_order_id: row.try_get("uc_order_id").unwrap_or_default(),
-            uc_id: row.try_get("uc_id").unwrap_or_default(),
-            order_status: row.try_get("order_status").unwrap_or_default(),
-            create_time: row.try_get("create_time").unwrap_or_default(),
-            update_time: row.try_get("update_time").unwrap_or_default(),
-            store_id: row.try_get("store_id").unwrap_or_default(),
-            refund_reason: row.try_get("refund_reason").unwrap_or_default(),
+            id: row.try_get("id").ok(),
+            transaction_id: row.try_get("transaction_id")?,
+            store_id: row.try_get("store_id")?,
+            payment_id: row.try_get("payment_id").unwrap_or_default(),
+            method: row.try_get("method").unwrap_or_default(),
+            amount: row.try_get("amount").unwrap_or_default(),
+            payment_status: row.try_get("payment_status")?,
+            creat_time: row.try_get("creat_time")?,
+        })
+    }
+}
+
+impl FromRow<'_, SqliteRow> for CouponUsage {
+    fn from_row(row: &'_ SqliteRow) -> std::result::Result<Self, sqlx::Error> {
+        Ok(Self {
+            id: row.try_get("id").ok(),
+            payment_id: row.try_get("payment_id").unwrap_or_default(),
+            coupon_id: row.try_get("coupon_id").unwrap_or_default(),
+            coupon_type: row.try_get("coupon_type").unwrap_or_default(),
+            applied_amount: row.try_get("applied_amount").unwrap_or_default(),
+            is_refunded: row.try_get("is_refunded").unwrap_or_default(),
         })
     }
 }
 
 impl Payment {
     pub async fn create_payment(&self, tr: &mut Transaction<'_, Sqlite>) -> Result<Payment> {
-        let query = r#"
-        INSERT INTO payments (pay_id, pay_number, order_type, total_amount, payment_amount, payment_amount_vip,
-                             payment_amount_mv, payment_status, payment_method, transaction_id,
-                             uc_order_id, uc_id, create_time, order_status, store_id, refund_reason)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *
-    "#;
+        let now = utils::get_timestamp();
 
-        let result = sqlx::query_as(query)
+        // 首先插入主支付记录
+        let query = r#"
+        INSERT INTO payments (
+            pay_id, pay_number, uc_order_id, order_type, total_amount,
+            payment_status, payment_method, 
+            create_time, update_time, store_id, refund_reason
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        "#;
+
+        sqlx::query(query)
             .bind(&self.pay_id)
             .bind(&self.pay_number)
+            .bind(&self.uc_order_id)
             .bind(&self.order_type)
             .bind(&self.total_amount)
-            .bind(&self.payment_amount)
-            .bind(&self.payment_amount_vip)
-            .bind(&self.payment_amount_mv)
             .bind(&self.payment_status)
             .bind(&self.payment_method)
-            .bind(&self.transaction_id)
-            .bind(&self.uc_order_id)
-            .bind(&self.uc_id)
-            .bind(utils::get_timestamp())
-            .bind(&self.order_status)
+            .bind(now)
+            .bind(now)
             .bind(&self.store_id)
             .bind(&self.refund_reason)
-            .fetch_one(&mut **tr)
+            .execute(&mut **tr)
             .await?;
 
-        Ok(result)
+        // 批量插入支付方式明细
+        if !self.payment_method_details.is_empty() {
+            let mut query_builder = sqlx::QueryBuilder::new(
+                "INSERT INTO payment_method_details (
+                        payment_id, 
+                        method, 
+                        amount, 
+                        transaction_id,
+                        store_id,
+                        payment_status,
+                        create_time
+                    ) ",
+            );
+
+            query_builder.push_values(&self.payment_method_details, |mut b, detail| {
+                b.push_bind(&self.pay_id)
+                    .push_bind(&detail.method)
+                    .push_bind(detail.amount)
+                    .push_bind(detail.transaction_id)
+                    .push_bind(detail.store_id)
+                    .push_bind(&detail.payment_status)
+                    .push_bind(now);
+            });
+
+            query_builder.build().execute(&mut **tr).await?;
+        }
+
+        // 批量插入卡券使用记录
+        if !self.coupon_usages.is_empty() {
+            let mut query_builder = sqlx::QueryBuilder::new(
+                "INSERT INTO coupon_usages (payment_id, coupon_id, coupon_type, applied_amount, is_refunded) ",
+            );
+
+            query_builder.push_values(&self.coupon_usages, |mut b, usage| {
+                b.push_bind(&self.pay_id)
+                    .push_bind(usage.coupon_id)
+                    .push_bind(&usage.coupon_type)
+                    .push_bind(usage.applied_amount)
+                    .push_bind(usage.is_refunded);
+            });
+
+            query_builder.build().execute(&mut **tr).await?;
+        }
+
+        // 返回完整的支付记录（包含关联数据）
+        Self::get_by_pay_id_with_details(tr, self.pay_id.as_deref().unwrap()).await
     }
 
     pub async fn get_by_order_id(
@@ -141,25 +279,39 @@ impl Payment {
         order_id: i64,
         store_id: i64,
     ) -> Result<Option<Self>> {
-        let payment =
-            sqlx::query_as("SELECT * FROM payments WHERE uc_order_id = ? AND store_id = ?")
-                .bind(order_id)
-                .bind(store_id)
-                .fetch_optional(pool)
-                .await?;
+        // 首先获取主支付记录
+        let payment = sqlx::query_as(&format!("{SQL} WHERE p.uc_order_id =? AND p.store_id =?"))
+            .bind(order_id)
+            .bind(store_id)
+            .fetch_optional(pool)
+            .await?;
+
+        Ok(payment)
+    }
+
+    pub async fn get_by_pay_id_with_details(
+        executor: &mut Transaction<'_, Sqlite>,
+        pay_id: &str,
+    ) -> Result<Payment> {
+        // 获取主支付记录
+        let payment: Payment = sqlx::query_as(&format!("{SQL} WHERE p.pay_id =?"))
+            .bind(pay_id)
+            .fetch_one(&mut **executor)
+            .await?;
+
         Ok(payment)
     }
 
     pub async fn cal_total_amount(pool: &Pool<Sqlite>, user_id: i64, store_id: i64) -> Result<f64> {
         let result = sqlx::query_scalar(
             "
-            SELECT COALESCE(SUM(payment_amount), 0.0)
+            SELECT COALESCE(SUM(p.total_amount), 0.0)
             FROM payments p
             INNER JOIN orders o ON p.uc_order_id = o.order_id
-            WHERE o.user_id =? 
+            WHERE o.user_id = ? 
                 AND p.store_id = ? 
                 AND p.payment_status = 'Paid'
-                AND p.payment_amount > 0
+                AND p.total_amount > 0
                 AND p.order_type = ?
             ",
         )
@@ -173,18 +325,239 @@ impl Payment {
         Ok(result)
     }
 
-    // update
-    pub async fn update_payment_status(&self, tr: &mut Transaction<'_, Sqlite>) -> Result<bool> {
+    pub async fn refund(&self, tx: &mut Transaction<'_, Sqlite>) -> Result<bool> {
+        if self.pay_id.is_none() {
+            return Err(Error::bad_request("pay_id is required"));
+        }
+
         let query = r#"
-        UPDATE payments SET payment_status = ?, refund_reason = ? WHERE pay_id = ?
+        UPDATE payments SET 
+            payment_status = ?, 
+            refund_reason = ?,
+            update_time = ?
+        WHERE pay_id = ?
         "#;
+
         let result = sqlx::query(query)
             .bind(&self.payment_status)
             .bind(&self.refund_reason)
+            .bind(utils::get_timestamp())
             .bind(&self.pay_id)
-            .execute(&mut **tr)
+            .execute(&mut **tx)
             .await?;
+
+        if result.rows_affected() == 0 {
+            return Err(Error::not_found("退款失败"));
+        }
+        // update details
+        let result =
+            PaymentMethodDetail::mark_as_refunded(tx, &self.pay_id.clone().unwrap()).await?;
+        if !result {
+            return Err(Error::bad_request("退款失败"));
+        }
+
+        CouponUsage::mark_as_refunded(tx, &self.pay_id.clone().unwrap()).await?;
+        Ok(result)
+    }
+
+    // 新增：获取用户的支付历史（包含明细）
+    pub async fn get_user_payment_history(
+        pool: &Pool<Sqlite>,
+        user_id: i64,
+        store_id: i64,
+        limit: Option<i64>,
+        offset: Option<i64>,
+    ) -> Result<Vec<Self>> {
+        let limit = limit.unwrap_or(50);
+        let offset = offset.unwrap_or(0);
+
+        let query = r#"
+        SELECT p.* FROM payments p
+        INNER JOIN orders o ON p.uc_order_id = o.order_id
+        WHERE o.user_id = ? AND p.store_id = ?
+        ORDER BY p.create_time DESC
+        LIMIT ? OFFSET ?
+        "#;
+
+        let payments: Vec<Payment> = sqlx::query_as(query)
+            .bind(user_id)
+            .bind(store_id)
+            .bind(limit)
+            .bind(offset)
+            .fetch_all(pool)
+            .await?;
+
+        let mut result = Vec::new();
+        for mut payment in payments {
+            let pay_id = payment.pay_id.clone().unwrap_or_default();
+
+            // 获取支付方式明细
+            let details_query = "SELECT * FROM payment_method_details WHERE payment_id = ?";
+            let details: Vec<PaymentMethodDetail> = sqlx::query_as(details_query)
+                .bind(&pay_id)
+                .fetch_all(pool)
+                .await?;
+            payment.payment_method_details = details;
+
+            // 获取卡券使用记录
+            let usages_query = "SELECT * FROM coupon_usages WHERE payment_id = ?";
+            let usages: Vec<CouponUsage> = sqlx::query_as(usages_query)
+                .bind(&pay_id)
+                .fetch_all(pool)
+                .await?;
+            payment.coupon_usages = usages;
+
+            result.push(payment);
+        }
+
+        Ok(result)
+    }
+
+    // 新增：统计支付方式使用情况
+    pub async fn get_payment_method_stats(
+        pool: &Pool<Sqlite>,
+        store_id: i64,
+        start_time: Option<i64>,
+        end_time: Option<i64>,
+    ) -> Result<Vec<(PaymentMethod, f64, i64)>> {
+        // (支付方式, 总金额, 使用次数)
+        let mut query = String::from(
+            r#"
+        SELECT 
+            pmd.method,
+            COALESCE(SUM(pmd.amount), 0.0) as total_amount,
+            COUNT(*) as usage_count
+        FROM payment_method_details pmd
+        INNER JOIN payments p ON pmd.payment_id = p.pay_id
+        WHERE p.store_id = ? AND p.payment_status = 'Paid'
+        "#,
+        );
+
+        let mut bindings = vec![store_id.to_string()];
+
+        if let Some(start) = start_time {
+            query.push_str(" AND p.create_time >= ?");
+            bindings.push(start.to_string());
+        }
+
+        if let Some(end) = end_time {
+            query.push_str(" AND p.create_time <= ?");
+            bindings.push(end.to_string());
+        }
+
+        query.push_str(" GROUP BY pmd.method ORDER BY total_amount DESC");
+
+        let rows = sqlx::query(&query).bind(store_id).fetch_all(pool).await?;
+
+        let mut result = Vec::new();
+        for row in rows {
+            let method: PaymentMethod = row.try_get("method")?;
+            let total_amount: f64 = row.try_get("total_amount")?;
+            let usage_count: i64 = row.try_get("usage_count")?;
+            result.push((method, total_amount, usage_count));
+        }
+
+        Ok(result)
+    }
+}
+
+impl PaymentMethodDetail {
+    pub async fn mark_as_refunded(tx: &mut Transaction<'_, Sqlite>, pay_id: &str) -> Result<bool> {
+        let result =
+            sqlx::query("UPDATE payment_method_details SET payment_status = 'Refunded' WHERE payment_id =?")
+                .bind(pay_id)
+                .execute(&mut **tx)
+                .await?;
+
         Ok(result.rows_affected() > 0)
+    }
+}
+
+// CouponUsage 的相关实现
+impl CouponUsage {
+    pub async fn mark_as_refunded(tx: &mut Transaction<'_, Sqlite>, pay_id: &str) -> Result<bool> {
+        let result =
+            sqlx::query("UPDATE coupon_usages SET is_refunded = true WHERE payment_id = ?")
+                .bind(pay_id)
+                .execute(&mut **tx)
+                .await?;
+
+        Ok(result.rows_affected() > 0)
+    }
+
+    // 新增：获取卡券的使用历史
+    pub async fn get_by_coupon_id(
+        pool: &Pool<Sqlite>,
+        coupon_id: i64,
+        store_id: i64,
+    ) -> Result<Vec<Self>> {
+        let query = r#"
+        SELECT cu.* FROM coupon_usages cu
+        INNER JOIN payments p ON cu.payment_id = p.pay_id
+        WHERE cu.coupon_id = ? AND p.store_id = ?
+        ORDER BY cu.id DESC
+        "#;
+
+        let usages = sqlx::query_as(query)
+            .bind(coupon_id)
+            .bind(store_id)
+            .fetch_all(pool)
+            .await?;
+
+        Ok(usages)
+    }
+
+    // 新增：获取指定时间范围内的卡券使用统计
+    pub async fn get_usage_stats(
+        pool: &Pool<Sqlite>,
+        store_id: i64,
+        start_time: Option<i64>,
+        end_time: Option<i64>,
+    ) -> Result<Vec<(CouponType, f64, i64)>> {
+        // (卡券类型, 总使用金额, 使用次数)
+        let mut query = String::from(
+            r#"
+        SELECT 
+            cu.coupon_type,
+            COALESCE(SUM(cu.applied_amount), 0.0) as total_amount,
+            COUNT(*) as usage_count
+        FROM coupon_usages cu
+        INNER JOIN payments p ON cu.payment_id = p.pay_id
+        WHERE p.store_id = ? AND p.payment_status = 'Paid'
+        "#,
+        );
+
+        if start_time.is_some() {
+            query.push_str(" AND p.create_time >= ?");
+        }
+
+        if end_time.is_some() {
+            query.push_str(" AND p.create_time <= ?");
+        }
+
+        query.push_str(" GROUP BY cu.coupon_type ORDER BY total_amount DESC");
+
+        let mut query_builder = sqlx::query(&query).bind(store_id);
+
+        if let Some(start) = start_time {
+            query_builder = query_builder.bind(start);
+        }
+
+        if let Some(end) = end_time {
+            query_builder = query_builder.bind(end);
+        }
+
+        let rows = query_builder.fetch_all(pool).await?;
+
+        let mut result = Vec::new();
+        for row in rows {
+            let coupon_type: CouponType = row.try_get("coupon_type")?;
+            let total_amount: f64 = row.try_get("total_amount")?;
+            let usage_count: i64 = row.try_get("usage_count")?;
+            result.push((coupon_type, total_amount, usage_count));
+        }
+
+        Ok(result)
     }
 }
 
@@ -237,14 +610,14 @@ pub async fn get_monthly_payment_summary(
     let normal_income_data: HashMap<String, f64> = sqlx::query(
         r#"
         SELECT
-            strftime('%Y-%m-%d', datetime(create_time/1000, 'unixepoch')) as date,
-            SUM(payment_amount) as income
-        FROM payments
+            strftime('%Y-%m-%d', datetime(create_time/1000, 'unixepoch', 'localtime')) as date,
+            SUM(amount) as income
+        FROM payment_method_details
         WHERE create_time BETWEEN ? AND ?
           AND payment_status = 'Paid'
-          AND payment_amount > 0
-          AND payment_method != ? -- 排除储值卡支付
-          AND payment_method != ? -- 排除折扣卡支付
+          AND amount > 0
+          AND method != ? -- 排除储值卡支付
+          AND method != ? -- 排除折扣卡支付
           AND store_id = ?
         GROUP BY date
         ORDER BY date
@@ -252,9 +625,9 @@ pub async fn get_monthly_payment_summary(
     )
     .bind(start_timestamp)
     .bind(end_timestamp)
-    .bind(PaymentMethod::StoredValueCard)
-    .bind(PaymentMethod::DiscountCard)
     .bind(store_id)
+    .bind(PaymentMethod::StoredValueCard.to_string())
+    .bind(PaymentMethod::DiscountCard.to_string())
     .map(|row: SqliteRow| {
         let date: String = row.get("date");
         let income: f64 = row.get("income");
@@ -419,21 +792,20 @@ async fn query_amounts(
     // 正常销售收入（排除储值卡支付的交易，避免重复统计）
     let income: f64 = sqlx::query_scalar(
         r#"
-        SELECT COALESCE(SUM(payment_amount), 0.0)
-        FROM payments
-        WHERE create_time BETWEEN ? AND ?
-          AND payment_status = 'Paid'
-          AND payment_amount > 0
-          AND payment_method != ? -- 排除储值卡支付
-          AND payment_method != ? -- 排除折扣卡支付
-          AND store_id = ?
+        SELECT COALESCE(SUM(amount), 0.0)
+        FROM payment_method_details
+        WHERE payment_status = 'Paid'
+          AND amount > 0
+          AND store_id =?
+          AND method NOT IN (?, ?)
+          AND create_time BETWEEN ? AND ?
         "#,
     )
-    .bind(start)
-    .bind(end)
+    .bind(store_id)
     .bind(PaymentMethod::StoredValueCard)
     .bind(PaymentMethod::DiscountCard)
-    .bind(store_id)
+    .bind(start)
+    .bind(end)
     .fetch_one(pool)
     .await?;
 

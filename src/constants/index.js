@@ -41,11 +41,11 @@ export const ClothStatusMap = Object.fromEntries(
 
 // 卡券类型
 export const CouponType = [
-  { label: "储值卡", value: "StoredValueCard" },
-  { label: "折扣卡", value: "DiscountCard" },
-  { label: "满减券", value: "SpendAndSaveCard" },
-  { label: "折扣券", value: "DiscountCoupon" },
-  { label: "次卡", value: "SessionCard" }
+  { label: "储值卡", value: "StoredValueCard", type: "success", icon: "CreditCard" },
+  { label: "折扣卡", value: "DiscountCard", type: "success", icon: "CreditCard" },
+  { label: "满减券", value: "SpendAndSaveCard", type: "danger", icon: "Discount" },
+  { label: "折扣券", value: "DiscountCoupon", type: "danger", icon: "Discount" },
+  { label: "次卡", value: "SessionCard", type: "warning", icon: "CreditCard" }
 ];
 
 export const CouponTypeMap = Object.fromEntries(
@@ -95,7 +95,7 @@ export const PaymentMethodShow = [
 ];
 
 export const PaymentMethodShowMap = Object.fromEntries(
-  PaymentMethod.map(item => [item.value, item])
+  PaymentMethodShow.map(item => [item.value, item])
 );
 
 export const CouponPaymentMethod = [

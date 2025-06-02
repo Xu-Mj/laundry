@@ -45,9 +45,9 @@ pub struct Clothing {
     /// 是否是默认参数
     is_default: Option<bool>,
     /// 原始价格 (minLinePrice/maxLinePrice)
-    clothing_base_price: Option<f64>,
+    pub clothing_base_price: Option<f64>,
     /// 销售价格 (minSalePrice/maxSalePrice)
-    sale_price: Option<f64>,
+    pub sale_price: Option<f64>,
     /// 最小利润价格 (minProfitPrice)
     clothing_min_price: Option<f64>,
     /// 库存数量 (spuStockQuantity)

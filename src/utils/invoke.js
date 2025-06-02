@@ -46,15 +46,13 @@ async function invoke(command, params = {}) {
         cancelButtonText: '取消',
         type: 'warning'
       }).then(() => {
-        useUserStore().logOut().then(() => {
-          location.href = '/index';
-        });
+        const redirectUrl = '/login';
+        setTimeout(() => {
+          useUserStore().logOut();
+        }, 0);
+        location.href = redirectUrl;
       });
-      // Notification.error('登录过期，请重新登录');
-      // // 清除token
-      // removeToken();
-      // // 跳转到登录页面
-      // window.location.href = '/login';
+
       return Promise.reject('无效的会话，或者会话已过期，请重新登录。');
     } else
 

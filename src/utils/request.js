@@ -96,9 +96,11 @@ service.interceptors.response.use(res => {
         type: 'warning'
       }).then(() => {
         isRelogin.show = false;
-        useUserStore().logOut().then(() => {
-          location.href = '/index';
-        });
+        const redirectUrl = '/login';
+        setTimeout(() => {
+          useUserStore().logOut();
+        }, 0);
+        location.href = redirectUrl;
       }).catch(() => {
         isRelogin.show = false;
       });

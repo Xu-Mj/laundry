@@ -96,7 +96,7 @@
                 </div>
                 <div class="info-item full-width">
                   <span class="item-label">价格:</span>
-                  <span class="price-value">¥{{ calPrice(item.priceValue) }}</span>
+                  <span class="price-value">¥{{ calPrice(item) }}</span>
                   <span v-if="item.processMarkup && item.processMarkup > 0" class="markup">
                     (工艺加价: ¥{{ item.processMarkup }})
                   </span>
@@ -462,15 +462,19 @@ const data = reactive({
 const { hangForm, hangRules } = toRefs(data);
 
 // 计算价格
-function calPrice(price) {
+function calPrice(item) {
   if (props.order.payment) {
     if (props.order.diffPrice) {
       return (Math.floor(props.order.diffPrice / clothsList.value.length * 100) / 100).toFixed(2);
     } else {
       return (Math.floor(props.order.paymentAmount / clothsList.value.length * 100) / 100).toFixed(2);
     }
+  } else if (item.serviceRequirement === 'Emergency') {
+    return (Math.floor(item.priceValue * 2 * 100) / 100).toFixed(2);
+  } else if (item.serviceRequirement === 'SingleWash') {
+    return (Math.floor(item.priceValue * 1.5 * 100) / 100).toFixed(2);
   }
-  return price;
+  return item.priceValue;
 }
 
 // 关闭对话框

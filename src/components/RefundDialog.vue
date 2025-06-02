@@ -36,48 +36,36 @@
           </div>
 
           <div class="payment-details">
-            <!-- 储值卡 -->
-            <div class="payment-item" v-if="paymentDetails.cardAmount > 0">
+            <!-- 资金类支付方式明细 - 从PaymentMethodDetails中获取 -->
+            <div class="payment-item" v-for="detail in paymentMethodDetails" :key="detail.id">
               <div class="payment-method">
                 <el-icon>
-                  <CreditCard />
+                  <component :is="getPaymentMethodIcon(detail.method)" />
                 </el-icon>
-                <span>储值卡支付</span>
+                <span>{{ getPaymentMethodName(detail.method) }}支付</span>
               </div>
-              <div class="payment-amount">{{ paymentDetails.cardAmount }}元</div>
+              <div class="payment-amount">{{ detail.amount }}元</div>
             </div>
 
-            <!-- 次卡 -->
-            <div class="payment-item" v-if="paymentDetails.hasTimeCard">
+            <!-- 优惠券使用明细 - 从CouponUsages中获取 -->
+            <div class="payment-item" v-for="usage in couponUsages" :key="usage.id">
               <div class="payment-method">
                 <el-icon>
-                  <Tickets />
+                  <component :is="CouponTypeMap[usage.couponType]?.icon" />
                 </el-icon>
-                <span>{{ paymentDetails.timeCardName || '次卡抵扣' }}</span>
+                <span>
+                  {{ getCouponName(usage.couponId, usage.couponType) || CouponTypeMap[usage.couponType]?.label }}
+                </span>
               </div>
-              <div class="payment-amount">{{ paymentDetails.timeCardCount }}次</div>
-            </div>
-
-            <!-- 优惠券 -->
-            <div class="payment-item" v-if="paymentDetails.couponAmount > 0">
-              <div class="payment-method">
-                <el-icon>
-                  <Discount />
-                </el-icon>
-                <span>{{ paymentDetails.couponName || (paymentDetails.couponType + '抵扣') || '优惠券抵扣' }}</span>
+              <div class="payment-amount">
+                {{ usage.appliedAmount }}
+                <template v-if="usage.couponType === 'SessionCard'">次
+                </template>
+                <template v-else>
+                  {{ (usage.couponType === 'SpendAndSaveCard' ||
+                    usage.couponType === 'DiscountCoupon') ? '张' : '元' }}
+                </template>
               </div>
-              <div class="payment-amount">{{ paymentDetails.couponAmount }}元</div>
-            </div>
-
-            <!-- 实际支付 -->
-            <div class="payment-item highlight" v-if="paymentDetails.actualPayAmount > 0">
-              <div class="payment-method">
-                <el-icon>
-                  <component :is="PaymentMethodShowMap[paymentDetails.value.paymentMethod]?.icon" />
-                </el-icon>
-                <span>{{ PaymentMethodShowMap[paymentDetails.value.paymentMethod]?.label }}支付</span>
-              </div>
-              <div class="payment-amount">{{ paymentDetails.actualPayAmount }}元</div>
             </div>
           </div>
         </div>
@@ -89,40 +77,32 @@
           </div>
 
           <div class="payment-details">
-            <!-- 储值卡 -->
-            <div class="payment-item" v-if="paymentDetails.cardAmount > 0">
+            <!-- 资金类支付方式退款 - 从PaymentMethodDetails中获取 -->
+            <div class="payment-item" v-for="detail in paymentMethodDetails" :key="'refund-' + detail.id">
               <div class="payment-method">
                 <el-icon>
-                  <CreditCard />
+                  <component :is="getPaymentMethodIcon(detail.method)" />
                 </el-icon>
-                <span>退回储值卡</span>
+                <span>退回{{ getPaymentMethodName(detail.method) }}</span>
               </div>
-              <div class="payment-amount">{{ paymentDetails.cardAmount }}元</div>
+              <div class="payment-amount">{{ detail.amount }}元</div>
             </div>
 
-            <!-- 次卡 -->
-            <div class="payment-item" v-if="paymentDetails.hasTimeCard">
+            <!-- 优惠券退回 - 从CouponUsages中获取 -->
+            <div class="payment-item" v-for="usage in couponUsages" :key="'refund-' + usage.id">
               <div class="payment-method">
                 <el-icon>
-                  <Tickets />
+                  <component :is="CouponTypeMap[usage.couponType]?.icon" />
                 </el-icon>
-                <span>退回次卡{{ paymentDetails.timeCardName || '次卡' }}</span>
+                <span>退回{{ getCouponName(usage.couponId, usage.couponType) || getCouponTypeName(usage.couponType)
+                }}</span>
               </div>
-              <div class="payment-amount">{{ paymentDetails.timeCardCount }}次</div>
+              <div class="payment-amount">
+                {{ usage.couponType === 'SessionCard' ? usage.appliedAmount + '次' : usage.appliedAmount + '元' }}
+              </div>
             </div>
 
-            <!-- 优惠券 -->
-            <div class="payment-item" v-if="paymentDetails.couponAmount > 0">
-              <div class="payment-method">
-                <el-icon>
-                  <Discount />
-                </el-icon>
-                <span>退回优惠券{{ paymentDetails.couponName || paymentDetails.couponType || '优惠券' }}</span>
-              </div>
-              <div class="payment-amount">{{ paymentDetails.couponAmount }}元</div>
-            </div>
-
-            <!-- 实际退款 -->
+            <!-- 实际退款金额 -->
             <div class="payment-item highlight" v-if="paymentDetails.actualPayAmount > 0">
               <div class="payment-method">
                 <el-icon>
@@ -178,8 +158,9 @@
 </template>
 
 <script setup>
+import { ref, watch, getCurrentInstance } from 'vue';
 import { getRefundInfo, refund } from "@/api/system/orders";
-import { PaymentMethodShowMap } from "@/constants";
+import { PaymentMethodShowMap, CouponTypeMap } from "@/constants";
 
 const props = defineProps({
   visible: {
@@ -209,16 +190,17 @@ const refundFormRef = ref(null);
 // 支付详情
 const paymentDetails = ref({
   totalAmount: 0,          // 订单总金额
-  cardAmount: 0,           // 储值卡支付金额
-  couponAmount: 0,         // 优惠券抵扣金额
-  actualPayAmount: 0,      // 实际支付金额
-  paymentMethod: '',       // 支付方式
-  hasTimeCard: false,      // 是否使用了次卡
-  timeCardCount: 0,        // 次卡使用次数
-  timeCardName: '',        // 次卡名称
-  couponType: '',          // 优惠券类型
-  couponName: ''           // 优惠券名称
+  actualPayAmount: 0,      // 实际支付金额（现金、支付宝、微信等）
 });
+
+// 支付方式明细 - 资金流动类
+const paymentMethodDetails = ref([]);
+
+// 优惠券使用记录 - 包含次卡、满减券、折扣券等
+const couponUsages = ref([]);
+
+// 用户优惠券信息（用于显示名称）
+const userCoupons = ref([]);
 
 const refundForm = ref({
   orderId: null,
@@ -264,8 +246,15 @@ function loadRefundInfo() {
 
   // 获取退款详情
   getRefundInfo(props.orderId, props.userId).then(res => {
-    console.log(res)
-    refundForm.value.customerInfo = res.user.nickName || res.user.userName;
+    console.log('退款信息:', res);
+
+    // 设置用户信息
+    if (res.user) {
+      refundForm.value.customerInfo = res.user.nickName || res.user.userName;
+    }
+
+    // 存储用户优惠券信息
+    userCoupons.value = res.userCoupons || [];
 
     if (res.payment) {
       // 已经支付了
@@ -274,71 +263,23 @@ function loadRefundInfo() {
 
       // 设置支付详情
       paymentDetails.value.totalAmount = payment.totalAmount || 0;
-      paymentDetails.value.paymentMethod = payment.paymentMethod || '';
 
-      const method = payment.paymentMethod;
-
-      // 解析支付方式
-      // 组合支付：支付方式 + 储值卡
-      if (['16', '26', '56'].includes(method)) {
-        // 组合支付: 支付宝/微信/现金 + 储值卡
-        paymentDetails.value.cardAmount = payment.paymentAmountVip || 0;
-        paymentDetails.value.actualPayAmount = payment.paymentAmountMv || 0;
-      }
-      // 微信+优惠券组合
-      else if (method === '28' || method === '29') {
-        paymentDetails.value.actualPayAmount = payment.paymentAmount || 0;
-        paymentDetails.value.couponAmount = payment.totalAmount - payment.paymentAmount || 0;
-
-        // 设置优惠券类型
-        if (method === '28') {
-          paymentDetails.value.couponType = '折扣券';
-        } else if (method === '29') {
-          paymentDetails.value.couponType = '满减券';
-        }
-      }
-      // 单独的储值卡支付
-      else if (method === '06') {
-        paymentDetails.value.cardAmount = payment.paymentAmount || 0;
-        paymentDetails.value.actualPayAmount = 0;
-      }
-      // 次卡支付
-      else if (method === '07') {
-        paymentDetails.value.hasTimeCard = true;
-        paymentDetails.value.timeCardCount = payment.paymentAmountVip || 1;
-        paymentDetails.value.actualPayAmount = 0;
-      }
-      // 普通支付
-      else {
-        paymentDetails.value.actualPayAmount = payment.paymentAmount || 0;
+      // 处理支付方式明细 - 资金流动类
+      paymentMethodDetails.value = [];
+      if (payment.paymentMethodDetails && payment.paymentMethodDetails.length > 0) {
+        paymentMethodDetails.value = payment.paymentMethodDetails;
       }
 
-      // 处理优惠券
-      if (payment.ucId && res.userCoupons && res.userCoupons.length > 0) {
-        // 遍历所有使用的优惠券
-        res.userCoupons.forEach(uc => {
-          const couponType = uc.coupon?.couponType;
-
-          // 处理次卡 (004或002都是次卡类型)
-          if (couponType === '002') {
-            paymentDetails.value.hasTimeCard = true;
-            paymentDetails.value.timeCardCount = payment.paymentAmountVip || 1;
-            paymentDetails.value.timeCardName = uc.coupon?.couponTitle;
-          }
-          // 处理满减券
-          else if (couponType === '004') {
-            paymentDetails.value.couponAmount = uc.coupon?.couponValue || payment.totalAmount - payment.paymentAmount || 0;
-            paymentDetails.value.couponType = '满减券';
-            paymentDetails.value.couponName = uc.coupon?.couponTitle;
-          }
-          // 处理折扣券
-          else if (couponType === '003') {
-            paymentDetails.value.couponAmount = payment.totalAmount - payment.paymentAmount || 0;
-            paymentDetails.value.couponType = '折扣券';
-            paymentDetails.value.couponName = uc.coupon?.couponTitle;
-          }
-        });
+      // 处理优惠券使用记录 - 次卡、满减券、折扣券等
+      couponUsages.value = [];
+      if (payment.couponUsages && payment.couponUsages.length > 0) {
+        couponUsages.value = payment.couponUsages.filter(usage => usage.couponType !== 'StoredValueCard' && usage.couponType !== 'DiscountCard');
       }
+
+      // 计算实际支付金额（除储值卡/折扣卡外的支付方式）
+      paymentDetails.value.actualPayAmount = paymentMethodDetails.value
+        .filter(detail => !['StoredValueCard', 'DiscountCard', 'SessionCard'].includes(detail.method))
+        .reduce((sum, detail) => sum + detail.amount, 0);
 
       // 设置实际退款金额（默认为实际支付金额）
       refundForm.value.expAmount = paymentDetails.value.actualPayAmount;
@@ -346,79 +287,45 @@ function loadRefundInfo() {
       // 没有支付
       refundForm.value.unPay = true;
     }
+    console.log('支付详情:', paymentDetails.value);
+    console.log('支付方式明细:', paymentMethodDetails.value);
+    console.log('优惠券使用记录:', couponUsages.value);
+
   }).catch(error => {
-    proxy.$notify.error('获取退款信息失败：' + error);
+    proxy.$notify.error('获取退款信息失败');
+    console.error('获取退款信息失败:', error);
     closeDialog();
   });
 }
 
-// 获取支付方式图标
-function getPaymentIcon() {
-  const method = paymentDetails.value.paymentMethod;
+// 根据优惠券ID和类型获取优惠券名称
+function getCouponName(couponId, couponType) {
+  const userCoupon = userCoupons.value.find(uc => uc.coupon && uc.coupon.id === couponId);
+  return userCoupon?.coupon?.couponTitle || '';
+}
 
-  // 基础支付方式
-  if (method === '01' || method === '16' || method === '18' || method === '19') {
-    return 'Alipay';
-  } else if (method === '02' || method === '26' || method === '28' || method === '29') {
-    return 'ChatDotSquare'; // 微信图标
-  } else if (method === '05' || method === '56' || method === '58' || method === '59') {
-    return 'Money'; // 现金图标
-  } else if (method === '03') {
-    return 'Dessert'; // 美团图标
-  } else if (method === '04') {
-    return 'VideoPlay'; // 抖音图标
-  } else if (method === '07') {
-    return 'Tickets'; // 次卡图标
-  } else if (method === '06') {
-    return 'CreditCard'; // 储值卡图标
+// 获取优惠券类型中文名称
+function getCouponTypeName(couponType) {
+  switch (couponType) {
+    case 'SessionCard':
+      return '次卡';
+    case 'FullReduction':
+      return '满减券';
+    case 'Discount':
+      return '折扣券';
+    default:
+      return '优惠券';
   }
-
-  return 'Money';
 }
 
 // 获取支付方式名称
-function getPaymentMethodName() {
-  const method = paymentDetails.value.paymentMethod;
+function getPaymentMethodName(method) {
+  return PaymentMethodShowMap[method]?.label || '其他';
+}
 
-  // 基础支付方式
-  if (method === '01') {
-    return '支付宝';
-  } else if (method === '02') {
-    return '微信';
-  } else if (method === '05') {
-    return '现金';
-  } else if (method === '03') {
-    return '美团';
-  } else if (method === '04') {
-    return '抖音';
-  } else if (method === '06') {
-    return '储值卡';
-  } else if (method === '07') {
-    return '次卡';
-  }
-
-  // 组合支付方式
-  else if (method === '16') {
-    return '支付宝';
-  } else if (method === '26') {
-    return '微信';
-  } else if (method === '56') {
-    return '现金';
-  } else if (method === '28') {
-    return '微信';
-  } else if (method === '18') {
-    return '支付宝';
-  } else if (method === '58') {
-    return '现金';
-  } else if (method === '19') {
-    return '支付宝'
-  } else if (method === '29') {
-    return '微信';
-  } else if (method === '59') {
-    return '现金';
-  }
-
-  return '其他';
+// 获取支付方式图标
+function getPaymentMethodIcon(method) {
+  return PaymentMethodShowMap[method]?.icon || 'Money';
 }
 
 // 提交退款表单
@@ -428,7 +335,7 @@ function submitRefundForm() {
       proxy.$modal.confirm('确认要退款吗？此操作不可逆！').then(() => {
         proxy.$modal.loading("退款中，请稍候");
 
-        // 使用新的API接口
+        // 使用API接口
         refund(refundForm.value.orderId, refundForm.value.refundReason).then(() => {
           proxy.$modal.closeLoading();
           proxy.$notify.success("退款成功");
@@ -465,16 +372,13 @@ function resetForm() {
   // 重置支付详情
   paymentDetails.value = {
     totalAmount: 0,
-    cardAmount: 0,
-    couponAmount: 0,
     actualPayAmount: 0,
-    paymentMethod: '',
-    hasTimeCard: false,
-    timeCardCount: 0,
-    timeCardName: '',
-    couponType: '',
-    couponName: ''
   };
+
+  // 重置分类数据
+  paymentMethodDetails.value = [];
+  couponUsages.value = [];
+  userCoupons.value = [];
 
   // 如果表单ref已存在，则重置验证
   if (refundFormRef.value) {
@@ -484,7 +388,7 @@ function resetForm() {
 
 // 对外暴露方法
 defineExpose({
-  openDialog: (orderId, userId, orderNumber) => {
+  openDialog: (orderId, orderNumber) => {
     refundForm.value.orderId = orderId;
     refundForm.value.orderNumber = orderNumber;
     localVisible.value = true;

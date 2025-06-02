@@ -7,7 +7,7 @@ use sqlx::{
 };
 use tauri::State;
 
-use crate::constants::{CouponType, OrderStatus, PaymentMethod, PaymentOrderType, PaymentStatus};
+use crate::constants::{CouponType, PaymentMethod, PaymentOrderType, PaymentStatus};
 use crate::db::coupon_orders::CouponOrder;
 use crate::db::payments::Payment;
 use crate::db::user_coupons::UserCoupon;
@@ -17,6 +17,7 @@ use crate::state::AppState;
 use crate::utils;
 use crate::utils::chrono_serde::{deserialize_date, serialize_date};
 
+use super::payments::PaymentMethodDetail;
 use super::user::User;
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -536,7 +537,6 @@ impl Coupon {
     ) -> Result<()> {
         let mut uc_ids = Vec::with_capacity(coupon_buy_req.coupons.len());
         let mut total_amount = 0.0;
-        let mut amount = 0.0;
 
         let mut tr = pool.begin().await?;
 
@@ -555,7 +555,6 @@ impl Coupon {
             uc_ids.push(uc_id);
 
             total_amount += coupon.coupon_value.unwrap() * info.count as f64;
-            amount += coupon.coupon_value.unwrap() * info.count as f64;
         }
 
         // create order
@@ -572,19 +571,29 @@ impl Coupon {
 
         // create payment
 
-        let payment = Payment {
-            pay_id: Some(uuid::Uuid::new_v4().to_string()),
+        let pay_id = uuid::Uuid::new_v4().to_string();
+        let mut payment = Payment {
+            pay_id: Some(pay_id.clone()),
             pay_number: Some(format!("KQ-{}", Utc::now().timestamp_millis())),
             order_type: Some(PaymentOrderType::Coupon),
             total_amount: Some(total_amount),
-            payment_amount: Some(amount),
             payment_status: Some(PaymentStatus::Paid),
-            payment_method: Some(coupon_buy_req.payment_method),
-            order_status: Some(OrderStatus::Completed),
             create_time: Some(utils::get_timestamp()),
             store_id: Some(store_id),
             ..Default::default()
         };
+
+        let detail = PaymentMethodDetail {
+            method: Some(coupon_buy_req.payment_method),
+            amount: total_amount,
+            payment_id: pay_id,
+            store_id: Some(store_id),
+            payment_status: Some(PaymentStatus::Paid),
+            ..Default::default()
+        };
+
+        payment.payment_method_details.push(detail);
+
         let payment = payment.create_payment(&mut tr).await?;
 
         // update user coupon's payment_id

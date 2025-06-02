@@ -111,9 +111,9 @@ const tagsStore = useTagsStore();
 // 计算小计
 const calculateTotalPrice = (cloth) => {
   let priceValue = cloth.priceValue || 0;
-  if (cloth.serviceRequirement == '001') {
+  if (cloth.serviceRequirement == 'Emergency') {
     priceValue *= 2;
-  } else if (cloth.serviceRequirement == '002') {
+  } else if (cloth.serviceRequirement == 'SingleWash') {
     priceValue *= 1.5;
   }
   if (cloth.processMarkup) {

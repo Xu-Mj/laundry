@@ -40,7 +40,7 @@
           </el-button>
         </div>
         <el-form-item style="width: 100%;">
-          <el-button id="loginButton" ref="loginButton" style="width: 100%;" :loading="loading"
+          <el-button id="loginButton" ref="loginButton" size="large" style="width: 100%;" :loading="loading"
             type="primary" class="login-button" @click.prevent="handleLogin">
             <span v-if="!loading">登录</span>
             <span v-else>登录中...</span>

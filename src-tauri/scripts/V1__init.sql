@@ -329,39 +329,6 @@ CREATE INDEX idx_coupon_orders_create_time ON coupon_orders (create_time);
 CREATE INDEX idx_create_uc ON coupon_orders (create_time, uc_id);
 CREATE INDEX idx_coupon_orders_store_id ON coupon_orders (store_id);
 
--- 支付记录表
-CREATE TABLE payments
-(
-    pay_id             TEXT PRIMARY KEY,
-    store_id           INTEGER NOT NULL,
-    pay_number         TEXT   NOT NULL,
-    order_type         TEXT   NOT NULL,
-    total_amount       DOUBLE NOT NULL,
-    payment_amount     DOUBLE NOT NULL,
-    payment_amount_vip DOUBLE DEFAULT 0,
-    payment_amount_mv  DOUBLE DEFAULT 0,
-    payment_status     TEXT   NOT NULL,
-    payment_method     TEXT   NOT NULL,
-    transaction_id     INTEGER,
-    uc_order_id        INTEGER,
-    uc_id              TEXT,
-    create_time        INTEGER,
-    update_time        INTEGER,
-    order_status       TEXT   NOT NULL,
-    refund_reason      TEXT
-);
-
-CREATE INDEX idx_payments_order_type ON payments (order_type); -- 支付记录索引
-CREATE INDEX idx_payments_payment_status ON payments (payment_status);
-
-CREATE INDEX idx_pay_number ON payments (pay_number);
-
-CREATE INDEX idx_payments_create_time ON payments (create_time);
-
-CREATE INDEX idx_order_status ON payments (order_type, payment_status);
-
-CREATE INDEX idx_pay_number_order ON payments (pay_number, order_type);
-CREATE INDEX idx_payments_store_id ON payments (store_id);
 
 -- 通知模板管理表
 CREATE TABLE notice_temp
@@ -934,11 +901,6 @@ INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, 
 INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (156, 0, '正常', '00', 'sys_cost_time_alarm', null, 'success', 'N', '0', '2024-09-07 01:50:24', '', null);
 INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (157, 1, '即将超时', '01', 'sys_cost_time_alarm', null, 'warning', 'N', '0', '2024-09-07 01:50:43', '', null);
 INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (158, 2, '已超时', '02', 'sys_cost_time_alarm', null, 'danger', 'N', '0', '2024-09-07 01:50:58', '', null);
-INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (159, 0, '红色', '001', 'sys_color_list', null, 'default', 'N', '0', '2024-09-07 11:58:08', '', null);
-INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (160, 1, '黄色', '002', 'sys_color_list', null, 'default', 'N', '0', '2024-09-07 11:58:21', '', null);
-INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (161, 2, '蓝色', '003', 'sys_color_list', null, 'default', 'N', '0', '2024-09-07 11:58:34', '', null);
-INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (162, 3, '绿色', '004', 'sys_color_list', null, 'default', 'N', '0', '2024-09-07 11:58:51', '', null);
-INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (163, 0, '其他', '000', 'sys_color_list', null, 'default', 'N', '0', '2024-09-07 11:59:06', '', null);
 INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (164, 3, '品牌', '004', 'sys_tag_order', null, 'info', 'N', '0', '2024-09-07 13:36:59', '', null);
 INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (165, 0, '已取走', '00', 'sys_clothing_status', null, 'success', 'N', '0', '2024-09-08 01:13:33', '2024-09-13 13:20:25', null);
 INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (166, 1, '洗护中', '01', 'sys_clothing_status', null, 'primary', 'N', '0', '2024-09-08 01:13:46', '2024-09-13 13:20:20', null);

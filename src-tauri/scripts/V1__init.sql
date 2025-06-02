@@ -329,39 +329,6 @@ CREATE INDEX idx_coupon_orders_create_time ON coupon_orders (create_time);
 CREATE INDEX idx_create_uc ON coupon_orders (create_time, uc_id);
 CREATE INDEX idx_coupon_orders_store_id ON coupon_orders (store_id);
 
--- 支付记录表
-CREATE TABLE payments
-(
-    pay_id             TEXT PRIMARY KEY,
-    store_id           INTEGER NOT NULL,
-    pay_number         TEXT   NOT NULL,
-    order_type         TEXT   NOT NULL,
-    total_amount       DOUBLE NOT NULL,
-    payment_amount     DOUBLE NOT NULL,
-    payment_amount_vip DOUBLE DEFAULT 0,
-    payment_amount_mv  DOUBLE DEFAULT 0,
-    payment_status     TEXT   NOT NULL,
-    payment_method     TEXT   NOT NULL,
-    transaction_id     INTEGER,
-    uc_order_id        INTEGER,
-    uc_id              TEXT,
-    create_time        INTEGER,
-    update_time        INTEGER,
-    order_status       TEXT   NOT NULL,
-    refund_reason      TEXT
-);
-
-CREATE INDEX idx_payments_order_type ON payments (order_type); -- 支付记录索引
-CREATE INDEX idx_payments_payment_status ON payments (payment_status);
-
-CREATE INDEX idx_pay_number ON payments (pay_number);
-
-CREATE INDEX idx_payments_create_time ON payments (create_time);
-
-CREATE INDEX idx_order_status ON payments (order_type, payment_status);
-
-CREATE INDEX idx_pay_number_order ON payments (pay_number, order_type);
-CREATE INDEX idx_payments_store_id ON payments (store_id);
 
 -- 通知模板管理表
 CREATE TABLE notice_temp

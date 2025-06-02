@@ -84,16 +84,8 @@ export function updateAdjust(data) {
 }
 
 // 退款
-export function pay(data) {
-  const req = (data) => {
-    const { orders, timeBased, ...rest } = data;
-    return {
-      orders,
-      timeBased,
-      payment: rest
-    };
-  };
-  return invoke('pay_order', { req: req(data) })
+export function pay(req) {
+  return invoke('pay_order', { req })
 }
 
 // 更新退款接口

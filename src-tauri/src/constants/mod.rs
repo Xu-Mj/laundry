@@ -163,6 +163,56 @@ impl Display for PaymentMethod {
     }
 }
 
+impl PaymentMethod {
+    pub fn get_other_payment_method(&self, current: &Self) -> Option<Self> {
+        match current {
+            Self::StoredValueCard => match self {
+                Self::AlipayAndStoredValueCard => Some(Self::Alipay),
+                Self::WechatPayAndStoredValueCard => Some(Self::WechatPay),
+                Self::CashAndStoredValueCard => Some(Self::Cash),
+                _ => None,
+            },
+            Self::SessionCard => match self {
+                Self::AlipayAndSessionCard => Some(Self::Alipay),
+                Self::WechatPayAndSessionCard => Some(Self::WechatPay),
+                Self::CashAndSessionCard => Some(Self::Cash),
+                _ => None,
+            },
+            Self::DiscountCard => match self {
+                Self::AlipayAndDiscountCard => Some(Self::Alipay),
+                Self::WechatPayAndDiscountCard => Some(Self::WechatPay),
+                Self::CashAndDiscountCard => Some(Self::Cash),
+                _ => None,
+            },
+            Self::AlipayAndDiscountCoupon
+            | Self::WechatPayAndDiscountCoupon
+            | Self::CashAndDiscountCoupon => match self {
+                Self::AlipayAndDiscountCoupon => Some(Self::Alipay),
+                Self::WechatPayAndDiscountCoupon => Some(Self::WechatPay),
+                Self::CashAndDiscountCoupon => Some(Self::Cash),
+                _ => None,
+            },
+
+            _ => None,
+        }
+    }
+
+    pub fn get_coupon_another_method(&self) -> Option<Self> {
+        match self {
+            Self::AlipayAndDiscountCoupon => Some(Self::Alipay),
+            Self::WechatPayAndDiscountCoupon => Some(Self::WechatPay),
+            Self::CashAndDiscountCoupon => Some(Self::Cash),
+            Self::AlipayAndSpendAndSaveCard => Some(Self::Alipay),
+            Self::WechatPayAndSpendAndSaveCard => Some(Self::WechatPay),
+            Self::CashAndSpendAndSaveCard => Some(Self::Cash),
+            Self::CashAndSessionCard => Some(Self::Cash),
+            Self::AlipayAndSessionCard => Some(Self::Alipay),
+            Self::WechatPayAndSessionCard => Some(Self::WechatPay),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize, sqlx::Type)]
 #[sqlx(type_name = "TEXT")]
 pub enum PaymentStatus {

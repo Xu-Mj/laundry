@@ -15,9 +15,9 @@
             </el-input>
           </el-form-item>
           <el-form-item label="手机号" prop="phonenumber">
-            <el-input v-model="queryParams.phonenumber" placeholder="请输入会员手机号" clearable
-              style="width: 200px;" @keyup.enter="handleQuery" type="number" class="no-spinner"
-              @mousewheel.native.prevent @DOMMouseScroll.native.prevent>
+            <el-input v-model="queryParams.phonenumber" placeholder="请输入会员手机号" clearable style="width: 200px;"
+              @keyup.enter="handleQuery" type="number" class="no-spinner" @mousewheel.native.prevent
+              @DOMMouseScroll.native.prevent>
               <template #prefix>
                 <el-icon>
                   <Phone />
@@ -37,8 +37,8 @@
             </el-input>
           </el-form-item>
           <el-form-item label="时效预警" prop="costTimeAlarm">
-            <el-select v-model="queryParams.costTimeAlarm" @change="handleQuery" clearable
-              style="width: 120px;" placeholder="请选择">
+            <el-select v-model="queryParams.costTimeAlarm" @change="handleQuery" clearable style="width: 120px;"
+              placeholder="请选择">
               <template #prefix>
                 <el-icon>
                   <AlarmClock />
@@ -48,8 +48,8 @@
             </el-select>
           </el-form-item>
           <el-form-item label="支付状态" prop="paymentStatus">
-            <el-select v-model="queryParams.paymentStatus" @change="handleQuery" clearable
-              style="width: 120px;" placeholder="请选择">
+            <el-select v-model="queryParams.paymentStatus" @change="handleQuery" clearable style="width: 120px;"
+              placeholder="请选择">
               <template #prefix>
                 <el-icon>
                   <Warning />
@@ -107,9 +107,10 @@
             </span>
           </template>
         </el-table-column>
-        <el-table-column label="支付方式" align="center" prop="paymentBonusType" v-if="columns[3].visible">
+        <el-table-column label="支付方式" align="center" prop="paymentBonusType" width="130" v-if="columns[3].visible">
           <template #default="scope">
-            <el-tag :type="PaymentMethodShowMap[scope.row.paymentBonusType]?.type">
+            <span v-if="!scope.row.paymentBonusType">-</span>
+            <el-tag v-else :type="PaymentMethodShowMap[scope.row.paymentBonusType]?.type">
               {{ PaymentMethodShowMap[scope.row.paymentBonusType]?.label }}
             </el-tag>
           </template>
@@ -166,7 +167,7 @@
         </el-table-column>
         <el-table-column label="订单完成时间" align="center" prop="completeTime" min-width="100" v-if="columns[11].visible">
           <template #default="scope">
-            <span class="time-info">{{ scope.row.completeTime }}</span>
+            <span class="time-info">{{ formatTime(scope.row.completeTime) }}</span>
           </template>
         </el-table-column>
         <el-table-column label="订单来源" align="center" prop="source" v-if="columns[12].visible">
@@ -190,7 +191,8 @@
         </el-table-column>
         <el-table-column label="支付状态" align="center" prop="paymentStatus" v-if="columns[15].visible">
           <template #default="scope">
-            <el-tag v-if="scope.row.paymentStatus === 'Unpaid'" type="danger" style="cursor: pointer;" @click="go2pay(scope.row)">
+            <el-tag v-if="scope.row.paymentStatus === 'Unpaid'" type="danger" style="cursor: pointer;"
+              @click="go2pay(scope.row)">
               {{ PaymentStatusMap[scope.row.paymentStatus]?.label }}
             </el-tag>
             <el-tag v-else :type="PaymentStatusMap[scope.row.paymentStatus]?.type">
@@ -316,7 +318,7 @@ import DeliveryDialog from "@/views/components/DeliveryDialog.vue";
 import Pay from "@/views/components/pay.vue";
 import { listCloths } from "@/api/system/cloths";
 import RefundDialog from "@/components/refundDialog.vue";
-import { AlarmType, AlarmTypeMap, OrderSourceMap, OrderStatus, OrderStatusMap, PaymentStatus, PaymentStatusMap, PaymentMethodMap, PaymentMethodShowMap } from "@/constants";
+import { AlarmType, AlarmTypeMap, OrderSourceMap, OrderStatus, OrderStatusMap, PaymentStatus, PaymentStatusMap, PaymentMethodShowMap } from "@/constants";
 
 const { proxy } = getCurrentInstance();
 const {

@@ -854,7 +854,7 @@ async function createAndPay(callback) {
     const validateOptions = { trigger: 'submit' };
 
     // 检查订单是否已支付或退单
-    if (form.value.orderId && (form.value.paymentStatus === 'Paid' || form.value.status === 'Cancelled' || from.value.status === 'Refunded')) {
+    if (form.value.orderId && (form.value.paymentStatus === 'Paid' || form.value.status === 'Cancelled' || form.value.status === 'Refunded')) {
         proxy.notify.error("订单已支付或已退单，不能修改信息");
         return;
     }

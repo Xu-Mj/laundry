@@ -57,15 +57,28 @@ jobs:
         run: |
           echo "Windows setup complete - using rustls"
 
-      # Windows 专用 OpenSSL 安装
-      - name: Install OpenSSL 3.x (Windows)
+# Alternative Windows OpenSSL setup
+      - name: Windows OpenSSL Setup (Alternative)
         if: matrix.platform == 'windows-latest'
+        shell: pwsh
         run: |
-          $url = "https://slproweb.com/download/Win64OpenSSL-3_1_4.msi"
-          Invoke-WebRequest -Uri $url -OutFile openssl.msi
-          Start-Process msiexec -Wait -ArgumentList '/i openssl.msi /quiet'
+          # Download and extract pre-built OpenSSL
+          Invoke-WebRequest -Uri "https://github.com/openssl/openssl/releases/download/openssl-3.1.4/openssl-3.1.4.tar.gz" -OutFile "openssl.tar.gz"
+          
+          # Or use chocolatey with specific version
+          choco install openssl --version=3.1.1 -y
+          
+          # Set environment variables
+          $env:OPENSSL_DIR = "C:\Program Files\OpenSSL-Win64"
+          $env:OPENSSL_LIB_DIR = "C:\Program Files\OpenSSL-Win64\lib"
+          $env:OPENSSL_INCLUDE_DIR = "C:\Program Files\OpenSSL-Win64\include"
+          $env:OPENSSL_STATIC = "1"
+          
+          # Add to GitHub environment
           echo "OPENSSL_DIR=C:\Program Files\OpenSSL-Win64" >> $env:GITHUB_ENV
-          echo "C:\Program Files\OpenSSL-Win64\bin" >> $env:GITHUB_PATH
+          echo "OPENSSL_LIB_DIR=C:\Program Files\OpenSSL-Win64\lib" >> $env:GITHUB_ENV
+          echo "OPENSSL_INCLUDE_DIR=C:\Program Files\OpenSSL-Win64\include" >> $env:GITHUB_ENV
+          echo "OPENSSL_STATIC=1" >> $env:GITHUB_ENV
   
       - name: Rust Cache
         uses: swatinem/rust-cache@v2

@@ -1,138 +1,161 @@
 <template>
   <div class="app-container">
-    <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="68px">
-      <el-form-item label="标签编码" prop="tagNumber">
-        <el-input v-model="queryParams.tagNumber" placeholder="请输入标签编码" clearable @keyup.enter="handleQuery" />
-      </el-form-item>
-      <el-form-item label="标签名称" prop="tagName">
-        <el-input v-model="queryParams.tagName" placeholder="请输入标签名称" clearable @keyup.enter="handleQuery" />
-      </el-form-item>
-      <el-form-item label="标签类别" prop="tagOrder">
-        <el-select v-model="queryParams.tagOrder" @change="selectChange" placeholder="标签类别" clearable
-          style="width: 240px">
-          <el-option v-for="dict in sys_tag_order" :key="dict.value" :label="dict.label" :value="dict.value" />
-        </el-select>
-      </el-form-item>
-      <el-form-item label="状态" prop="status">
-        <el-select v-model="queryParams.status" @change="selectChange" placeholder="状态" clearable style="width: 240px">
-          <el-option v-for="dict in sys_normal_disable" :key="dict.value" :label="dict.label" :value="dict.value" />
-        </el-select>
-      </el-form-item>
-      <el-form-item>
-        <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
-        <el-button icon="Refresh" @click="resetQuery">重置</el-button>
-      </el-form-item>
-    </el-form>
+    <transition name="height-fade">
+      <el-card class="search-card" v-show="showSearch">
+        <el-form :model="queryParams" ref="queryRef" :inline="true" label-width="68px">
+          <el-form-item label="标签编码" prop="tagNumber">
+            <el-input v-model="queryParams.tagNumber" placeholder="请输入标签编码" clearable @keyup.enter="handleQuery" />
+          </el-form-item>
+          <el-form-item label="标签名称" prop="tagName">
+            <el-input v-model="queryParams.tagName" placeholder="请输入标签名称" clearable @keyup.enter="handleQuery" />
+          </el-form-item>
+          <el-form-item label="标签类别" prop="tagOrder">
+            <el-select v-model="queryParams.tagOrder" @change="selectChange" placeholder="标签类别" clearable
+              style="width: 240px">
+              <el-option v-for="dict in TagType" :key="dict.value" :label="dict.label" :value="dict.value" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="状态" prop="status">
+            <el-select v-model="queryParams.status" @change="selectChange" placeholder="状态" clearable
+              style="width: 240px">
+              <el-option v-for="dict in sys_normal_disable" :key="dict.value" :label="dict.label" :value="dict.value" />
+            </el-select>
+          </el-form-item>
+          <el-form-item>
+            <el-button class="hover-flow" type="primary" icon="Search" @click="handleQuery">搜索</el-button>
+            <el-button class="hover-flow" icon="Refresh" @click="resetQuery">重置</el-button>
+          </el-form-item>
+        </el-form>
+      </el-card>
+    </transition>
 
-    <el-row :gutter="10" class="mb8">
-      <el-col :span="1.5">
-        <el-button type="primary" plain icon="Plus" @click="handleAdd" v-hasPermi="['system:tags:add']">新增</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleDelete"
-          v-hasPermi="['system:tags:remove']">删除</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button type="success" plain icon="Edit" :disabled="ids.length == 0"
-          @click="() => { showUpdateRefNum = true }" v-hasPermi="['system:tags:edit']">修改使用计数</el-button>
-      </el-col>
-      <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
-    </el-row>
+    <el-card class="table-card">
+      <el-row :gutter="10" class="mb8">
+        <el-col :span="1.5">
+          <el-button type="primary" plain icon="Plus" @click="handleAdd">新增</el-button>
+        </el-col>
+        <el-col :span="1.5">
+          <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleDelete">删除</el-button>
+        </el-col>
+        <el-col :span="1.5">
+          <el-button type="success" plain icon="Edit" :disabled="ids.length == 0"
+            @click="() => { showUpdateRefNum = true }">修改使用计数</el-button>
+        </el-col>
+        <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
+      </el-row>
 
-    <el-table v-loading="loading" :data="tagsList" @selection-change="handleSelectionChange">
-      <el-table-column type="selection" width="55" align="center" />
-      <!-- <el-table-column label="ID" align="center" prop="tagId" /> -->
-      <el-table-column label="标签编码" align="center" prop="tagNumber" />
-      <el-table-column label="标签类别" align="center" prop="tagOrder">
-        <template #default="scope">
-          <dict-tag :options="sys_tag_order" :value="scope.row.tagOrder" />
+      <el-table v-loading="loading" :data="tagsList" @selection-change="handleSelectionChange" class="modern-table"
+        border stripe>
+        <template #empty>
+          <el-empty description="暂无数据" />
         </template>
-      </el-table-column>
-      <el-table-column label="标签名称" align="center" prop="tagName" />
-      <el-table-column label="使用次数" align="center" prop="refNum" />
-      <el-table-column label="显示顺序" align="center" prop="orderNum" />
-      <el-table-column label="标签状态" align="center" width="100">
-        <template #default="scope">
-          <el-switch v-model="scope.row.status" active-value="0" inactive-value="1"
-            @change="handleStatusChange(scope.row)"></el-switch>
-        </template>
-      </el-table-column>
-      <el-table-column label="备注" align="center" prop="remark" show-overflow-tooltip />
-      <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
-        <template #default="scope">
-          <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row, false)"
-            v-hasPermi="['system:tags:edit']">修改</el-button>
-          <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)"
-            v-hasPermi="['system:tags:remove']">删除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+        <el-table-column type="selection" width="55" align="center" />
+        <el-table-column label="标签编码" align="center" prop="tagNumber" />
+        <el-table-column label="标签类别" align="center" prop="tagOrder">
+          <template #default="scope">
+            <dict-tag :options="TagType" :value="scope.row.tagOrder" />
+          </template>
+        </el-table-column>
+        <el-table-column label="标签名称" align="center" prop="tagName" />
+        <el-table-column label="使用次数" align="center" prop="refNum" />
+        <el-table-column label="显示顺序" align="center" prop="orderNum" />
+        <el-table-column label="标签状态" align="center" width="100">
+          <template #default="scope">
+            <el-switch v-model="scope.row.status" active-value="0" inactive-value="1"
+              @change="handleStatusChange(scope.row)"></el-switch>
+          </template>
+        </el-table-column>
+        <el-table-column label="备注" align="center" prop="remark" show-overflow-tooltip />
+        <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
+          <template #default="scope">
+            <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row, false)">修改</el-button>
+            <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
 
-    <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum"
-      v-model:limit="queryParams.pageSize" @pagination="getList" />
+      <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum"
+        v-model:limit="queryParams.pageSize" @pagination="getList" />
+    </el-card>
 
     <!-- 添加或修改对话框 -->
-    <el-dialog :show-close="false" v-model="open" width="500px" @opened="refNumberGetFocus"
-      @closed="refNumberFocus = false" append-to-body>
+    <el-dialog :title="title || (form.tagId ? '修改标签' : '新增标签')" v-model="open" width="500px" @opened="refNumberGetFocus"
+      align-center @closed="refNumberFocus = false" destroy-on-close class="tag-dialog">
       <el-form ref="tagsRef" :model="form" :rules="rules" label-width="80px">
-        <el-form-item label="标签类别" prop="tagOrder">
-          <el-select v-model="form.tagOrder" placeholder="类别" clearable style="width: 240px">
-            <el-option v-for="dict in sys_tag_order" :key="dict.value" :label="dict.label" :value="dict.value" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="标签名称" prop="tagName">
-          <el-input v-model="form.tagName" placeholder="请输入标签名称" />
-        </el-form-item>
-        <el-row>
-          <el-col :span="12">
+        <div class="dialog-content">
+          <div class="section-header">
+            <el-icon class="mr-2"><InfoFilled /></el-icon>
+            <span>基本信息</span>
+          </div>
+          
+          <div class="form-row">
+            <el-form-item label="标签类别" prop="tagOrder">
+              <el-select v-model="form.tagOrder" placeholder="请选择标签类别" clearable class="w-full">
+                <el-option v-for="dict in TagType" :key="dict.value" :label="dict.label" :value="dict.value" />
+              </el-select>
+            </el-form-item>
+            
+            <el-form-item label="标签名称" prop="tagName">
+              <el-input v-model="form.tagName" placeholder="请输入标签名称" />
+            </el-form-item>
+          </div>
+
+          <div class="section-header mt-4">
+            <el-icon class="mr-2"><Setting /></el-icon>
+            <span>附加设置</span>
+          </div>
+          
+          <div class="form-row">
             <el-form-item label="使用次数" prop="refNum">
-              <el-input-number v-model="form.refNum" ref="refNum" :min="0" controls-position="right" />
+              <el-input-number v-model="form.refNum" ref="refNum" :min="0" controls-position="right" class="w-full" />
             </el-form-item>
-          </el-col>
-          <el-col :span="12">
+            
             <el-form-item label="显示顺序" prop="orderNum">
-              <el-input-number v-model="form.orderNum" :min="0" controls-position="right" />
+              <el-input-number v-model="form.orderNum" :min="0" controls-position="right" class="w-full" />
             </el-form-item>
-          </el-col>
-        </el-row>
-        <el-form-item label="状态">
-          <el-radio-group v-model="form.status">
-            <el-radio v-for="dict in sys_normal_disable" :key="dict.value" :value="dict.value">{{ dict.label
-              }}</el-radio>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item label="备注" prop="remark">
-          <el-input v-model="form.remark" type="textarea" placeholder="请输入内容" />
-        </el-form-item>
+          </div>
+
+          <el-form-item label="状态">
+            <el-radio-group v-model="form.status" class="status-radio-group">
+              <el-radio-button v-for="dict in sys_normal_disable" :key="dict.value" :label="dict.value" class="status-radio">
+                <template #default>
+                  <el-icon v-if="dict.value === '0'" class="status-icon"><Check /></el-icon>
+                  <el-icon v-else class="status-icon"><Close /></el-icon>
+                  {{ dict.label }}
+                </template>
+              </el-radio-button>
+            </el-radio-group>
+          </el-form-item>
+
+          <el-form-item label="备注" prop="remark">
+            <el-input v-model="form.remark" type="textarea" placeholder="请输入内容" :rows="3" />
+          </el-form-item>
+        </div>
       </el-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button type="primary" @click="submitForm">确 定</el-button>
-          <el-button @click="cancel">取 消</el-button>
+          <el-button type="primary" @click="submitForm" :icon="Check" round>确 定</el-button>
+          <el-button @click="cancel" :icon="Close" round>取 消</el-button>
         </div>
       </template>
     </el-dialog>
 
     <!-- 修改使用次数对话框 -->
-    <el-dialog v-model="showUpdateRefNum" width="450px" align-center :show-close="false" append-to-body>
-      <el-form ref="tagNumRef" :model="tagNumForm" :inline="true" :rules="refNumFormRules" style="display: flex; justify-content: space-between;">
-        <el-form-item label="使用次数" prop="refNumber">
-          <el-input-number :min="0" v-model="tagNumForm.refNumber" placeholder="请输入使用次数" />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="updateRefNum">确 定</el-button>
-          <el-button @click="cancelUpdateRefNum">取 消</el-button>
-        </el-form-item>
-      </el-form>
-    </el-dialog>
+    <ref-count-editor v-model="showUpdateRefNum" :initial-value="tagNumForm.refNumber" title="修改使用次数"
+      description="设置标签的使用计数值" @confirm="handleRefNumConfirm" @cancel="cancelUpdateRefNum" />
   </div>
 </template>
 
 <script setup name="Tags">
 import { listTags, getTags, delTags, addTags, updateTags, updateTagsRefNum, changeTagStatus } from "@/api/system/tags";
+import RefCountEditor from "@/components/RefCountEditor/index.vue";
+import { InfoFilled, Setting, Check, Close } from '@element-plus/icons-vue';
+import useTagsStore from "@/store/modules/tags";
+import { TagType } from "@/constants";
 
 const { proxy } = getCurrentInstance();
 const { sys_normal_disable, sys_tag_order } = proxy.useDict("sys_normal_disable", "sys_tag_order");
+const tagsStore = useTagsStore();
 
 const tagsList = ref([]);
 const open = ref(false);
@@ -164,15 +187,11 @@ const data = reactive({
     ],
     tagName: [
       { required: true, message: "标签名称不能为空", trigger: "blur" }
-    ],
-    orderNum: [{ required: true, message: "标签顺序不能为空", trigger: "blur" }],
-  },
-  refNumFormRules: {
-    refNumber: [{ required: true, message: "使用次数不能为空", trigger: "blur" }],
+    ]
   }
 });
 
-const { queryParams, form, tagNumForm, rules, refNumFormRules } = toRefs(data);
+const { queryParams, form, tagNumForm, rules } = toRefs(data);
 
 /** 查询标签列表 */
 function getList() {
@@ -255,17 +274,19 @@ function handleUpdate(row, focus) {
   });
 }
 
-function updateRefNum() {
-  proxy.$refs["tagNumRef"].validate(valid => {
-    if (valid) {
-      updateTagsRefNum({ tagIds: ids.value, refNum: tagNumForm.value.refNumber }).then(res => {
-        proxy.$modal.msgSuccess("修改成功");
-        showUpdateRefNum.value = false;
-        tagNumForm.value.refNumber = null;
-        getList();
-      })
-    }
-  })
+function handleRefNumConfirm(refNumber) {
+  updateTagsRefNum({ tagIds: ids.value, refNum: refNumber }).then(res => {
+    proxy.notify.success("修改成功");
+    showUpdateRefNum.value = false;
+    tagNumForm.value.refNumber = null;
+    getList();
+    // 更新缓存
+    tagsStore.refreshTags();
+  }).catch(() => {
+    // 处理错误情况
+  }).finally(() => {
+    // 无论成功失败都执行
+  });
 }
 
 /** 提交按钮 */
@@ -274,15 +295,19 @@ function submitForm() {
     if (valid) {
       if (form.value.tagId != null) {
         updateTags(form.value).then(response => {
-          proxy.$modal.msgSuccess("修改成功");
+          proxy.notify.success("修改成功");
           open.value = false;
           getList();
+          // 更新缓存
+          tagsStore.refreshTags();
         });
       } else {
         addTags(form.value).then(response => {
-          proxy.$modal.msgSuccess("新增成功");
+          proxy.notify.success("新增标签成功");
           open.value = false;
           getList();
+          // 更新缓存
+          tagsStore.refreshTags();
         });
       }
     }
@@ -292,11 +317,29 @@ function submitForm() {
 /** 删除按钮操作 */
 function handleDelete(row) {
   const _tagIds = row.tagId || ids.value;
-  proxy.$modal.confirm('是否确认删除编号为"' + _tagIds + '"的数据项？').then(function () {
+    // 获取要删除的价格名称
+    let confirmMessage;
+  
+  if (row.tagId) {
+    // 单个删除
+    confirmMessage = `是否确认删除标签"${row.tagName}"?`;
+  } else {
+    // 批量删除
+    const priceNames = tagsList.value
+      .filter(item => ids.value.includes(item.tagId))
+      .map(item => item.tagName)
+      .join("、");
+    
+    confirmMessage = `是否确认删除以下标签: ${priceNames}?`;
+  }
+  
+  proxy.$modal.confirm(confirmMessage).then(function () {
     return delTags(_tagIds);
   }).then(() => {
     getList();
-    proxy.$modal.msgSuccess("删除成功");
+    proxy.notify.success("删除成功");
+    // 更新缓存
+    tagsStore.refreshTags();
   }).catch(() => { });
 }
 
@@ -306,7 +349,9 @@ function handleStatusChange(row) {
   proxy.$modal.confirm('确认要' + text + '"' + row.tagName + '"标签吗?').then(function () {
     return changeTagStatus(row.tagId, row.status);
   }).then(() => {
-    proxy.$modal.msgSuccess(text + "成功");
+    proxy.notify.success(text + "成功");
+    // 更新缓存
+    tagsStore.refreshTags();
   }).catch(function () {
     row.status = row.status === "0" ? "1" : "0";
   });
@@ -320,3 +365,125 @@ function selectChange() {
 
 getList();
 </script>
+
+<style scoped>
+.w-full {
+  width: 100%;
+}
+
+.mr-2 {
+  margin-right: 8px;
+}
+
+.mt-4 {
+  margin-top: 16px;
+}
+
+.dialog-content {
+  padding: 0 10px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+@media screen and (min-width: 768px) {
+  .form-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  padding-top: 10px;
+}
+
+.status-radio-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.status-radio {
+  margin-right: 0 !important;
+  border-radius: 4px;
+}
+
+.status-icon {
+  margin-right: 4px;
+}
+
+:deep(.el-form-item) {
+  margin-bottom: 20px;
+}
+
+:deep(.el-form-item__label) {
+  font-weight: 500;
+}
+
+:deep(.el-input__wrapper),
+:deep(.el-textarea__inner),
+:deep(.el-select) {
+  box-shadow: 0 0 0 1px var(--el-border-color-light) inset;
+  border-radius: 6px;
+  transition: box-shadow 0.2s;
+}
+
+:deep(.el-input__wrapper:hover),
+:deep(.el-textarea__inner:hover),
+:deep(.el-select:hover) {
+  box-shadow: 0 0 0 1px var(--el-color-primary-light-5) inset;
+}
+
+:deep(.el-input__wrapper:focus-within),
+:deep(.el-textarea__inner:focus-within),
+:deep(.el-select:focus-within) {
+  box-shadow: 0 0 0 1px var(--el-color-primary) inset;
+}
+
+:deep(.el-radio-button__original-radio:checked + .el-radio-button__inner) {
+  background-color: var(--el-color-primary-light-8);
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary-light-5);
+  box-shadow: none;
+}
+
+:deep(.tag-dialog .el-dialog__header) {
+  padding: 20px 20px 10px;
+  margin: 0;
+  text-align: center;
+  font-weight: 600;
+  font-size: 18px;
+}
+
+:deep(.tag-dialog .el-dialog__body) {
+  padding: 15px 20px;
+}
+
+:deep(.tag-dialog .el-dialog__footer) {
+  padding: 10px 20px 20px;
+  border-top: 1px solid var(--el-border-color-lighter);
+}
+
+:deep(.tag-dialog .el-dialog) {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 12px 32px 4px rgba(0, 0, 0, 0.1);
+}
+</style>

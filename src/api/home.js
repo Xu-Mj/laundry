@@ -4,9 +4,10 @@ export function getCountList() {
     return invoke('query_count');
 }
 
-export function getChartList() {
-    return invoke('query_chart');
+export function getChartList(params) {
+    return invoke('query_chart', params);
 }
+
 export function getOrderTotalCount() {
     return invoke('query_total_count');
 }

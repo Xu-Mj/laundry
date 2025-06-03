@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use sqlx::{types::chrono::NaiveDate, Acquire, Pool, Sqlite, Transaction};
+use sqlx::{Acquire, Pool, Sqlite, Transaction, types::chrono::NaiveDate};
 
 use crate::error::Result;
 use crate::utils::chrono_serde::naive_date_serde;
@@ -69,7 +69,7 @@ impl ClothSequence {
         let result = sqlx::query_as::<_, ClothSequence>(
             "SELECT id, date, sequence_number
              FROM cloth_sequence
-             WHERE date = DATE('now')
+             WHERE date = DATE('now', 'localtime')
              ORDER BY sequence_number DESC
              LIMIT 1",
         )

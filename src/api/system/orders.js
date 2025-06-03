@@ -3,7 +3,16 @@ import invoke from '@/utils/invoke'
 
 // 查询洗护服务订单列表
 export function listOrders(query) {
-  const pageParams = { pageSize: query.pageSize, page: query.pageNum, params: query.params };
+  let pageParams = {
+    pageSize: query.pageSize,
+    page: query.pageNum,
+  };
+  if (query.startTime && query.endTime) {
+    pageParams.params = {
+      startTime: query.startTime,
+      endTime: query.endTime
+    }
+  }
   const order = {
     orderNumber: query.orderNumber,
     phonenumber: query.phonenumber,
@@ -16,15 +25,6 @@ export function listOrders(query) {
 }
 
 // 查询洗护服务订单列表
-export function listOrdersWithOutLimit(query) {
-  return request({
-    url: '/system/orders/list-no-limit',
-    method: 'get',
-    params: query
-  })
-}
-
-// 查询洗护服务订单列表
 export function selectListExceptCompleted(query) {
   return invoke('get_orders4home', { order: query })
 }
@@ -32,7 +32,7 @@ export function selectListExceptCompleted(query) {
 export function selectListHistory(param) {
   const pageParams = { pageSize: param.pageSize, page: param.pageNum, params: param.params };
   const query = {
-    clothName: param.clothingName,
+    clothName: param.title,
     startTime: param.startTime,
     endTime: param.endTime,
     userId: param.userId
@@ -52,15 +52,16 @@ export function getCountByUserId(userId) {
 // 查询退单所需的信息，用户手机号、订单实际支付金额
 export function getRefundInfo(orderId, userId) {
   return invoke('get_refund_info', { orderId, userId })
-  return request({
-    url: '/system/orders/refund/' + orderId + '/' + userId,
-    method: 'get'
-  })
 }
 
 // 新增洗护服务订单
 export function addOrders(data) {
   return invoke('create_order', { order: data })
+}
+
+// 新增洗护服务订单
+export function addServerOrders(data) {
+  return invoke('create_server_order', { data })
 }
 
 // 新增洗护服务订单
@@ -83,20 +84,13 @@ export function updateAdjust(data) {
 }
 
 // 退款
-export function pay(data) {
-  const req = (data) => {
-    const { orders, ...rest } = data;
-    return {
-      orders,
-      payment: rest
-    };
-  };
-  return invoke('pay_order', { req: req(data) })
+export function pay(req) {
+  return invoke('pay_order', { req })
 }
 
-// 退款
-export function refund(data) {
-  return invoke('refund_order', { exp: data })
+// 更新退款接口
+export function refund(orderId, refundReason) {
+  return invoke('refund_order', { orderId, refundReason });
 }
 
 // 删除洗护服务订单

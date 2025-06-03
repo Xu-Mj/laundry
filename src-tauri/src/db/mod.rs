@@ -1,8 +1,10 @@
 pub(crate) mod adjust_price;
-pub(crate) mod alarm_management;
+pub(crate) mod alipay_config;
 pub(crate) mod cloth_price;
 pub(crate) mod cloth_sequence;
 pub(crate) mod clothing;
+pub(crate) mod clothing_category;
+pub(crate) mod clothing_style;
 pub(crate) mod configs;
 pub(crate) mod coupon_orders;
 pub(crate) mod coupons;
@@ -12,89 +14,36 @@ pub(crate) mod drying_rack;
 pub(crate) mod expenditure;
 pub(crate) mod local_users;
 pub(crate) mod membership_level;
-pub(crate) mod menu;
 pub(crate) mod notice_temp;
 pub(crate) mod order_clothes;
 pub(crate) mod order_pictures;
 pub(crate) mod orders;
 pub(crate) mod payments;
 pub(crate) mod printer;
+pub(crate) mod qrcode_payments;
+// pub(crate) mod sms;
+pub(crate) mod delivery;
+pub(crate) mod message;
+pub(crate) mod sms_plan;
+pub(crate) mod sms_subscription;
+pub(crate) mod subscription_plan;
+pub(crate) mod subscription_service;
+pub(crate) mod subscriptions;
 pub(crate) mod tags;
 pub(crate) mod user;
 pub(crate) mod user_coupons;
 pub(crate) mod user_membership_level;
 pub(crate) mod user_tags;
+pub(crate) mod user_tours;
+pub(crate) mod wechat_config;
 
 use std::collections::HashMap;
-use std::sync::Mutex;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
 use sqlx::sqlite::SqliteRow;
 use sqlx::{FromRow, Pool, QueryBuilder, Sqlite, Transaction};
 
-use crate::error::{Error, ErrorKind, Result};
-// use crate::scripts::DDL;
-
-// SQLite 连接池
-#[derive(Debug)]
-pub struct AppState {
-    pub pool: Pool<Sqlite>,
-    pub last_login_time: Mutex<u64>,
-}
-
-impl AppState {
-    pub fn new(pool: Pool<Sqlite>) -> Self {
-        Self {
-            pool,
-            last_login_time: Mutex::new(
-                SystemTime::now()
-                    .duration_since(UNIX_EPOCH)
-                    .unwrap()
-                    .as_secs(),
-            ),
-        }
-    }
-
-    #[allow(dead_code)]
-    pub(crate) fn check_auth(&self) -> Result<()> {
-        let current_time = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
-
-        let last_login_time = *self.last_login_time.lock().unwrap();
-
-        // 假设会话有效期为 30 分钟
-        if current_time - last_login_time > 18 {
-            tracing::debug!("登录已过期，请重新登录-----------------------------000000000000000000000000000000000");
-
-            Err(Error::with_kind(ErrorKind::Unauthenticated))
-        } else {
-            // 更新 last_login_time 为当前时间
-            *self.last_login_time.lock().unwrap() = current_time;
-            Ok(())
-        }
-    }
-
-    fn update_last_login_time(&self) {
-        let current_time = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
-
-        // 更新 last_login_time 为当前时间
-        *self.last_login_time.lock().unwrap() = current_time;
-    }
-}
-
-// 初始化数据库并创建表
-// pub async fn initialize_database(pool: &Pool<Sqlite>) -> Result<()> {
-//     for sql in DDL {
-//         sqlx::query(sql).execute(pool).await?;
-//     }
-//     Ok(())
-// }
+use crate::error::Result;
 
 fn default_page_size() -> i64 {
     10
@@ -145,7 +94,7 @@ pub trait Curd: Sized + for<'f> FromRow<'f, SqliteRow> + Send + Unpin {
     const DELETE_BATCH_SQL: &'static str;
     const ORDER_SQL: Option<&'static str> = None;
 
-    fn apply_filters<'a>(&'a self, builder: &mut QueryBuilder<'a, Sqlite>);
+    fn apply_filters<'a>(&'a self, _builder: &mut QueryBuilder<'a, Sqlite>) {}
 
     async fn get_list(
         &self,

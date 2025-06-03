@@ -2,8 +2,9 @@ use serde::{Deserialize, Serialize};
 use sqlx::{Acquire, Executor, FromRow, Pool, QueryBuilder, Sqlite, SqlitePool, Transaction};
 use tauri::State;
 
-use super::{AppState, Curd, PageParams, PageResult};
+use super::{Curd, PageParams, PageResult};
 use crate::error::{Error, ErrorKind, Result};
+use crate::state::AppState;
 use crate::utils;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default, FromRow)]
@@ -13,7 +14,7 @@ pub struct Tag {
     /// 标签唯一标识ID
     tag_id: Option<i64>,
     /// 标签名称
-    tag_name: Option<String>,
+    pub tag_name: Option<String>,
     /// 标签编码
     tag_number: Option<String>,
     /// 标签类别，001 洗前瑕疵，002 洗后预估，003 衣物颜色等
@@ -28,6 +29,8 @@ pub struct Tag {
     remark: Option<String>,
     /// 删除标志
     del_flag: Option<String>,
+    /// 商家ID，用于数据隔离
+    store_id: Option<i64>,
 }
 
 impl Curd for Tag {
@@ -68,6 +71,10 @@ impl Curd for Tag {
 
         if let Some(remark) = &self.remark {
             builder.push(" AND remark = ").push_bind(remark);
+        }
+
+        if let Some(store_id) = &self.store_id {
+            builder.push(" AND store_id = ").push_bind(store_id);
         }
     }
 }
@@ -172,8 +179,8 @@ impl Tag {
     /// 返回一个结果类型，包含新添加的标签信息。
     pub async fn add(self, pool: &Pool<Sqlite>) -> Result<Tag> {
         let result = sqlx::query_as::<_, Tag>(
-            "INSERT INTO tags (tag_name, tag_number, tag_order, order_num, ref_num, status, remark, del_flag)
-             VALUES (?, ?, ?, ?, ?, ?, ?, '0')
+            "INSERT INTO tags (tag_name, tag_number, tag_order, order_num, ref_num, status, remark, del_flag, store_id)
+             VALUES (?, ?, ?, ?, ?, ?, ?, '0', ?)
              RETURNING *"
         )
             .bind(&self.tag_name)
@@ -183,6 +190,7 @@ impl Tag {
             .bind(&self.ref_num)
             .bind(&self.status)
             .bind(&self.remark)
+            .bind(&self.store_id)
             .fetch_one(pool)
             .await?;
 
@@ -264,10 +272,7 @@ impl Tag {
                 .push(" WHERE tag_id = ")
                 .push_bind(self.tag_id)
                 .push(" RETURNING *");
-            let updated_tag = query_builder
-                .build_query_as::<Tag>()
-                .fetch_one(pool)
-                .await?;
+            let updated_tag = query_builder.build_query_as().fetch_one(pool).await?;
             Ok(updated_tag)
         } else {
             Ok(Tag::from(self))
@@ -348,6 +353,9 @@ pub async fn add_tag(state: State<'_, AppState>, mut tag: Tag) -> Result<Tag> {
     if tag.tag_name.is_none() || tag.tag_name.as_ref().unwrap().trim().is_empty() {
         return Err(Error::with_details(ErrorKind::BadRequest, "标签名不能为空"));
     }
+
+    let store_id = utils::get_user_id(&state).await?;
+    tag.store_id = Some(store_id);
 
     let pool = &state.pool;
     tag.init_default(pool).await?;

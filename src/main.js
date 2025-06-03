@@ -4,6 +4,7 @@ import Cookies from 'js-cookie'
 
 import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
+import 'element-plus/theme-chalk/dark/css-vars.css'
 import locale from 'element-plus/es/locale/lang/zh-cn'
 
 import '@/assets/styles/index.scss' // global css
@@ -26,6 +27,7 @@ import './permission' // permission control
 
 import { useDict } from '@/utils/dict'
 import { parseTime, formatTime, resetForm, addDateRange, handleTree, selectDictLabel, selectDictLabels } from '@/utils/ruoyi'
+import Notification from '@/utils/notification'
 
 // 分页组件
 import Pagination from '@/components/Pagination'
@@ -39,8 +41,6 @@ import FileUpload from "@/components/FileUpload"
 import ImageUpload from "@/components/ImageUpload"
 // 图片预览组件
 import ImagePreview from "@/components/ImagePreview"
-// 自定义树选择组件
-import TreeSelect from '@/components/TreeSelect'
 // 字典标签组件
 import DictTag from '@/components/DictTag'
 
@@ -56,11 +56,11 @@ app.config.globalProperties.handleTree = handleTree
 app.config.globalProperties.addDateRange = addDateRange
 app.config.globalProperties.selectDictLabel = selectDictLabel
 app.config.globalProperties.selectDictLabels = selectDictLabels
+app.config.globalProperties.notify = Notification
 
 // 全局组件挂载
 app.component('DictTag', DictTag)
 app.component('Pagination', Pagination)
-app.component('TreeSelect', TreeSelect)
 app.component('FileUpload', FileUpload)
 app.component('ImageUpload', ImageUpload)
 app.component('ImagePreview', ImagePreview)
@@ -83,3 +83,19 @@ app.use(ElementPlus, {
 })
 
 app.mount('#app')
+
+import { listen } from '@tauri-apps/api/event';
+import { ElMessageBox } from 'element-plus';
+import useUserStore from '@/store/modules/user'
+// 监听tauri退出事件
+listen('app://logout', () => {
+  ElMessageBox.alert('登陆已过期，请重新登录', '提示', {
+    confirmButtonText: '确定',
+    callback: () => {
+      setTimeout(() => {
+        useUserStore().logOut();
+      }, 0);
+      location.href = '/login';
+    }
+  })
+})

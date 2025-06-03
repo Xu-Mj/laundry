@@ -1,9 +1,7 @@
-import hasRole from './permission/hasRole'
-import hasPermi from './permission/hasPermi'
 import copyText from './common/copyText'
+import vSlideIn from './vSlideIn'
 
-export default function directive(app){
-  app.directive('hasRole', hasRole)
-  app.directive('hasPermi', hasPermi)
+export default function directive(app) {
   app.directive('copyText', copyText)
+  app.directive('slide-in', vSlideIn)
 }

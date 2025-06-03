@@ -1,62 +1,70 @@
 <template>
     <div data-tauri-drag-region class="close-bar">
-
-        <el-button link icon="Minus" :color="buttonColor" @click="minimizeWindow" />
-        <el-button link :icon="isMaximized ? 'FullScreen' : 'FullScreen'" :color="buttonColor"
+        <el-button link icon="Minus" @click="minimizeWindow" />
+        <el-button v-if="showMaximizeButton" link :icon="isMaximized ? 'FullScreen' : 'CopyDocument'"
             @click="maximizeOrRestoreWindow" />
-        <el-button link icon="Close" :color="buttonColor" @click="closeWindow" />
+        <el-button link icon="Close" @click="closeWindow" />
     </div>
 </template>
 
 <script setup name="CloseBar">
-import { Window } from '@tauri-apps/api/window';
+import useUserStore from '@/store/modules/user';
+import { removeToken } from '@/utils/auth';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 
-const props = defineProps({
-    // 窗口是否最大化
-    position: {
-        type: String,
-        default: 'relative'
+const window = getCurrentWindow();
+const userStore = useUserStore();
+
+const showMaximizeButton = computed(async () => {
+    try {
+        // 获取当前显示器信息
+        const size = await window.innerSize();
+        const screenWidth = size.width;
+        const screenHeight = size.height;
+
+        return screenWidth < 1920 || screenHeight < 1080;
+    } catch (error) {
+        console.error('设置窗口大小时出错:', error);
     }
+    return false;
 });
-const buttonColor = computed(() => props.position === 'relative' ? '#fff' : '#000');
-const appWindow = new Window('main');
 
-// 定义一个响应式的引用，用于跟踪窗口是否最大化
-const isMaximized = ref(false);
-
-
+const isMaximized = ref(window.isMaximized());
 // 窗口最小化
 const minimizeWindow = () => {
-    appWindow.minimize();
+    window.minimize();
 };
 
 // 窗口最大化或还原
-const maximizeOrRestoreWindow = () => {
-    // 查询当前状态
-    isMaximized.value = appWindow.isMaximized()
-    appWindow.toggleMaximize()
+const maximizeOrRestoreWindow = async () => {
+    isMaximized.value = await window.isMaximized();
+    window.toggleMaximize();
 };
 
 // 关闭窗口
-const closeWindow = () => {
-    appWindow.close()
+const closeWindow = async () => {
+    try {
+        await userStore.logOut();
+        removeToken();
+        window.close();
+    } catch (error) {
+        console.error('关闭窗口时出错:', error);
+        window.close();
+    }
 };
 </script>
 
 <style scoped>
 .close-bar {
     position: fixed;
-    left: 0;
     right: 0;
     top: 0;
-    color: white;
     display: flex;
     justify-content: flex-end;
     align-items: center;
-    /* gap: 1rem; */
     padding-right: 1rem;
     height: 30px;
-    width: 100%;
+    width: calc(100% - var(--sidebar-width));
     z-index: 9999;
 }
 </style>

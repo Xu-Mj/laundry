@@ -15,7 +15,7 @@
 .fade-transform--move,
 .fade-transform-leave-active,
 .fade-transform-enter-active {
-  transition: all .3s;
+  transition: transform .3s;
 }
 
 .fade-transform-enter {
@@ -47,3 +47,20 @@
 .breadcrumb-leave-active {
   position: absolute;
 }
+
+
+/* 搜索区域过渡动画 */
+.height-fade-enter-active,
+.height-fade-leave-active {
+  transition: max-height 0.3s linear;
+  max-height: 300px;
+  overflow: hidden;
+}
+
+.height-fade-enter-from,
+.height-fade-leave-to {
+  max-height: 0;
+  padding: 0;
+  overflow: hidden;
+}
+

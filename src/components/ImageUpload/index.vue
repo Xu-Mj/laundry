@@ -124,7 +124,7 @@ function handleBeforeUpload(file) {
     isImg = file.type.indexOf("image") > -1;
   }
   if (!isImg) {
-    proxy.$modal.msgError(
+    proxy.notify.error(
       `文件格式不正确, 请上传${props.fileType.join("/")}图片格式文件!`
     );
     return false;
@@ -132,7 +132,7 @@ function handleBeforeUpload(file) {
   if (props.fileSize) {
     const isLt = file.size / 1024 / 1024 < props.fileSize;
     if (!isLt) {
-      proxy.$modal.msgError(`上传头像图片大小不能超过 ${props.fileSize} MB!`);
+      proxy.notify.error(`上传头像图片大小不能超过 ${props.fileSize} MB!`);
       return false;
     }
   }
@@ -142,7 +142,7 @@ function handleBeforeUpload(file) {
 
 // 文件个数超出
 function handleExceed() {
-  proxy.$modal.msgError(`上传文件数量不能超过 ${props.limit} 个!`);
+  proxy.notify.error(`上传文件数量不能超过 ${props.limit} 个!`);
 }
 
 // 上传成功回调
@@ -153,7 +153,7 @@ function handleUploadSuccess(res, file) {
   } else {
     number.value--;
     proxy.$modal.closeLoading();
-    proxy.$modal.msgError(res.msg);
+    proxy.notify.error(res.msg);
     proxy.$refs.imageUpload.handleRemove(file);
     uploadedSuccessfully();
   }
@@ -182,7 +182,7 @@ function uploadedSuccessfully() {
 
 // 上传失败
 function handleUploadError() {
-  proxy.$modal.msgError("上传图片失败");
+  proxy.notify.error("上传图片失败");
   proxy.$modal.closeLoading();
 }
 

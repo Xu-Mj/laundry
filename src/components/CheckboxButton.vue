@@ -2,14 +2,21 @@
     <label :class="['custom-checkbox-button', className, { 'is-checked': isChecked }]">
         <input type="checkbox" :value="value" :name="groupName" :checked="isChecked" :disabled="disabled"
             class="hidden-checkbox" @change="handleChange" />
-        <span class="button-content">
-            <slot></slot>
-        </span>
+        <el-tooltip
+            :content="$slots.default?.()"
+            placement="top"
+            :show-after="200"
+            :disabled="!isTextOverflow"
+        >
+            <span class="button-content" ref="textSpan">
+                <slot></slot>
+            </span>
+        </el-tooltip>
     </label>
 </template>
 
 <script setup>
-import { inject, computed } from 'vue';
+import { inject, computed, ref, onMounted, onUpdated } from 'vue';
 
 const props = defineProps({
     value: {
@@ -26,6 +33,9 @@ const props = defineProps({
     }
 });
 
+const isTextOverflow = ref(false);
+const textSpan = ref(null);
+
 // Inject the group context from parent component
 const { value: groupValue, name: groupName, toggleValue } = inject('checkboxGroupContext');
 
@@ -36,6 +46,20 @@ const handleChange = (event) => {
         toggleValue(event.target.value);
     }
 };
+
+const checkTextOverflow = () => {
+    if (textSpan.value) {
+        isTextOverflow.value = textSpan.value.scrollWidth > textSpan.value.clientWidth;
+    }
+};
+
+onMounted(() => {
+    checkTextOverflow();
+});
+
+onUpdated(() => {
+    checkTextOverflow();
+});
 </script>
 
 <style scoped>
@@ -46,11 +70,15 @@ const handleChange = (event) => {
     align-items: center;
     justify-content: center;
     border-radius: 4px;
-    background-color: #fff;
+    background-color: var(--el-fill-color-light);
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    margin: .5rem;
+    box-shadow: var(--el-box-shadow-lighter);
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--el-box-shadow-light);
+    }
 }
 
 .custom-checkbox-button.is-checked {
@@ -70,5 +98,11 @@ const handleChange = (event) => {
 
 .button-content {
     font-size: 14px;
+    width: 100%;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 0 4px;
 }
 </style>

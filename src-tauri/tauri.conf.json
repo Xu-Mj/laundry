@@ -1,8 +1,8 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "laundry",
-  "version": "0.1.0",
-  "identifier": "com.tauri-local.dev",
+  "productName": "cleanwave",
+  "version": "0.5.4",
+  "identifier": "cleanwave",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:8090",
@@ -13,11 +13,11 @@
     "windows": [
       {
         "title": "laundry",
-        "width": 2160,
+        "width": 1920,
         "height": 1080,
         "resizable": true,
-        "fullscreen": false,
-        "decorations": false
+        "decorations": false,
+        "center": true
       }
     ],
     "security": {
@@ -27,7 +27,8 @@
           "*/**"
         ]
       },
-      "csp": "default-src 'self' ipc: http://ipc.localhost; img-src 'self' asset: http://asset.localhost"
+      "dangerousDisableAssetCspModification": true,
+      "csp": "default-src 'self' ipc: http://ipc.localhost asset:http://asset.localhost; img-src 'self' asset: http://asset.localhost data: blob:; style-src 'self' 'unsafe-inline'"
     }
   },
   "bundle": {
@@ -57,11 +58,18 @@
   },
   "plugins": {
     "updater": {
+      "active": true,
+      "dialog": true,
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDY1MENBMEIwOEUzM0Q1RApSV1JkUGVNSUM4cFFCcWNDSTFKZm9pMFdOc1k1WXZSLzBkUlJZL3lDY0xrRHk5K3h0R2w4THJuLwo=",
       "endpoints": [
-        "https://releases.myapp.com/{{target}}/{{arch}}/{{current_version}}",
-        "https://github.com/user/repo/releases/latest/download/latest.json"
+        "https://github.com/Xu-Mj/laundry/releases/latest/download/latest.json"
       ],
+      "requestConfig": {
+        "headers": {
+          "Authorization": "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",
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
+      },
       "windows": {
         "installMode": "passive"
       }

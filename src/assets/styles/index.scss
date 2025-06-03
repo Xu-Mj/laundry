@@ -1,10 +1,12 @@
-@import './variables.module.scss';
-@import './mixin.scss';
-@import './transition.scss';
-@import './element-ui.scss';
-@import './sidebar.scss';
-@import './btn.scss';
-@import './ruoyi.scss';
+// @import './variables.module.scss';
+@use './mixin.scss';
+@use './transition.scss';
+@use './element-ui.scss';
+@use './sidebar.scss';
+@use './wave.scss';
+:root {
+  --sidebar-width: 100px;
+}
 
 body {
   height: 100%;
@@ -15,10 +17,6 @@ body {
   font-family: Helvetica Neue, Helvetica, PingFang SC, Hiragino Sans GB, Microsoft YaHei, Arial, sans-serif;
 }
 
-label {
-  font-weight: 700;
-}
-
 html {
   height: 100%;
   box-sizing: border-box;
@@ -27,34 +25,13 @@ html {
 #app {
   height: 100%;
   position: relative;
-  background-color: rgba(255, 255, 255, 0.9);
-  // background-image: url("@/assets/images/login-background.jpg");
-  background-size: cover;
-
+  overflow-x: hidden;
 }
-
-// #app::before {
-//   content: "";
-//   position: absolute;
-//   top: 0;
-//   right: 0;
-//   bottom: 0;
-//   left: 0;
-//   backdrop-filter: blur(40px);
-// }
 
 *,
 *:before,
 *:after {
   box-sizing: inherit;
-}
-
-.no-padding {
-  padding: 0px !important;
-}
-
-.padding-content {
-  padding: 4px 0;
 }
 
 a:focus,
@@ -72,45 +49,6 @@ a:hover {
 
 div:focus {
   outline: none;
-}
-
-.fr {
-  float: right;
-}
-
-.fl {
-  float: left;
-}
-
-.pr-5 {
-  padding-right: 5px;
-}
-
-.pl-5 {
-  padding-left: 5px;
-}
-
-.block {
-  display: block;
-}
-
-.pointer {
-  cursor: pointer;
-}
-
-.inlineBlock {
-  display: block;
-}
-
-.clearfix {
-  &:after {
-    visibility: hidden;
-    display: block;
-    font-size: 0;
-    content: " ";
-    clear: both;
-    height: 0;
-  }
 }
 
 aside {
@@ -137,52 +75,8 @@ aside {
 }
 
 //main-container全局样式
-// .app-container {
-//   padding: 20px;
-// }
-
-.components-container {
-  margin: 30px 50px;
-  position: relative;
-}
-
-.pagination-container {
-  margin-top: 30px;
-  background-color: transparent !important;
-
-  .el-pagination{
-    background-color: #fff;
-    border-radius: .4rem;
-    padding:.2rem 1rem;
-  }
-}
-
-.text-center {
-  text-align: center
-}
-
-.sub-navbar {
-  height: 50px;
-  line-height: 50px;
-  position: relative;
-  width: 100%;
-  text-align: right;
-  padding-right: 20px;
-  transition: 600ms ease position;
-  background: linear-gradient(90deg, rgba(32, 182, 249, 1) 0%, rgba(32, 182, 249, 1) 0%, rgba(33, 120, 241, 1) 100%, rgba(33, 120, 241, 1) 100%);
-
-  .subtitle {
-    font-size: 20px;
-    color: #fff;
-  }
-
-  &.draft {
-    background: #d0d0d0;
-  }
-
-  &.deleted {
-    background: #d0d0d0;
-  }
+.app-container {
+  padding: 2rem 1rem 1rem 1rem;
 }
 
 .link-type,
@@ -202,5 +96,14 @@ aside {
     display: inline-block;
     vertical-align: middle;
     margin-bottom: 10px;
+  }
+}
+
+.hover-flow {
+  transition: all 0.3s;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--el-box-shadow-light)
   }
 }

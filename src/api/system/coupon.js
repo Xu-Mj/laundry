@@ -1,4 +1,3 @@
-import request from '@/utils/request';
 import invoke from '@/utils/invoke'
 
 // 查询卡券列表
@@ -27,8 +26,8 @@ export function getCoupon(couponId) {
 }
 
 // 新增卡券
-export function addCoupon(data) {
-  return invoke('add_coupon', { coupon: data })
+export function addCoupon(coupon) {
+  return invoke('add_coupon', { coupon })
 
 }
 
@@ -43,8 +42,8 @@ export function gift(data) {
 }
 
 // 修改卡券
-export function updateCoupon(data) {
-  return invoke('update_coupon', { coupon: data })
+export function updateCoupon(coupon) {
+  return invoke('update_coupon', { coupon })
 }
 
 // 删除卡券

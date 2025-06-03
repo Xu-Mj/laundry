@@ -2,42 +2,84 @@
   <div class="custom-table">
     <!-- 表头 -->
     <div class="header">
-      <div>衣物</div>
-      <div>单价</div>
-      <div>工艺</div>
-      <div>洗护要求</div>
-      <div>小计</div>
-      <div>操作</div>
+      <div class="header-cell">衣物</div>
+      <div class="header-cell">单价</div>
+      <div class="header-cell">工艺</div>
+      <div class="header-cell">洗护要求</div>
+      <div class="header-cell">小计</div>
+      <div class="header-cell">操作</div>
     </div>
 
     <!-- 表格内容 -->
     <div class="body">
-      <div v-for="item in tableData" :key="item.id" class="row" @click="handleRowClick(item)">
+      <div v-if="tableData.length > 0" v-for="item in tableData" :key="item.id" class="row"
+        @click="handleRowClick(item)">
         <!-- 上半部分 -->
-        <div class="cell">{{ item.clothInfo.clothingName ? item.clothInfo.clothingName : '-' }}</div>
-        <div class="cell">{{ item.priceValue }} 元</div>
-        <div class="cell">{{ item.processMarkup }} 元</div>
-        <div class="cell">
-          <dict-tag :options="sys_service_requirement" :value="item.serviceRequirement" />
-        </div> <!-- 洗护要求留空 -->
-        <div class="cell">{{ calculateTotalPrice(item.priceValue, item.processMarkup) }} 元</div>
+        <div class="cell title-cell">
+          <el-tooltip :content="item.clothInfo.title" placement="top" :show-after="200" :enterable="false"
+            effect="dark">
+            <div class="ellipsis-text">{{ item.clothInfo.title ? item.clothInfo.title : '-' }}</div>
+          </el-tooltip>
+        </div>
+        <div class="cell price-cell">
+          <span class="ellipsis-text">{{ item.priceValue }} 元</span>
+        </div>
+        <div class="cell markup-cell">
+          <span class="ellipsis-text">{{ item.processMarkup ? item.processMarkup + '元' : '-' }}</span>
+        </div>
+        <div class="cell requirement-cell">
+          <el-tag :type="ServiceRequirmentMap[item.serviceRequirement]?.type">
+            {{ ServiceRequirmentMap[item.serviceRequirement]?.label }}
+          </el-tag>
+        </div>
+        <div class="cell total-cell">
+          <span class="ellipsis-text">{{ calculateTotalPrice(item) }} 元</span>
+        </div>
         <div class="cell action-cell">
-          <el-button type="danger" icon="Delete" @click="handleDelete(item.clothId)" />
+          <el-button type="danger" icon="Delete" @click.stop="handleDelete(item.clothId, item.clothInfo.title)"
+            :disabled="disabled" />
         </div>
 
         <!-- 下半部分 -->
         <div class="cell remark-cell"
           :class="{ 'hidden': !item.remark && (!item.clothingFlawArr || item.clothingFlawArr.length == 0) && (!item.estimateArr || item.estimateArr.length == 0) }">
-          <el-tag v-for="tagId in item.clothingFlawArr" :key="tagId" type="danger">
-            {{flawList.find(item => item.tagId == tagId).tagName}}
-          </el-tag>
+          <!-- 瑕疵标签 -->
+          <div class="tag-container">
+            <el-tag v-for="tagId in item.clothingFlawArr" :key="tagId" type="danger" size="small" class="tag-item">
+              <el-tooltip :content="getFlawById(tagId)" placement="top" :show-after="200" :enterable="false"
+                effect="dark">
+                <span class="tag-text">{{ getFlawById(tagId) }}</span>
+              </el-tooltip>
+            </el-tag>
+          </div>
+
           <span
-            v-if="item.clothingFlawArr && item.clothingFlawArr.length > 0 && (item.estimateArr && item.estimateArr.length > 0 || item.remark)">||</span>
-          <el-tag v-for="tagId in item.estimateArr" :key="tagId" type="primary">
-            {{estimateList.find(item => item.tagId == tagId).tagName}}
-          </el-tag>
-          <span v-if="item.estimateArr && item.estimateArr.length > 0 && item.remark">||</span>
-          {{ item.remark }}
+            v-if="item.clothingFlawArr && item.clothingFlawArr.length > 0 && (item.estimateArr && item.estimateArr.length > 0 || item.remark)"
+            class="separator">||</span>
+
+          <!-- 预估标签 -->
+          <div class="tag-container">
+            <el-tag v-for="tagId in item.estimateArr" :key="tagId" type="primary" size="small" class="tag-item">
+              <el-tooltip :content="getEstimateById(tagId)" placement="top" :show-after="200" :enterable="false"
+                effect="dark">
+                <span class="tag-text">{{ getEstimateById(tagId) }}</span>
+              </el-tooltip>
+            </el-tag>
+          </div>
+
+          <span v-if="item.estimateArr && item.estimateArr.length > 0 && item.remark" class="separator">||</span>
+
+          <!-- 备注 -->
+          <div class="remark-container" v-if="item.remark">
+            <el-tooltip :content="item.remark" placement="top" :show-after="200" :enterable="false" effect="dark">
+              <span class="remark-text">{{ item.remark }}</span>
+            </el-tooltip>
+          </div>
+        </div>
+      </div>
+      <div class="empty-info-card" v-else>
+        <div class="empty-state">
+          <el-empty description="暂无数据~" :image-size="80"></el-empty>
         </div>
       </div>
     </div>
@@ -45,8 +87,8 @@
 </template>
 
 <script setup>
-import { onMounted, inject } from 'vue';
-import { listTagsNoLimit } from "@/api/system/tags";
+import useTagsStore from '@/store/modules/tags';
+import { ServiceRequirmentMap } from '@/constants';
 
 // 定义 Props
 const props = defineProps({
@@ -54,99 +96,58 @@ const props = defineProps({
     type: Array,
     required: true,
   },
+  disabled: {
+    type: Boolean,
+    default: false
+  }
 });
 
-const { proxy } = getCurrentInstance();
-const { sys_service_requirement } = proxy.useDict("sys_service_requirement");
-
-const setSelectedCloth = inject('setSelectedCloth');
-
 // 定义 Emits
-const emit = defineEmits(['delete']);
+const emit = defineEmits(['delete', 'selected']);
 
-const colorList = ref([]);
-const flawList = ref([]);
-const estimateList = ref([]);
-const brandList = ref([]);
+// 使用标签store
+const tagsStore = useTagsStore();
 
 // 计算小计
-const calculateTotalPrice = (priceValue, processMarkup) => {
-  return (parseFloat(priceValue) || 0) + (parseFloat(processMarkup) || 0);
+const calculateTotalPrice = (cloth) => {
+  let priceValue = cloth.priceValue || 0;
+  if (cloth.serviceRequirement == 'Emergency') {
+    priceValue *= 2;
+  } else if (cloth.serviceRequirement == 'SingleWash') {
+    priceValue *= 1.5;
+  }
+  if (cloth.processMarkup) {
+    priceValue += cloth.processMarkup;
+  }
+  return parseFloat(Math.floor(priceValue * 100) / 100);
 };
 
 // 删除操作
-const handleDelete = (id) => {
-  emit('delete', id);
+const handleDelete = (id, name) => {
+  emit('delete', id, name);
 };
 
-// 获取颜色名称
-function findColorName() {
-  if (form.value.clothingColor) {
-    const color = colorList.value.find(item => item.tagId == form.value.clothingColor);
-    return color ? color.tagName : '未选择颜色';
-  } else {
-    return '未选择颜色';
-  }
-}
+// 根据ID获取瑕疵标签名称
+const getFlawById = (tagId) => {
+  const tag = tagsStore.flawList.find(item => item.tagId == tagId);
+  return tag ? tag.tagName : '';
+};
 
-// 获取衣物名称
-function findClothingName() {
-  if (form.value.clothingId) {
-    const color = clothingList.value.find(item => item.clothingId == form.value.clothingId);
-    return color ? color.clothingName : '未选择衣物';
-  } else {
-    return '未选择衣物';
-  }
-}
-
-/* 初始化列表数据 */
-async function initList() {
-  const promises = [];
-
-  // 获取颜色列表
-  if (colorList.value.length === 0) {
-    const colorPromise = listTagsNoLimit({ tagOrder: '003', status: "0" }).then(response => {
-      colorList.value = response;
-    });
-    promises.push(colorPromise);
-  }
-
-  // 获取瑕疵列表
-  if (flawList.value.length === 0) {
-    const flawPromise = listTagsNoLimit({ tagOrder: '001', status: "0" }).then(response => {
-      flawList.value = response;
-    });
-    promises.push(flawPromise);
-  }
-
-  // 获取预估列表
-  if (estimateList.value.length === 0) {
-    const estimatePromise = listTagsNoLimit({ tagOrder: '002', status: "0" }).then(response => {
-      estimateList.value = response;
-    });
-    promises.push(estimatePromise);
-  }
-
-  // 获取品牌列表
-  if (brandList.value.length === 0) {
-    const brandPromise = listTagsNoLimit({ tagOrder: '004', status: "0" }).then(response => {
-      brandList.value = response;
-    });
-    promises.push(brandPromise);
-  }
-
-  // 等待所有异步操作完成防止衣物列表数据加载完后这里的数据没有准备好而出错
-  await Promise.all(promises);
-}
-
-onMounted(async () => {
-  await initList();
-});
+// 根据ID获取预估标签名称
+const getEstimateById = (tagId) => {
+  const tag = tagsStore.estimateList.find(item => item.tagId == tagId);
+  return tag ? tag.tagName : '';
+};
 
 // 处理行点击事件
 const handleRowClick = (row) => {
-  setSelectedCloth(row);
+  emit('selected', row);
 };
+
+onMounted(async () => {
+  // 确保标签数据已加载
+  await tagsStore.initTags();
+});
 </script>
 
 
@@ -155,93 +156,231 @@ const handleRowClick = (row) => {
   width: 100%;
   display: flex;
   flex-direction: column;
-  border: 1px solid #ebeef5;
-  border-radius: 8px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 12px;
   overflow: hidden;
-  /* box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1); */
   text-align: center;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  margin-bottom: 1rem;
+  transition: all 0.3s ease;
+}
+
+.custom-table:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .header {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr 1fr 80px;
-  /* 6 列，操作列固定宽度 */
+  grid-template-columns: repeat(5, 1fr) 80px;
   gap: 1px;
-  /* background: linear-gradient(135deg, #f5f7fa, #e9ecef); 渐变色背景 */
-  border-bottom: 2px solid #ddd;
-  /* 底部边框 */
-  padding: .4rem;
+  background-color: var(--el-color-primary-light-9);
+  padding: 0.75rem 0.5rem;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
 }
 
-.header-cell {
-  padding: 16px;
-  font-size: 14px;
-  font-weight: bold;
-  color: #333;
-  text-align: center;
-  border-right: 1px solid #ddd;
-  /* 单元格右边框 */
+:root.dark .header {
+  --el-color-primary-light-9: #1d2c40;
 }
 
-.header-cell:last-child {
-  border-right: none;
-  /* 去掉最后一列的右边框 */
-}
-
-.body {
-  background-color: #fff;
+.header>div {
+  padding: 8px;
 }
 
 .row {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr 1fr 80px;
+  grid-template-columns: repeat(5, 1fr) 80px;
   gap: 1px;
-  background-color: #f5f7fa;
   cursor: pointer;
-  /* 添加鼠标指针样式 */
+  transition: all 0.2s;
 }
 
 .row:hover {
-  background-color: #e0e0e0;
-  /* 添加鼠标悬停时的背景颜色变化 */
+  background-color: var(--el-fill-color-light);
+  transform: translateY(-1px);
 }
 
 .cell {
-  padding: 12px;
+  padding: 12px 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-bottom: 1px solid #ebeef5;
-  border-right: 1px solid #ebeef5;
-}
-
-.cell:last-child {
-  border-right: none;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  min-width: 0;
+  overflow: hidden;
 }
 
 .action-cell {
   grid-row: span 2;
-  /* 操作列占两行 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: none !important;
+  padding: 0;
+}
+
+.action-cell .el-button {
+  transition: all 0.3s;
+  width: 32px;
+  height: 32px;
+  padding: 6px;
+}
+
+.action-cell .el-button:hover {
+  transform: scale(1.1);
+  background-color: var(--el-color-danger-light-5);
+}
+
+.remark-cell {
+  grid-column: span 5;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 8px 16px;
+  gap: 4px;
+  flex-wrap: wrap;
+  font-size: small;
+  color: var(--el-text-color-secondary);
+  min-width: 0;
+  min-height: 40px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.remark-cell .el-tag {
+  margin-right: 6px;
+  transition: all 0.3s;
+}
+
+.remark-cell .el-tag:hover {
+  transform: translateY(-2px);
+}
+
+.hidden {
+  display: none;
+}
+
+.row:last-child .cell {
+  border-bottom: none;
+}
+
+.empty-state {
+  display: flex;
+  justify-content: center;
+}
+
+.empty-info-card {
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.remark-cell {
-  grid-column: span 5;
-  /* 备注列跨 5 列 */
+.title-cell {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  padding-left: 12px;
+  justify-content: center;
+  overflow: hidden;
+  min-width: 0;
+  max-width: 100%;
 }
 
-.hidden {
-  display: none;
-  /* 隐藏备注行 */
+.ellipsis-text {
+  max-width: 100%;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 14px;
+  line-height: 1.4;
+  transition: color 0.2s;
 }
 
-.row:last-child .cell {
-  border-bottom: none;
+.ellipsis-text:hover {
+  color: var(--el-color-primary);
+}
+
+.price-cell,
+.markup-cell,
+.total-cell {
+  font-family: var(--el-font-family);
+}
+
+.price-cell .ellipsis-text {
+  color: var(--el-text-color-secondary);
+}
+
+.markup-cell .ellipsis-text {
+  color: var(--el-text-color-regular);
+}
+
+.total-cell .ellipsis-text {
+  color: var(--el-color-danger);
+  font-weight: 600;
+}
+
+.requirement-cell {
+  /* 标签需要正确对齐 */
+  padding: 12px 4px;
+}
+
+.tag-item {
+  margin: 2px 4px;
+  max-width: 100px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 11px;
+  padding: 0 6px;
+  border-radius: 4px;
+}
+
+.tag-item:hover {
+  transform: translateY(-1px);
+  transition: all 0.2s;
+}
+
+.separator {
+  color: var(--el-text-color-secondary);
+  margin: 0 4px;
+}
+
+.remark-text {
+  color: var(--el-text-color-regular);
+  font-style: italic;
+}
+
+/* 表头单元格样式 */
+.header-cell {
+  padding: 12px 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 添加附加样式 */
+.tag-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.tag-text {
+  max-width: 80px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: inline-block;
+}
+
+.remark-container {
+  flex: 1;
+  min-width: 0;
+  max-width: 100%;
 }
 </style>

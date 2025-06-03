@@ -1,8 +1,7 @@
 pub(crate) mod chrono_serde;
+pub(crate) mod device;
+pub(crate) mod request;
 
-use std::collections::HashMap;
-
-use alibaba_cloud_sdk_rust::services::dysmsapi;
 use argon2::password_hash::SaltString;
 use argon2::{Argon2, PasswordHasher};
 use pinyin::ToPinyin;
@@ -10,8 +9,24 @@ use rand::distributions::Uniform;
 use rand::prelude::StdRng;
 use rand::{Rng, SeedableRng};
 use sqlx::types::chrono::{DateTime, FixedOffset, Utc};
+use tauri::State;
+use uuid::Uuid;
 
 use crate::error::{Error, Result};
+use crate::state::AppState;
+
+pub fn gen_uuid() -> String {
+    Uuid::new_v4().to_string()
+}
+
+pub async fn get_user_id(state: &State<'_, AppState>) -> Result<i64> {
+    Ok(state
+        .get_user_info()
+        .await
+        .ok_or(Error::unauthorized())?
+        .id
+        .ok_or(Error::unauthorized())?)
+}
 
 pub fn gen_code(input: impl ToString) -> String {
     let input = input.to_string().trim().to_uppercase();
@@ -60,6 +75,10 @@ pub fn get_now() -> DateTime<FixedOffset> {
     Utc::now().with_timezone(&FixedOffset::east_opt(EAST_ZONE).unwrap())
 }
 
+pub fn get_timestamp() -> i64 {
+    get_now().timestamp_millis()
+}
+
 pub fn gen_random_number() -> i32 {
     // 使用随机种子初始化 StdRng
     let seed = rand::random::<[u8; 32]>();
@@ -105,39 +124,10 @@ pub fn hash_password(password: &[u8], salt: &str) -> Result<String> {
         .to_string())
 }
 
-const ALIYUN_SMS_SERVER_REGION: &str = "cn-hangzhou";
-const ALIYUN_SMS_ACCESS_KEY_ID: &str = "LTAI5tGbR8DaKsV7ivxH1gGm";
-const ALIYUN_SMS_ACCESS_KEY_SECRET: &str = "bCWn3BBRE2YRAWPhZr471cWou73zJi";
-const ALIYUN_SMS_REPORT_TEMPLATE_CODE: &str = " SMS_474905744"; // 通知模版
-const ALIYUN_SMS_SIGN_NAME: &str = "沈阳市浑南区印洗世家洗护 "; // 短信署名
-
-pub fn send_sms(phone_number: &str, parameters: Option<HashMap<String, String>>) -> Result<bool> {
-    let mut client = dysmsapi::Client::NewClientWithAccessKey(
-        ALIYUN_SMS_SERVER_REGION,
-        ALIYUN_SMS_ACCESS_KEY_ID,
-        ALIYUN_SMS_ACCESS_KEY_SECRET,
-    )?;
-    let mut request = dysmsapi::CreateSendSmsRequest();
-    request.PhoneNumbers = phone_number.replace("+86", "");
-    request.SignName = ALIYUN_SMS_SIGN_NAME.to_owned();
-    request.TemplateCode = ALIYUN_SMS_REPORT_TEMPLATE_CODE.to_owned();
-    if let Some(parameters) = parameters {
-        request.TemplateParam = serde_json::to_string(&parameters)?;
-    }
-
-    let response = client.SendSms(&mut request)?;
-    if response.Code.contains("OK") {
-        return Ok(true);
-    }
-
-    Ok(false)
-}
-
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
 
-    use crate::utils::{gen_code, is_chinese, send_sms};
+    use crate::utils::{gen_code, is_chinese};
 
     #[test]
     fn test_get_initial() {
@@ -151,10 +141,5 @@ mod tests {
         let input = 'h';
         let initials = is_chinese(input);
         assert!(initials);
-    }
-    #[test]
-    fn send_sms_test() {
-        let params = HashMap::from([("code".to_string(), "123456".to_string())]);
-        send_sms("+8617863935638", Some(params)).unwrap();
     }
 }

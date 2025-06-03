@@ -1,36 +1,23 @@
-import request from '@/utils/request'
 import invoke from '@/utils/invoke'
 
 // 查询衣物管理列表
 export function listClothing(query) {
   const page_params = { pageSize: query.pageSize, page: query.pageNum };
   const clothing = {
-    clothingCategory: query.clothingCategory,
-    clothingNumber: query.clothingNumber,
-    clothingName: query.clothingName,
+    // 映射旧字段到新字段
+    category_id: query.clothingCategory,
+    title: query.clothingName,
+    // 其他查询条件可以根据需要添加
   };
   return invoke('list_clothing_pagination', {
     pageParams: page_params, clothing: clothing
   })
 }
-// export function listClothing(query) {
-//   return request({
-//     url: '/system/clothing/list',
-//     method: 'get',
-//     params: query
-//   })
-// }
 
 // 查询衣物管理列表
-export function listClothingWithNoLimit() {
-  return invoke('list_clothing_all', { clothing: {} })
+export function listClothingWithNoLimit(clothing) {
+  return invoke('list_clothing_all', { clothing })
 }
-// export function listClothingWithNoLimit() {
-//   return request({
-//     url: '/system/clothing/list-no-limit',
-//     method: 'get',
-//   })
-// }
 
 // 查询衣物管理详细
 export function getClothing(clothingId) {
@@ -38,21 +25,18 @@ export function getClothing(clothingId) {
 }
 
 // 新增衣物管理
-export function addClothing(data) {
-  return invoke('add_clothing', { clothing: data });
+export function addClothing(clothing) {
+  return invoke('add_clothing', { clothing });
 }
-// export function addClothing(data) {
-//   return request({
-//     url: '/system/clothing',
-//     method: 'post',
-//     data: data
-//   })
-// }
+
+// 新增衣物管理
+export function createClothingCreateOrder(clothing) {
+  return invoke('create_clothing_4_create_order', { clothing });
+}
 
 // 修改衣物管理
-export function updateClothing(data) {
-  console.log(data)
-  return invoke('update_clothing', { clothing: data });
+export function updateClothing(clothing) {
+  return invoke('update_clothing', { clothing });
 }
 
 export function updateClothingRefNum(data) {
@@ -61,5 +45,5 @@ export function updateClothingRefNum(data) {
 
 // 删除衣物管理
 export function delClothing(clothingId) {
-  return invoke('delete_clothing_batch', {ids: [].concat(clothingId)})
+  return invoke('delete_clothing_batch', { ids: [].concat(clothingId) })
 }

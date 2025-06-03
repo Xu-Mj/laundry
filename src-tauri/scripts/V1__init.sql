@@ -4,24 +4,40 @@ CREATE TABLE IF NOT EXISTS migrations (
     applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS printers 
+CREATE TABLE IF NOT EXISTS printers
 (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     system_name TEXT NOT NULL,
-    driver_name TEXT NOT NULL
+    driver_name TEXT NOT NULL,
+    printer_type TEXT NOT NULL DEFAULT 'business'
 );
 
 CREATE TABLE IF NOT EXISTS local_users
 (
     id  INTEGER PRIMARY KEY AUTOINCREMENT,
-    username    TEXT    NOT NULL,
-    avatar      TEXT    NOT NULL,
-    account     TEXT    NOT NULL,
-    password    TEXT    NOT NULL,
-    role        TEXT    NOT NULL,
-    remark   TEXT,
-    is_first_login   INTEGER
+    nickname      TEXT    NOT NULL,
+    owner_name      TEXT    NOT NULL,
+    avatar          TEXT    NOT NULL,
+    owner_phone     TEXT    NOT NULL,
+    password        TEXT    NOT NULL,
+    role            TEXT    NOT NULL,
+    is_guest        INTEGER,
+    store_name      TEXT NOT NULL,
+    store_location  TEXT NOT NULL,
+    owner_gender    TEXT,
+    store_status    TEXT NOT NULL,
+    province        TEXT,
+    city            TEXT,
+    district        TEXT,
+    address_detail  TEXT,
+    created_at      INTEGER,
+    updated_at      INTEGER,
+    remark          TEXT,
+    email           TEXT,
+    deleted         TEXT,
+    user_id         INTEGER,
+    is_24_7         INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS membership_level (
@@ -39,30 +55,6 @@ CREATE TABLE IF NOT EXISTS user_membership_level (
     user_id INTEGER NOT NULL,      -- 用户ID
     level_id INTEGER NOT NULL,     -- 会员等级ID
     PRIMARY KEY (user_id, level_id) -- 复合主键: 用户ID和会员等级ID
-);
-
-CREATE TABLE IF NOT EXISTS menu
-(
-    menu_id     INTEGER PRIMARY KEY AUTOINCREMENT, -- 菜单ID
-    menu_name   TEXT NOT NULL,                     -- 菜单名称
-    parent_id   INTEGER  DEFAULT 0,                -- 父菜单ID
-    order_num   INTEGER  DEFAULT 0,                -- 显示顺序
-    path        TEXT     DEFAULT '',               -- 路由地址
-    component   TEXT     DEFAULT NULL,             -- 组件路径
-    query       TEXT     DEFAULT NULL,             -- 路由参数
-    route_name  TEXT     DEFAULT '',               -- 路由名称
-    is_frame    INTEGER  DEFAULT 1,                -- 是否为外链（0是 1否）
-    is_cache    INTEGER  DEFAULT 0,                -- 是否缓存（0缓存 1不缓存）
-    menu_type   TEXT     DEFAULT '',               -- 菜单类型（M目录 C菜单 F按钮）
-    visible     TEXT     DEFAULT '0',              -- 菜单状态（0显示 1隐藏）
-    status      TEXT     DEFAULT '0',              -- 菜单状态（0正常 1停用）
-    perms       TEXT     DEFAULT NULL,             -- 权限标识
-    icon        TEXT     DEFAULT '#',              -- 菜单图标
-    create_by   TEXT     DEFAULT '',               -- 创建者
-    create_time DATETIME DEFAULT NULL,             -- 创建时间
-    update_by   TEXT     DEFAULT '',               -- 更新者
-    update_time DATETIME DEFAULT NULL,             -- 更新时间
-    remark      TEXT     DEFAULT ''                -- 备注
 );
 
 CREATE TABLE IF NOT EXISTS configs
@@ -109,8 +101,9 @@ CREATE TABLE IF NOT EXISTS dict_data
 CREATE TABLE IF NOT EXISTS users
 (
     user_id     INTEGER PRIMARY KEY AUTOINCREMENT,
-    open_id     TEXT NOT NULL DEFAULT '',
-    dept_id     INTEGER       DEFAULT NULL,
+    store_id    INTEGER NOT NULL,
+    open_id     TEXT ,
+    dept_id     INTEGER  DEFAULT NULL,
     user_name   TEXT NOT NULL,
     nick_name   TEXT NOT NULL,
     address     TEXT,
@@ -125,18 +118,19 @@ CREATE TABLE IF NOT EXISTS users
     integral    INTEGER       DEFAULT 0,
     identify    TEXT          DEFAULT '00',
     login_ip    TEXT          DEFAULT '',
-    login_date  TIMESTAMP     DEFAULT NULL,
+    login_date  INTEGER     DEFAULT NULL,
     create_by   TEXT          DEFAULT '',
-    create_time TIMESTAMP,
+    create_time INTEGER,
     update_by   TEXT          DEFAULT '',
-    update_time TIMESTAMP,
+    update_time INTEGER,
     remark      TEXT          DEFAULT NULL
 );
+CREATE INDEX idx_users_store_id ON users (store_id);
 
 -- 会员画像表
 CREATE TABLE user_tags
 (
-    user_id INTEGER NOT NULL,
+    user_id INTEGER PRIMARY KEY,
     tags    TEXT    NOT NULL,
     remark  TEXT
 );
@@ -158,42 +152,107 @@ CREATE INDEX idx_user_integral_record_user_id ON user_integral_record (user_id);
 CREATE TABLE tags
 (
     tag_id     INTEGER PRIMARY KEY AUTOINCREMENT,
-    tag_number TEXT UNIQUE NOT NULL,
+    store_id   INTEGER NOT NULL,
+    tag_number TEXT NOT NULL,
     tag_order  TEXT,
-    tag_name   TEXT UNIQUE NOT NULL,
+    tag_name   TEXT NOT NULL,
     ref_num    INTEGER DEFAULT 0,
     order_num  INTEGER DEFAULT 0,
     status     TEXT    DEFAULT '0',
     del_flag   TEXT    DEFAULT '0',
     remark     TEXT
 );
+CREATE INDEX idx_tags_store_id ON tags (store_id);
+
+-- 衣物品类表
+CREATE TABLE clothing_categories
+(
+    category_id   INTEGER PRIMARY KEY AUTOINCREMENT,
+    store_id      INTEGER NOT NULL,
+    category_code TEXT    NOT NULL,
+    category_name TEXT    NOT NULL,
+    order_num     INTEGER DEFAULT 0,
+    remark        TEXT,
+    del_flag      TEXT    DEFAULT '0',
+    created_at    INTEGER NOT NULL,
+    updated_at    INTEGER NOT NULL
+);
+
+-- 创建衣物品类表索引
+CREATE INDEX idx_clothing_categories_store_id ON clothing_categories(store_id);
+CREATE INDEX idx_clothing_categories_code ON clothing_categories(category_code);
+CREATE INDEX idx_clothing_categories_name ON clothing_categories(category_name);
+CREATE INDEX idx_clothing_categories_del_flag ON clothing_categories(del_flag);
+
+-- 衣物分类表
+CREATE TABLE clothing_styles
+(
+    style_id     INTEGER PRIMARY KEY AUTOINCREMENT,
+    store_id     INTEGER NOT NULL,
+    category_id  INTEGER NOT NULL,
+    style_code   TEXT    NOT NULL,
+    style_name   TEXT    NOT NULL,
+    order_num    INTEGER DEFAULT 0,
+    remark       TEXT,
+    del_flag     TEXT    DEFAULT '0',
+    created_at   INTEGER NOT NULL,
+    updated_at   INTEGER NOT NULL,
+    FOREIGN KEY(category_id) REFERENCES clothing_categories(category_id)
+);
+
+-- 创建衣物分类表索引
+CREATE INDEX idx_clothing_styles_store_id ON clothing_styles(store_id);
+CREATE INDEX idx_clothing_styles_category_id ON clothing_styles(category_id);
+CREATE INDEX idx_clothing_styles_code ON clothing_styles(style_code);
+CREATE INDEX idx_clothing_styles_name ON clothing_styles(style_name);
+CREATE INDEX idx_clothing_styles_del_flag ON clothing_styles(del_flag);
 
 -- 衣物管理表
 CREATE TABLE clothing
 (
-    clothing_id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    clothing_category   TEXT   NOT NULL,
-    clothing_number     TEXT   NOT NULL,
-    clothing_style      TEXT   NOT NULL,
-    clothing_name       TEXT   NOT NULL,
+    id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+    store_id           INTEGER NOT NULL,
+    clothing_number    TEXT,
+    category_id        INTEGER,
+    style_id           INTEGER,
+    title              TEXT   NOT NULL,
+    etitle             TEXT,
+    primary_image      TEXT,
+    images             TEXT,
+    description_images TEXT,
+    is_put_on_sale     BOOLEAN DEFAULT FALSE,
+    is_available       BOOLEAN DEFAULT TRUE,
+    is_sold_out        BOOLEAN DEFAULT FALSE,
+    is_default         BOOLEAN DEFAULT FALSE,
     clothing_base_price DOUBLE NOT NULL,
-    clothing_min_price  DOUBLE NOT NULL,
-    order_num           INTEGER         DEFAULT 0,
-    clothing_degree     INTEGER         DEFAULT 0,
-    hang_type           TEXT   NOT NULL DEFAULT '1',
-    del_flag            TEXT            DEFAULT '0',
-    remark              TEXT
+    sale_price         DOUBLE,
+    clothing_min_price DOUBLE,
+    stock_quantity     INTEGER DEFAULT 0,
+    sold_num           INTEGER DEFAULT 0,
+    sku_list           TEXT,
+    spec_list          TEXT,
+    tag_list           TEXT,
+    hang_type          TEXT   DEFAULT '1',
+    order_num          INTEGER DEFAULT 0,
+    clothing_degree    INTEGER DEFAULT 0,
+    del_flag           TEXT   DEFAULT '0',
+    create_time        INTEGER NOT NULL,
+    update_time        INTEGER NOT NULL,
+    FOREIGN KEY(category_id) REFERENCES clothing_categories(category_id),
+    FOREIGN KEY(style_id) REFERENCES clothing_styles(style_id)
 );
 
 -- 创建索引，提高根据衣物类别和衣物名称查询效率
-CREATE INDEX idx_clothing_category ON clothing (clothing_category);
-
-CREATE INDEX idx_clothing_name ON clothing (clothing_name);
+CREATE INDEX idx_clothing_title ON clothing (title);
+CREATE INDEX idx_clothing_store_id ON clothing (store_id);
+CREATE INDEX idx_clothing_category_id ON clothing(category_id);
+CREATE INDEX idx_clothing_style_id ON clothing(style_id);
 
 -- 卡券管理表
 CREATE TABLE coupons
 (
     coupon_id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    store_id            INTEGER NOT NULL,
     coupon_number       TEXT UNIQUE NOT NULL,
     coupon_type         TEXT        NOT NULL DEFAULT '000',
     coupon_title        TEXT        NOT NULL,
@@ -224,18 +283,20 @@ CREATE INDEX idx_coupon_type ON coupons (coupon_type);
 CREATE INDEX idx_coupon_status ON coupons (status);
 
 CREATE INDEX idx_coupon_del_flag ON coupons (del_flag);
+CREATE INDEX idx_coupons_store_id ON coupons (store_id);
 
 -- 用户卡券关联表
 CREATE TABLE user_coupons
 (
     uc_id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    store_id        INTEGER NOT NULL,
     user_id         INTEGER NOT NULL,
     coupon_id       INTEGER NOT NULL,
     create_time     TIMESTAMP,
     obtain_at       TIMESTAMP DEFAULT NULL,
     available_value DOUBLE    DEFAULT 0,
     uc_count        INTEGER   DEFAULT 1,
-    pay_id          INTEGER   DEFAULT NULL,
+    pay_id          TEXT   DEFAULT NULL,
     uc_type         TEXT      DEFAULT '01',
     status          TEXT      DEFAULT '00',
     remark          TEXT      DEFAULT NULL
@@ -249,11 +310,13 @@ CREATE INDEX idx_coupon_id ON user_coupons (coupon_id);
 CREATE INDEX idx_status ON user_coupons (status);
 
 CREATE INDEX idx_user_status ON user_coupons (user_id, status);
+CREATE INDEX idx_user_coupons_store_id ON user_coupons (store_id);
 
 -- 卡券订单表
 CREATE TABLE coupon_orders
 (
     order_id    INTEGER PRIMARY KEY AUTOINCREMENT,
+    store_id    INTEGER NOT NULL,
     uc_id       TEXT NOT NULL,
     create_time TIMESTAMP
 );
@@ -264,46 +327,17 @@ CREATE INDEX idx_uc_id ON coupon_orders (uc_id);
 CREATE INDEX idx_coupon_orders_create_time ON coupon_orders (create_time);
 
 CREATE INDEX idx_create_uc ON coupon_orders (create_time, uc_id);
+CREATE INDEX idx_coupon_orders_store_id ON coupon_orders (store_id);
 
--- 支付记录表
-CREATE TABLE payments
-(
-    pay_id             INTEGER PRIMARY KEY AUTOINCREMENT,
-    pay_number         TEXT   NOT NULL,
-    order_type         TEXT   NOT NULL,
-    total_amount       DOUBLE NOT NULL,
-    payment_amount     DOUBLE NOT NULL,
-    payment_amount_vip DOUBLE DEFAULT 0,
-    payment_amount_mv  DOUBLE DEFAULT 0,
-    payment_status     TEXT   NOT NULL,
-    payment_method     TEXT   NOT NULL,
-    transaction_id     INTEGER,
-    uc_order_id        INTEGER,
-    uc_id              TEXT,
-    create_time        TIMESTAMP,
-    update_time        TIMESTAMP,
-    order_status       TEXT   NOT NULL
-);
-
-CREATE INDEX idx_payments_order_type ON payments (order_type); -- 支付记录索引
-CREATE INDEX idx_payments_payment_status ON payments (payment_status);
-
-CREATE INDEX idx_pay_number ON payments (pay_number);
-
-CREATE INDEX idx_payments_create_time ON payments (create_time);
-
-CREATE INDEX idx_order_status ON payments (order_type, payment_status);
-
-CREATE INDEX idx_pay_number_order ON payments (pay_number, order_type);
 
 -- 通知模板管理表
-CREATE TABLE notice_template
+CREATE TABLE notice_temp
 (
     temp_id       INTEGER PRIMARY KEY AUTOINCREMENT,
     temp_name     TEXT NOT NULL,
     notice_method TEXT NOT NULL,
     content       TEXT NOT NULL,
-    create_time   TIMESTAMP,
+    create_time   INTEGER,
     temp_type     TEXT NOT NULL,
     remark        TEXT
 );
@@ -313,6 +347,7 @@ CREATE TABLE notice_template
 CREATE TABLE notice_record
 (
     notice_id     INTEGER PRIMARY KEY AUTOINCREMENT,
+    store_id      INTEGER NOT NULL,
     user_id       INTEGER NOT NULL,
     order_number  TEXT    NULL,
     notice_method TEXT    NOT NULL,
@@ -323,6 +358,7 @@ CREATE TABLE notice_record
     result        TEXT,
     remark        TEXT
 );
+CREATE INDEX idx_notice_record_store_id ON notice_record (store_id);
 
 -- 创建索引
 CREATE INDEX idx_notice_record_user_id ON notice_record (user_id);
@@ -331,6 +367,7 @@ CREATE INDEX idx_notice_record_user_id ON notice_record (user_id);
 CREATE TABLE cloth_price
 (
     price_id       INTEGER PRIMARY KEY AUTOINCREMENT,
+    store_id       INTEGER NOT NULL,
     price_number   TEXT    NOT NULL,
     order_type     TEXT    NOT NULL,
     price_name     TEXT    NOT NULL,
@@ -346,15 +383,16 @@ CREATE TABLE cloth_price
 );
 
 CREATE INDEX idx_cloth_price_order_type ON cloth_price (order_type);
+CREATE INDEX idx_cloth_price_store_id ON cloth_price (store_id);
 
 -- 订单表
 CREATE TABLE orders
 (
     order_id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    store_id             INTEGER NOT NULL,
     order_number         TEXT      NOT NULL,
     business_type        TEXT      NOT NULL,
     user_id              INTEGER   NOT NULL,
-    price_id             INTEGER,
     desire_complete_time TIMESTAMP NOT NULL,
     cost_time_alarm      TEXT,
     pickup_code          TEXT,
@@ -379,15 +417,27 @@ CREATE INDEX idx_pickup_code ON orders (pickup_code);
 CREATE INDEX idx_cost_time_alarm ON orders (cost_time_alarm);
 
 CREATE INDEX idx_orders_payment_status ON orders (payment_status);
-
+CREATE INDEX idx_orders_store_id ON orders (store_id);
+-- 创建订单价格关系表
+CREATE TABLE IF NOT EXISTS order_price_relations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_id INTEGER NOT NULL,
+    price_id INTEGER NOT NULL,
+    create_time DATETIME,
+    FOREIGN KEY (order_id) REFERENCES orders(order_id),
+    FOREIGN KEY (price_id) REFERENCES cloth_price(price_id)
+);
 -- 衣物清单表
 CREATE TABLE order_clothes
 (
-    cloth_id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    cloth_id            TEXT PRIMARY KEY,
+    store_id            INTEGER NOT NULL,
     order_id            INTEGER NULL,
     clothing_id         INTEGER NOT NULL,
-    clothing_category   TEXT    NOT NULL,
-    clothing_style      TEXT    NOT NULL,
+    clothing_category   TEXT,
+    category_id         INTEGER    NOT NULL,
+    clothing_style      TEXT,
+    style_id            INTEGER    NOT NULL,
     clothing_color      INTEGER,
     clothing_flaw       TEXT,
     estimate            TEXT,
@@ -408,11 +458,16 @@ CREATE TABLE order_clothes
     pickup_time         TIMESTAMP,
     pickup_method       TEXT,
     clothing_status     TEXT,
-    remark              TEXT
+    remark              TEXT,
+    
+    FOREIGN KEY(store_id) REFERENCES local_users(id),
+    FOREIGN KEY(category_id) REFERENCES clothing_categories(category_id),
+    FOREIGN KEY(style_id) REFERENCES clothing_styles(style_id)
 );
 
 -- 创建索引
 CREATE INDEX idx_order_clothing_id ON order_clothes (order_id);
+-- CREATE INDEX idx_order_clothes_store_id ON order_clothes (store_id);
 
 -- 订单衣物调价记录表 ，记录订单中每个衣物或订单总价的价格调整
 CREATE TABLE order_clothes_adjust
@@ -425,20 +480,6 @@ CREATE TABLE order_clothes_adjust
     remark           TEXT
 );
 
--- 支付记录表
-CREATE TABLE order_pays
-(
-    pay_id      INTEGER PRIMARY KEY AUTOINCREMENT,
-    order_id    INTEGER NOT NULL,
-    create_by   TEXT,
-    create_time TIMESTAMP,
-    update_by   TEXT,
-    update_time TIMESTAMP,
-    remark      TEXT,
-    pay_amount  FLOAT   NOT NULL,
-    pay_method  TEXT    NOT NULL
-);
-
 -- 订单涉及的图片索引表，记录订单中相关的图片信息
 CREATE TABLE order_pictures
 (
@@ -449,22 +490,32 @@ CREATE TABLE order_pictures
 );
 
 -- 订单派送信息
-CREATE TABLE order_dispatch
-(
-    dispatch_id   INTEGER PRIMARY KEY AUTOINCREMENT,
-    order_id      TEXT NOT NULL,
-    cloth_id      TEXT NOT NULL,
-    delivery_comp TEXT,
-    delivery_num  TEXT,
-    dispatch_time TIMESTAMP,
-    remark        TEXT,
-    create_time   TIMESTAMP
+CREATE TABLE IF NOT EXISTS deliveries (
+    delivery_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    store_id INTEGER,
+    user_id INTEGER,
+    order_id TEXT,
+    cloth_id TEXT,
+    address TEXT,
+    dispatch_time DATETIME,
+    complete_time DATETIME,
+    remark TEXT,
+    delivery_status TEXT DEFAULT '00',
+    create_time DATETIME,
+    update_time DATETIME,
+    FOREIGN KEY (store_id) REFERENCES local_users(id),
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 
+-- Create index for faster lookups
+CREATE INDEX IF NOT EXISTS idx_deliveries_user_id ON deliveries(user_id);
+CREATE INDEX IF NOT EXISTS idx_deliveries_store_id ON deliveries(store_id);
+CREATE INDEX IF NOT EXISTS idx_deliveries_status ON deliveries(delivery_status);
 -- 支出记录表
 CREATE TABLE expenditure
 (
     exp_id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    store_id           INTEGER NOT NULL,
     order_id           TEXT,
     cloth_ids          TEXT,
     exp_title          TEXT    NOT NULL,
@@ -472,20 +523,27 @@ CREATE TABLE expenditure
     recv_account_title TEXT,
     exp_type           TEXT    NOT NULL,
     exp_amount         INTEGER NOT NULL,
-    create_time        TIMESTAMP,
+    create_time        INTEGER,
     remark             TEXT
 );
+CREATE INDEX idx_expenditure_store_id ON expenditure (store_id);
 
 -- 晾衣架表
 CREATE TABLE drying_rack
 (
     id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+    store_id           INTEGER NOT NULL,
     name               TEXT    NOT NULL,
     rack_type          TEXT             DEFAULT '1',
     capacity           INTEGER NOT NULL,
     remaining_capacity INTEGER NOT NULL,
-    position           INTEGER NOT NULL DEFAULT 0
+    position           INTEGER NOT NULL DEFAULT 0,
+    is_sys             INTEGER NOT NULL DEFAULT 0
 );
+CREATE INDEX idx_drying_rack_store_id ON drying_rack (store_id);
+-- 写一条游客使用的数据
+INSERT INTO drying_rack (store_id, name, rack_type, capacity, remaining_capacity, position, is_sys) VALUES (0, '游客使用晾衣架', '1', 100, 100, 0, 1);
+
 
 -- 用来存储衣物的编码最大值
 CREATE TABLE cloth_sequence
@@ -531,260 +589,394 @@ CREATE TABLE promote_record
     status          TEXT DEFAULT '0'
 );
 
-INSERT INTO configs (config_id, config_name, config_key, config_value, config_type, create_by, create_time, update_by, update_time, remark) VALUES (1, '账号自助-验证码开关', 'sys.account.captchaEnabled', 'false', 'Y', 'admin', null, '', null, '是否开启验证码功能（true开启，false关闭）');
-INSERT INTO configs (config_id, config_name, config_key, config_value, config_type, create_by, create_time, update_by, update_time, remark) VALUES (2, '预计取衣事件', 'desire_complete_time', '17', 'Y', null, '2025-02-15T10:22:13.032273400+08:00', null, '2025-02-15T10:23:31.618923900+08:00', '默认七天后取衣');
-INSERT INTO configs (config_id, config_name, config_key, config_value, config_type, create_by, create_time, update_by, update_time, remark) VALUES (3, '页面无操作注销时间', 'logout_timeout', '600', 'Y', null, '2025-02-15T11:40:01.890123500+08:00', null, null, '单位：秒');
+CREATE TABLE IF NOT EXISTS subscriptions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    store_id INTEGER NOT NULL,
+    plan_id INTEGER NOT NULL,
+    start_date INTEGER NOT NULL,
+    expiry_date INTEGER NOT NULL,
+    status TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    remark TEXT,
+    FOREIGN KEY (store_id) REFERENCES local_users(id)
+);
 
-INSERT INTO `menu` (`menu_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `query`, `route_name`,
-                    `is_frame`, `is_cache`, `menu_type`, `visible`, `status`, `perms`, `icon`, `create_by`,
-                    `create_time`, `update_by`, `update_time`, `remark`)
-VALUES (1, '系统管理', 0, 1, 'system', NULL, '', '', 1, 0, 'M', '0', '0', '', 'system', 'admin', '2024-08-16 06:41:56',
-        '', NULL, '系统管理目录'),
-       (2, '系统监控', 0, 2, 'monitor', NULL, '', '', 1, 0, 'M', '0', '0', '', 'monitor', 'admin',
-        '2024-08-16 06:41:56', '', NULL, '系统监控目录'),
-       (3, '系统工具', 0, 3, 'tool', NULL, '', '', 1, 0, 'M', '0', '0', '', 'tool', 'admin', '2024-08-16 06:41:56', '',
-        NULL, '系统工具目录'),
-       (4, '若依官网', 0, 4, 'http://ruoyi.vip', NULL, '', '', 0, 0, 'M', '0', '0', '', 'guide', 'admin',
-        '2024-08-16 06:41:56', '', NULL, '若依官网地址'),
-       (100, '用户管理', 1, 1, 'user', 'system/user/index', '', '', 1, 0, 'C', '0', '0', 'system:user:list', 'user',
-        'admin', '2024-08-16 06:41:56', '', NULL, '用户管理菜单'),
-       (101, '角色管理', 1, 2, 'role', 'system/role/index', '', '', 1, 0, 'C', '0', '0', 'system:role:list', 'peoples',
-        'admin', '2024-08-16 06:41:56', '', NULL, '角色管理菜单'),
-       (102, '菜单管理', 1, 3, 'menu', 'system/menu/index', '', '', 1, 0, 'C', '0', '0', 'system:menu:list',
-        'tree-table', 'admin', '2024-08-16 06:41:56', '', NULL, '菜单管理菜单'),
-       (103, '组织管理', 1, 4, 'dept', 'system/dept/index', '', '', 1, 0, 'C', '0', '0', 'system:dept:list', 'tree',
-        'admin', '2024-08-16 06:41:56', 'admin', '2024-08-22 17:51:15', '部门管理菜单'),
-       (104, '等级管理', 1, 5, 'post', 'system/post/index', '', '', 1, 0, 'C', '0', '0', 'system:post:list', 'post',
-        'admin', '2024-08-16 06:41:56', 'admin', '2024-08-22 15:31:54', '岗位管理菜单'),
-       (105, '字典管理', 1, 6, 'dict', 'system/dict/index', '', '', 1, 0, 'C', '0', '0', 'system:dict:list', 'dict',
-        'admin', '2024-08-16 06:41:56', '', NULL, '字典管理菜单'),
-       (106, '参数设置', 1, 7, 'config', 'system/config/index', '', '', 1, 0, 'C', '0', '0', 'system:config:list',
-        'edit', 'admin', '2024-08-16 06:41:56', '', NULL, '参数设置菜单'),
-       (107, '通知公告', 1, 8, 'notice', 'system/notice/index', '', '', 1, 0, 'C', '0', '0', 'system:notice:list',
-        'message', 'admin', '2024-08-16 06:41:56', '', NULL, '通知公告菜单'),
-       (108, '日志管理', 1, 9, 'log', '', '', '', 1, 0, 'M', '0', '0', '', 'log', 'admin', '2024-08-16 06:41:56', '',
-        NULL, '日志管理菜单'),
-       (109, '在线用户', 2, 1, 'online', 'monitor/online/index', '', '', 1, 0, 'C', '0', '0', 'monitor:online:list',
-        'online', 'admin', '2024-08-16 06:41:56', '', NULL, '在线用户菜单'),
-       (110, '定时任务', 2, 2, 'job', 'monitor/job/index', '', '', 1, 0, 'C', '0', '0', 'monitor:job:list', 'job',
-        'admin', '2024-08-16 06:41:56', '', NULL, '定时任务菜单'),
-       (111, '数据监控', 2, 3, 'druid', 'monitor/druid/index', '', '', 1, 0, 'C', '0', '0', 'monitor:druid:list',
-        'druid', 'admin', '2024-08-16 06:41:56', '', NULL, '数据监控菜单'),
-       (112, '服务监控', 2, 4, 'server', 'monitor/server/index', '', '', 1, 0, 'C', '0', '0', 'monitor:server:list',
-        'server', 'admin', '2024-08-16 06:41:56', '', NULL, '服务监控菜单'),
-       (113, '缓存监控', 2, 5, 'cache', 'monitor/cache/index', '', '', 1, 0, 'C', '0', '0', 'monitor:cache:list',
-        'redis', 'admin', '2024-08-16 06:41:56', '', NULL, '缓存监控菜单'),
-       (114, '缓存列表', 2, 6, 'cacheList', 'monitor/cache/list', '', '', 1, 0, 'C', '0', '0', 'monitor:cache:list',
-        'redis-list', 'admin', '2024-08-16 06:41:56', '', NULL, '缓存列表菜单'),
-       (115, '表单构建', 3, 1, 'build', 'tool/build/index', '', '', 1, 0, 'C', '0', '0', 'tool:build:list', 'build',
-        'admin', '2024-08-16 06:41:56', '', NULL, '表单构建菜单'),
-       (116, '代码生成', 3, 2, 'gen', 'tool/gen/index', '', '', 1, 0, 'C', '0', '0', 'tool:gen:list', 'code', 'admin',
-        '2024-08-16 06:41:56', '', NULL, '代码生成菜单'),
-       (117, '系统接口', 3, 3, 'swagger', 'tool/swagger/index', '', '', 1, 0, 'C', '0', '0', 'tool:swagger:list',
-        'swagger', 'admin', '2024-08-16 06:41:56', '', NULL, '系统接口菜单'),
-       (500, '操作日志', 108, 1, 'operlog', 'monitor/operlog/index', '', '', 1, 0, 'C', '0', '0',
-        'monitor:operlog:list', 'form', 'admin', '2024-08-16 06:41:56', '', NULL, '操作日志菜单'),
-       (501, '登录日志', 108, 2, 'logininfor', 'monitor/logininfor/index', '', '', 1, 0, 'C', '0', '0',
-        'monitor:logininfor:list', 'logininfor', 'admin', '2024-08-16 06:41:56', '', NULL, '登录日志菜单'),
-       (1000, '用户查询', 100, 1, '', '', '', '', 1, 0, 'F', '0', '0', 'system:user:query', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1001, '用户新增', 100, 2, '', '', '', '', 1, 0, 'F', '0', '0', 'system:user:add', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1002, '用户修改', 100, 3, '', '', '', '', 1, 0, 'F', '0', '0', 'system:user:edit', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1003, '用户删除', 100, 4, '', '', '', '', 1, 0, 'F', '0', '0', 'system:user:remove', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1004, '用户导出', 100, 5, '', '', '', '', 1, 0, 'F', '0', '0', 'system:user:export', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1005, '用户导入', 100, 6, '', '', '', '', 1, 0, 'F', '0', '0', 'system:user:import', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1006, '重置密码', 100, 7, '', '', '', '', 1, 0, 'F', '0', '0', 'system:user:resetPwd', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1007, '角色查询', 101, 1, '', '', '', '', 1, 0, 'F', '0', '0', 'system:role:query', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1008, '角色新增', 101, 2, '', '', '', '', 1, 0, 'F', '0', '0', 'system:role:add', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1009, '角色修改', 101, 3, '', '', '', '', 1, 0, 'F', '0', '0', 'system:role:edit', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1010, '角色删除', 101, 4, '', '', '', '', 1, 0, 'F', '0', '0', 'system:role:remove', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1011, '角色导出', 101, 5, '', '', '', '', 1, 0, 'F', '0', '0', 'system:role:export', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1012, '菜单查询', 102, 1, '', '', '', '', 1, 0, 'F', '0', '0', 'system:menu:query', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1013, '菜单新增', 102, 2, '', '', '', '', 1, 0, 'F', '0', '0', 'system:menu:add', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1014, '菜单修改', 102, 3, '', '', '', '', 1, 0, 'F', '0', '0', 'system:menu:edit', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1015, '菜单删除', 102, 4, '', '', '', '', 1, 0, 'F', '0', '0', 'system:menu:remove', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1016, '部门查询', 103, 1, '', '', '', '', 1, 0, 'F', '0', '0', 'system:dept:query', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1017, '部门新增', 103, 2, '', '', '', '', 1, 0, 'F', '0', '0', 'system:dept:add', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1018, '部门修改', 103, 3, '', '', '', '', 1, 0, 'F', '0', '0', 'system:dept:edit', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1019, '部门删除', 103, 4, '', '', '', '', 1, 0, 'F', '0', '0', 'system:dept:remove', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1020, '岗位查询', 104, 1, '', '', '', '', 1, 0, 'F', '0', '0', 'system:post:query', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1021, '岗位新增', 104, 2, '', '', '', '', 1, 0, 'F', '0', '0', 'system:post:add', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1022, '岗位修改', 104, 3, '', '', '', '', 1, 0, 'F', '0', '0', 'system:post:edit', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1023, '岗位删除', 104, 4, '', '', '', '', 1, 0, 'F', '0', '0', 'system:post:remove', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1024, '岗位导出', 104, 5, '', '', '', '', 1, 0, 'F', '0', '0', 'system:post:export', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1025, '字典查询', 105, 1, '#', '', '', '', 1, 0, 'F', '0', '0', 'system:dict:query', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1026, '字典新增', 105, 2, '#', '', '', '', 1, 0, 'F', '0', '0', 'system:dict:add', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1027, '字典修改', 105, 3, '#', '', '', '', 1, 0, 'F', '0', '0', 'system:dict:edit', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1028, '字典删除', 105, 4, '#', '', '', '', 1, 0, 'F', '0', '0', 'system:dict:remove', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1029, '字典导出', 105, 5, '#', '', '', '', 1, 0, 'F', '0', '0', 'system:dict:export', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1030, '参数查询', 106, 1, '#', '', '', '', 1, 0, 'F', '0', '0', 'system:config:query', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1031, '参数新增', 106, 2, '#', '', '', '', 1, 0, 'F', '0', '0', 'system:config:add', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1032, '参数修改', 106, 3, '#', '', '', '', 1, 0, 'F', '0', '0', 'system:config:edit', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1033, '参数删除', 106, 4, '#', '', '', '', 1, 0, 'F', '0', '0', 'system:config:remove', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1034, '参数导出', 106, 5, '#', '', '', '', 1, 0, 'F', '0', '0', 'system:config:export', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1035, '公告查询', 107, 1, '#', '', '', '', 1, 0, 'F', '0', '0', 'system:notice:query', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1036, '公告新增', 107, 2, '#', '', '', '', 1, 0, 'F', '0', '0', 'system:notice:add', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1037, '公告修改', 107, 3, '#', '', '', '', 1, 0, 'F', '0', '0', 'system:notice:edit', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1038, '公告删除', 107, 4, '#', '', '', '', 1, 0, 'F', '0', '0', 'system:notice:remove', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1039, '操作查询', 500, 1, '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:operlog:query', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1040, '操作删除', 500, 2, '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:operlog:remove', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1041, '日志导出', 500, 3, '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:operlog:export', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1042, '登录查询', 501, 1, '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:logininfor:query', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1043, '登录删除', 501, 2, '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:logininfor:remove', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1044, '日志导出', 501, 3, '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:logininfor:export', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1045, '账户解锁', 501, 4, '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:logininfor:unlock', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1046, '在线查询', 109, 1, '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:online:query', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1047, '批量强退', 109, 2, '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:online:batchLogout', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1048, '单条强退', 109, 3, '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:online:forceLogout', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1049, '任务查询', 110, 1, '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:job:query', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1050, '任务新增', 110, 2, '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:job:add', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1051, '任务修改', 110, 3, '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:job:edit', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1052, '任务删除', 110, 4, '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:job:remove', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1053, '状态修改', 110, 5, '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:job:changeStatus', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1054, '任务导出', 110, 6, '#', '', '', '', 1, 0, 'F', '0', '0', 'monitor:job:export', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1055, '生成查询', 116, 1, '#', '', '', '', 1, 0, 'F', '0', '0', 'tool:gen:query', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1056, '生成修改', 116, 2, '#', '', '', '', 1, 0, 'F', '0', '0', 'tool:gen:edit', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1057, '生成删除', 116, 3, '#', '', '', '', 1, 0, 'F', '0', '0', 'tool:gen:remove', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1058, '导入代码', 116, 4, '#', '', '', '', 1, 0, 'F', '0', '0', 'tool:gen:import', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1059, '预览代码', 116, 5, '#', '', '', '', 1, 0, 'F', '0', '0', 'tool:gen:preview', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, ''),
-       (1060, '生成代码', 116, 6, '#', '', '', '', 1, 0, 'F', '0', '0', 'tool:gen:code', '#', 'admin',
-        '2024-08-16 06:41:56', '', NULL, '');
+-- 添加索引以提高查询性能
+CREATE INDEX IF NOT EXISTS idx_subscriptions_store_id ON subscriptions(store_id);
 
-INSERT INTO `dict_type` (`dict_id`, `dict_name`, `dict_type`, `status`, `create_time`,
-                         `update_time`, `remark`)
-VALUES (1, '用户性别', 'sys_user_sex', '0', '2024-08-16 06:41:56', '', '用户性别列表'),
-       (2, '菜单状态', 'sys_show_hide', '0', '2024-08-16 06:41:56', '', '菜单状态列表'),
-       (3, '系统开关', 'sys_normal_disable', '0', '2024-08-16 06:41:56', '', '系统开关列表'),
-       (4, '任务状态', 'sys_job_status', '0', '2024-08-16 06:41:56', '', '任务状态列表'),
-       (5, '任务分组', 'sys_job_group', '0', '2024-08-16 06:41:56', '', '任务分组列表'),
-       (6, '系统是否', 'sys_yes_no', '0', '2024-08-16 06:41:56', '', '系统是否列表'),
-       (7, '通知类型', 'sys_notice_type', '0', '2024-08-16 06:41:56', '', '通知类型列表'),
-       (8, '通知状态', 'sys_notice_status', '0', '2024-08-16 06:41:56', '', '通知状态列表'),
-       (9, '操作类型', 'sys_oper_type', '0', '2024-08-16 06:41:56', '', '操作类型列表'),
-       (10, '系统状态', 'sys_common_status', '0', '2024-08-16 06:41:56', '', '登录状态列表'),
-       (100, '用户类型', 'sys_user_type', '0', '2024-08-22 15:56:17', '',
-        '用户类型，00 系统用户，01 会员客户');
+-- 创建user_tours表，用于存储用户引导记录
+CREATE TABLE IF NOT EXISTS user_tours (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    page_key TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES local_users (id)
+);
 
-INSERT INTO `dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`,
-                         `list_class`, `is_default`, `status`, `create_time`,
-                         `update_time`, `remark`)
-VALUES (1, 1, '男', '0', 'sys_user_sex', '', '', 'Y', '0', '2024-08-16 06:41:56', '', '性别男'),
-       (2, 2, '女', '1', 'sys_user_sex', '', '', 'N', '0', '2024-08-16 06:41:56', '', '性别女'),
-       (3, 3, '未知', '2', 'sys_user_sex', '', '', 'N', '0', '2024-08-16 06:41:56', '', '性别未知'),
-       (4, 1, '显示', '0', 'sys_show_hide', '', 'primary', 'Y', '0', '2024-08-16 06:41:56', '',
-        '显示菜单'),
-       (5, 2, '隐藏', '1', 'sys_show_hide', '', 'danger', 'N', '0', '2024-08-16 06:41:56', '',
-        '隐藏菜单'),
-       (6, 1, '正常', '0', 'sys_normal_disable', '', 'primary', 'Y', '0', '2024-08-16 06:41:56', '',
-        '正常状态'),
-       (7, 2, '停用', '1', 'sys_normal_disable', '', 'danger', 'N', '0', '2024-08-16 06:41:56', '',
-        '停用状态'),
-       (8, 1, '正常', '0', 'sys_job_status', '', 'primary', 'Y', '0', '2024-08-16 06:41:56', '',
-        '正常状态'),
-       (9, 2, '暂停', '1', 'sys_job_status', '', 'danger', 'N', '0', '2024-08-16 06:41:56', '',
-        '停用状态'),
-       (10, 1, '默认', 'DEFAULT', 'sys_job_group', '', '', 'Y', '0', '2024-08-16 06:41:56', '',
-        '默认分组'),
-       (11, 2, '系统', 'SYSTEM', 'sys_job_group', '', '', 'N', '0', '2024-08-16 06:41:56', '',
-        '系统分组'),
-       (12, 1, '是', 'Y', 'sys_yes_no', '', 'primary', 'Y', '0', '2024-08-16 06:41:56', '',
-        '系统默认是'),
-       (13, 2, '否', 'N', 'sys_yes_no', '', 'danger', 'N', '0', '2024-08-16 06:41:56', '', '系统默认否'),
-       (14, 1, '通知', '1', 'sys_notice_type', '', 'warning', 'Y', '0', '2024-08-16 06:41:56', '',
-        '通知'),
-       (15, 2, '公告', '2', 'sys_notice_type', '', 'success', 'N', '0', '2024-08-16 06:41:56', '',
-        '公告'),
-       (16, 1, '正常', '0', 'sys_notice_status', '', 'primary', 'Y', '0', '2024-08-16 06:41:56', '',
-        '正常状态'),
-       (17, 2, '关闭', '1', 'sys_notice_status', '', 'danger', 'N', '0', '2024-08-16 06:41:56', '',
-        '关闭状态'),
-       (18, 99, '其他', '0', 'sys_oper_type', '', 'info', 'N', '0', '2024-08-16 06:41:56', '',
-        '其他操作'),
-       (19, 1, '新增', '1', 'sys_oper_type', '', 'info', 'N', '0', '2024-08-16 06:41:56', '',
-        '新增操作'),
-       (20, 2, '修改', '2', 'sys_oper_type', '', 'info', 'N', '0', '2024-08-16 06:41:56', '',
-        '修改操作'),
-       (21, 3, '删除', '3', 'sys_oper_type', '', 'danger', 'N', '0', '2024-08-16 06:41:56', '',
-        '删除操作'),
-       (22, 4, '授权', '4', 'sys_oper_type', '', 'primary', 'N', '0', '2024-08-16 06:41:56', '',
-        '授权操作'),
-       (23, 5, '导出', '5', 'sys_oper_type', '', 'warning', 'N', '0', '2024-08-16 06:41:56', '',
-        '导出操作'),
-       (24, 6, '导入', '6', 'sys_oper_type', '', 'warning', 'N', '0', '2024-08-16 06:41:56', '',
-        '导入操作'),
-       (25, 7, '强退', '7', 'sys_oper_type', '', 'danger', 'N', '0', '2024-08-16 06:41:56', '',
-        '强退操作'),
-       (26, 8, '生成代码', '8', 'sys_oper_type', '', 'warning', 'N', '0', '2024-08-16 06:41:56', '',
-        '生成操作'),
-       (27, 9, '清空数据', '9', 'sys_oper_type', '', 'danger', 'N', '0', '2024-08-16 06:41:56', '',
-        '清空操作'),
-       (28, 1, '成功', '0', 'sys_common_status', '', 'primary', 'N', '0', '2024-08-16 06:41:56', '',
-        '正常状态'),
-       (29, 2, '失败', '1', 'sys_common_status', '', 'danger', 'N', '0', '2024-08-16 06:41:56', '',
-        '停用状态'),
-       (100, 1, '系统用户', '00', 'sys_user_type', NULL, 'primary', 'N', '0', '2024-08-22 15:57:50', '',
-        NULL),
-       (101, 2, '会员客户', '01', 'sys_user_type', NULL, 'success', 'N', '0', '2024-08-22 15:58:09', '',
-        NULL);
+-- 添加索引以提高查询性能
+CREATE INDEX IF NOT EXISTS idx_user_tours_user_id ON user_tours (user_id);
+
+-- 创建subscription_plans表，用于存储订阅套餐信息
+CREATE TABLE IF NOT EXISTS subscription_plans (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    plan_type TEXT NOT NULL,
+    period TEXT NOT NULL,
+    price TEXT NOT NULL,
+    description TEXT,
+    features TEXT,  -- JSON格式存储
+    is_recommended BOOLEAN NOT NULL DEFAULT 0,
+    is_active BOOLEAN NOT NULL DEFAULT 1,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    remark TEXT
+);
+
+-- 添加索引以提高查询性能
+CREATE INDEX IF NOT EXISTS idx_subscription_plans_type ON subscription_plans(plan_type);
+CREATE INDEX IF NOT EXISTS idx_subscription_plans_active ON subscription_plans(is_active);
+
+CREATE TABLE sms_plans (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    plan_type TEXT NOT NULL,
+    period TEXT NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
+    sms_count INTEGER NOT NULL,
+    description TEXT,
+    features JSON,
+    is_recommended BOOLEAN DEFAULT false,
+    is_active BOOLEAN DEFAULT true,
+    sort_order INTEGER DEFAULT 0,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    remark TEXT
+);
+
+-- 添加索引以提高查询性能
+CREATE INDEX IF NOT EXISTS idx_sms_plans_type ON sms_plans(plan_type);
+CREATE INDEX IF NOT EXISTS idx_sms_plans_active ON sms_plans(is_active);
+
+CREATE TABLE sms_subscriptions (
+    id BIGSERIAL PRIMARY KEY,
+    store_id BIGINT NOT NULL REFERENCES local_users(id),
+    plan_id BIGINT NOT NULL REFERENCES sms_plans(id),
+    status VARCHAR(20) NOT NULL,
+    start_date BIGINT NOT NULL,
+    expiry_date BIGINT NOT NULL,
+    auto_renew BOOLEAN NOT NULL DEFAULT true,
+    last_payment_id TEXT REFERENCES payments(pay_id),
+    next_billing_date BIGINT,
+    price_paid DECIMAL(10,2) NOT NULL,
+    total_sms_count INTEGER NOT NULL,
+    used_sms_count INTEGER NOT NULL DEFAULT 0,
+    remaining_sms_count INTEGER GENERATED ALWAYS AS (total_sms_count - used_sms_count) STORED,
+    promo_code VARCHAR(20),
+    is_first_free BOOLEAN NOT NULL DEFAULT false,
+    created_at BIGINT NOT NULL,
+    updated_at BIGINT NOT NULL,
+    cancellation_reason TEXT,
+    remark TEXT
+);
+
+-- 支付宝配置表
+CREATE TABLE IF NOT EXISTS alipay_configs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    store_id INTEGER NOT NULL,
+    app_id TEXT NOT NULL,
+    private_key TEXT NOT NULL,
+    alipay_public_key TEXT,
+    seller_id TEXT,
+    is_active INTEGER NOT NULL DEFAULT 0,
+    is_sandbox INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+);
+
+CREATE INDEX idx_alipay_configs_store_id ON alipay_configs (store_id);
+
+CREATE INDEX idx_alipay_configs_is_active ON alipay_configs (is_active);
+
+-- 微信支付配置表
+CREATE TABLE wechat_configs (
+    id INTEGER PRIMARY KEY,
+    store_id INTEGER NOT NULL,
+    sp_appid TEXT,
+    sp_mchid TEXT,
+    app_id TEXT NOT NULL,
+    mchid TEXT NOT NULL,
+    mch_key TEXT NOT NULL,
+    apiclient_key TEXT NOT NULL,
+    apiclient_cert TEXT NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT false,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+);
+
+CREATE INDEX idx_wechat_configs_store_id ON wechat_configs (store_id);
+
+CREATE INDEX idx_wechat_configs_is_active ON wechat_configs (is_active);
+
+-- 二维码支付信息表
+CREATE TABLE qrcode_payments
+(
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    pay_id            TEXT NOT NULL,                -- 关联的支付记录ID
+    store_id          INTEGER NOT NULL,                -- 商店ID
+    payment_type      TEXT NOT NULL,                   -- 支付类型：alipay/wechat
+    auth_code         TEXT,                            -- 授权码（用户付款码）
+    qr_code           TEXT,                            -- 二维码内容（商家收款码）
+    out_trade_no      TEXT,                            -- 商户订单号
+    trade_no          TEXT,                            -- 支付宝/微信交易号
+    total_amount      DOUBLE NOT NULL,                 -- 订单金额
+    subject           TEXT,                            -- 交易主题
+    trade_status      TEXT,                            -- 交易状态
+    buyer_id          TEXT,                            -- 买家ID
+    buyer_logon_id    TEXT,                            -- 买家登录账号
+    receipt_amount    DOUBLE,                          -- 实收金额
+    point_amount      DOUBLE,                          -- 积分金额
+    invoice_amount    DOUBLE,                          -- 开票金额
+    fund_bill_list    TEXT,                            -- 支付资金明细
+    voucher_detail_list TEXT,                          -- 优惠券信息
+    gmt_payment       TIMESTAMP,                       -- 交易支付时间
+    raw_response      TEXT,                            -- 原始响应数据
+    create_time       TIMESTAMP NOT NULL,              -- 创建时间
+    update_time       TIMESTAMP                        -- 更新时间
+);
+
+-- 创建索引
+CREATE INDEX idx_qrcode_payments_pay_id ON qrcode_payments (pay_id);
+CREATE INDEX idx_qrcode_payments_payment_type ON qrcode_payments (payment_type);
+CREATE INDEX idx_qrcode_payments_trade_no ON qrcode_payments (trade_no);
+CREATE INDEX idx_qrcode_payments_out_trade_no ON qrcode_payments (out_trade_no);
+
+-- 添加WebSocket消息表
+CREATE TABLE IF NOT EXISTS messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sender_id INTEGER NOT NULL,
+    receiver_id INTEGER NOT NULL,
+    message_type VARCHAR(20) NOT NULL,
+    content TEXT NOT NULL,
+    read BOOLEAN NOT NULL DEFAULT FALSE,
+    sent BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+);
+
+-- 创建索引
+CREATE INDEX idx_messages_sender_id ON messages(sender_id);
+CREATE INDEX idx_messages_receiver_id ON messages(receiver_id);
+CREATE INDEX idx_messages_read ON messages(read);
+
+INSERT INTO local_users (id, nickname, owner_name, avatar, owner_phone, password, role, is_guest, store_name, store_location, store_status, created_at, deleted) VALUES (0, 'Guest', 'Guest', 'images/avatars/avatar1.png', '1234567890', '123', 'Guest', 1, 'guest', 'guest fake location', '0', CURRENT_TIMESTAMP, '0');
+
+INSERT INTO configs (config_id, config_name, config_key, config_value, config_type, create_by, create_time, update_by, update_time, remark) VALUES (1, '账号自助-验证码开关', 'sys.account.captchaEnabled', 'false', 'Y', 'admin', null, '', null, '是否开启验证码功能');
+INSERT INTO configs (config_id, config_name, config_key, config_value, config_type, create_by, create_time, update_by, update_time, remark) VALUES (2, '预计取衣时间', 'desire_complete_time', '7', 'Y', null, '2025-02-15T10:22:13.032273400+08:00', null, '2025-02-15T10:23:31.618923900+08:00', '默认七天后取衣');
+INSERT INTO configs (config_id, config_name, config_key, config_value, config_type, create_by, create_time, update_by, update_time, remark) VALUES (3, '页面无操作锁定时间', 'logout_timeout', '600', 'Y', null, '2025-02-15T11:40:01.890123500+08:00', null, null, '单位：秒(设置为0则不锁定)');
+
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (1, '用户性别', 'sys_user_sex', '0', '2024-08-16 06:41:56', null, '用户性别列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (2, '菜单状态', 'sys_show_hide', '0', '2024-08-16 06:41:56', '', '菜单状态列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (3, '系统开关', 'sys_normal_disable', '0', '2024-08-16 06:41:56', '', '系统开关列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (4, '任务状态', 'sys_job_status', '0', '2024-08-16 06:41:56', '', '任务状态列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (5, '任务分组', 'sys_job_group', '0', '2024-08-16 06:41:56', '', '任务分组列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (6, '系统是否', 'sys_yes_no', '0', '2024-08-16 06:41:56', '', '系统是否列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (7, '通知类型', 'sys_notice_type', '0', '2024-08-16 06:41:56', '', '通知类型列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (8, '通知状态', 'sys_notice_status', '0', '2024-08-16 06:41:56', '', '通知状态列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (9, '操作类型', 'sys_oper_type', '0', '2024-08-16 06:41:56', '', '操作类型列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (10, '系统状态', 'sys_common_status', '0', '2024-08-16 06:41:56', '', '登录状态列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (100, '用户类型', 'sys_user_type', '0', '2024-08-22 15:56:17', '', '用户类型，00 系统用户，01 会员客户');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (103, '会员画像', 'sys_user_tags', '0', '2024-09-01 02:46:06', '', '00 优质客户
+01 不友好客户
+02 事多客户');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (104, '黑灰名单', 'sys_user_identify', '0', '2024-09-01 13:49:57', '', '用户黑灰名单');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (105, '标签类别', 'sys_tag_order', '0', '2024-09-02 06:52:15', '', '001 洗前瑕疵 002 洗后预估 003 衣物颜色……');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (106, '删除状态', 'sys_del_status', '0', '2024-09-03 06:50:19', '', '删除状态列表：0 正常 2 删除');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (107, '卡券状态', 'sys_coupon_status', '0', '2024-09-03 06:56:54', '', '卡券状态列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (108, '卡券类别', 'sys_coupon_type', '0', '2024-09-03 06:59:02', '', '卡券类别列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (109, '客户可见', 'sys_coupon_customer_invalid', '0', '2024-09-03 07:32:00', '', '客户可见列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (110, '自动延期', 'sys_coupon_auto_delay', '0', '2024-09-03 07:32:21', '', '自动延期列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (111, '通知方式', 'sys_notice_method', '0', '2024-09-04 14:33:43', '', '通知方式列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (112, '通知模板类型', 'sys_temp_type', '0', '2024-09-04 14:35:50', '', '通知模板类型列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (113, '通知结果', 'sys_notice_result', '0', '2024-09-04 14:36:34', '', '通知结果列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (114, '支付方式', 'sys_payment_method', '0', '2024-09-06 00:37:19', '', '支付方式列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (115, '用户卡券状态', 'sys_uc_status', '0', '2024-09-06 00:58:54', '', '用户卡券状态列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (116, '订单类型', 'sys_price_order_type', '0', '2024-09-06 13:47:14', '', '订单类型列表，用于价格管理模块');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (117, '支付状态', 'sys_payment_status', '0', '2024-09-07 01:48:58', '', '支付状态列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (118, '时效预警', 'sys_cost_time_alarm', '0', '2024-09-07 01:50:09', '', '时效预警列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (119, '衣物颜色', 'sys_color_list', '0', '2024-09-07 11:57:38', '', '衣物颜色列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (120, '服务类型', 'sys_service_type', '0', '2024-09-08 01:12:01', '', '服务类型列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (121, '服务要求', 'sys_service_requirement', '0', '2024-09-08 01:12:26', '', '服务要求列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (122, '衣物状态', 'sys_clothing_status', '0', '2024-09-08 01:13:11', '', '衣物状态列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (123, '业务类型', 'sys_business_type', '0', '2024-09-08 13:21:42', '', '业务类型列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (124, '取回方式', 'sys_delivery_mode', '0', '2024-09-08 13:23:07', '', '取回方式列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (125, '订单状态', 'sys_order_status', '0', '2024-09-09 01:46:56', '', '订单状态列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (126, '订单类型', 'sys_order_type', '0', '2024-09-09 01:49:56', '', '订单类型列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (127, '支出类型', 'sys_exp_type', '0', '2024-09-11 01:18:58', '', '支出类型列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (128, '卡券支付方式', 'sys_coupon_payment_method', '0', '2024-09-23 12:03:24', '', null);
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (130, '推广方式', 'sys_promote_method', '0', '2024-10-14 01:49:57', '', '推广方式列表');
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (131, '推广类型', 'sys_promote_type', '0', '2024-10-14 02:15:43', '', null);
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (132, '支付方式-展示', 'sys_payment_method_show', '0', '2024-10-16 04:50:20', '', null);
+INSERT INTO dict_type (dict_id, dict_name, dict_type, status, create_time, update_time, remark) VALUES (133, '推广状态', 'sys_promote_result', '0', '2024-10-20 05:53:02', '2024-10-20 05:53:22', null);
+
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (1, 4, '男', '0', 'sys_user_sex', '', '', 'Y', '0', '2024-08-16 06:41:56', null, '性别男');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (2, 2, '女', '1', 'sys_user_sex', '', '', 'N', '0', '2024-08-16 06:41:56', '', '性别女');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (3, 3, '未知', '2', 'sys_user_sex', '', '', 'N', '0', '2024-08-16 06:41:56', '', '性别未知');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (4, 1, '显示', '0', 'sys_show_hide', '', 'primary', 'Y', '0', '2024-08-16 06:41:56', '', '显示菜单');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (5, 2, '隐藏', '1', 'sys_show_hide', '', 'danger', 'N', '0', '2024-08-16 06:41:56', '', '隐藏菜单');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (6, 1, '正常', '0', 'sys_normal_disable', '', 'primary', 'Y', '0', '2024-08-16 06:41:56', '', '正常状态');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (7, 2, '停用', '1', 'sys_normal_disable', '', 'danger', 'N', '0', '2024-08-16 06:41:56', '', '停用状态');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (8, 1, '正常', '0', 'sys_job_status', '', 'primary', 'Y', '0', '2024-08-16 06:41:56', '', '正常状态');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (9, 2, '暂停', '1', 'sys_job_status', '', 'danger', 'N', '0', '2024-08-16 06:41:56', '', '停用状态');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (10, 1, '默认', 'DEFAULT', 'sys_job_group', '', '', 'Y', '0', '2024-08-16 06:41:56', '', '默认分组');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (11, 2, '系统', 'SYSTEM', 'sys_job_group', '', '', 'N', '0', '2024-08-16 06:41:56', '', '系统分组');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (12, 1, '是', 'Y', 'sys_yes_no', '', 'primary', 'Y', '0', '2024-08-16 06:41:56', '', '系统默认是');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (13, 2, '否', 'N', 'sys_yes_no', '', 'danger', 'N', '0', '2024-08-16 06:41:56', '', '系统默认否');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (14, 1, '通知', '1', 'sys_notice_type', '', 'warning', 'Y', '0', '2024-08-16 06:41:56', '', '通知');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (15, 2, '公告', '2', 'sys_notice_type', '', 'success', 'N', '0', '2024-08-16 06:41:56', '', '公告');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (16, 1, '正常', '0', 'sys_notice_status', '', 'primary', 'Y', '0', '2024-08-16 06:41:56', '', '正常状态');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (17, 2, '关闭', '1', 'sys_notice_status', '', 'danger', 'N', '0', '2024-08-16 06:41:56', '', '关闭状态');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (18, 99, '其他', '0', 'sys_oper_type', '', 'info', 'N', '0', '2024-08-16 06:41:56', '', '其他操作');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (19, 1, '新增', '1', 'sys_oper_type', '', 'info', 'N', '0', '2024-08-16 06:41:56', '', '新增操作');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (20, 2, '修改', '2', 'sys_oper_type', '', 'info', 'N', '0', '2024-08-16 06:41:56', '', '修改操作');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (21, 3, '删除', '3', 'sys_oper_type', '', 'danger', 'N', '0', '2024-08-16 06:41:56', '', '删除操作');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (22, 4, '授权', '4', 'sys_oper_type', '', 'primary', 'N', '0', '2024-08-16 06:41:56', '', '授权操作');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (23, 5, '导出', '5', 'sys_oper_type', '', 'warning', 'N', '0', '2024-08-16 06:41:56', '', '导出操作');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (24, 6, '导入', '6', 'sys_oper_type', '', 'warning', 'N', '0', '2024-08-16 06:41:56', '', '导入操作');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (25, 7, '强退', '7', 'sys_oper_type', '', 'danger', 'N', '0', '2024-08-16 06:41:56', '', '强退操作');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (26, 8, '生成代码', '8', 'sys_oper_type', '', 'warning', 'N', '0', '2024-08-16 06:41:56', '', '生成操作');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (27, 9, '清空数据', '9', 'sys_oper_type', '', 'danger', 'N', '0', '2024-08-16 06:41:56', '', '清空操作');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (28, 1, '成功', '0', 'sys_common_status', '', 'primary', 'N', '0', '2024-08-16 06:41:56', '', '正常状态');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (29, 2, '失败', '1', 'sys_common_status', '', 'danger', 'N', '0', '2024-08-16 06:41:56', '', '停用状态');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (100, 1, '系统用户', '00', 'sys_user_type', null, 'primary', 'N', '0', '2024-08-22 15:57:50', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (101, 2, '会员客户', '01', 'sys_user_type', null, 'success', 'N', '0', '2024-08-22 15:58:09', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (111, 0, '优质客户', '00', 'sys_user_tags', null, 'success', 'N', '0', '2024-09-01 02:46:49', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (112, 1, '不友好客户', '01', 'sys_user_tags', null, 'danger', 'N', '0', '2024-09-01 02:47:16', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (113, 2, '事多客户', '02', 'sys_user_tags', null, 'warning', 'N', '0', '2024-09-01 02:47:37', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (114, 3, '其他', '03', 'sys_user_tags', null, 'primary', 'N', '0', '2024-09-01 02:47:53', '2024-09-01 03:50:09', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (115, 0, '正常', '00', 'sys_user_identify', null, 'success', 'N', '0', '2024-09-01 13:50:28', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (116, 1, '黑名单', '01', 'sys_user_identify', null, 'danger', 'N', '0', '2024-09-01 13:51:05', '', '黑名单，不允许消费');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (117, 2, '灰名单', '02', 'sys_user_identify', null, 'warning', 'N', '0', '2024-09-01 13:51:46', '', '灰名单只能到店消费，不能小程序自助下单');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (118, 0, '洗前瑕疵', '001', 'sys_tag_order', null, 'warning', 'N', '0', '2024-09-02 06:52:48', '', '001 洗前瑕疵');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (119, 1, '洗后预估', '002', 'sys_tag_order', null, 'primary', 'N', '0', '2024-09-02 06:53:09', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (120, 2, '衣物颜色', '003', 'sys_tag_order', null, 'success', 'N', '0', '2024-09-02 06:53:50', '2024-09-07 13:37:06', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (121, 0, '正常', '0', 'sys_del_status', null, 'success', 'N', '0', '2024-09-03 06:50:36', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (122, 1, '已删除', '2', 'sys_del_status', null, 'danger', 'N', '0', '2024-09-03 06:50:52', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (123, 0, '正常销售', '0', 'sys_coupon_status', null, 'success', 'N', '0', '2024-09-03 06:57:33', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (124, 1, '不可销售', '1', 'sys_coupon_status', null, 'danger', 'N', '0', '2024-09-03 06:58:01', '2024-09-03 06:58:32', '代表由于编辑生成新的卡券后，此卡券变为不可销售，且不可编辑修改');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (125, 2, '暂不销售', '2', 'sys_coupon_status', null, 'warning', 'N', '0', '2024-09-03 06:58:24', '', '代表店家提前创建好了卡券，但是暂时不对外售卖');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (126, 0, '储值卡', '000', 'sys_coupon_type', null, 'primary', 'N', '0', '2024-09-03 06:59:26', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (127, 1, '福利卡', '001', 'sys_coupon_type', null, 'primary', 'N', '1', '2024-09-03 06:59:49', '2024-09-24 03:12:48', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (128, 2, '次卡', '002', 'sys_coupon_type', null, 'primary', 'N', '0', '2024-09-03 07:00:06', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (129, 3, '折扣券', '003', 'sys_coupon_type', null, 'primary', 'N', '0', '2024-09-03 07:00:23', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (130, 4, '满减券', '004', 'sys_coupon_type', null, 'primary', 'N', '0', '2024-09-03 07:00:37', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (237, 5, '折扣卡', '005', 'sys_coupon_type', null, 'primary', 'N', '0', '2024-09-03 07:00:37', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (131, 0, '是', '0', 'sys_coupon_auto_delay', null, 'success', 'N', '0', '2024-09-03 07:33:22', '', '自动延期');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (132, 1, '否', '2', 'sys_coupon_auto_delay', null, 'danger', 'N', '0', '2024-09-03 07:33:38', '', '不自动延期');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (133, 0, '可见', '0', 'sys_coupon_customer_invalid', null, 'success', 'N', '0', '2024-09-03 07:33:58', '', '客户可见');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (134, 1, '不可见', '2', 'sys_coupon_customer_invalid', null, 'danger', 'N', '0', '2024-09-03 07:34:12', '', '客户不可见');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (135, 0, '短信', '0', 'sys_notice_method', null, 'primary', 'N', '0', '2024-09-04 14:37:13', '', '短信通知');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (136, 1, '小程序', '1', 'sys_notice_method', null, 'success', 'N', '0', '2024-09-04 14:37:31', '', '小程序通知');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (137, 0, '取衣通知', '0', 'sys_temp_type', null, 'success', 'N', '0', '2024-09-04 14:37:56', '2024-09-28 06:42:58', '取衣通知');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (138, 1, '推广', '1', 'sys_temp_type', null, 'primary', 'N', '0', '2024-09-04 14:38:13', '2024-09-28 06:43:14', '推广');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (139, 0, '发送成功', '0', 'sys_notice_result', null, 'success', 'N', '0', '2024-09-04 14:38:31', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (140, 1, '发送失败', '1', 'sys_notice_result', null, 'danger', 'N', '0', '2024-09-04 14:38:44', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (141, 0, '支付宝', '01', 'sys_payment_method', null, 'success', 'N', '0', '2024-09-06 00:37:41', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (142, 1, '微信', '02', 'sys_payment_method', null, 'success', 'N', '0', '2024-09-06 00:37:55', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (143, 2, '美团转结', '03', 'sys_payment_method', null, 'success', 'N', '0', '2024-09-06 00:38:17', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (144, 3, '抖音结转', '04', 'sys_payment_method', null, 'success', 'N', '0', '2024-09-06 00:38:36', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (145, 4, '现金支付', '05', 'sys_payment_method', null, 'success', 'N', '0', '2024-09-06 00:39:22', '2024-10-05 02:00:00', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (146, 5, '储值卡', '06', 'sys_payment_method', null, 'primary', 'N', '0', '2024-09-06 00:39:39', '2024-10-05 02:00:14', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (238, 6, '折扣卡', '08', 'sys_payment_method', null, 'primary', 'N', '0', '2024-09-06 00:39:39', '2024-10-05 02:00:14', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (147, 0, '正常', '00', 'sys_uc_status', null, 'primary', 'N', '0', '2024-09-06 00:59:43', '', '卡券未退款');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (148, 1, '已退款', '01', 'sys_uc_status', null, 'danger', 'N', '0', '2024-09-06 01:00:02', '', '已经退款');
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (149, 0, '小程序', '00', 'sys_price_order_type', null, 'success', 'N', '0', '2024-09-06 13:47:44', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (150, 1, '美团', '01', 'sys_price_order_type', null, 'primary', 'N', '0', '2024-09-06 13:48:03', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (151, 2, '抖音', '02', 'sys_price_order_type', null, 'info', 'N', '0', '2024-09-06 13:48:19', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (152, 3, '到店', '03', 'sys_price_order_type', null, 'success', 'N', '0', '2024-09-06 13:48:35', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (153, 4, '其他', '04', 'sys_price_order_type', null, 'warning', 'N', '0', '2024-09-06 13:48:52', '2024-09-06 13:49:02', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (154, 0, '已支付', '00', 'sys_payment_status', null, 'success', 'N', '0', '2024-09-07 01:49:15', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (155, 1, '未支付', '01', 'sys_payment_status', null, 'danger', 'N', '0', '2024-09-07 01:49:26', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (156, 0, '正常', '00', 'sys_cost_time_alarm', null, 'success', 'N', '0', '2024-09-07 01:50:24', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (157, 1, '即将超时', '01', 'sys_cost_time_alarm', null, 'warning', 'N', '0', '2024-09-07 01:50:43', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (158, 2, '已超时', '02', 'sys_cost_time_alarm', null, 'danger', 'N', '0', '2024-09-07 01:50:58', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (164, 3, '品牌', '004', 'sys_tag_order', null, 'info', 'N', '0', '2024-09-07 13:36:59', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (165, 0, '已取走', '00', 'sys_clothing_status', null, 'success', 'N', '0', '2024-09-08 01:13:33', '2024-09-13 13:20:25', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (166, 1, '洗护中', '01', 'sys_clothing_status', null, 'primary', 'N', '0', '2024-09-08 01:13:46', '2024-09-13 13:20:20', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (167, 2, '已上挂', '02', 'sys_clothing_status', null, 'success', 'N', '0', '2024-09-08 01:14:02', '2024-09-13 13:20:15', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (168, 0, '常规', '000', 'sys_service_requirement', null, 'success', 'N', '0', '2024-09-08 01:14:23', '2024-09-08 01:15:15', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (169, 1, '加急', '001', 'sys_service_requirement', null, 'danger', 'N', '0', '2024-09-08 01:14:46', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (170, 2, '单洗', '002', 'sys_service_requirement', null, 'primary', 'N', '0', '2024-09-08 01:15:08', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (171, 3, '其他', '003', 'sys_service_requirement', null, 'info', 'N', '0', '2024-09-08 01:15:40', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (172, 0, '洗护', '000', 'sys_service_type', null, 'primary', 'N', '0', '2024-09-08 01:16:03', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (173, 1, '熨烫', '001', 'sys_service_type', null, 'primary', 'N', '0', '2024-09-08 01:16:20', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (174, 2, '扦裤脚', '002', 'sys_service_type', null, 'primary', 'N', '0', '2024-09-08 01:16:37', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (175, 3, '其他', '003', 'sys_service_type', null, 'info', 'N', '0', '2024-09-08 01:16:55', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (176, 0, '主营业务', '00', 'sys_business_type', null, 'success', 'N', '0', '2024-09-08 13:22:02', '2024-09-09 01:29:12', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (177, 1, '增值业务', '01', 'sys_business_type', null, 'primary', 'N', '0', '2024-09-08 13:22:17', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (178, 0, '客户自取', '00', 'sys_delivery_mode', null, 'primary', 'N', '0', '2024-09-08 13:23:23', '2024-09-08 13:24:04', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (179, 1, '上门派送', '01', 'sys_delivery_mode', null, 'warning', 'N', '0', '2024-09-08 13:23:37', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (180, 2, '快递邮寄', '02', 'sys_delivery_mode', null, 'danger', 'N', '0', '2024-09-08 13:23:55', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (181, 2, '其他', '02', 'sys_business_type', null, 'info', 'N', '0', '2024-09-09 01:29:26', '2024-09-09 01:29:34', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (182, 0, '正在洗护', '01', 'sys_order_status', null, 'primary', 'N', '0', '2024-09-09 01:47:20', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (183, 1, '上挂待取', '02', 'sys_order_status', null, 'success', 'N', '0', '2024-09-09 01:47:35', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (184, 2, '上挂待送', '03', 'sys_order_status', null, 'primary', 'N', '0', '2024-09-09 01:48:02', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (185, 3, '已完成', '04', 'sys_order_status', null, 'success', 'N', '0', '2024-09-09 01:48:17', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (186, 4, '已退单', '05', 'sys_order_status', null, 'danger', 'N', '0', '2024-09-09 01:48:29', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (187, 5, '退单退款', '06', 'sys_order_status', null, 'danger', 'N', '0', '2024-09-09 01:49:04', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (188, 0, '正常订单', '00', 'sys_order_type', null, 'primary', 'N', '0', '2024-09-09 01:50:10', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (189, 1, '售后质保', '02', 'sys_order_type', null, 'warning', 'N', '0', '2024-09-09 01:50:31', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (190, 0, '订单退款', '00', 'sys_exp_type', null, 'default', 'N', '0', '2024-09-11 01:19:48', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (191, 1, '事故赔偿', '01', 'sys_exp_type', null, 'default', 'N', '0', '2024-09-11 01:19:58', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (192, 2, '经营支出', '02', 'sys_exp_type', null, 'default', 'N', '0', '2024-09-11 01:20:16', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (193, 3, '卡券退款', '03', 'sys_exp_type', null, 'default', 'N', '0', '2024-09-11 01:20:39', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (194, 4, '水电支出', '04', 'sys_exp_type', null, 'default', 'N', '0', '2024-09-11 01:20:58', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (195, 3, '已退单', '03', 'sys_clothing_status', null, 'danger', 'N', '0', '2024-09-13 13:20:00', '', null);
+-- INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (243, 3, '已派送', '04', 'sys_clothing_status', null, 'warning', 'N', '0', '2024-09-13 13:20:00', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (196, 0, '支付宝', '01', 'sys_coupon_payment_method', null, 'success', 'N', '0', '2024-09-23 12:04:55', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (197, 1, '微信', '02', 'sys_coupon_payment_method', null, 'success', 'N', '0', '2024-09-23 12:05:08', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (198, 2, '现金', '05', 'sys_coupon_payment_method', null, 'success', 'N', '0', '2024-09-23 12:05:27', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (199, 3, '其他', '06', 'sys_coupon_payment_method', null, 'success', 'N', '0', '2024-09-23 12:05:41', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (203, 2, '其他', '2', 'sys_temp_type', null, 'warning', 'N', '0', '2024-09-28 06:43:36', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (204, 2, '发送中...', '2', 'sys_notice_result', null, 'primary', 'N', '0', '2024-09-28 07:00:45', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (205, 7, '其他', '09', 'sys_payment_method', null, 'info', 'N', '0', '2024-10-05 02:00:57', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (206, 6, '次卡', '07', 'sys_payment_method', null, 'success', 'N', '0', '2024-10-05 02:05:20', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (207, 0, '小程序', '00', 'sys_promote_method', null, 'primary', 'N', '0', '2024-10-14 01:51:20', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (208, 1, '短信', '01', 'sys_promote_method', null, 'success', 'N', '0', '2024-10-14 01:51:32', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (209, 2, '其他', '02', 'sys_promote_method', null, 'default', 'N', '0', '2024-10-14 01:51:44', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (210, 0, '赠券', '00', 'sys_promote_type', null, 'primary', 'N', '0', '2024-10-14 02:16:06', '2024-10-16 13:28:56', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (211, 0, '支付宝', '01', 'sys_payment_method_show', null, 'primary', 'N', '0', '2024-10-16 04:50:36', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (212, 1, '微信', '02', 'sys_payment_method_show', null, 'success', 'N', '0', '2024-10-16 04:50:48', '2024-10-16 04:58:15', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (213, 2, '美团结转', '03', 'sys_payment_method_show', null, 'info', 'N', '0', '2024-10-16 04:51:05', '2024-10-16 04:58:10', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (214, 3, '抖音结转', '04', 'sys_payment_method_show', null, 'info', 'N', '0', '2024-10-16 04:51:17', '2024-10-16 04:57:57', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (215, 4, '现金支付', '05', 'sys_payment_method_show', null, 'warning', 'N', '0', '2024-10-16 04:51:33', '2024-10-16 04:57:50', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (216, 5, '储值卡', '06', 'sys_payment_method_show', null, 'danger', 'N', '0', '2024-10-16 04:51:48', '2024-10-16 04:57:20', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (217, 6, '次卡', '07', 'sys_payment_method_show', null, 'danger', 'N', '0', '2024-10-16 04:52:00', '2024-10-16 04:57:32', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (218, 7, '其他', '09', 'sys_payment_method_show', null, 'info', 'N', '0', '2024-10-16 04:52:14', '2024-10-16 04:56:55', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (219, 8, '支付宝+储值卡', '16', 'sys_payment_method_show', null, 'primary', 'N', '0', '2024-10-16 04:52:48', '2024-10-16 04:53:06', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (220, 9, '支付宝+次卡', '17', 'sys_payment_method_show', null, 'primary', 'N', '0', '2024-10-16 04:53:29', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (221, 10, '支付宝+折扣券', '18', 'sys_payment_method_show', null, 'primary', 'N', '0', '2024-10-16 04:53:47', '2024-10-16 06:37:26', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (222, 12, '微信+储值卡', '26', 'sys_payment_method_show', null, 'success', 'N', '0', '2024-10-16 04:54:36', '2024-10-16 06:42:38', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (223, 13, '微信+次卡', '27', 'sys_payment_method_show', null, 'success', 'N', '0', '2024-10-16 04:54:54', '2024-10-16 06:42:46', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (224, 14, '微信+折扣券', '28', 'sys_payment_method_show', null, 'success', 'N', '0', '2024-10-16 04:55:11', '2024-10-16 06:43:39', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (225, 16, '现金+储值卡', '56', 'sys_payment_method_show', null, 'warning', 'N', '0', '2024-10-16 04:55:39', '2024-10-16 06:43:45', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (226, 17, '现金+次卡', '57', 'sys_payment_method_show', null, 'warning', 'N', '0', '2024-10-16 04:55:59', '2024-10-16 06:43:49', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (227, 18, '现金+折扣券', '58', 'sys_payment_method_show', null, 'warning', 'N', '0', '2024-10-16 04:56:20', '2024-10-16 06:44:24', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (228, 11, '支付宝+满减券', '19', 'sys_payment_method_show', null, 'primary', 'N', '0', '2024-10-16 06:42:17', '2024-10-16 06:42:31', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (229, 15, '微信+满减券', '29', 'sys_payment_method_show', null, 'success', 'N', '0', '2024-10-16 06:43:28', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (230, 19, '现金+满减券', '59', 'sys_payment_method_show', null, 'warning', 'N', '0', '2024-10-16 06:44:16', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (239, 19, '支付宝+折扣卡', '110', 'sys_payment_method_show', null, 'warning', 'N', '0', '2024-10-16 06:44:16', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (240, 19, '微信+折扣卡', '210', 'sys_payment_method_show', null, 'warning', 'N', '0', '2024-10-16 06:44:16', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (241, 19, '现金+折扣卡', '510', 'sys_payment_method_show', null, 'warning', 'N', '0', '2024-10-16 06:44:16', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (242, 19, '折扣卡', '08', 'sys_payment_method_show', null, 'warning', 'N', '0', '2024-10-16 06:44:16', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (231, 0, '成功', '0', 'sys_promote_result', null, 'success', 'N', '0', '2024-10-20 05:53:34', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (232, 1, '失败', '1', 'sys_promote_result', null, 'danger', 'N', '0', '2024-10-20 05:53:44', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (233, 2, '部分成功', '2', 'sys_promote_result', null, 'warning', 'N', '0', '2024-10-20 05:53:56', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (236, 2, '已退单', '05', 'sys_payment_status', null, 'warning', null, '0', '2024-12-15T10:57:59.500259700+08:00', null, null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (243, 3, '正在派送', '04', 'sys_clothing_status', null, 'warning', 'N', '0', '2024-09-13 13:20:00', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (244, 3, '派送完成', '05', 'sys_clothing_status', null, 'warning', 'N', '0', '2024-09-13 13:20:00', '', null);
+INSERT INTO dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_time, update_time, remark) VALUES (245, 3, '取消派送', '06', 'sys_clothing_status', null, 'warning', 'N', '0', '2024-09-13 13:20:00', '', null);
 
 INSERT INTO membership_level (level_id, level_code, level_name, level_sort, status, create_time, update_time, remark)
 VALUES (1, 'dpyy', '店铺经营', 1, '0', '2024-08-16 06:41:56', '2024-08-22 15:24:56', '实际最终店铺的辅助经营人员');
@@ -803,3 +995,21 @@ VALUES (7, 'gsyyzy', '公司运营专员', 7, '0', '2024-08-22 15:29:21', '2024-
         '公司运营专员，无实体店铺，主要管理系统中各分店铺的账号与数据');
 INSERT INTO membership_level (level_id, level_code, level_name, level_sort, status, create_time, update_time, remark)
 VALUES (8, 'boss', 'BOSS', 8, '0', '2024-08-22 15:30:43', '2024-08-22 15:30:58', '最高权限的管理，用于公司高级领导');
+
+-- 为游客添加一条衣物品类数据
+-- INSERT INTO clothing_categories (category_id, store_id, category_code, category_name, order_num, remark, del_flag, created_at, updated_at) 
+-- VALUES (0, 0, '000', '服装洗护', 0, '游客默认品类', '0', strftime('%s', 'now'), strftime('%s', 'now'));
+
+-- 为游客添加一条衣物分类数据
+-- INSERT INTO clothing_styles (style_id, store_id, category_id, style_code, style_name, order_num, remark, del_flag, created_at, updated_at)
+-- VALUES (0, 0, 0, '000', '上衣', 0, '游客默认分类', '0', strftime('%s', 'now'), strftime('%s', 'now'));
+
+-- 为游客添加一件衣物
+-- INSERT INTO clothing (id, store_id, clothing_number, category_id, style_id, title, etitle, primary_image, images, description_images, 
+--     is_put_on_sale, is_available, is_sold_out, is_default, clothing_base_price, sale_price, clothing_min_price, 
+--     stock_quantity, sold_num, sku_list, spec_list, tag_list, hang_type, order_num, clothing_degree, 
+--     del_flag, create_time, update_time)
+-- VALUES (0, 0, 'G001', 0, 0, '游客示例衣物', 'Guest Sample Clothing', 'images/clothing/default.jpg', '', '',
+--     true, true, false, true, 29.9, 29.9, 29.9,
+--     100, 0, '', '', '', '1', 0, 0,
+--     '0', strftime('%s', 'now'), strftime('%s', 'now'));

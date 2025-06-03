@@ -99,7 +99,7 @@
       <template #footer>
         <div class="dialog-footer">
           <el-button type="primary" @click="submitForm">确 定</el-button>
-          <el-button @click="cancel">取 消</el-button>
+          <el-button type="danger" @click="cancel">取 消</el-button>
         </div>
       </template>
     </el-dialog>
@@ -214,13 +214,13 @@ function submitForm() {
     if (valid) {
       if (form.value.id != null) {
         updateRecord(form.value).then(response => {
-          proxy.$modal.msgSuccess("修改成功");
+          proxy.notify.success("修改成功");
           open.value = false;
           getList();
         });
       } else {
         addRecord(form.value).then(response => {
-          proxy.$modal.msgSuccess("新增成功");
+          proxy.notify.success("新增成功");
           open.value = false;
           getList();
         });
@@ -236,7 +236,7 @@ function handleDelete(row) {
     return delRecord(_ids);
   }).then(() => {
     getList();
-    proxy.$modal.msgSuccess("删除成功");
+    proxy.notify.success("删除成功");
   }).catch(() => {});
 }
 

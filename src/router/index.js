@@ -1,13 +1,13 @@
 import { createWebHistory, createRouter } from 'vue-router'
 /* Layout */
 import Layout from '@/layout'
-import OrderContent from '@/views/container/orderContentContainer.vue'; // 引入组件
-import CreateOrder from '@/views/container/createOrderContainer.vue'; // 引入组件
-import CouponSale from '@/views/container/couponSaleContainer.vue'; // 引入组件
-import HangUp from '@/views/home/hangUp.vue'; // 引入组件
-import User from '@/views/system/user/index.vue'; // 引入组件
-import Coupon from '@/views/system/coupon/index.vue'; // 引入组件
-import ImageTest from '@/views/container/imageTest.vue'
+import OrderContent from '@/views/frontend/container/orderContentContainer.vue'; // 引入组件
+import CreateOrder from '@/views/frontend/container/createOrderContainer.vue'; // 引入组件
+import CouponSale from '@/views/frontend/container/couponSaleContainer.vue'; // 引入组件
+import HangUp from '@/views/components/hangUp.vue'; // 引入组件
+import User from '@/views/frontend/user/index.vue'; // 引入组件
+import Coupon from '@/views/frontend/coupon/index.vue'; // 引入组件
+// import ImageTest from '@/views/frontend/container/imageTest.vue'
 /**
  * Note: 路由配置项
  *
@@ -34,24 +34,24 @@ import ImageTest from '@/views/container/imageTest.vue'
 export const constantRoutes = [
   {
     path: '/',
-    redirect: '/index' // 默认重定向到首页
+    redirect: '/login'
   },
   {
     path: '/hang-up',
     component: HangUp
   },
+  // {
+  //   path: '/image-test',
+  //   component: Layout,
+  //   children: [
+  //     {
+  //       path: '',
+  //       component: ImageTest,
+  //     }
+  //   ]
+  // },
   {
-    path: '/image-test',
-    component: Layout,
-    children: [
-      {
-        path: '',
-        component: ImageTest,
-      }
-    ]
-  },
-  {
-    path: '/coupon',
+    path: '/system/coupon',
     component: Layout,
     children: [
       {
@@ -61,7 +61,7 @@ export const constantRoutes = [
     ]
   },
   {
-    path: '/users',
+    path: '/system/users',
     component: Layout,
     children: [
       {
@@ -106,9 +106,7 @@ export const constantRoutes = [
     children: [
       {
         path: '',
-        component: () => import('@/views/system/expenditure/index.vue'),
-        // name: 'Expenditures',
-        // meta: { title: '支出', }
+        component: () => import('@/views/frontend/expenditure/index.vue'),
       }
     ]
   },
@@ -118,9 +116,166 @@ export const constantRoutes = [
     children: [
       {
         path: '',
-        component: () => import('@/views/system/orders/index.vue'),
-        // name: 'Orders',
-        // meta: { title: '订单列表', }
+        component: () => import('@/views/frontend/orders/index.vue'),
+      }
+    ]
+  },
+  {
+    path: '/delivery',
+    component: Layout,
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/frontend/delivery/index.vue'),
+      }
+    ]
+  },
+  {
+    path: '/blogs',
+    component: Layout,
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/frontend/posts/index.vue'),
+      }
+    ]
+  },
+  {
+    path: '/profile',
+    component: Layout,
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/frontend/profile/index.vue'),
+      }
+    ]
+  },
+  {
+    path: '/system/rack',
+    component: Layout,
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/system/rack/index.vue'),
+      }
+    ]
+  },
+  {
+    path: '/system/clothing',
+    component: Layout,
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/system/clothing/index.vue'),
+      }
+    ]
+  },
+  {
+    path: '/system/price',
+    component: Layout,
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/system/price/index.vue'),
+      }
+    ]
+  },
+  {
+    path: '/system/post',
+    component: Layout,
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/system/post/index.vue'),
+      }
+    ]
+  },
+  {
+    path: '/system/tags',
+    component: Layout,
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/system/tags/index.vue'),
+      }
+    ]
+  },
+  {
+    path: '/system/notice-record',
+    component: Layout,
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/system/notice_record/index.vue'),
+      }
+    ]
+  },
+  {
+    path: '/system/template',
+    component: Layout,
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/system/template/index.vue'),
+      }
+    ]
+  },
+  {
+    path: '/system/config',
+    component: Layout,
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/system/config/index.vue'),
+      }
+    ]
+  },
+  {
+    path: '/system/dict',
+    component: Layout,
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/system/dict/index.vue'),
+      }
+    ]
+  },
+  {
+    path: '/system/dict-data',
+    component: Layout,
+    hidden: true,
+    children: [
+      {
+        path: 'index/:dictId(\\d+)',
+        component: () => import('@/views/system/dict/data'),
+        name: 'Data',
+        meta: { title: '字典数据', activeMenu: '/system/dict' }
+      }
+    ]
+  },
+  {
+    path: '/system/clothingCategory',
+    component: Layout,
+    hidden: false,
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/system/clothingCategory/index'),
+        name: 'ClothingCategory',
+        meta: { title: '衣物品类管理', icon: 'list' }
+      }
+    ]
+  },
+  {
+    path: '/system/clothingStyle',
+    component: Layout,
+    hidden: false,
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/system/clothingStyle/index'),
+        name: 'ClothingStyle',
+        meta: { title: '衣物分类管理', icon: 'list' }
       }
     ]
   },
@@ -158,87 +313,13 @@ export const constantRoutes = [
   {
     path: '',
     component: Layout,
-    redirect: '/index',
+    redirect: '/login',
     children: [
       {
         path: '/index',
         component: () => import('@/views/index'),
         name: 'Index',
         meta: { title: '首页', icon: 'dashboard', affix: true }
-      }
-    ]
-  }
-]
-
-// 动态路由，基于用户权限动态去加载
-export const dynamicRoutes = [
-  {
-    path: '/system/user-auth',
-    component: Layout,
-    hidden: true,
-    permissions: ['system:user:edit'],
-    children: [
-      {
-        path: 'role/:userId(\\d+)',
-        component: () => import('@/views/system/user/authRole'),
-        name: 'AuthRole',
-        meta: { title: '分配角色', activeMenu: '/system/user' }
-      }
-    ]
-  },
-  {
-    path: '/system/role-auth',
-    component: Layout,
-    hidden: true,
-    permissions: ['system:role:edit'],
-    children: [
-      {
-        path: 'user/:roleId(\\d+)',
-        component: () => import('@/views/system/role/authUser'),
-        name: 'AuthUser',
-        meta: { title: '分配用户', activeMenu: '/system/role' }
-      }
-    ]
-  },
-  {
-    path: '/system/dict-data',
-    component: Layout,
-    hidden: true,
-    permissions: ['system:dict:list'],
-    children: [
-      {
-        path: 'index/:dictId(\\d+)',
-        component: () => import('@/views/system/dict/data'),
-        name: 'Data',
-        meta: { title: '字典数据', activeMenu: '/system/dict' }
-      }
-    ]
-  },
-  {
-    path: '/monitor/job-log',
-    component: Layout,
-    hidden: true,
-    permissions: ['monitor:job:list'],
-    children: [
-      {
-        path: 'index/:jobId(\\d+)',
-        component: () => import('@/views/monitor/job/log'),
-        name: 'JobLog',
-        meta: { title: '调度日志', activeMenu: '/monitor/job' }
-      }
-    ]
-  },
-  {
-    path: '/tool/gen-edit',
-    component: Layout,
-    hidden: true,
-    permissions: ['tool:gen:edit'],
-    children: [
-      {
-        path: 'index/:tableId(\\d+)',
-        component: () => import('@/views/tool/gen/editTable'),
-        name: 'GenEdit',
-        meta: { title: '修改生成配置', activeMenu: '/tool/gen' }
       }
     ]
   }

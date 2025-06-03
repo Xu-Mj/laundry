@@ -46,7 +46,7 @@ const handleChange = (event) => {
     align-items: center;
     justify-content: center;
     border-radius: 4px;
-    background-color: #fff;
+    background-color: var(--el-fill-color-light);
     cursor: pointer;
     transition: all 0.3s ease;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
@@ -70,5 +70,6 @@ const handleChange = (event) => {
 
 .button-content {
     font-size: 14px;
+    padding: .5rem;
 }
 </style>

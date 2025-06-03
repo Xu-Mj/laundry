@@ -7,6 +7,9 @@ use crate::error::Result;
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Config {
     pub log: LogConfig,
+    pub base_url: String,
+    #[serde(default)]
+    pub release_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -32,5 +35,13 @@ impl Config {
     pub fn load(filename: impl AsRef<Path>) -> Result<Self> {
         let content = fs::read_to_string(filename)?;
         Ok(serde_yaml::from_str(&content)?)
+    }
+
+    pub fn get_url(&self) -> String {
+        if cfg!(not(debug_assertions)) && self.release_url.is_some() {
+            self.release_url.clone().unwrap()
+        } else {
+            self.base_url.clone()
+        }
     }
 }

@@ -48,11 +48,11 @@
 
 // to fixed https://github.com/ElemeFE/element/issues/2461
 .el-dialog {
-  transform: none;
-  left: 0;
-  position: relative;
-  margin: 0 auto;
-  border-radius: .5rem;
+  // transform: none;
+  // left: 0;
+  // position: relative;
+  // margin: 0 auto;
+  border-radius: 10px;
 }
 
 // refine element ui upload
@@ -105,4 +105,80 @@
 
 .el-table {
   border-radius: .5rem;
+}
+
+/* macOS风格弹窗动画 */
+
+@keyframes dialog-open {
+  0% {
+    opacity: 0;
+    transform: scale(0.8) translateY(20px);
+    filter: blur(1px);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.02) translateY(-5px);
+    filter: blur(0);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes dialog-close {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+}
+
+// 遮罩层动画
+@keyframes fade-in {
+  0% {
+    opacity: 0;
+    backdrop-filter: blur(0);
+  }
+
+  100% {
+    opacity: 1;
+    backdrop-filter: blur(3px);
+  }
+}
+
+@keyframes fade-out {
+  0% {
+    opacity: 1;
+    backdrop-filter: blur(3px);
+  }
+
+  100% {
+    opacity: 0;
+    backdrop-filter: blur(0);
+  }
+}
+
+.dialog-fade-enter-active {
+  animation: fade-in 0.3s ease-out;
+
+  .el-dialog {
+    animation: dialog-open 0.4s cubic-bezier(0.16, 1, 0.3, 1.1);
+    box-shadow: 0 20px 60px 10px rgba(0, 0, 0, 0.15);
+  }
+}
+
+.dialog-fade-leave-active {
+  animation: fade-out 0.25s ease-in;
+
+  .el-dialog {
+    animation: dialog-close 0.3s cubic-bezier(0.2, 0.1, 0.3, 1);
+  }
 }

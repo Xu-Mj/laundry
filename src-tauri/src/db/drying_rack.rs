@@ -1,21 +1,25 @@
-use crate::db::order_clothes::OrderCloth;
-use crate::db::AppState;
-use crate::error::{Error, ErrorKind, Result};
 use serde::{Deserialize, Serialize};
 use sqlx::{Pool, QueryBuilder, Sqlite, Transaction};
 use tauri::State;
+
+use crate::db::order_clothes::OrderCloth;
+use crate::error::{Error, ErrorKind, Result};
+use crate::state::AppState;
+use crate::utils;
 
 /// 晾衣架
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default, sqlx::FromRow)]
 #[serde(rename_all = "camelCase")]
 #[serde(default)]
 pub struct DryingRack {
-    pub(crate) capacity: Option<i32>,
     pub(crate) id: Option<i64>,
+    pub(crate) store_id: Option<i64>,
     pub(crate) name: Option<String>,
     pub(crate) position: Option<i32>,
     pub(crate) rack_type: Option<String>,
+    pub(crate) capacity: Option<i32>,
     pub(crate) remaining_capacity: Option<i32>,
+    pub(crate) is_sys: Option<bool>,
 }
 
 impl DryingRack {
@@ -37,8 +41,8 @@ impl DryingRack {
     /// Insert a new drying rack.
     pub async fn add(self, pool: &Pool<Sqlite>) -> Result<DryingRack> {
         let result = sqlx::query_as::<_, DryingRack>(
-            "INSERT INTO drying_rack (name, capacity, position, rack_type, remaining_capacity)
-                values ( ?, ?, ?, ?, ?)
+            "INSERT INTO drying_rack (name, capacity, position, rack_type, remaining_capacity, store_id, is_sys)
+                values ( ?, ?, ?, ?, ?, ?, ?)
              RETURNING *",
         )
         .bind(&self.name)
@@ -46,6 +50,8 @@ impl DryingRack {
         .bind(&self.position)
         .bind(&self.rack_type)
         .bind(&self.remaining_capacity)
+        .bind(&self.store_id)
+        .bind(&self.is_sys)
         .fetch_one(pool)
         .await?;
 
@@ -91,11 +97,21 @@ impl DryingRack {
             query_builder
                 .push(" remaining_capacity = ")
                 .push_bind(remaining_capacity);
+            has_update = true;
+        }
+
+        if let Some(is_sys) = &self.is_sys {
+            if has_update {
+                query_builder.push(", ");
+            }
+            query_builder.push(" is_sys = ").push_bind(is_sys);
         }
 
         if has_update {
             query_builder
-                .push(" WHERE id = ")
+                .push(" WHERE store_id = ")
+                .push_bind(self.store_id)
+                .push(" AND id = ")
                 .push_bind(self.id)
                 .push(" RETURNING *");
             let result = query_builder.build().execute(&mut **tr).await?;
@@ -136,38 +152,48 @@ impl DryingRack {
         Ok(result.rows_affected())
     }
 
-    #[allow(dead_code)]
-    pub async fn select_one(pool: &Pool<Sqlite>, rack_typ: String) -> Result<Option<DryingRack>> {
+    pub async fn select_one(
+        pool: &Pool<Sqlite>,
+        store_id: i64,
+        rack_typ: String,
+    ) -> Result<Option<DryingRack>> {
         let result = sqlx::query_as::<_, DryingRack>(
             "
         SELECT *
         FROM drying_rack
-        WHERE rack_type = ?
+        WHERE store_id = ? AND rack_type = ?
         ORDER BY remaining_capacity DESC
         LIMIT 1;",
         )
+        .bind(store_id)
         .bind(rack_typ)
         .fetch_optional(pool)
         .await?;
         Ok(result)
     }
 
-    pub async fn list(pool: &Pool<Sqlite>) -> Result<Vec<DryingRack>> {
-        let result = sqlx::query_as::<_, DryingRack>("SELECT * FROM drying_rack")
-            .fetch_all(pool)
-            .await?;
+    pub async fn list(pool: &Pool<Sqlite>, store_id: i64) -> Result<Vec<DryingRack>> {
+        let result =
+            sqlx::query_as::<_, DryingRack>("SELECT * FROM drying_rack WHERE store_id = ? ")
+                .bind(store_id)
+                .fetch_all(pool)
+                .await?;
         Ok(result)
     }
 }
 
 impl DryingRack {
-    pub async fn get_position(pool: &Pool<Sqlite>, mut rack_type: String) -> Result<Self> {
+    pub async fn get_position(
+        pool: &Pool<Sqlite>,
+        store_id: i64,
+        mut rack_type: String,
+    ) -> Result<Self> {
         if rack_type.is_empty() {
             rack_type = "1".to_string();
         }
 
         // 根据类型获取当前空余最多的衣架
-        let mut rack = DryingRack::select_one(pool, rack_type)
+        let mut rack = DryingRack::select_one(pool, store_id, rack_type)
             .await?
             .ok_or(Error::not_found("没有可用的衣架"))?;
 
@@ -178,7 +204,8 @@ impl DryingRack {
         let capacity = rack.capacity.unwrap();
 
         // 查询已经占用的挂钩
-        let used_hangers = OrderCloth::query_hanger_number(pool, rack.id.unwrap()).await?;
+        let used_hangers =
+            OrderCloth::query_hanger_number(pool, store_id, rack.id.unwrap()).await?;
         let result = find_first_available_hanger(&used_hangers, capacity);
 
         let position = if result.is_none() {
@@ -202,11 +229,14 @@ impl DryingRack {
 
 #[tauri::command]
 pub async fn list_rack_all(state: State<'_, AppState>) -> Result<Vec<DryingRack>> {
-    DryingRack::list(&state.pool).await
+    let store_id = utils::get_user_id(&state).await?;
+    DryingRack::list(&state.pool, store_id).await
 }
 
 #[tauri::command]
 pub async fn add_rack(state: State<'_, AppState>, mut rack: DryingRack) -> Result<DryingRack> {
+    let store_id = utils::get_user_id(&state).await?;
+    rack.store_id = Some(store_id);
     rack.validate()?;
 
     rack.remaining_capacity = Some(rack.capacity.unwrap());
@@ -227,9 +257,12 @@ pub async fn update_rack(state: State<'_, AppState>, mut rack: DryingRack) -> Re
     rack.validate()?;
 
     let pool = &state.pool;
-    let result = DryingRack::get_by_id(pool, rack.id.unwrap())
+    let mut result = DryingRack::get_by_id(pool, rack.id.unwrap())
         .await?
         .ok_or(Error::with_details(ErrorKind::NotFound, "衣架不存在"))?;
+
+    let store_id = utils::get_user_id(&state).await?;
+    result.store_id = Some(store_id);
 
     let mut tr = pool.begin().await?;
 
@@ -237,22 +270,16 @@ pub async fn update_rack(state: State<'_, AppState>, mut rack: DryingRack) -> Re
         rack.capacity.unwrap()
             - (result.capacity.unwrap_or_default() - rack.remaining_capacity.unwrap_or_default()),
     );
+
+    // 如果当前位置大于容量，则设置为容量
+    if rack.position.unwrap_or_default() > rack.capacity.unwrap_or_default() {
+        rack.position = Some(rack.capacity.unwrap_or_default());
+    }
+
     let result = rack.update(&mut tr).await?;
     tr.commit().await?;
     Ok(result)
 }
-
-// #[tauri::command]
-// pub async fn get_position(state: State<'_, AppState>, rack_type: String) -> Result<DryingRack> {
-//     let pool = &state.pool;
-//     let rack = DryingRack::get_position(pool, rack_type).await?;
-//     let mut tr = pool.begin().await?;
-//     if !rack.update(&mut tr).await? {
-//         return Err(Error::internal("更新衣架位置失败"));
-//     }
-//     tr.commit().await?;
-//     Ok(rack)
-// }
 
 #[tauri::command]
 pub async fn delete_racks(state: State<'_, AppState>, ids: Vec<i64>) -> Result<u64> {
@@ -271,4 +298,49 @@ fn find_first_available_hanger(used_hangers: &[i32], capacity: i32) -> Option<i3
 
     // 查找第一个未被占用的挂钩号，从1开始
     (1..=capacity).find(|&i| !hanger_used[i as usize])
+}
+
+// check initial data
+#[tauri::command]
+pub async fn check_rack_initial_data(state: State<'_, AppState>) -> Result<bool> {
+    let store_id = utils::get_user_id(&state).await?;
+    let pool = &state.pool;
+    let list = DryingRack::list(pool, store_id).await?;
+    if list.is_empty() {
+        // init data
+        let rack = DryingRack {
+            store_id: Some(store_id),
+            name: Some("输送线".to_string()),
+            capacity: Some(100),
+            remaining_capacity: Some(100),
+            rack_type: Some("1".to_string()),
+            position: Some(1),
+            is_sys: Some(true),
+            ..Default::default()
+        };
+        rack.add(pool).await?;
+        let rack = DryingRack {
+            store_id: Some(store_id),
+            name: Some("鞋柜".to_string()),
+            capacity: Some(100),
+            remaining_capacity: Some(100),
+            rack_type: Some("2".to_string()),
+            position: Some(1),
+            is_sys: Some(true),
+            ..Default::default()
+        };
+        rack.add(pool).await?;
+        let rack = DryingRack {
+            store_id: Some(store_id),
+            name: Some("其他".to_string()),
+            capacity: Some(100),
+            remaining_capacity: Some(100),
+            rack_type: Some("3".to_string()),
+            position: Some(1),
+            is_sys: Some(true),
+            ..Default::default()
+        };
+        rack.add(pool).await?;
+    }
+    Ok(true)
 }

@@ -5,15 +5,19 @@ use sqlx::{FromRow, Pool, QueryBuilder, Row, Sqlite, Transaction};
 use tauri::State;
 use tracing::debug;
 
-use super::{AppState, Curd, PageParams, PageResult, Validator};
 use crate::error::{Error, Result};
+use crate::state::AppState;
 use crate::utils;
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+use super::{Curd, PageParams, PageResult, Validator};
+
+#[derive(Debug, Default, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ClothPrice {
     /// 主键id
     pub price_id: Option<i64>,
+    /// 商家id
+    pub store_id: Option<i64>,
     /// 价格编号
     pub price_number: Option<String>,
     /// 类型
@@ -45,6 +49,7 @@ impl FromRow<'_, SqliteRow> for ClothPrice {
     fn from_row(row: &'_ SqliteRow) -> std::result::Result<Self, sqlx::Error> {
         Ok(Self {
             price_id: row.try_get("price_id").unwrap_or_default(),
+            store_id: row.try_get("store_id").unwrap_or_default(),
             price_number: row.try_get("price_number").unwrap_or_default(),
             order_type: row.try_get("order_type").unwrap_or_default(),
             price_name: row.try_get("price_name").unwrap_or_default(),
@@ -90,12 +95,14 @@ impl Validator for ClothPrice {
 impl Curd for ClothPrice {
     const COUNT_SQL: &'static str = "SELECT COUNT(*) FROM cloth_price WHERE del_flag = '0' ";
     const QUERY_SQL: &'static str = "SELECT * FROM cloth_price WHERE del_flag = '0' ";
-    const BY_ID_SQL: &'static str = "SELECT * FROM cloth_price WHERE price_id = ?";
+    const BY_ID_SQL: &'static str = "SELECT * FROM cloth_price WHERE price_id = ? ";
     const DELETE_BATCH_SQL: &'static str =
         "UPDATE cloth_price SET del_flag = '2' WHERE price_id IN (";
     const ORDER_SQL: Option<&'static str> = Some(" ORDER BY ref_num DESC, order_num ASC ");
 
     fn apply_filters<'a>(&'a self, builder: &mut QueryBuilder<'a, Sqlite>) {
+        builder.push(" AND store_id = ").push_bind(self.store_id);
+
         if let Some(name) = &self.price_name {
             builder
                 .push(" AND price_name LIKE ")
@@ -120,10 +127,11 @@ impl ClothPrice {
     /// 插入记录
     pub async fn add(self, pool: &Pool<Sqlite>) -> Result<Self> {
         let result = sqlx::query_as::<_, ClothPrice>(
-            "INSERT INTO cloth_price (price_number, order_type, price_name, price_value, price_discount, order_num, ref_num, status, remark, create_time, del_flag)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '0')
+            "INSERT INTO cloth_price (store_id, price_number, order_type, price_name, price_value, price_discount, order_num, ref_num, status, remark, create_time, del_flag)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '0')
             RETURNING *"
         )
+            .bind(self.store_id)
             .bind(&self.price_number)
             .bind(&self.order_type)
             .bind(&self.price_name)
@@ -153,7 +161,7 @@ impl ClothPrice {
                 status = ?,
                 remark = ?,
                 update_time = ?
-            WHERE price_id = ?",
+            WHERE store_id = ? AND price_id = ?",
         )
         .bind(&self.price_number)
         .bind(&self.order_type)
@@ -165,6 +173,7 @@ impl ClothPrice {
         .bind(&self.status)
         .bind(&self.remark)
         .bind(self.update_time) // update_time
+        .bind(self.store_id)
         .bind(self.price_id)
         .execute(&mut **tr)
         .await?;
@@ -173,23 +182,48 @@ impl ClothPrice {
     }
 
     // 增加ref_num
+    pub async fn increment_ref_num(tx: &mut Transaction<'_, Sqlite>, ids: &[i64]) -> Result<bool> {
+        let mut builder = QueryBuilder::<Sqlite>::new(
+            "UPDATE cloth_price SET ref_num = ref_num + 1 WHERE price_id IN (",
+        );
+
+        ids.iter().enumerate().for_each(|(i, id)| {
+            if i > 0 {
+                builder.push(", ");
+            }
+            builder.push_bind(id);
+        });
+
+        builder.push(")");
+
+        let result = builder.build().execute(&mut **tx).await?;
+
+        Ok(result.rows_affected() > 0)
+    }
+
+    // 增加ref_num
     pub async fn update_ref_num(
         pool: &Pool<Sqlite>,
+        store_id: i64,
         ref_num: i64,
-        clothing_ids: Vec<i64>,
+        ids: Vec<i64>,
     ) -> Result<()> {
-        let mut query_builder = QueryBuilder::<Sqlite>::new("UPDATE cloth_price SET ref_num = ");
-        query_builder
-            .push_bind(ref_num)
-            .push(" WHERE price_id IN (");
+        let mut builder = QueryBuilder::<Sqlite>::new("UPDATE cloth_price SET ref_num = ");
+        builder.push_bind(ref_num);
 
-        let mut separated = query_builder.separated(", ");
-        for clothing_id in &clothing_ids {
-            separated.push_bind(clothing_id);
-        }
-        query_builder.push(")");
+        builder.push(" WHERE store_id = ").push_bind(store_id);
 
-        query_builder.build().execute(pool).await?;
+        builder.push(" AND price_id IN (");
+        ids.iter().enumerate().for_each(|(i, id)| {
+            if i > 0 {
+                builder.push(", ");
+            }
+            builder.push_bind(id);
+        });
+
+        builder.push(")");
+
+        builder.build().execute(pool).await?;
         Ok(())
     }
 
@@ -207,11 +241,13 @@ impl ClothPrice {
     pub async fn list_by_order_type(
         pool: &Pool<Sqlite>,
         order_type: String,
+        store_id: i64,
     ) -> Result<Vec<ClothPrice>> {
         let result = sqlx::query_as::<_, ClothPrice>(
-            "SELECT * FROM cloth_price WHERE status = '0' AND del_flag = '0' AND order_type = ?",
+            "SELECT * FROM cloth_price WHERE status = '0' AND del_flag = '0' AND order_type = ? AND store_id = ? ",
         )
         .bind(&order_type)
+        .bind(store_id)
         .fetch_all(pool)
         .await?;
 
@@ -225,6 +261,9 @@ pub async fn add_cloth_price(
     mut cloth_price: ClothPrice,
 ) -> Result<ClothPrice> {
     cloth_price.validate()?;
+
+    // 设置商家ID
+    cloth_price.store_id = state.get_user_info().await.as_ref().unwrap().id;
 
     // gen number
     cloth_price.price_number = Some(format!("P-{}", utils::gen_random_number()));
@@ -256,6 +295,8 @@ pub async fn update_cloth_price(
         ));
     }
 
+    let store_id = utils::get_user_id(&state).await?;
+    cloth_price.store_id = Some(store_id);
     cloth_price.validate()?;
 
     cloth_price.update_time = Some(utils::get_now());
@@ -279,8 +320,11 @@ pub async fn update_cloth_price_status(
         ));
     }
 
+    let store_id = utils::get_user_id(&state).await?;
+
     let mut cloth_price = ClothPrice::get_by_id(&state.pool, price_id).await?.unwrap();
 
+    cloth_price.store_id = Some(store_id);
     cloth_price.update_time = Some(utils::get_now());
     cloth_price.status = Some(status);
 
@@ -297,7 +341,8 @@ pub async fn update_cloth_price_ref_num(
     ref_num: i64,
     cloth_price_ids: Vec<i64>,
 ) -> Result<()> {
-    ClothPrice::update_ref_num(&state.pool, ref_num, cloth_price_ids).await
+    let store_id = utils::get_user_id(&state).await?;
+    ClothPrice::update_ref_num(&state.pool, store_id, ref_num, cloth_price_ids).await
 }
 
 #[tauri::command]
@@ -313,14 +358,15 @@ pub async fn list_cloth_prices_by_order_type(
     state: State<'_, AppState>,
     order_type: String,
 ) -> Result<Vec<ClothPrice>> {
-    ClothPrice::list_by_order_type(&state.pool, order_type).await
+    ClothPrice::list_by_order_type(&state.pool, order_type, utils::get_user_id(&state).await?).await
 }
 
 #[tauri::command]
 pub async fn list_cloth_prices_pagination(
     state: State<'_, AppState>,
     page_params: PageParams,
-    cloth_price: ClothPrice,
+    mut cloth_price: ClothPrice,
 ) -> Result<PageResult<ClothPrice>> {
+    cloth_price.store_id = state.get_user_info().await.as_ref().unwrap().id;
     cloth_price.get_list(&state.pool, page_params).await
 }

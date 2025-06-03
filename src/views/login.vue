@@ -1,66 +1,77 @@
 <template>
-  <CloseBar position="absolute" />
-  <div class="login">
-    <el-form ref="loginRef" :model="loginForm" :rules="loginRules" class="login-form">
-      <h3 class="title">洗衣店</h3>
-      <el-form-item prop="username">
-        <el-input v-model="loginForm.username" type="text" size="large" auto-complete="off" placeholder="账号">
-          <template #prefix><svg-icon icon-class="user" class="el-input__icon input-icon" /></template>
-        </el-input>
-      </el-form-item>
-      <el-form-item prop="password">
-        <el-input v-model="loginForm.password" type="password" size="large" auto-complete="off" placeholder="密码"
-          @keyup.enter="handleLogin">
-          <template #prefix><svg-icon icon-class="password" class="el-input__icon input-icon" /></template>
-        </el-input>
-      </el-form-item>
-      <el-form-item prop="code" v-if="captchaEnabled">
-        <el-input v-model="loginForm.code" size="large" auto-complete="off" placeholder="验证码" style="width: 63%"
-          @keyup.enter="handleLogin">
-          <template #prefix><svg-icon icon-class="validCode" class="el-input__icon input-icon" /></template>
-        </el-input>
-        <div class="login-code">
-          <img :src="codeUrl" @click="getCode" class="login-code-img" />
+  <div class="close-btn">
+    <el-button link icon="Close" @click="closeWindow" />
+  </div>
+  <WaveBackground />
+  <SunRays position="top-right" />
+  <!-- 衣挂初始化检查组件 -->
+  <div class="login-container" data-tauri-drag-region>
+    <div class="login-card">
+      <div class="login-header">
+        <h2 class="title">CleanWave</h2>
+        <p class="subtitle">欢迎回来，请登录您的账号</p>
+      </div>
+      <el-form ref="loginRef" :model="loginForm" :rules="loginRules" class="login-form">
+        <el-form-item prop="account" class="custom-form-item">
+          <el-input v-model="loginForm.account" type="text" auto-complete="off" placeholder="账号"
+            class="custom-input">
+            <template #prefix><svg-icon icon-class="user" class="input-icon" /></template>
+          </el-input>
+        </el-form-item>
+        <el-form-item prop="password" class="custom-form-item">
+          <el-input v-model="loginForm.password" type="password" auto-complete="off" placeholder="密码"
+            @keyup.enter="handleLogin" class="custom-input">
+            <template #prefix><svg-icon icon-class="password" class="input-icon" /></template>
+          </el-input>
+        </el-form-item>
+        <el-form-item prop="code" v-if="captchaEnabled" class="custom-form-item captcha-item">
+          <el-input v-model="loginForm.code" ref="codeInput" auto-complete="off" placeholder="验证码"
+            @keyup.enter="handleLogin" class="custom-input captcha-input">
+            <template #prefix><svg-icon icon-class="validCode" class="input-icon" /></template>
+          </el-input>
+          <div class="login-code">
+            <img :src="codeUrl" @click="getCode" class="login-code-img" />
+          </div>
+        </el-form-item>
+        <div class="remember-row">
+          <el-checkbox v-model="loginForm.rememberMe">记住密码</el-checkbox>
+          <el-button type="primary" link icon="UserFilled" @click.prevent="handleGuestLogin">
+            游客登录
+          </el-button>
         </div>
-      </el-form-item>
-      <el-checkbox v-model="loginForm.rememberMe" style="margin:0px 0px 25px 0px;">记住密码</el-checkbox>
-      <el-form-item style="width:100%;">
-        <el-button :loading="loading" size="large" type="primary" style="width:100%;" @click.prevent="handleLogin">
-          <span v-if="!loading">登 录</span>
-          <span v-else>登 录 中...</span>
-        </el-button>
-        <div style="float: right;" v-if="register">
+        <el-form-item style="width: 100%;">
+          <el-button id="loginButton" ref="loginButton" size="large" style="width: 100%;" :loading="loading"
+            type="primary" class="login-button" @click.prevent="handleLogin">
+            <span v-if="!loading">登录</span>
+            <span v-else>登录中...</span>
+          </el-button>
+        </el-form-item>
+        <div class="register-link" v-if="register">
+          <span>还没有账号？</span>
           <router-link class="link-type" :to="'/register'">立即注册</router-link>
         </div>
-      </el-form-item>
-    </el-form>
-    <!--  底部  -->
+      </el-form>
+    </div>
     <div class="el-login-footer">
       <!-- <span>Copyright © 2018-2024 ruoyi.vip All Rights Reserved.</span> -->
     </div>
   </div>
-  <el-dialog v-model="pwdDialogVisible" title="首次登录修改密码" :close-on-click-modal="false" :show-close="false"
-    width="500px">
-    <el-form ref="pwdFormRef" :model="pwdForm" :rules="pwdRules" label-width="80px">
-      <el-form-item label="新密码" prop="newPassword">
-        <el-input v-model="pwdForm.newPassword" type="password" show-password placeholder="请输入新密码" />
-      </el-form-item>
-      <el-form-item label="确认密码" prop="confirmPassword">
-        <el-input v-model="pwdForm.confirmPassword" type="password" show-password placeholder="请确认新密码" />
-      </el-form-item>
-    </el-form>
-    <template #footer>
-      <el-button type="primary" @click="submitNewPwd">提交</el-button>
-    </template>
-  </el-dialog>
 </template>
 
 <script setup>
+import WaveBackground from '@/layout/components/WaveBackground.vue';
+import SunRays from '@/layout/components/SunRays.vue';
 import { getCodeImg } from "@/api/login";
 import Cookies from "js-cookie";
 import { encrypt, decrypt } from "@/utils/jsencrypt";
 import useUserStore from '@/store/modules/user';
-import CloseBar from '@/components/close_bar';
+import { Window } from "@tauri-apps/api/window";
+import { onMounted } from 'vue';
+import { checkRackInitialData } from '@/api/system/rack';
+// WebSocket连接初始化
+import { initTauriWebSocketConnection } from '@/utils/initTauriWebSocket'
+
+const appWindow = new Window('main');
 
 const userStore = useUserStore()
 const route = useRoute();
@@ -68,7 +79,7 @@ const router = useRouter();
 const { proxy } = getCurrentInstance();
 
 const loginForm = ref({
-  username: null,
+  account: null,
   password: null,
   rememberMe: false,
   code: "",
@@ -76,77 +87,29 @@ const loginForm = ref({
 });
 
 const loginRules = {
-  username: [{ required: true, trigger: "blur", message: "请输入您的账号" }],
+  account: [{ required: true, trigger: "blur", message: "请输入您的账号" }],
   password: [{ required: true, trigger: "blur", message: "请输入您的密码" }],
   code: [{ required: true, trigger: "change", message: "请输入验证码" }]
 };
+
+const codeInput = ref(null);
+const loginButton = ref(null);
 
 const codeUrl = ref("");
 const loading = ref(false);
 // 验证码开关
 const captchaEnabled = ref(true);
 // 注册开关
-const register = ref(false);
+const register = ref(true);
 const redirect = ref(undefined);
 
 watch(route, (newRoute) => {
   redirect.value = newRoute.query && newRoute.query.redirect;
 }, { immediate: true });
 
-const pwdDialogVisible = ref(false);
-const pwdForm = ref({
-  newPassword: '',
-  confirmPassword: ''
-});
-
-// 密码验证规则
-const pwdRules = {
-  newPassword: [
-    { required: true, message: '请输入新密码' },
-    { min: 6, message: '密码长度不能少于6位' }
-  ],
-  confirmPassword: [
-    { required: true, message: '请确认新密码' },
-    {
-      validator: (rule, value, callback) => {
-        if (value !== pwdForm.value.newPassword) {
-          callback(new Error('两次输入密码不一致'));
-        } else {
-          callback();
-        }
-      }
-    }
-  ]
-};
-
-// 提交新密码
-const submitNewPwd = async () => {
-  try {
-    await proxy.$refs.pwdFormRef.validate();
-    await userStore.updatePassword({
-      account: loginForm.value.username,
-      oldPassword: loginForm.value.password,
-      newPassword: pwdForm.value.newPassword,
-      confirmPassword: pwdForm.value.confirmPassword,
-    });
-    pwdDialogVisible.value = false;
-    proxy.$modal.msgSuccess("密码修改成功，请重新登录");
-
-    pwdForm.value.newPassword = '';
-    pwdForm.value.confirmPassword = '';
-
-    // 清空登录信息
-    loading.value = false;
-    loginForm.value.password = '';
-    if (loginForm.value.rememberMe) {
-      Cookies.set("password", encrypt(pwdForm.value.newPassword)); // 更新记住的密码
-    }
-
-    // 强制跳转登录页
-    router.replace('/login');
-  } catch (err) {
-    proxy.$modal.msgError(err.message || '密码修改失败');
-  }
+// 关闭窗口
+const closeWindow = () => {
+  appWindow.close()
 };
 
 function handleLogin() {
@@ -155,22 +118,29 @@ function handleLogin() {
       loading.value = true;
       // 勾选了需要记住密码设置在 cookie 中设置记住用户名和密码
       if (loginForm.value.rememberMe) {
-        Cookies.set("username", loginForm.value.username, { expires: 30 });
+        Cookies.set("account", loginForm.value.account, { expires: 30 });
         Cookies.set("password", encrypt(loginForm.value.password), { expires: 30 });
         Cookies.set("rememberMe", loginForm.value.rememberMe, { expires: 30 });
       } else {
         // 否则移除
-        Cookies.remove("username");
+        Cookies.remove("account");
         Cookies.remove("password");
         Cookies.remove("rememberMe");
       }
       // 调用action的登录方法
       userStore.login(loginForm.value).then((res) => {
-        if (res.user.isFirstLogin) { // 根据实际响应字段判断
-          pwdDialogVisible.value = true; // 显示修改密码弹窗
-        } else {
-          routeJump();
-        }
+        // 获取用户信息，检查订阅状态
+        userStore.getInfo().then(() => {
+          // 连接websocket
+          // 初始化WebSocket连接
+          initTauriWebSocketConnection().catch(error => {
+            console.error('WebSocket连接初始化失败:', error);
+          });
+
+          // 检查订阅状态并提示
+          checkSubscriptionStatus();
+          loading.value = false;
+        });
       }).catch(() => {
         loading.value = false;
         // 重新获取验证码
@@ -182,8 +152,31 @@ function handleLogin() {
   });
 }
 
-function routeJump() {
-  // 原有跳转逻辑
+// 游客登录处理函数
+function handleGuestLogin() {
+  // 显示确认对话框
+  proxy.$confirm('您正在以游客身份登录，请注意：\n\n• 大部分功能将无法使用\n• 可能会遇到无法预知的错误\n• 如需体验完整功能，请注册账号并登录', '游客登录提示', {
+    confirmButtonText: '继续登录',
+    cancelButtonText: '返回',
+    type: 'warning'
+  }).then(() => {
+    // 用户确认后继续登录
+    loading.value = true;
+
+    // 调用登录方法
+    userStore.guestLogin().then((res) => {
+      routeJump();
+    }).catch((err) => {
+      loading.value = false;
+      proxy.notify.error('游客登录失败，请稍后再试');
+      console.error(err);
+    });
+  }).catch(() => {
+    // 用户取消，不执行任何操作
+  });
+}
+
+async function routeJump() {
   const query = route.query;
   const otherQueryParams = Object.keys(query).reduce((acc, cur) => {
     if (cur !== "redirect") {
@@ -191,11 +184,11 @@ function routeJump() {
     }
     return acc;
   }, {});
-  router.push({ path: redirect.value || "/", query: otherQueryParams });
+  router.push({ path: redirect.value || "/index", query: otherQueryParams });
 }
 
-function getCode() {
-  getCodeImg().then(res => {
+async function getCode() {
+  await getCodeImg().then(res => {
     captchaEnabled.value = res.captchaEnabled === undefined ? true : res.captchaEnabled;
     if (captchaEnabled.value) {
       codeUrl.value = "data:image/gif;base64," + res.img;
@@ -205,72 +198,247 @@ function getCode() {
 }
 
 function getCookie() {
-  const username = Cookies.get("username");
+  const account = Cookies.get("account");
   const password = Cookies.get("password");
   const rememberMe = Cookies.get("rememberMe");
   loginForm.value = {
-    username: username === undefined ? loginForm.value.username : username,
+    ...loginForm.value,
+    account: account === undefined ? loginForm.value.account : account,
     password: password === undefined ? loginForm.value.password : decrypt(password),
     rememberMe: rememberMe === undefined ? false : Boolean(rememberMe)
   };
 }
 
-getCode();
-getCookie();
+function focusElement() {
+  if (loginForm.value.account && loginForm.value.password) {
+    if (captchaEnabled.value) {
+      codeInput.value.focus();
+    } else {
+      const button = document.getElementById('loginButton');
+      button.focus();
+    }
+  }
+}
+
+// 检查订阅状态并提示用户
+function checkSubscriptionStatus() {
+  // 检查用户是否有有效的软件订阅和短信订阅
+  const hasSoftwareSub = userStore.subscription.status === 'active';
+  const hasSmsSub = userStore.smsSub;
+
+  // 如果用户没有任何订阅，提示用户
+  if (!hasSoftwareSub || !hasSmsSub) {
+    let message = '';
+    let path = '';
+
+    // 根据订阅情况设置提示信息和跳转路径
+    if (!hasSoftwareSub && !hasSmsSub) {
+      message = '您尚未购买软件订阅和短信订阅，是否前往订阅页面？';
+      path = '/profile?tab=subscription'; // 软件订阅优先
+    } else if (!hasSoftwareSub) {
+      message = '您尚未购买软件订阅，是否前往订阅页面？';
+      path = '/profile?tab=subscription';
+    } else if (!hasSmsSub) {
+      message = '您尚未购买短信订阅，是否前往订阅页面？';
+      path = '/profile?tab=sms';
+    }
+
+    // 显示确认对话框
+    proxy.$confirm(message, '订阅提示', {
+      confirmButtonText: '前往订阅',
+      cancelButtonText: '稍后再说',
+      type: 'info'
+    }).then(() => {
+      // 用户点击确认，跳转到订阅页面
+      router.push(path);
+    }).catch(() => {
+      // 用户点击取消，继续正常跳转
+      checkRackInitData();
+    });
+  } else {
+    // 用户已有所有订阅，正常跳转
+    checkRackInitData();
+  }
+}
+
+function checkRackInitData() {
+  checkRackInitialData().then(() => {
+    routeJump();
+  }).catch((err) => {
+    console.error(err);
+    proxy.notify.error('初始化数据失败，请稍后再试');
+  })
+}
+
+onMounted(async () => {
+  await getCode();
+  getCookie();
+  focusElement();
+})
 </script>
 
 <style lang='scss' scoped>
-.login {
+.login-container {
   display: flex;
   justify-content: center;
   align-items: center;
   height: 100%;
-  background-image: url("../assets/images/login-background.jpg");
-  background-size: cover;
+  background-color: transparent;
 }
 
-.title {
-  margin: 0px auto 30px auto;
+.close-btn {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 10;
+  padding: 0.5rem;
+
+  .el-button {
+    color: #333;
+    transition: color 0.3s ease;
+
+    &:hover {
+      color: #000;
+      transform: scale(1.1);
+    }
+  }
+}
+
+.login-card {
+  width: 400px;
+  padding: 40px;
+  margin: 0 auto;
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 10px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: visible;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding-top: 80px;
+}
+
+.login-header {
   text-align: center;
-  color: #707070;
+  margin-bottom: 30px;
+
+  .title {
+    font-size: 28px;
+    font-weight: 600;
+    margin: 0 0 10px 0;
+    background: linear-gradient(45deg, #3498db, #2c3e50);
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: 1px;
+  }
+
+  .subtitle {
+    color: #606266;
+    font-size: 14px;
+    margin: 0;
+  }
 }
 
 .login-form {
-  border-radius: 6px;
-  background: #ffffff;
-  width: 400px;
-  padding: 25px 25px 5px 25px;
+  .custom-form-item {
+    margin-bottom: 24px;
+  }
 
-  .el-input {
-    height: 40px;
+  .custom-input {
+    height: 50px;
+    border-radius: 8px;
+    transition: all 0.3s;
+
+    &:hover,
+    &:focus {
+      box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.1);
+    }
 
     input {
-      height: 40px;
+      height: 50px;
+      padding-left: 15px;
+    }
+
+    .input-icon {
+      height: 20px;
+      width: 20px;
+      margin: 0 10px 0 0;
+      color: #909399;
     }
   }
 
-  .input-icon {
-    height: 39px;
-    width: 14px;
-    margin-left: 0px;
+  .captcha-item {
+    display: flex;
+    gap: 10px;
+
+    .captcha-input {
+      flex: 1;
+    }
+  }
+
+  .remember-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+
+  .login-button {
+    outline: none;
+  }
+
+  .guest-button {
+    width: 100%;
+    height: 40px;
+    border-radius: 8px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+    }
+
+  }
+
+  .register-link {
+    text-align: center;
+    margin-top: 15px;
+    font-size: 14px;
+    color: #606266;
+
+    .link-type {
+      color: #409EFF;
+      margin-left: 5px;
+      transition: color 0.3s;
+
+      &:hover {
+        color: #007bff;
+        text-decoration: underline;
+      }
+    }
   }
 }
 
-.login-tip {
-  font-size: 13px;
-  text-align: center;
-  color: #bfbfbf;
-}
-
 .login-code {
-  width: 33%;
-  height: 40px;
-  float: right;
+  height: 50px;
+  border-radius: 8px;
   overflow: hidden;
+  background: #f5f7fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
   img {
     cursor: pointer;
-    vertical-align: middle;
+    height: 40px;
+    transition: transform 0.3s;
+
+    &:hover {
+      transform: scale(1.05);
+    }
   }
 }
 
@@ -281,14 +449,87 @@ getCookie();
   bottom: 0;
   width: 100%;
   text-align: center;
-  color: #fff;
+  color: rgba(255, 255, 255, 0.7);
   font-family: Arial;
   font-size: 12px;
   letter-spacing: 1px;
 }
 
-.login-code-img {
-  height: 40px;
-  padding-left: 12px;
+/* 添加窗口大小变化动画 */
+.window-resize-animation {
+  transition: width 0.5s ease, height 0.5s ease;
+}
+
+/* 密码修改弹窗样式 */
+.pwd-dialog {
+  :deep(.el-dialog) {
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+
+    .el-dialog__header {
+      display: none;
+    }
+
+    .el-dialog__body {
+      padding: 0;
+    }
+  }
+}
+
+.pwd-card {
+  padding: 30px;
+
+  .pwd-header {
+    text-align: center;
+    margin-bottom: 25px;
+
+    h3 {
+      font-size: 22px;
+      font-weight: 600;
+      margin: 0 0 10px 0;
+      background: linear-gradient(45deg, #3498db, #2c3e50);
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: 1px;
+    }
+
+    p {
+      color: #606266;
+      font-size: 14px;
+      margin: 0;
+    }
+  }
+
+  .pwd-form {
+    .pwd-button-item {
+      margin-top: 30px;
+      margin-bottom: 0;
+    }
+
+    .pwd-button {
+      width: 100%;
+      height: 50px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 500;
+      letter-spacing: 1px;
+      background: linear-gradient(45deg, #409EFF, #007bff);
+      border: none;
+      transition: all 0.3s ease;
+
+      &:hover {
+        background: linear-gradient(45deg, #007bff, #0056b3);
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 105, 217, 0.3);
+      }
+
+      &:active {
+        transform: translateY(0);
+      }
+    }
+  }
 }
 </style>

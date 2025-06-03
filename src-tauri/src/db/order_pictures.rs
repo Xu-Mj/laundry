@@ -143,7 +143,7 @@ impl OrderPicture {
 }
 
 impl OrderPicture {
-    pub async fn delete_by_id(pool: &Pool<Sqlite>, picture_id: i64, cloth_id: i64) -> Result<u64> {
+    pub async fn delete_by_id(pool: &Pool<Sqlite>, picture_id: i64, cloth_id: &str) -> Result<u64> {
         let mut tr = pool.begin().await?;
 
         // query picture

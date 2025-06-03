@@ -4,8 +4,9 @@ use sqlx::types::chrono::{DateTime, FixedOffset};
 use sqlx::{FromRow, Pool, QueryBuilder, Row, Sqlite};
 use tauri::State;
 
-use crate::db::{AppState, Curd, PageParams, PageResult};
+use crate::db::{Curd, PageParams, PageResult};
 use crate::error::Result;
+use crate::state::AppState;
 use crate::utils;
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]

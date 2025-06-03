@@ -286,9 +286,9 @@ function handlePromote(row) {
   currentTemp.value = row;
   showPromoteConfirm.value = true;
   // promote(row).then(res => {
-  //   proxy.$modal.msgSuccess('推广成功');
+  //   proxy.notify.success('推广成功');
   // }).catch(res => {
-  //   proxy.$modal.msgError(res.message);
+  //   proxy.notify.error(res.message);
   // })
 }
 
@@ -313,13 +313,13 @@ async function modifyObjects() {
 function promoteImmediately(row) {
   // 判断是否有推广对象
   if (!row.promoteObjects) {
-    proxy.$modal.msgError('请选择推广对象');
+    proxy.notify.error('请选择推广对象');
     return;
   }
   promote(row).then(res => {
-    proxy.$modal.msgSuccess('推广成功');
+    proxy.notify.success('推广成功');
   }).catch(res => {
-    proxy.$modal.msgError(res.message);
+    proxy.notify.error(res.message);
   })
 }
 
@@ -341,7 +341,7 @@ function handleRemovePicture(event) {
 }
 
 function handleUploadPreSucess(event) {
-  proxy.$modal.msgSuccess("上传成功");
+  proxy.notify.success("上传成功");
   form.value.promotePicture = event.id;
 }
 
@@ -530,7 +530,7 @@ function submitForm() {
       }
       if (form.value.id != null) {
         updateTemplate(form.value).then(response => {
-          proxy.$modal.msgSuccess("修改成功");
+          proxy.notify.success("修改成功");
           open.value = false;
           getList();
         });
@@ -541,7 +541,7 @@ function submitForm() {
           form.value.promoteObjects = userList.value.filter(item => item.selected).map(item => item.userId).join(',');
         }
         addTemplate(form.value).then(response => {
-          proxy.$modal.msgSuccess("新增成功");
+          proxy.notify.success("新增成功");
           open.value = false;
           getList();
         });
@@ -557,7 +557,7 @@ function handleDelete(row) {
     return delTemplate(_ids);
   }).then(() => {
     getList();
-    proxy.$modal.msgSuccess("删除成功");
+    proxy.notify.success("删除成功");
   }).catch(() => { });
 }
 

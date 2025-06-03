@@ -1,63 +1,65 @@
 <template>
   <div class="app-container">
-    <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="68px">
-      <el-form-item label="模板名称" prop="tempName">
-        <el-input v-model="queryParams.tempName" placeholder="请输入模板名称" clearable @keyup.enter="handleQuery" />
-      </el-form-item>
-      <el-form-item label="通知方式" prop="noticeMethod">
-        <el-select v-model="queryParams.noticeMethod" @change="handleQuery" placeholder="请选择通知方式" clearable
-          style="width: 160px">
-          <el-option v-for="dict in sys_notice_method" :key="dict.value" :label="dict.label" :value="dict.value" />
-        </el-select>
-      </el-form-item>
-      <el-form-item>
-        <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
-        <el-button icon="Refresh" @click="resetQuery">重置</el-button>
-      </el-form-item>
-    </el-form>
+    <!-- <el-card class="search-card" v-show="showSearch">
+      <el-form :model="queryParams" ref="queryRef" :inline="true" label-width="68px">
+        <el-form-item label="模板名称" prop="tempName">
+          <el-input v-model="queryParams.tempName" placeholder="请输入模板名称" clearable @keyup.enter="handleQuery" />
+        </el-form-item>
+        <el-form-item label="通知方式" prop="noticeMethod">
+          <el-select v-model="queryParams.noticeMethod" @change="handleQuery" placeholder="请选择通知方式" clearable
+            style="width: 160px">
+            <el-option v-for="dict in sys_notice_method" :key="dict.value" :label="dict.label" :value="dict.value" />
+          </el-select>
+        </el-form-item>
+        <el-form-item>
+          <el-button class="hover-flow" type="primary" icon="Search" @click="handleQuery">搜索</el-button>
+          <el-button class="hover-flow" icon="Refresh" @click="resetQuery">重置</el-button>
+        </el-form-item>
+      </el-form>
+    </el-card> -->
 
-    <el-row :gutter="10" class="mb8">
-      <el-col :span="1.5">
-        <el-button type="primary" plain icon="Plus" @click="handleAdd"
-          v-hasPermi="['system:template:add']">新增</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleDelete"
-          v-hasPermi="['system:template:remove']">删除</el-button>
-      </el-col>
-      <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
-    </el-row>
+    <el-card class="table-card">
+      <!-- <el-row :gutter="10" class="mb8">
+        <el-col :span="1.5">
+          <el-button type="primary" plain icon="Plus" @click="handleAdd">新增</el-button>
+        </el-col>
+        <el-col :span="1.5">
+          <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleDelete">删除</el-button>
+        </el-col>
+        <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
+      </el-row> -->
 
-    <el-table v-loading="loading" :data="templateList" @selection-change="handleSelectionChange">
-      <el-table-column type="selection" width="55" align="center" />
-      <!-- <el-table-column label="模板唯一标识ID" align="center" prop="tempId" /> -->
-      <el-table-column label="模板名称" align="center" prop="tempName" />
-      <el-table-column label="通知方式" align="center" prop="noticeMethod">
-        <template #default="scope">
-          <dict-tag :options="sys_notice_method" :value="scope.row.noticeMethod" />
-        </template>
-      </el-table-column>
-      <el-table-column label="模板内容" align="center" prop="content" />
-      <el-table-column label="模板类型" align="center" prop="tempType">
-        <template #default="scope">
-          <dict-tag :options="sys_temp_type" :value="scope.row.tempType" />
-        </template>
-      </el-table-column>
-      <el-table-column label="备注" align="center" prop="remark" />
-      <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
-        <template #default="scope">
-          <el-button link type="primary" icon="Promotion" v-if="scope.row.tempId !== 1"
-            @click="handleSendPanel(scope.row)">发送</el-button>
-          <el-button link type="primary" icon="Edit" v-if="scope.row.tempId !== 1" @click="handleUpdate(scope.row)"
-            v-hasPermi="['system:template:edit']">修改</el-button>
-          <el-button link type="primary" icon="Delete" v-if="scope.row.tempId !== 1" @click="handleDelete(scope.row)"
-            v-hasPermi="['system:template:remove']">删除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+      <el-table v-loading="loading" :data="templateList" @selection-change="handleSelectionChange" class="modern-table"
+        stripe>
+        <el-table-column type="selection" width="55" align="center" />
+        <el-table-column label="模板名称" align="center" prop="templateName" />
+        <!-- <el-table-column label="通知方式" align="center" prop="noticeMethod">
+          <template #default="scope">
+            <dict-tag :options="sys_notice_method" :value="scope.row.noticeMethod" />
+          </template>
+        </el-table-column> -->
+        <el-table-column label="模板内容" align="center" prop="templateContent" />
+        <!-- <el-table-column label="模板类型" align="center" prop="tempType">
+          <template #default="scope">
+            <dict-tag :options="sys_temp_type" :value="scope.row.tempType" />
+          </template>
+        </el-table-column>
+        <el-table-column label="备注" align="center" prop="remark" /> -->
+        <!-- <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
+          <template #default="scope">
+            <el-button link type="primary" icon="Promotion" v-if="scope.row.tempId !== 1"
+              @click="handleSendPanel(scope.row)">发送</el-button>
+            <el-button link type="primary" icon="Edit" v-if="scope.row.tempId !== 1"
+              @click="handleUpdate(scope.row)">修改</el-button>
+            <el-button link type="primary" icon="Delete" v-if="scope.row.tempId !== 1"
+              @click="handleDelete(scope.row)">删除</el-button>
+          </template>
+        </el-table-column> -->
+      </el-table>
 
-    <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum"
-      v-model:limit="queryParams.pageSize" @pagination="getList" />
+      <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum"
+        v-model:limit="queryParams.pageSize" @pagination="getList" />
+    </el-card>
 
     <!-- 添加或修改通知模板管理对话框 -->
     <el-dialog :show-close="false" v-model="open" width="500px" append-to-body>
@@ -85,7 +87,7 @@
       <template #footer>
         <div class="dialog-footer">
           <el-button type="primary" @click="submitForm">确 定</el-button>
-          <el-button @click="cancel">取 消</el-button>
+          <el-button type="danger" @click="cancel">取 消</el-button>
         </div>
       </template>
     </el-dialog>
@@ -102,14 +104,13 @@
         </el-col>
         <el-col :span="12">
           <el-button v-if="!sendAll" @click="selectUserOpen = !selectUserOpen">选择</el-button>
-          <el-button type="primary" @click="send" v-hasPermi="['system:template:send']">立即发送</el-button>
+          <el-button type="primary" @click="send">立即发送</el-button>
         </el-col>
       </el-row>
       <el-row class="user-list-area" v-if="!sendAll">
         <template v-for="user in userList" :key="user.userId">
           <span v-if="user.selected" :class="user.selected ? 'user-item selected' : 'user-item'">
             <span v-if="user.selected" class="del-mask" @click="delItem(user)">点击删除</span>
-            <!-- <span v-else="!user.selected" class="add-mask" @click="delItem(user)">点击添加</span> -->
             <span> {{ user.nickName }}</span>
             <span> {{ user.phonenumber }}</span>
           </span>
@@ -295,13 +296,13 @@ function submitForm() {
     if (valid) {
       if (form.value.tempId != null) {
         updateTemplate(form.value).then(response => {
-          proxy.$modal.msgSuccess("修改成功");
+          proxy.notify.success("修改成功");
           open.value = false;
           getList();
         });
       } else {
         addTemplate(form.value).then(response => {
-          proxy.$modal.msgSuccess("新增成功");
+          proxy.notify.success("新增成功");
           open.value = false;
           getList();
         });
@@ -317,7 +318,7 @@ function handleDelete(row) {
     return delTemplate(_tempIds);
   }).then(() => {
     getList();
-    proxy.$modal.msgSuccess("删除成功");
+    proxy.notify.success("删除成功");
   }).catch(() => { });
 }
 
@@ -390,7 +391,7 @@ function send() {
   const tempId = currentNotice.value.tempId;
   if (sendAll.value) {
     sendNotice2All(tempId).then(response => {
-      proxy.$modal.msgSuccess("发送成功");
+      proxy.notify.success("发送成功");
       sendOpen.value = false;
     }).catch(() => {
 
@@ -398,12 +399,12 @@ function send() {
   } else {
     const ids = userList.value.filter(item => item.selected).map(item => item.userId);
     if (ids.length == 0) {
-      proxy.$modal.msgError("请选择要发送的用户");
+      proxy.notify.error("请选择要发送的用户");
       return;
     }
     // 发送通知
     sendNotice({ userIds: ids, tempId: tempId }).then(response => {
-      proxy.$modal.msgSuccess("发送成功");
+      proxy.notify.success("发送成功");
       sendOpen.value = false;
       userList.value.forEach(user => user.selected = false);
     }).catch(() => {

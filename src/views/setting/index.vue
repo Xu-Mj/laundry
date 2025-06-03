@@ -1,13 +1,17 @@
 <template>
     <el-dialog title="选择打印机" v-model="open" width="400px" :show-close="false" append-to-body
-        @closed="closeHangUpDialog">
-        <el-select v-model="printer" placeholder="请选择打印机" @change="setPrinter">
+    :align-center="true" @closed="closeHangUpDialog">
+        <el-select v-model="printerType" placeholder="请选择打印机类型" @change="fetchSettledPrinter">
+            <el-option label="商家自用" value="business" />
+            <el-option label="顾客小票" value="receipt" />
+        </el-select>
+        <el-select v-model="printer" placeholder="请选择打印机" @change="set" style="margin-top: 1rem;">
             <el-option v-for="item in printers" :key="item.name" :label="item.name" :value="item.name"> </el-option>
         </el-select>
     </el-dialog>
 </template>
 <script setup name="Setting">
-import { invoke } from '@tauri-apps/api/core';
+import { setPrinter, getSettledPrinter, getPrinters } from '@/api/system/printer';
 
 const props = defineProps({
     visible: {
@@ -20,8 +24,11 @@ const props = defineProps({
         required: true,
     }
 });
+
+const {proxy} = getCurrentInstance();
 const open = ref(false);
 const printer = ref();
+const printerType = ref('business');
 const settledPrinter = ref();
 const printers = ref([]);
 
@@ -32,18 +39,28 @@ function closeHangUpDialog() {
 }
 
 /* 关闭上挂弹窗 */
-async function setPrinter() {
+async function set() {
     settledPrinter.value = printers.value.find(item => item.name === printer.value);
-    await invoke('set_printer', { printer: settledPrinter.value });
+    try {
+        await setPrinter({ ...settledPrinter.value, printer_type: printerType.value });
+        proxy.notify.success("设置成功");
+    } catch (error) {
+        console.error(error);
+        proxy.notify.error("设置失败");
+    }
+}
+
+async function fetchSettledPrinter() {
+    settledPrinter.value = await getSettledPrinter(printerType.value);
+    printers.value = await getPrinters();
+    if (settledPrinter.value) {
+        printer.value = settledPrinter.value.name;
+    }
 }
 
 onMounted(async () => {
     if (props.visible) {
-        settledPrinter.value = await invoke('get_settled_printer');
-        printers.value = await invoke('get_printers');
-        if(settledPrinter.value) {
-            printer.value = settledPrinter.value.name;
-        }
+        await fetchSettledPrinter();
         open.value = true;
     }
 })

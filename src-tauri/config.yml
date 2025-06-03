@@ -1,3 +1,6 @@
 log:
   level: debug
-  output: console
+  output: ./logs
+
+base_url: http://localhost:8080
+release_url: https://39.99.237.124:5231/prod-api/

@@ -45,15 +45,6 @@ export function addCloths(data) {
 }
 
 // 取走
-export function delivery(data) {
-  return request({
-    url: '/system/cloths/delivery',
-    method: 'post',
-    data: data
-  })
-}
-
-// 取走
 export function pickUp(ids) {
   return invoke('pickup_order_cloth', { clothesId: ids });
 }
@@ -71,7 +62,6 @@ export function hangup(hangReq) {
 // 删除订单包含的衣物清单
 export function delClothPicture(clothId, picId) {
   return invoke('remove_pic_from_order_cloth', { clothId, picId });
-
 }
 
 // 删除订单包含的衣物清单

@@ -55,30 +55,7 @@ jobs:
       - name: Windows Setup
         if: matrix.platform == 'windows-latest'
         run: |
-          echo "Windows setup complete - using rustls"
-
-# Alternative Windows OpenSSL setup
-      - name: Windows OpenSSL Setup (Alternative)
-        if: matrix.platform == 'windows-latest'
-        shell: pwsh
-        run: |
-          # Download and extract pre-built OpenSSL
-          Invoke-WebRequest -Uri "https://github.com/openssl/openssl/releases/download/openssl-3.1.4/openssl-3.1.4.tar.gz" -OutFile "openssl.tar.gz"
-          
-          # Or use chocolatey with specific version
-          choco install openssl --version=3.1.1 -y
-          
-          # Set environment variables
-          $env:OPENSSL_DIR = "C:\Program Files\OpenSSL-Win64"
-          $env:OPENSSL_LIB_DIR = "C:\Program Files\OpenSSL-Win64\lib"
-          $env:OPENSSL_INCLUDE_DIR = "C:\Program Files\OpenSSL-Win64\include"
-          $env:OPENSSL_STATIC = "1"
-          
-          # Add to GitHub environment
-          echo "OPENSSL_DIR=C:\Program Files\OpenSSL-Win64" >> $env:GITHUB_ENV
-          echo "OPENSSL_LIB_DIR=C:\Program Files\OpenSSL-Win64\lib" >> $env:GITHUB_ENV
-          echo "OPENSSL_INCLUDE_DIR=C:\Program Files\OpenSSL-Win64\include" >> $env:GITHUB_ENV
-          echo "OPENSSL_STATIC=1" >> $env:GITHUB_ENV
+          echo "Windows setup complete"
   
       - name: Rust Cache
         uses: swatinem/rust-cache@v2

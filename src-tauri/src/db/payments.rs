@@ -463,11 +463,12 @@ impl Payment {
 
 impl PaymentMethodDetail {
     pub async fn mark_as_refunded(tx: &mut Transaction<'_, Sqlite>, pay_id: &str) -> Result<bool> {
-        let result =
-            sqlx::query("UPDATE payment_method_details SET payment_status = 'Refunded' WHERE payment_id =?")
-                .bind(pay_id)
-                .execute(&mut **tx)
-                .await?;
+        let result = sqlx::query(
+            "UPDATE payment_method_details SET payment_status = 'Refunded' WHERE payment_id =?",
+        )
+        .bind(pay_id)
+        .execute(&mut **tx)
+        .await?;
 
         Ok(result.rows_affected() > 0)
     }

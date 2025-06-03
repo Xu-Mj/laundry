@@ -1453,17 +1453,16 @@ impl Order {
             if payment_type == PaymentReqMethod::Alipay {
                 if let Some(auth_code) = auth_code {
                     // 使用支付宝付款码支付
-                    let req_body = weapay::alipay::prelude::ReqOrderBody {
+                    let req = crate::pay::AlipayAuthCodeRequest {
                         out_trade_no: format!("{}{}", "PAY", chrono::Utc::now().timestamp_millis()),
                         subject: subject_text.clone(),
                         total_amount: total_payment_amount.to_string(),
-                        auth_code: Some(auth_code.clone()),
-                        scene: Some("bar_code".to_string()),
-                        ..Default::default()
+                        auth_code: auth_code.clone(),
+                        scene: "bar_code".to_string(),
                     };
 
                     let alipay_result =
-                        crate::pay::pay_with_alipay_auth_code(pool, store_id, req_body).await?;
+                        crate::pay::pay_with_alipay_auth_code(pool, store_id, req).await?;
 
                     // 检查支付结果
                     if let Some(trade_status) = &alipay_result.trade_status {

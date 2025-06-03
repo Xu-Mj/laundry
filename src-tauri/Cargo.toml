@@ -23,11 +23,14 @@ log = "0.4"
 tauri = { version = "2", features = ["protocol-asset"] }
 tauri-plugin-websocket = "2"
 tokio = { version = "1.41.0", features = ["full"] }
+
+# 修改 sqlx 使用 rustls
 sqlx = { version = "0.8", features = [
     "sqlite",
-    "runtime-tokio-native-tls",
+    "runtime-tokio-rustls",
     "chrono",
 ] }
+
 network-interface = "2.0.1"
 printpdf = { version = "0.7.0", features = ['embedded_images'] }
 image = "0.25"
@@ -54,17 +57,29 @@ rusttype = "0.9.3"
 regex = "1.11.1"
 tauri-plugin-dialog = "2"
 tauri-plugin-process = "2.2.0"
-reqwest = { version = "0.12.12", features = ["json", "multipart"] }
+
+# 修改 reqwest 使用 rustls
+reqwest = { version = "0.12.12", features = [
+    "json",
+    "multipart",
+    "rustls-tls",
+], default-features = false }
+
 weapay = "0.1.0"
 hostname = "0.3.1"
-tokio-tungstenite = { version = "0.26.2", features = ["native-tls"] }
-tokio-native-tls = "0.3.1"
+
+# 修改 tokio-tungstenite 使用 rustls
+tokio-tungstenite = { version = "0.26.2", features = [
+    "rustls-tls-webpki-roots",
+], default-features = false }
+
+# 添加 rustls 相关依赖，包含 aws-lc-rs 加密提供者
+tokio-rustls = "0.26"
+rustls = { version = "0.23", features = ["aws_lc_rs"] }
+rustls-native-certs = "0.8"
+
+# 移除 tokio-native-tls
+# tokio-native-tls = "0.3.1"
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-updater = "2"
-
-
-
-
-
-

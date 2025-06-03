@@ -365,12 +365,10 @@ import { listClothingWithNoLimit, createClothingCreateOrder } from "@/api/system
 import { listCategoryAll } from "@/api/system/clothingCategory";
 import { listStyleByCategoryId, addStyle } from "@/api/system/clothingStyle";
 import pinyin from 'pinyin';
-import { ref, reactive, toRefs, nextTick } from "vue";
 import CheckboxGroup from "@/components/CheckBoxGroup.vue";
 import CheckboxButton from '@/components/CheckboxButton.vue';
 import { ElMessage } from 'element-plus';
 import { invoke } from '@tauri-apps/api/core';
-import { Close } from '@element-plus/icons-vue';
 import RadioButton from '@/components/RadioButton.vue'
 import PredefinedCategories from './PredefinedCategories.vue'
 import eventBus from "@/utils/eventBus";

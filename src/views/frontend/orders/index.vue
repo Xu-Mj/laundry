@@ -118,9 +118,6 @@
         <el-table-column label="卡券优惠" align="center" prop="paymentBonusCount" v-if="columns[4].visible">
           <template #default="scope">
             <span v-if="!scope.row.paymentBonusCount || scope.row.paymentBonusCount == 0">-</span>
-            <span v-else-if="paymentTimeBasedSet.has(scope.row.paymentBonusType)" class="bonus-count">
-              {{ scope.row.paymentBonusCount }}张
-            </span>
             <span v-else class="bonus-count">
               {{ scope.row.paymentBonusCount }}元
             </span>
@@ -227,7 +224,7 @@
                       'Refunded' || scope.row.paymentStatus == 'Paid' ? '查看' : '编辑' }}</el-button>
                   </el-dropdown-item>
                   <el-dropdown-item>
-                    <el-button link type="primary" icon="Edit" :disabled="scope.row.status == '06'"
+                    <el-button link type="primary" icon="Edit" :disabled="scope.row.status == 'Cancelled' || scope.row.status == 'Refunded'"
                       @click="handleRefund(scope.row)">退单</el-button>
                   </el-dropdown-item>
                   <!-- <el-dropdown-item>
@@ -317,7 +314,7 @@ import CreateOrder from "@/views/components/createOrder.vue";
 import DeliveryDialog from "@/views/components/DeliveryDialog.vue";
 import Pay from "@/views/components/pay.vue";
 import { listCloths } from "@/api/system/cloths";
-import RefundDialog from "@/components/refundDialog.vue";
+import RefundDialog from "@/components/RefundDialog.vue";
 import { AlarmType, AlarmTypeMap, OrderSourceMap, OrderStatus, OrderStatusMap, PaymentStatus, PaymentStatusMap, PaymentMethodShowMap } from "@/constants";
 
 const { proxy } = getCurrentInstance();
@@ -364,8 +361,6 @@ const currentUser = ref({});
 const deliveryCloths = ref([]);
 
 const createOrderRef = ref();
-const paymentTimeBasedSet = new Set(['07', '17', '27', '57']);
-const paymentCouponSet = new Set(['18', '17', '27', '57']);
 const dateRange = ref([]);
 
 const data = reactive({

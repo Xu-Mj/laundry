@@ -30,8 +30,8 @@
                         </el-row>
                         <el-row :gutter="20">
                             <el-col :span="12">
-                                <el-form-item label="会员：" prop="userId">
-                                    <UserSelect v-model="form.userInfo" :disabled="notEditable" @change="selectUser"
+                                <el-form-item label="手机号：" prop="userId">
+                                    <UserSelect v-model="form.userInfo" :disabled="notEditable" :user-name="form.nickName" @change="selectUser"
                                         @blur="handleBlur" @need-create-user="handleNeedCreateUser"
                                         @update-phone="handleUpdatePhone" @validate="handleUserValidate"
                                         @clear-validation="clearUserValidation" ref="userSelectRef" />
@@ -39,7 +39,8 @@
                             </el-col>
                             <el-col :span="12">
                                 <el-form-item label="姓名：" prop="nickName">
-                                    <el-input :disabled="notEditable" v-model="form.nickName" placeholder="请输入会员姓名">
+                                    <el-input :disabled="notEditable" size="large" v-model="form.nickName"
+                                        placeholder="请输入会员姓名">
                                         <template #prefix>
                                             <el-icon>
                                                 <User />
@@ -138,8 +139,7 @@
                                 controls-position="right" @change="adjustInputChange" v-model="form.adjust.adjustTotal"
                                 placeholder="请输入总金额"
                                 :disabled="(form.priceIds && form.priceIds.length > 0) || notEditable" />
-                            <el-input v-model="form.adjust.remark" placeholder="备注信息"
-                                @change="adjustInputChange"
+                            <el-input v-model="form.adjust.remark" placeholder="备注信息" @change="adjustInputChange"
                                 :disabled="(form.priceIds && form.priceIds.length > 0) || notEditable" />
                         </div>
                     </div>
@@ -177,13 +177,13 @@
                     <div class="btn-container">
                         <el-button icon="Close" type="danger" @click="cancelSelf">{{ form.orderId ? '关 闭' :
                             '取 消'
-                        }}</el-button>
+                            }}</el-button>
                         <el-button icon="Check" type="primary" color="#626aef" @click="submitForm"
                             :disabled="notEditable || (!(form.source === 'Store') && (!form.priceIds || form.priceIds.length === 0))"
                             v-if="form.source !== 'Meituan' && form.source !== 'Douyin'"
                             ref="submitButtonRef">取衣收款</el-button>
-                        <el-button type="success" @click="createAndGo2Pay" icon="Money"
-                            :disabled="notEditable" ref="payButtonRef">收衣收款</el-button>
+                        <el-button type="success" @click="createAndGo2Pay" icon="Money" :disabled="notEditable"
+                            ref="payButtonRef">收衣收款</el-button>
                     </div>
                 </div>
             </div>
@@ -343,7 +343,7 @@ const data = reactive({
             { required: true, message: "业务类型不能为空", trigger: "change" }
         ],
         userId: [
-            { required: true, message: "会员不能为空", trigger: "blur" },
+            { required: true, message: "手机号不能为空", trigger: "blur" },
             {
                 validator: (rule, value, callback) => {
                     // 获取当前输入值
@@ -364,7 +364,7 @@ const data = reactive({
                     }
                     // 如果没有输入任何内容且触发了表单提交
                     else if (!value && !currentInput && rule.trigger === 'submit') {
-                        callback(new Error("所属会员不能为空"));
+                        callback(new Error("会员手机号不能为空"));
                     }
                     // 其他情况通过验证
                     else {
@@ -375,7 +375,7 @@ const data = reactive({
             }
         ],
         nickName: [
-            { required: true, message: "所属会员姓名不能为空", trigger: "blur" }
+            { required: true, message: "会员姓名不能为空", trigger: "blur" }
         ],
         source: [
             { required: true, message: "订单来源不能为空", trigger: "blur" }

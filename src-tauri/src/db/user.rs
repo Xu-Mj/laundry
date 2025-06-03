@@ -170,6 +170,11 @@ impl Curd for User {
                 .push(" AND u.user_name LIKE ")
                 .push_bind(format!("%{}%", u));
         });
+        self.nick_name.as_ref().filter(|u| !u.is_empty()).map(|u| {
+            builder
+                .push(" AND u.nick_name LIKE ")
+                .push_bind(format!("%{}%", u));
+        });
 
         self.phonenumber
             .as_ref()

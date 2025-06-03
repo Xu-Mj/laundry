@@ -1,21 +1,10 @@
 <template>
   <div class="custom-select-container" :class="{ 'is-disabled': disabled }">
     <div class="select-input-wrapper" @click="handleWrapperClick">
-      <input
-        ref="inputRef"
-        type="text"
-        class="select-input"
-        :placeholder="placeholder"
-        :value="inputValue"
-        :disabled="disabled"
-        @input="handleInput"
-        @focus="handleFocus"
-        @blur="handleBlur"
-        @keydown.down.prevent="handleKeyDown"
-        @keydown.up.prevent="handleKeyUp"
-        @keydown.enter.prevent="handleEnter"
-        @keydown.esc.prevent="closeDropdown"
-      />
+      <input ref="inputRef" type="text" class="select-input" :placeholder="placeholder" :value="inputValue"
+        :disabled="disabled" @input="handleInput" @focus="handleFocus" @blur="handleBlur"
+        @keydown.down.prevent="handleKeyDown" @keydown.up.prevent="handleKeyUp" @keydown.enter.prevent="handleEnter"
+        @keydown.esc.prevent="closeDropdown" />
       <div class="select-prefix">
         <el-icon>
           <Phone />
@@ -27,38 +16,28 @@
         </el-icon>
       </div>
     </div>
-    
+
     <div class="select-dropdown" v-show="isDropdownVisible" ref="dropdownRef">
       <div class="select-dropdown-list" ref="listRef" @scroll="handleScroll">
-        <div 
-          v-for="(item, index) in filteredUserList" 
-          :key="item.userId"
-          class="select-option"
-          :class="{ 'is-active': activeIndex === index }"
-          @mousedown.prevent="selectOption(item)"
-          @mouseover="activeIndex = index"
-        >
+        <div v-for="(item, index) in filteredUserList" :key="item.userId" class="select-option"
+          :class="{ 'is-active': activeIndex === index }" @mousedown.prevent="selectOption(item)"
+          @mouseover="activeIndex = index">
           <div class="option-content">
             <span class="option-name">{{ item.nickName }}</span>
             <span class="option-phone">{{ item.phonenumber }}</span>
           </div>
         </div>
-        
+
         <!-- 无数据提示 -->
         <div v-if="filteredUserList.length === 0 && !isLoading" class="no-data">
           无匹配数据
         </div>
-        
+
         <!-- 加载中提示 -->
         <div v-if="isLoading" class="loading-data">
           <div class="loading-spinner"></div>
           <span>加载中...</span>
         </div>
-        
-        <!-- 没有更多数据提示 -->
-        <!-- <div v-if="filteredUserList.length > 0 && !hasMoreData && !isLoading" class="no-more-data">
-          没有更多数据
-        </div> -->
       </div>
     </div>
   </div>
@@ -67,7 +46,7 @@
 <script setup>
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue';
 import { Phone, CircleClose } from '@element-plus/icons-vue';
-import { listUser } from '@/api/system/user'; // 导入用户API
+import { listUser } from '@/api/system/user';
 import eventBus from "@/utils/eventBus";
 
 const props = defineProps({
@@ -88,9 +67,9 @@ const props = defineProps({
     required: false, // 改为可选的
     default: null
   },
-  allUsers: {
-    type: Array,
-    default: () => []
+  userName: {
+    type: String,
+    default: ''
   }
 });
 
@@ -108,7 +87,6 @@ const filteredUserList = ref([]);
 const activeIndex = ref(-1);
 const isValidInput = ref(true);
 const isClearing = ref(false);
-const hasTriggeredCreateUser = ref(false);
 const isCreatingUser = ref(false);
 
 // 分页状态
@@ -119,9 +97,9 @@ const hasMoreData = ref(true);
 
 // 计算属性
 const shouldCreateUser = computed(() => {
-  return inputValue.value && 
-         isValidPhone(inputValue.value) && 
-         filteredUserList.value.length === 0;
+  return inputValue.value &&
+    isValidPhone(inputValue.value) &&
+    filteredUserList.value.length === 0;
 });
 
 // 监听modelValue变化
@@ -132,6 +110,15 @@ watch(() => props.modelValue, (newVal) => {
     isValidInput.value = true;
   } else if (newVal === null || newVal === undefined) {
     inputValue.value = '';
+  }
+}, { immediate: true, deep: true });
+
+// 监听userName的变化，发生变化时触发条件查询
+watch(() => props.userName, (nickName) => {
+  console.log('userName changed:', nickName);
+  if (nickName) {
+    console.log('userName changed, load users:', nickName);
+    loadAllUsers(false, nickName);
   }
 }, { immediate: true, deep: true });
 
@@ -150,35 +137,32 @@ const handleWrapperClick = () => {
 // 处理输入
 const handleInput = (event) => {
   const value = event.target.value;
-  
+
   // 确保输入是数字
   const numericValue = value.replace(/\D/g, '');
-  
+
   if (numericValue !== value) {
     // 如果有非数字字符被移除，更新输入框的值
     event.target.value = numericValue;
   }
-  
-  // 保存旧值，用于判断是否变化
-  const oldValue = inputValue.value;
-  
+
   // 更新输入值
   inputValue.value = numericValue;
-  
+
   // 验证手机号格式
   if (numericValue.length > 0) {
     isValidInput.value = numericValue.length <= 11;
-    
+
     // 如果输入了11位数字，验证是否是有效的手机号
     if (numericValue.length === 11) {
       isValidInput.value = isValidPhone(numericValue);
-      
+
       // 如果不是有效手机号，发出验证事件
       if (!isValidInput.value) {
         emit('validate', false, '请输入有效的手机号');
       } else {
         emit('validate', true);
-        
+
         // 如果是有效手机号，搜索并自动选中结果
         search(numericValue).then(() => {
           // 如果只有一个结果，自动选中
@@ -187,7 +171,7 @@ const handleInput = (event) => {
           }
           // 如果有多个结果，但有一个手机号完全匹配的，选中它
           else if (filteredUserList.value.length > 1) {
-            const exactMatch = filteredUserList.value.find(user => 
+            const exactMatch = filteredUserList.value.find(user =>
               user.phonenumber === numericValue
             );
             if (exactMatch) {
@@ -207,7 +191,7 @@ const handleInput = (event) => {
     // 显示所有用户
     loadAllUsers();
   }
-  
+
   // 每次输入都进行搜索（除了已经在上面处理过的11位手机号情况）
   if (numericValue.length !== 11 || !isValidPhone(numericValue)) {
     search(numericValue);
@@ -217,50 +201,48 @@ const handleInput = (event) => {
 // 处理聚焦
 const handleFocus = () => {
   if (props.disabled) return;
-  
-  // 聚焦时显示下拉列表
-  isDropdownVisible.value = true;
+
   
   // 如果有输入值，立即搜索
   if (inputValue.value) {
     search(inputValue.value);
-  } else {
-    // 没有输入值时，显示所有用户
-    loadAllUsers();
+    // 聚焦时显示下拉列表
+    isDropdownVisible.value = true;
   }
-  
-  // 不再触发need-create-user事件，避免重置用户信息
-  // 只有在handleBlur或输入有效手机号时才触发
 };
 
 // 加载所有用户
-const loadAllUsers = (loadMore = false) => {
-  if (isLoading.value || (!loadMore && !hasMoreData.value)) return;
-  
+function loadAllUsers(loadMore = false, nickName = null) {
+  console.log('loadAllUsers called with loadMore:', loadMore, 'nickName:', nickName, 'isLoading:', isLoading.value);
+  if (isLoading.value) return;
+
   isLoading.value = true;
-  
+
   // 如果不是加载更多，重置分页参数
   if (!loadMore) {
     currentPage.value = 1;
     filteredUserList.value = [];
     hasMoreData.value = true;
   }
-  
+
   // 构造分页查询参数
   const query = {
     pageNum: currentPage.value,
     pageSize: pageSize.value,
     phonenumber: '',
+    nickName,
     params: {}
   };
-  
+
   // 优先使用父组件提供的searchMethod，如果没有则使用内置API
-  const searchPromise = props.searchMethod 
-    ? props.searchMethod(query) 
+  const searchPromise = props.searchMethod
+    ? props.searchMethod(query)
     : listUser(query);
-    
+
+  console.log('searchPromise:',);
   // 处理返回结果
   searchPromise.then(result => {
+    console.log('search result:', result);
     // 判断是否是分页返回的数据结构
     if (result && typeof result === 'object') {
       if (result.rows && Array.isArray(result.rows)) {
@@ -270,7 +252,7 @@ const loadAllUsers = (loadMore = false) => {
         } else {
           filteredUserList.value = result.rows;
         }
-        
+
         // 判断是否还有更多数据
         hasMoreData.value = result.rows.length === pageSize.value;
       } else if (Array.isArray(result)) {
@@ -280,14 +262,14 @@ const loadAllUsers = (loadMore = false) => {
         } else {
           filteredUserList.value = result;
         }
-        
+
         // 判断是否还有更多数据
         hasMoreData.value = result.length === pageSize.value;
       }
     }
-    
+
     isDropdownVisible.value = true;
-    
+
     // 更新页码，为下一次加载做准备
     if (hasMoreData.value) {
       currentPage.value++;
@@ -303,17 +285,17 @@ const handleBlur = () => {
   if (isClearing.value) {
     return;
   }
-  
+
   // 延迟关闭下拉列表，以便可以点击选项
   setTimeout(() => {
     // 再次检查是否在清空操作中
     if (isClearing.value) {
       return;
     }
-    
+
     isDropdownVisible.value = false;
     activeIndex.value = -1;
-    
+
     // 如果有有效的手机号但没有匹配到用户，通知父组件需要创建用户
     if (shouldCreateUser.value) {
       // 只有在未处于创建用户模式时，才触发创建用户事件
@@ -336,7 +318,7 @@ const handleBlur = () => {
     } else {
       emit('validate', true);
     }
-    
+
     emit('blur');
   }, 200);
 };
@@ -347,12 +329,12 @@ const search = (query) => {
     loadAllUsers();
     return Promise.resolve([]);
   }
-  
+
   // 重置活动索引和分页状态
   activeIndex.value = -1;
   currentPage.value = 1;
   isLoading.value = true;
-  
+
   // 构造查询参数
   const searchQuery = {
     pageNum: currentPage.value,
@@ -360,12 +342,12 @@ const search = (query) => {
     phonenumber: query,
     params: {}
   };
-  
+
   // 优先使用父组件提供的searchMethod，如果没有则使用内置API
-  const searchPromise = props.searchMethod 
-    ? props.searchMethod(searchQuery) 
+  const searchPromise = props.searchMethod
+    ? props.searchMethod(searchQuery)
     : listUser(searchQuery);
-  
+
   // 处理返回结果
   return searchPromise.then(result => {
     // 处理返回结果
@@ -378,10 +360,10 @@ const search = (query) => {
         hasMoreData.value = result.length === pageSize.value;
       }
     }
-    
+
     // 确保下拉列表可见
     isDropdownVisible.value = true;
-    
+
     // 如果有有效的手机号但没有匹配到用户
     if (shouldCreateUser.value) {
       // 只有在未处于创建用户模式时，才触发创建用户事件
@@ -398,12 +380,12 @@ const search = (query) => {
     else if (filteredUserList.value.length > 0) {
       isCreatingUser.value = false;
     }
-    
+
     // 更新页码，为下一次加载做准备
     if (hasMoreData.value) {
       currentPage.value++;
     }
-    
+
     isLoading.value = false;
     return filteredUserList.value;
   });
@@ -415,20 +397,20 @@ const selectOption = (item) => {
     inputValue.value = item.phonenumber;
     isValidInput.value = true;
     isCreatingUser.value = false; // 重置创建用户状态
-    
+
     emit('update:modelValue', item);
     emit('change', item);
-    
+
     // 发送验证成功事件，清除验证提示
     emit('validate', true);
-    
+
     // 清除表单验证错误
     nextTick(() => {
       // 触发一个自定义事件，通知父组件清除验证错误
       emit('clear-validation');
     });
   }
-  
+
   closeDropdown();
 };
 
@@ -436,34 +418,34 @@ const selectOption = (item) => {
 const clearInput = (e) => {
   // 先阻止事件冒泡，避免触发其他事件
   e?.stopPropagation();
-  
+
   // 设置标记，表示这是清空操作
   isClearing.value = true;
-  
+
   // 更新状态
   inputValue.value = '';
   isValidInput.value = true;
   isCreatingUser.value = false; // 重置创建用户状态
-  
+
   // 发出事件
   emit('update:modelValue', null);
   emit('change', null);
   emit('validate', true);
-  
+
   // 清除验证提示
   emit('clear-validation');
-  
+
   // 使用nextTick确保DOM更新后再执行后续操作
   nextTick(() => {
     // 加载所有用户数据
     loadAllUsers();
-    
+
     // 确保下拉列表可见
     isDropdownVisible.value = true;
-    
+
     // 保持焦点在输入框
     inputRef.value?.focus();
-    
+
     // 重置清空标记
     setTimeout(() => {
       isClearing.value = false;
@@ -486,9 +468,9 @@ const handleKeyDown = () => {
     }
     return;
   }
-  
+
   const maxIndex = filteredUserList.value.length - 1;
-  
+
   if (activeIndex.value < maxIndex) {
     activeIndex.value++;
     scrollToActive();
@@ -506,7 +488,7 @@ const handleKeyUp = () => {
 // 键盘导航 - 回车选择
 const handleEnter = () => {
   if (!isDropdownVisible.value) return;
-  
+
   if (activeIndex.value >= 0 && activeIndex.value < filteredUserList.value.length) {
     // 选择用户
     selectOption(filteredUserList.value[activeIndex.value]);
@@ -520,7 +502,7 @@ const scrollToActive = () => {
     if (activeEl && listRef.value) {
       const containerRect = listRef.value.getBoundingClientRect();
       const activeRect = activeEl.getBoundingClientRect();
-      
+
       if (activeRect.bottom > containerRect.bottom) {
         listRef.value.scrollTop += activeRect.bottom - containerRect.bottom;
       } else if (activeRect.top < containerRect.top) {
@@ -534,14 +516,14 @@ const scrollToActive = () => {
 const handleScroll = (event) => {
   // 获取滚动容器
   const scrollElement = event.target;
-  
+
   // 如果正在加载或者没有更多数据，不处理
   if (isLoading.value || !hasMoreData.value) return;
-  
+
   // 计算是否滚动到底部
   // 当滚动位置 + 容器高度 >= 滚动内容总高度 - 10px (添加10px的缓冲区)
   const isBottom = scrollElement.scrollTop + scrollElement.clientHeight >= scrollElement.scrollHeight - 10;
-  
+
   // 如果滚动到底部，加载更多数据
   if (isBottom) {
     // 如果有搜索内容，使用搜索方法加载更多
@@ -552,14 +534,14 @@ const handleScroll = (event) => {
         phonenumber: inputValue.value,
         params: {}
       };
-      
+
       isLoading.value = true;
-      
+
       // 优先使用父组件提供的searchMethod，如果没有则使用内置API
-      const searchPromise = props.searchMethod 
-        ? props.searchMethod(searchQuery) 
+      const searchPromise = props.searchMethod
+        ? props.searchMethod(searchQuery)
         : listUser(searchQuery);
-      
+
       searchPromise.then(result => {
         // 处理返回结果
         if (result && typeof result === 'object') {
@@ -575,7 +557,7 @@ const handleScroll = (event) => {
             hasMoreData.value = result.length === pageSize.value;
           }
         }
-        
+
         // 更新页码，为下一次加载做准备
         if (hasMoreData.value) {
           currentPage.value++;
@@ -596,15 +578,15 @@ const handleClickOutside = (event) => {
   if (isClearing.value) {
     return;
   }
-  
+
   // 获取清空按钮元素
   const clearButton = document.querySelector('.select-suffix');
-  
+
   // 如果点击的是清空按钮，不关闭下拉列表
   if (clearButton && clearButton.contains(event.target)) {
     return;
   }
-  
+
   const container = document.querySelector('.custom-select-container');
   if (container && !container.contains(event.target)) {
     isDropdownVisible.value = false;
@@ -615,12 +597,12 @@ const handleClickOutside = (event) => {
 const handleUserCreated = (newUser) => {
   // 检查用户是否已在列表中
   const userExists = filteredUserList.value.some(user => user.userId === newUser.userId);
-  
+
   if (!userExists) {
     // 将新用户添加到列表中
     filteredUserList.value = [newUser, ...filteredUserList.value];
   }
-  
+
   // 如果当前没有选中用户，或者用户正在创建状态，则选中新创建的用户
   if (isCreatingUser.value || !props.modelValue) {
     selectOption(newUser);
@@ -631,18 +613,18 @@ const handleUserCreated = (newUser) => {
 // 生命周期钩子
 onMounted(() => {
   document.addEventListener('click', handleClickOutside);
-  
+
   // 初始加载时重置分页参数
   currentPage.value = 1;
   hasMoreData.value = true;
-  
+
   // 监听用户创建事件
   eventBus.on('user-created', handleUserCreated);
 });
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleClickOutside);
-  
+
   // 移除事件监听
   eventBus.off('user-created', handleUserCreated);
 });
@@ -750,7 +732,8 @@ defineExpose({
 }
 
 .select-dropdown-list {
-  max-height: 140px; /* 约5条记录的高度 */
+  max-height: 140px;
+  /* 约5条记录的高度 */
   overflow-y: auto;
 }
 
@@ -758,7 +741,8 @@ defineExpose({
   padding: 10px 12px;
   cursor: pointer;
   transition: background-color 0.3s;
-  height: 40px; /* 固定每个选项的高度 */
+  height: 40px;
+  /* 固定每个选项的高度 */
   box-sizing: border-box;
   display: flex;
   align-items: center;
@@ -809,7 +793,9 @@ defineExpose({
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .no-more-data {
@@ -819,4 +805,4 @@ defineExpose({
   font-size: 12px;
   border-top: 1px dashed var(--el-border-color-light);
 }
-</style> 
+</style>

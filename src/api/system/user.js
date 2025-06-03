@@ -4,7 +4,7 @@ import invoke from '@/utils/invoke'
 // 查询用户列表
 export function listUser(query) {
   const pageParams = { pageSize: query.pageSize, page: query.pageNum, params: query.params };
-  const user = { userName: query.userName, phonenumber: query.phonenumber, levelId: query.levelId };
+  const user = { userName: query.userName, phonenumber: query.phonenumber, levelId: query.levelId, nickName: query.nickName };
   return invoke('get_users_pagination', { pageParams, user })
 }
 

@@ -69,6 +69,20 @@ jobs:
           workspaces: './src-tauri -> target'
           key: ${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
 
+      - name: Install OpenSSL (Windows)
+        if: matrix.platform == 'windows-latest'
+        run: |
+          choco install openssl --params="/NoCrypto"
+          echo "OPENSSL_DIR=C:\Program Files\OpenSSL" >> $env:GITHUB_ENV
+          echo "OPENSSL_LIB_DIR=C:\Program Files\OpenSSL\lib" >> $env:GITHUB_ENV
+          echo "OPENSSL_INCLUDE_DIR=C:\Program Files\OpenSSL\include" >> $env:GITHUB_ENV
+
+      - name: Verify OpenSSL installation
+        if: matrix.platform == 'windows-latest'
+        run: |
+          dir "C:\Program Files\OpenSSL\include"
+          dir "C:\Program Files\OpenSSL\lib"
+          
       - name: Install Frontend Dependencies
         run: yarn install --frozen-lockfile
 

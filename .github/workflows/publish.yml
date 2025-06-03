@@ -60,18 +60,6 @@ jobs:
       - name: Install OpenSSL (Windows)
         if: matrix.platform == 'windows-latest'
         run: |
-          choco install openssl
-          echo "OPENSSL_DIR=C:\Program Files\OpenSSL-Win64" >> $env:GITHUB_ENV
-
-      - name: Rust Cache
-        uses: swatinem/rust-cache@v2
-        with:
-          workspaces: './src-tauri -> target'
-          key: ${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Install OpenSSL (Windows)
-        if: matrix.platform == 'windows-latest'
-        run: |
           choco install openssl --params="/NoCrypto"
           echo "OPENSSL_DIR=C:\Program Files\OpenSSL" >> $env:GITHUB_ENV
           echo "OPENSSL_LIB_DIR=C:\Program Files\OpenSSL\lib" >> $env:GITHUB_ENV
@@ -82,7 +70,13 @@ jobs:
         run: |
           dir "C:\Program Files\OpenSSL\include"
           dir "C:\Program Files\OpenSSL\lib"
-          
+  
+      - name: Rust Cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+          key: ${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+
       - name: Install Frontend Dependencies
         run: yarn install --frozen-lockfile
 

@@ -57,6 +57,12 @@ jobs:
         run: |
           echo "Windows setup complete - using rustls"
 
+      - name: Install OpenSSL (Windows)
+        if: matrix.platform == 'windows-latest'
+        run: |
+          choco install openssl
+          echo "OPENSSL_DIR=C:\Program Files\OpenSSL-Win64" >> $env:GITHUB_ENV
+
       - name: Rust Cache
         uses: swatinem/rust-cache@v2
         with:

@@ -264,7 +264,7 @@ class TauriWebSocketManager {
             // console.log('接收到WebSocket消息:', message);
 
             if (message.type === 'Pong') {
-                console.log('收到服务器心跳响应');
+                // console.log('收到服务器心跳响应');
                 return;
             }
 
@@ -371,7 +371,7 @@ class TauriWebSocketManager {
             if (this.isConnected && this.socket) {
                 try {
                     await this.socket.send('Ping');
-                    console.log('发送心跳消息');
+                    // console.log('发送心跳消息');
                 } catch (error) {
                     console.error('发送心跳消息失败:', error);
                     // 心跳失败时先更新连接状态，再尝试重连

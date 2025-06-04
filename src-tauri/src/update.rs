@@ -4,8 +4,18 @@ use std::path::Path;
 use sqlx::Sqlite;
 use sqlx::migrate::MigrateDatabase;
 use sqlx::sqlite::SqlitePoolOptions;
+use tauri::Emitter;
+use tauri_plugin_dialog::{DialogExt, MessageDialogButtons};
 use tauri_plugin_updater::UpdaterExt;
 use tracing::{debug, info};
+use serde::Serialize;
+
+#[derive(Clone, Serialize)]
+struct UpdateProgress {
+    downloaded: usize,
+    total: Option<u64>,
+    percent: f32,
+}
 
 pub async fn update<R: tauri::Runtime>(
     app: tauri::AppHandle<R>,
@@ -16,23 +26,111 @@ pub async fn update<R: tauri::Runtime>(
 
     match app.updater()?.check().await {
         Ok(Some(update)) => {
-            let mut downloaded = 0;
-
-            // 下载并安装更新
-            update
-                .download_and_install(
-                    |chunk_length, content_length| {
-                        downloaded += chunk_length;
-                        tracing::info!("Downloaded {} from {:?}", downloaded, content_length);
-                    },
-                    || {
-                        tracing::info!("Download finished");
-                    },
-                )
-                .await?;
-
-            tracing::info!("Update installed");
-            app.restart();
+            // 获取更新信息
+            let update_available = update.version.to_string();
+            
+            // 创建更新器的克隆，以便在回调中使用
+            let update_clone = update.clone();
+            let app_clone = app.clone();
+            
+            // 弹出对话框请求用户确认
+            app.dialog()
+                .message(format!("发现新版本 {}，是否现在更新？", update_available))
+                .title("发现新版本")
+                .buttons(MessageDialogButtons::OkCancelCustom(
+                    "更新".into(),
+                    "取消".into(),
+                ))
+                .show(move |result| {
+                    if result {
+                        // 用户同意更新，启动一个新的异步任务来处理更新
+                        let app_handle = app_clone.clone();
+                        let update_handle = update_clone.clone();
+                        
+                        // 通知前端开始更新，显示进度条
+                        app_handle.emit("update-started", ()).unwrap_or_else(|e| {
+                            tracing::error!("Failed to emit update-started event: {:?}", e);
+                        });
+                        
+                        // 使用tauri命令在后台处理更新下载和安装
+                        tauri::async_runtime::spawn(async move {
+                            let mut downloaded = 0;
+                            match update_handle
+                                .download_and_install(
+                                    |chunk_length, content_length| {
+                                        downloaded += chunk_length;
+                                        
+                                        // 计算下载百分比
+                                        let percent = if let Some(total) = content_length {
+                                            (downloaded as f32 / total as f32) * 100.0
+                                        } else {
+                                            0.0
+                                        };
+                                        
+                                        // 向前端发送进度更新
+                                        let progress = UpdateProgress {
+                                            downloaded,
+                                            total: content_length,
+                                            percent,
+                                        };
+                                        
+                                        app_handle.emit("update-progress", progress).unwrap_or_else(|e| {
+                                            tracing::error!("Failed to emit update progress: {:?}", e);
+                                        });
+                                        
+                                        tracing::info!(
+                                            "Downloaded {} from {:?} ({:.2}%)",
+                                            downloaded,
+                                            content_length,
+                                            percent
+                                        );
+                                    },
+                                    || {
+                                        // 下载完成，通知前端
+                                        app_handle.emit("update-downloaded", ()).unwrap_or_else(|e| {
+                                            tracing::error!("Failed to emit update-downloaded event: {:?}", e);
+                                        });
+                                        tracing::info!("Download finished");
+                                    },
+                                )
+                                .await 
+                            {
+                                Ok(_) => {
+                                    // 安装完成，通知前端
+                                    app_handle.emit("update-installed", ()).unwrap_or_else(|e| {
+                                        tracing::error!("Failed to emit update-installed event: {:?}", e);
+                                    });
+                                    
+                                    tracing::info!("Update installed");
+                                    
+                                    // 通知用户更新成功，准备重启
+                                    app_handle.dialog()
+                                        .message("更新已安装完成，点击确定后将重启应用。")
+                                        .title("更新完成")
+                                        .show(move |_| {
+                                            app_handle.restart();
+                                        });
+                                },
+                                Err(err) => {
+                                    // 更新失败，通知前端
+                                    app_handle.emit("update-failed", ()).unwrap_or_else(|e| {
+                                        tracing::error!("Failed to emit update-failed event: {:?}", e);
+                                    });
+                                    
+                                    tracing::error!("Failed to install update: {:?}", err);
+                                    
+                                    // 通知用户更新失败
+                                    app_handle.dialog()
+                                        .message("更新安装失败，请稍后再试。")
+                                        .title("更新失败")
+                                        .show(|_| {});
+                                }
+                            }
+                        });
+                    } else {
+                        tracing::info!("Update cancelled by user");
+                    }
+                });
         }
         Ok(None) => {
             tracing::info!("No updates found");

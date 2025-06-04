@@ -52,12 +52,11 @@
     </el-form>
 
     <!-- 渲染订单抖索结果列表 -->
-    <div class="search-result-list">
-
-        <div v-if="orderList.length === 0" class="no-result">
-            <el-empty description="暂无数据" />
-        </div>
-        <div v-slide-in v-else class="result-item" v-for="order in orderList" :key="order.orderId">
+    <div v-if="orderList.length === 0" class="no-result">
+        <el-empty description="暂无数据" />
+    </div>
+    <div v-else class="search-result-list">
+        <div v-slide-in class="result-item" v-for="order in orderList" :key="order.orderId">
             <div class="result-item-info">
                 <span>订单编码: <a class="order-link" @click="showClothList(order)">{{ order.orderNumber }}</a></span>
                 <span>订单日期: {{ formatTime(order.createTime) }}</span>
@@ -116,7 +115,8 @@
 
         </div>
         <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum"
-            v-model:limit="queryParams.pageSize" @pagination="getList" />
+            v-model:limit="queryParams.pageSize" @pagination="getList"
+            style="position: sticky; bottom: 0; z-index: 10;" />
     </div>
     <ShowClothsModern :orderId="currentOrderId" :order="currentOrder" :visible="showClothListDialog"
         :flashList="getList" :userId="props.userId" :key="showClothListDialog"
@@ -409,10 +409,14 @@ onMounted(async () => {
 
 /* 结果列表样式 */
 .search-result-list {
-    height: 100%;
+    height: calc(80vh - 220px);
+    /* 70vh减去其他元素高度（头部+表单+边距） */
+    position: relative;
     display: flex;
     flex-direction: column;
     gap: 1rem;
+    overflow-y: auto;
+    padding-bottom: 1rem;
 }
 
 .result-item {
@@ -423,6 +427,7 @@ onMounted(async () => {
     overflow: hidden;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
     transition: all 0.3s;
+    flex-shrink: 0;
 }
 
 .result-item:hover {
@@ -453,6 +458,8 @@ onMounted(async () => {
 .cloths-table {
     margin: 0;
     border-radius: 0 0 8px 8px;
+    flex-shrink: 0;
+    /* 防止表格被压缩 */
 }
 
 .cloths-table :deep(th) {

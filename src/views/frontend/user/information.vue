@@ -56,26 +56,15 @@ function handleTabClick(tab) {
     currentTab.value = tab.props.name;
 }
 </script>
-<style scoped>
+
+<style>
 .modern-user-dialog {
-    height: 100%;
-    margin-left: auto;
-    margin-right: 0;
-    margin-top: 0 !important;
-    display: flex;
-    flex-direction: column;
-    overflow: auto;
+    max-height: 100%;
+    overflow: hidden;
 }
+</style>
 
-.modern-user-dialog :deep(.el-dialog__header) {
-    padding: 0;
-    margin: 0;
-}
-
-.modern-user-dialog :deep(.el-dialog__body) {
-    padding: 20px;
-}
-
+<style scoped>
 .dialog-header {
     background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-8) 100%);
     padding: 1rem;
@@ -134,13 +123,5 @@ function handleTabClick(tab) {
     height: 40px;
     line-height: 40px;
     font-size: 15px;
-}
-
-/* 在全局样式文件中 */
-:deep(.el-dialog.modern-user-dialog:not(.is-fullscreen)) {
-    margin-top: 0 !important;
-    border-radius: 8px 0 0 8px;
-    overflow: hidden;
-    box-shadow: -5px 0 15px rgba(0, 0, 0, 0.1);
 }
 </style>

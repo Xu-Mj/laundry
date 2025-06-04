@@ -341,7 +341,7 @@ const SQL_BY_CLOTHING_NAME: &str = "SELECT
     a.adjust_value_add,
     a.adjust_value_sub,
     a.adjust_total,
-    a.remark as adjust_remark
+    a.remark as adjust_remark,
     COALESCE(
     (SELECT json_group_array(json_object(
         'id', pmd.id,

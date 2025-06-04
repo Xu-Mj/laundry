@@ -112,7 +112,7 @@ pub async fn check_store_subscription(state: State<'_, AppState>, store_id: i64)
 
 #[tauri::command]
 pub async fn get_sms_plans(state: State<'_, AppState>) -> Result<Vec<SmsPlan>> {
-    state.http_client.get("/sms/plans", None).await
+    state.http_client.get("/sms/plans/all", None).await
 }
 
 /// 支付宝Native支付（二维码支付）请求

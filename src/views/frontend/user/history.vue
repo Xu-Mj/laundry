@@ -409,8 +409,7 @@ onMounted(async () => {
 
 /* 结果列表样式 */
 .search-result-list {
-    height: calc(80vh - 220px);
-    /* 70vh减去其他元素高度（头部+表单+边距） */
+    max-height: calc(80vh - 220px);
     position: relative;
     display: flex;
     flex-direction: column;

@@ -1,6 +1,11 @@
 <template>
     <router-view />
+    <UpdateProgress />
 </template>
+
+<script setup>
+import UpdateProgress from '@/components/UpdateProgress/index.vue'
+</script>
 
 <style>
 :root {

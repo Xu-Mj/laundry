@@ -65,6 +65,7 @@
                     <span style="color: red;font-weight: bold; align-items: center;">
                         {{ order.mount }}
                     </span>
+                    元
                 </span>
             </div>
             <!-- 订单包含的衣物列表 -->
@@ -94,17 +95,19 @@
                     <template #default="scope">
                         <el-tag v-if="scope.row.clothingColor" type="primary">
                             {{scope.row.clothingColor ? colorList.find(item => item.tagId ==
-                                scope.row.clothingColor).tagName : '' }}
+                                scope.row.clothingColor).tagName : ''}}
                         </el-tag>
                     </template>
                 </el-table-column>
                 <el-table-column label="服务类型" align="center">
                     <template #default="scope">
-                        <span class="service-type">
-                            <dict-tag :options="sys_service_type" :value="scope.row.serviceType" />
-                            -
-                            <dict-tag :options="sys_service_requirement" :value="scope.row.serviceRequirement" />
-                        </span>
+                        <el-tag :type="ServiceTypeMap[scope.row.serviceType]?.type">
+                            {{ ServiceTypeMap[scope.row.serviceType]?.label }}
+                        </el-tag>
+                        -
+                        <el-tag :type="ServiceRequirmentMap[scope.row.serviceRequirement]?.type">
+                            {{ ServiceRequirmentMap[scope.row.serviceRequirement]?.label }}
+                        </el-tag>
                     </template>
                 </el-table-column>
                 <el-table-column label="洗护价格" align="center" prop="priceValue" />
@@ -115,8 +118,8 @@
         <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum"
             v-model:limit="queryParams.pageSize" @pagination="getList" />
     </div>
-    <ShowClothsModern :orderId="currentOrderId" :visible="showClothListDialog" :flashList="getList"
-        :userId="props.userId" :key="showClothListDialog"
+    <ShowClothsModern :orderId="currentOrderId" :order="currentOrder" :visible="showClothListDialog"
+        :flashList="getList" :userId="props.userId" :key="showClothListDialog"
         :toggle="() => { showClothListDialog = !showClothListDialog }" />
 
 </template>
@@ -131,6 +134,7 @@ import { formatTime } from '@/utils/ruoyi';
 import useTagsStore from '@/store/modules/tags';
 import { useRouter } from 'vue-router';
 import ShowClothsModern from '@/views/frontend/orders/showClothsModern.vue';
+import { ServiceRequirmentMap, ServiceTypeMap } from "@/constants";
 
 const router = useRouter();
 
@@ -142,14 +146,6 @@ const props = defineProps({
 });
 
 const { proxy } = getCurrentInstance();
-const {
-    sys_service_type,
-    sys_service_requirement,
-} =
-    proxy.useDict(
-        "sys_service_type",
-        "sys_service_requirement"
-    );
 
 const tagsStore = useTagsStore();
 
@@ -159,6 +155,7 @@ const orderList = ref([]);
 const dateRange = ref([]);
 const totalAmount = ref(0);
 const avgPrice = ref(0);
+const currentOrder = ref();
 const currentOrderId = ref();
 const showClothListDialog = ref(false);
 
@@ -187,6 +184,7 @@ function resetQuery() {
 /* 展示衣物列表 */
 function showClothList(row) {
     currentOrderId.value = row.orderId;
+    currentOrder.value = row;
     showClothListDialog.value = true;
 }
 
@@ -477,12 +475,6 @@ onMounted(async () => {
 
 .cloths-table :deep(.el-table--striped .el-table__body tr.el-table__row--striped td) {
     background-color: var(--el-fill-color-light);
-}
-
-.service-type {
-    display: flex;
-    align-items: center;
-    gap: 4px;
 }
 
 /* 分页样式 */

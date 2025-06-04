@@ -31,10 +31,11 @@
                         <el-row :gutter="20">
                             <el-col :span="12">
                                 <el-form-item label="手机号：" prop="userId">
-                                    <UserSelect v-model="form.userInfo" :disabled="notEditable" :user-name="form.nickName" @change="selectUser"
-                                        @blur="handleBlur" @need-create-user="handleNeedCreateUser"
-                                        @update-phone="handleUpdatePhone" @validate="handleUserValidate"
-                                        @clear-validation="clearUserValidation" ref="userSelectRef" />
+                                    <UserSelect v-model="form.userInfo" :disabled="notEditable"
+                                        :user-name="form.nickName" @change="handleUserSelect" @blur="handleBlur"
+                                        @need-create-user="handleNeedCreateUserLocal" @update-phone="handleUpdatePhone"
+                                        @validate="handleUserValidate" @clear-validation="clearUserValidation"
+                                        ref="userSelectRef" />
                                 </el-form-item>
                             </el-col>
                             <el-col :span="12">
@@ -177,7 +178,7 @@
                     <div class="btn-container">
                         <el-button icon="Close" type="danger" @click="cancelSelf">{{ form.orderId ? '关 闭' :
                             '取 消'
-                            }}</el-button>
+                        }}</el-button>
                         <el-button icon="Check" type="primary" color="#626aef" @click="submitForm"
                             :disabled="notEditable || (!(form.source === 'Store') && (!form.priceIds || form.priceIds.length === 0))"
                             v-if="form.source !== 'Meituan' && form.source !== 'Douyin'"
@@ -193,7 +194,7 @@
                         :totalPrice="totalPrice" />
                 </div>
                 <AddCloth v-else :userId="form.userId" :orderId="form.orderId" :submit="submitClothes"
-                    :disabled="notEditable" :key="form.userId + '-' + (form.orderId || 0)" :clothes="form.cloths" />
+                    :disabled="notEditable" :key="form.userId || 'no-user'" :clothes="form.cloths" />
             </div>
         </div>
         <!-- 卡券购买弹窗 -->
@@ -226,18 +227,18 @@
 </template>
 
 <script setup name="CreateOrders">
+import { ref, reactive, computed, onMounted, onUnmounted, nextTick, toRefs, getCurrentInstance } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import CouponSale from './couponSale.vue';
 import { ElMessageBox } from 'element-plus'
 import { getOrders, addOrders, updateOrders, updateAdjust } from "@/api/system/orders";
 import { listPrice } from "@/api/system/price";
-import { addUser, getUser } from "@/api/system/user";
 import { delCloths } from "@/api/system/cloths";
-import { listUserCouponWithValidTime } from '@/api/system/user_coupon';
 import { listCloths } from "@/api/system/cloths";
 import { getFutureDate } from "@/utils";
 import { getConfigKey } from '@/api/system/config';
+import { getUser } from '@/api/system/user';
 import AddCloth from "./addCloth.vue";
-import { print, printReceipt2 } from "@/api/system/printer";
 import Information from "@/views/frontend/user/information.vue";
 import CustomTable from '@/components/CustomTable';
 import Pay from '@/views/components/pay.vue';
@@ -246,6 +247,12 @@ import UserSelect from '@/components/UserSelect.vue';
 import OrderNonEditableMessage from '@/components/OrderNonEditableMessage.vue';
 // import OrderTourGuide from '@/components/OrderTourGuide/index.vue';
 import { OrderSource, PaymentMethodMap } from "@/constants";
+
+// 导入抽离的composable函数
+import { useOrderCalculation } from '@/composables/useOrderCalculation';
+import { useUserManagement } from '@/composables/useUserManagement';
+import { usePrinting } from '@/composables/usePrinting';
+import { useOrderValidation } from '@/composables/useOrderValidation';
 
 const props = defineProps({
     visible: {
@@ -276,30 +283,50 @@ const { proxy } = getCurrentInstance();
 const router = useRouter();
 const route = useRoute();
 
-// 用户卡券列表
-const userCouponList = ref([]);
-const mergedCoupons = ref([]);
-// 用户卡券种类列表
-const couponTypeList = ref();
-// 价格列表
-const priceList = ref([]);
+// 使用composables
+const {
+    currentUser,
+    showCreateUser,
+    userCouponList,
+    mergedCoupons,
+    couponTypeList,
+    phoneRegex,
+    selectUser,
+    handleNeedCreateUser,
+    handleUpdatePhone,
+    createUser,
+    handleCouponPurchase,
+    getUserCoupons
+} = useUserManagement();
+
+const {
+    totalPrice,
+    isPriceDiscount,
+    getPriceTooltip,
+    calculateTotalPrice,
+    handlePriceChange
+} = useOrderCalculation();
+
+const {
+    printCloth,
+    printReceipt
+} = usePrinting();
+
+// 显示的弹窗
 const showDialog = ref(false);
-const showCreateUser = ref(false);
 const showPaymentDialog = ref(false);
-const totalPrice = ref(0);
-
-const currentOrderId = ref(props.orderId);
-const currentUserId = ref(props.userId);
-const currentUser = ref({});
-const ordersRef = ref();
-/* 单据打印数量 */
-const printCount = ref(1);
-const phoneRegex = /^1[3-9]\d{9}$/;
-
 const showCouponSale = ref(false);
 const showInfoDialog = ref(false);
 
+// 价格列表
+const priceList = ref([]);
+
+const currentOrderId = ref(props.orderId);
+const currentUserId = ref(props.userId);
 const notEditable = ref(false);
+
+/* 单据打印数量 */
+const printCount = ref(1);
 
 // 引导组件需要的ref
 const memberCardRef = ref(null);
@@ -311,6 +338,20 @@ const addClothRef = ref(null);
 const submitButtonRef = ref(null);
 const payButtonRef = ref(null);
 const userSelectRef = ref(null);
+const ordersRef = ref();
+
+// 使用验证hook
+const {
+    rules,
+    handleUserValidate,
+    handleBlur,
+    clearUserValidation,
+    validateOrderForm
+} = useOrderValidation({
+    userSelectRef,
+    showCreateUser,
+    currentUser
+});
 
 const data = reactive({
     form: {
@@ -327,7 +368,7 @@ const data = reactive({
         pickupCode: null,
         completeTime: null,
         deliveryMode: "00",
-        source: "03",
+        source: "Store",
         status: null,
         paymentStatus: null,
         remark: null,
@@ -337,59 +378,16 @@ const data = reactive({
         updateTime: null
     },
     refundForm: {},
-    notifyForm: {},
-    rules: {
-        businessType: [
-            { required: true, message: "业务类型不能为空", trigger: "change" }
-        ],
-        userId: [
-            { required: true, message: "手机号不能为空", trigger: "blur" },
-            {
-                validator: (rule, value, callback) => {
-                    // 获取当前输入值
-                    const currentInput = userSelectRef.value?.getInputValue() || '';
-
-                    // 如果是需要创建用户的情况且手机号有效，不报错
-                    if (showCreateUser.value && currentUser.value?.phonenumber && phoneRegex.test(currentUser.value.phonenumber)) {
-                        callback();
-                    }
-                    // 如果有输入但不是有效手机号
-                    else if (currentInput && currentInput.length > 0) {
-                        // 如果输入的不是11位，或者不是有效手机号
-                        if (currentInput.length !== 11 || !phoneRegex.test(currentInput)) {
-                            callback(new Error("请输入有效的手机号"));
-                        } else {
-                            callback();
-                        }
-                    }
-                    // 如果没有输入任何内容且触发了表单提交
-                    else if (!value && !currentInput && rule.trigger === 'submit') {
-                        callback(new Error("会员手机号不能为空"));
-                    }
-                    // 其他情况通过验证
-                    else {
-                        callback();
-                    }
-                },
-                trigger: ['blur', 'submit']
-            }
-        ],
-        nickName: [
-            { required: true, message: "会员姓名不能为空", trigger: "blur" }
-        ],
-        source: [
-            { required: true, message: "订单来源不能为空", trigger: "blur" }
-        ],
-        cloths: [
-            { required: true, message: "衣物信息不能为空", trigger: "change" }
-        ]
-    },
+    notifyForm: {}
 });
 
-const { form, rules } = toRefs(data);
+const { form } = toRefs(data);
 
 const showUserInfoRow = computed(() => {
-    return form.value.userId && Object.keys(currentUser.value).length > 0 && currentUser.value.userId && !showCreateUser.value
+    return form.value.userId &&
+        Object.keys(currentUser.value).length > 0 &&
+        currentUser.value.userId &&
+        !showCreateUser.value;
 });
 
 // 处理子组件传过来的数据
@@ -404,137 +402,39 @@ function submitClothes(cloth) {
     adjustInput();
 }
 
-// 判断价格项是否为折扣类型
-function isPriceDiscount(item) {
-    return item.priceDiscount !== null && item.priceDiscount !== undefined;
-}
-
-// 获取价格项的提示文本
-function getPriceTooltip(item) {
-    if (isPriceDiscount(item)) {
-        return `${item.priceName}（折扣：${item.priceDiscount}%）`;
-    } else {
-        return `${item.priceName}（固定价格：${item.priceValue}元）`;
-    }
-}
-
 // 处理价格radio 选中事件
 function priceChange(event, priceId) {
-    // 获取当前选择的价格项
-    const currentPriceItem = priceList.value.find(item => item.priceId === priceId);
-
-    // 如果找不到价格项，直接返回
-    if (!currentPriceItem) return;
-
-    // 判断当前价格项是固定价格还是折扣系数
-    const isDiscount = isPriceDiscount(currentPriceItem);
-
-    if (event) {
-        // 如果选中
-
-        // 检查当前已选择的价格项中是否有折扣类型
-        const hasDiscountSelected = form.value.priceIds.some(id => {
-            const item = priceList.value.find(p => p.priceId === id);
-            return item && isPriceDiscount(item);
-        });
-
-        // 检查当前已选择的价格项中是否有固定价格类型
-        const hasFixedPriceSelected = form.value.priceIds.some(id => {
-            const item = priceList.value.find(p => p.priceId === id);
-            return item && !isPriceDiscount(item);
-        });
-
-        // 如果当前选择的是折扣类型
-        if (isDiscount) {
-            // 如果已经选择了其他折扣，则先移除所有折扣
-            if (hasDiscountSelected) {
-                // 移除所有折扣类型的价格项
-                form.value.priceIds = form.value.priceIds.filter(id => {
-                    const item = priceList.value.find(p => p.priceId === id);
-                    return !(item && isPriceDiscount(item));
-                });
-                form.value.isDiscount = true;
-            } else {
-                form.value.isDiscount = false;
-            }
-
-            // 如果已经选择了固定价格，则移除所有固定价格
-            if (hasFixedPriceSelected) {
-                // 移除所有固定价格类型的价格项
-                form.value.priceIds = form.value.priceIds.filter(id => {
-                    const item = priceList.value.find(p => p.priceId === id);
-                    return !(item && !isPriceDiscount(item));
-                });
-            }
-        } else {
-            // 如果当前选择的是固定价格，但已经选择了折扣，则移除所有折扣
-            if (hasDiscountSelected) {
-                // 移除所有折扣类型的价格项
-                form.value.priceIds = form.value.priceIds.filter(id => {
-                    const item = priceList.value.find(p => p.priceId === id);
-                    return !(item && isPriceDiscount(item));
-                });
-            }
-        }
-
-        // 添加到选中数组
-        if (!form.value.priceIds.includes(priceId)) {
-            form.value.priceIds.push(priceId);
-        }
-    } else {
-        // 如果取消选中，从数组中移除
-        const index = form.value.priceIds.indexOf(priceId);
-        if (index > -1) {
-            form.value.priceIds.splice(index, 1);
-        }
-    }
-
-    // 清空调整金额
-    form.value.adjust.adjustValueSub = null;
-    form.value.adjust.adjustValueAdd = null;
-    form.value.adjust.adjustTotal = null;
+    handlePriceChange(event, priceId, form.value, priceList.value);
     adjustInput();
 }
 
-// 处理用户选择组件的验证结果
-const handleUserValidate = (valid, message) => {
-    if (!valid) {
-        // 如果是需要创建用户的情况，不显示错误
-        if (showCreateUser.value && currentUser.value?.phonenumber && phoneRegex.test(currentUser.value.phonenumber)) {
-            return;
-        }
+// 调整金额输入
+function adjustInput() {
+    totalPrice.value = calculateTotalPrice(form.value, priceList.value);
+}
 
-        // 触发表单验证，而不是使用notify
-        if (ordersRef.value) {
-            // 使用nextTick确保在DOM更新后再触发验证
-            nextTick(() => {
-                ordersRef.value.validateField('userId');
-            });
-        }
+function adjustInputChange() {
+    // 如果是修改操作，那么触发更新请求
+    if (form.value.orderId && form.value.orderId !== 0) {
+        updateAdjust(form.value).catch(res => {
+            proxy.notify.error(res.msg);
+        });
     }
-};
-
-// 处理失去焦点的情况
-const handleBlur = () => {
-    // 验证userId字段
-    if (ordersRef.value) {
-        // 如果是需要创建用户的情况且手机号有效，不进行验证
-        if (showCreateUser.value && currentUser.value?.phonenumber && phoneRegex.test(currentUser.value.phonenumber)) {
-            return;
-        }
-        ordersRef.value.validateField('userId');
-    }
-};
+}
 
 // 取消按钮
-function cancel() {
-    return new Promise((resolve, reject) => {
+function cancel(returnPromise = true) {
+    const performCancel = (resolve, reject) => {
         // 检查是否有未保存的数据
         if (!form.value.userId) {
             reset();
             showDialog.value = true;
-
-            resolve(true); // 确认取消
+            
+            if (returnPromise) {
+                resolve && resolve(true); // 确认取消
+            } else {
+                props.toggle();
+            }
             return;
         }
 
@@ -543,6 +443,9 @@ function cancel() {
             reset();
             showDialog.value = true;
             props.toggle();
+            if (returnPromise) {
+                resolve && resolve(true);
+            }
             return;
         }
 
@@ -557,28 +460,45 @@ function cancel() {
                             reset();
                             showDialog.value = true;
                             props.toggle();
-                            resolve(true); // 允许关闭
+                            if (returnPromise) {
+                                resolve && resolve(true); // 允许关闭
+                            }
                         })
                         .catch(res => {
                             console.error(res);
-                            reject(false); // 出现错误，不允许关闭
+                            if (returnPromise) {
+                                reject && reject(false); // 出现错误，不允许关闭
+                            }
                         });
                 } else {
                     reset();
                     showDialog.value = true;
                     props.toggle();
-                    resolve(true); // 允许关闭
+                    if (returnPromise) {
+                        resolve && resolve(true); // 允许关闭
+                    }
                 }
             })
             .catch(() => {
                 // 用户取消操作，不关闭对话框
-                reject(false); // 拒绝关闭
+                if (returnPromise) {
+                    reject && reject(false); // 拒绝关闭
+                }
             });
-    });
+    };
+
+    if (returnPromise) {
+        return new Promise((resolve, reject) => {
+            performCancel(resolve, reject);
+        });
+    } else {
+        performCancel();
+    }
 }
 
 // 表单重置
 function reset() {
+    console.log("reset");
     form.value = {
         adjust: {},
         cloths: [],
@@ -684,23 +604,7 @@ async function handleUpdate() {
     });
 
     // 获取用户卡券列表
-    listUserCouponWithValidTime(currentUserId.value).then(response => {
-        userCouponList.value = response;
-        mergedCoupons.value = response.reduce((acc, cur) => {
-            const existing = acc.find(item => item.coupon.couponId === cur.coupon.couponId && item.coupon.couponType !== 'StoredValueCard');
-            if (existing) {
-                existing.ucCount += cur.ucCount;
-            } else {
-                acc.push(cur);
-            }
-            return acc;
-        }, []);
-        userCouponList.value.filter(item => item.coupon.couponType == 'SessionCard').map(item => {
-            item.selected = false;
-            item.count = 1;
-        });
-        couponTypeList.value = new Set(userCouponList.value.map(coupon => coupon.coupon.couponType));
-    });
+    await getUserCoupons(currentUserId.value);
 
     // 计算总价
     adjustInput();
@@ -717,79 +621,66 @@ async function submitForm() {
         return;
     }
 
-    proxy.$refs["ordersRef"].validate(async valid => {
-        if (valid) {
-            if (!form.value.cloths || form.value.cloths.length == 0) {
-                proxy.notify.error("衣物信息不能为空");
+    try {
+        // 验证表单
+        await validateOrderForm(form.value, ordersRef.value, proxy, validateOptions);
+
+        form.value.clothIds = form.value.cloths.map(item => item.clothId);
+        if (form.value.adjust.adjustValueAdd || form.value.adjust.adjustValueSub || form.value.adjust.adjustTotal) {
+            form.value.adjust.orderId = form.value.orderId;
+        }
+
+        // set phonenumber
+        form.value.phonenumber = currentUser.value.phonenumber;
+
+        if (showCreateUser.value) {
+            try {
+                await createUser(form.value);
+            } catch (err) {
+                proxy.notify.error(err);
                 return;
             }
-            form.value.clothIds = form.value.cloths.map(item => item.clothId);
-            if (form.value.adjust.adjustValueAdd || form.value.adjust.adjustValueSub || form.value.adjust.adjustTotal) {
-                form.value.adjust.orderId = form.value.orderId;
-            }
-
-            // set phonenumber
-            form.value.phonenumber = currentUser.value.phonenumber;
-
-            if (showCreateUser.value) {
-                try {
-                    const res = await addUser({
-                        phonenumber: currentUser.value.phonenumber, // 使用currentUser中的phonenumber
-                        nickName: form.value.nickName
-                    });
-
-                    form.value.userId = res.userId;
-                    form.value.userInfo = res; // 设置userInfo
-
-                    showCreateUser.value = false;
-                    // 将新用户添加到用户列表中
-                    // userList.value.push(res);
-
-                    // 通知UserSelect组件刷新用户列表
-                    eventBus.emit('user-created', res);
-                } catch (err) {
-                    proxy.notify.error(err);
-                    return; // 当 addUser 出错时，中断执行
-                }
-            }
-            if (form.value.orderId != null) {
-                updateOrders(form.value).then(async () => {
-                    proxy.notify.success("修改成功");
-                    // 打印衣物标签和小票并发执行
-                    const printClothPromise = printCloth();
-                    const printReceiptPromise = (async () => {
-                        try {
-                            await printReceipt2({ ...form.value, paymentMethod: '未付款', mount: totalPrice.value });
-                        } catch (e) {
-                            console.error(e);
-                            proxy.notify.error("小票打印失败");
-                        }
-                    })();
-                    await Promise.all([printClothPromise, printReceiptPromise]);
-                    props.refresh();
-                    props.toggle();
-                });
-            } else {
-                addOrders(form.value).then(async (response) => {
-                    proxy.notify.success("订单创建成功");
-                    form.value.orderNumber = response.orderNumber;
-                    // 打印衣物标签和小票并发执行
-                    const printClothPromise = printCloth();
-                    const printReceiptPromise = (async () => {
-                        try {
-                            await printReceipt2({ ...form.value, paymentMethod: '未付款', mount: totalPrice.value });
-                        } catch (e) {
-                            console.error(e);
-                            proxy.notify.error("小票打印失败");
-                        }
-                    })();
-                    await Promise.all([printClothPromise, printReceiptPromise]);
-                    handleAdd();
-                    props.refresh();
-                });
-            }
         }
-    }, validateOptions);
+
+        if (form.value.orderId != null) {
+            updateOrders(form.value).then(async () => {
+                proxy.notify.success("修改成功");
+                // 打印衣物标签和小票并发执行
+                const printClothPromise = printCloth(form.value.cloths, currentUser.value, form.value, proxy);
+                const printReceiptPromise = printReceipt(form.value, '未付款', totalPrice.value, proxy);
+
+                await Promise.all([printClothPromise, printReceiptPromise]);
+                props.refresh();
+                props.toggle();
+            });
+        } else {
+            addOrders(form.value).then(async (response) => {
+                proxy.notify.success("订单创建成功");
+                form.value.orderNumber = response.orderNumber;
+                // 打印衣物标签和小票并发执行
+                try {
+                    const printClothPromise = printCloth(form.value.cloths, currentUser.value, form.value, proxy);
+                    const printReceiptPromise = printReceipt(form.value, '未付款', totalPrice.value, proxy);
+
+                    await Promise.all([printClothPromise, printReceiptPromise]);
+                } catch (error) {
+                    console.error('打印失败:', error);
+                    proxy.notify.error("打印失败");
+                } finally {
+                    // 先刷新订单列表
+                    props.refresh();
+
+                    // 重置表单数据
+                    handleAdd();
+                }
+            }).catch(error => {
+                console.error('创建订单失败:', error);
+                proxy.notify.error("创建订单失败: " + (error.message || '未知错误'));
+            });
+        }
+    } catch (error) {
+        console.error(error);
+    }
 }
 
 async function createAndGo2Pay() {
@@ -800,54 +691,25 @@ async function createAndGo2Pay() {
     }
 
     // 提交订单
-    await proxy.$refs["ordersRef"].validate(async valid => {
-        if (valid) {
-            if (!form.value.cloths || form.value.cloths.length == 0) {
-                proxy.notify.error("衣物信息不能为空");
+    try {
+        // 验证表单
+        await validateOrderForm(form.value, ordersRef.value, proxy);
+
+        if (showCreateUser.value) {
+            try {
+                await createUser(form.value);
+                await getUserCoupons(form.value.userId);
+            } catch (err) {
+                proxy.notify.error(err);
                 return;
             }
-            // 如果选择了美团或者抖音，那么需要选择价格标签
-            if (form.value.source == 'Douyin' || form.value.source == 'Meituan' || form.value.source == 'MiniProgram') {
-                if (!form.value.priceIds || form.value.priceIds.length === 0) {
-                    proxy.notify.error("请选择价格标签");
-                    return;
-                }
-            }
-            if (showCreateUser.value) {
-                try {
-                    const res = await addUser({
-                        phonenumber: currentUser.value.phonenumber, // 使用currentUser中的phonenumber
-                        nickName: form.value.nickName
-                    });
-                    showCreateUser.value = false;
-                    // 不需要重新拉取用户列表
-
-                    form.value.userId = res.userId; // 设置返回的用户ID
-                    form.value.userInfo = res; // 设置userInfo
-
-                    // 不需要将新用户添加到用户列表中
-
-                    // 通知UserSelect组件刷新用户列表
-                    eventBus.emit('user-created', res);
-
-                    await listUserCouponWithValidTime(form.value.userId).then(response => {
-                        userCouponList.value = response;
-                        userCouponList.value.filter(item => item.coupon.couponType == 'SessionCard').map(item => {
-                            item.selected = false;
-                            item.count = 1;
-                        });
-                        couponTypeList.value = new Set(userCouponList.value.map(coupon => coupon.coupon.couponType));
-                    });
-
-                } catch (err) {
-                    proxy.notify.error(err);
-                    return; // 当 addUser 出错时，中断执行
-                }
-            }
-            showPaymentDialog.value = true;
         }
-    });
+        showPaymentDialog.value = true;
+    } catch (error) {
+        console.error(error);
+    }
 }
+
 /* 收衣收款 */
 async function createAndPay(callback) {
     // 手动设置验证触发类型为submit
@@ -859,63 +721,58 @@ async function createAndPay(callback) {
         return;
     }
 
-    // 提交订单
-    await proxy.$refs["ordersRef"].validate(async valid => {
-        if (valid) {
-            form.value.phonenumber = currentUser.value.phonenumber;
+    try {
+        // 验证表单
+        await validateOrderForm(form.value, ordersRef.value, proxy, validateOptions);
 
-            // 如果是创建订单，那么要先创建订单，拿到订单编码
-            if (!form.value.orderId) {
-                form.value.clothIds = form.value.cloths.map(item => item.clothId);
+        form.value.phonenumber = currentUser.value.phonenumber;
 
-                proxy.$modal.loading("正在创建订单，请稍候");
-                try {
+        // 如果是创建订单，那么要先创建订单，拿到订单编码
+        if (!form.value.orderId) {
+            form.value.clothIds = form.value.cloths.map(item => item.clothId);
 
-                    const response = await addOrders(form.value);
-                    proxy.$modal.closeLoading();
-                    if (!response.adjust) {
-                        response.adjust = {};
-                    }
-                    form.value.orderId = response.orderId;
-                    callback(response);
-                    form.value.orderNumber = response.orderNumber;
-                    // 确保订单的总价与前端计算的一致，特别是当使用价格方案时
-                    form.value.totalPrice = totalPrice.value;
-                    // 截断为两位小数（不四舍五入）
-                    form.value.totalPrice = Math.floor(form.value.totalPrice * 100) / 100;
-                } catch (e) {
-                    console.error(e);
-                } finally {
-                    proxy.$modal.closeLoading();
+            proxy.$modal.loading("正在创建订单，请稍候");
+            try {
+                const response = await addOrders(form.value);
+                proxy.$modal.closeLoading();
+                if (!response.adjust) {
+                    response.adjust = {};
                 }
-            } else {
+                form.value.orderId = response.orderId;
+                callback(response);
+                form.value.orderNumber = response.orderNumber;
                 // 确保订单的总价与前端计算的一致，特别是当使用价格方案时
                 form.value.totalPrice = totalPrice.value;
                 // 截断为两位小数（不四舍五入）
                 form.value.totalPrice = Math.floor(form.value.totalPrice * 100) / 100;
+            } catch (e) {
+                console.error(e);
+            } finally {
+                proxy.$modal.closeLoading();
             }
+        } else {
+            // 确保订单的总价与前端计算的一致，特别是当使用价格方案时
+            form.value.totalPrice = totalPrice.value;
+            // 截断为两位小数（不四舍五入）
+            form.value.totalPrice = Math.floor(form.value.totalPrice * 100) / 100;
         }
-    }, validateOptions);
+    } catch (error) {
+        console.error(error);
+    }
 }
 
 // 处理支付成功回调
 async function handlePaymentSuccess(paymentInfo) {
     try {
         // 打印衣物标签和小票并发执行
-        const printClothPromise = printCloth();
-        const printReceiptPromise = (async () => {
-            try {
-                const paymentMethod = PaymentMethodMap[paymentInfo.paymentMethod]?.label;
-                await printReceipt2({
-                    ...form.value,
-                    paymentMethod: paymentMethod || '未知',
-                    mount: paymentInfo.amount
-                });
-            } catch (e) {
-                console.error(e);
-                proxy.notify.error("小票打印失败");
-            }
-        })();
+        const printClothPromise = printCloth(form.value.cloths, currentUser.value, form.value, proxy);
+        const printReceiptPromise = printReceipt(
+            form.value,
+            PaymentMethodMap[paymentInfo.paymentMethod]?.label || '未知',
+            paymentInfo.amount,
+            proxy
+        );
+
         await Promise.all([printClothPromise, printReceiptPromise]);
 
         // 刷新订单列表
@@ -928,233 +785,10 @@ async function handlePaymentSuccess(paymentInfo) {
     }
 }
 
-// 处理需要创建用户的情况
-const handleNeedCreateUser = (phoneNumber) => {
-    showCreateUser.value = true;
-    form.value.nickName = null;
-    currentUser.value = {
-        phonenumber: phoneNumber,
-        status: "0",
-    };
-
-    // 设置用户ID为临时值，确保右侧添加衣物组件能够正确显示
-    // 使用一个特殊的标记值，表示这是一个待创建的用户
-    form.value.userId = -999; // 临时ID，表示待创建用户
-
-    // 清除验证提示
-    clearUserValidation();
-
-    // 触发事件，通知其他组件刷新
-    eventBus.emit('user-selected', { isNewUser: true, phonenumber: phoneNumber });
-};
-
-/* 选择会员信息 */
-async function selectUser(val) {
-    if (!val) {
-        form.value.userInfo = null;
-        form.value.userId = null;
-        form.value.nickName = null;
-        currentUser.value = {};
-        userCouponList.value = [];
-        showCreateUser.value = false;
-        return;
-    }
-
-    // 确保val是对象且有userId属性
-    if (typeof val === 'object' && val.userId) {
-        // 设置引用并更新表单
-        form.value.userInfo = val;
-        form.value.userId = val.userId;
-        currentUserId.value = val.userId;
-        form.value.nickName = val.nickName;
-        showCreateUser.value = false;
-
-        // 获取完整用户信息
-        currentUser.value = await getUser(val.userId);
-
-        // 获取用户卡券信息
-        await listUserCouponWithValidTime(val.userId).then(response => {
-            userCouponList.value = response;
-            mergedCoupons.value = response.reduce((acc, cur) => {
-                const existing = acc.find(item => item.coupon.couponId === cur.coupon.couponId && item.coupon.couponType !== 'StoredValueCard');
-                if (existing) {
-                    existing.ucCount += cur.ucCount;
-                } else {
-                    acc.push(cur);
-                }
-                return acc;
-            }, []);
-            userCouponList.value.filter(item => item.coupon.couponType == 'SessionCard').map(item => {
-                item.selected = false;
-                item.count = 1;
-            });
-            couponTypeList.value = new Set(userCouponList.value.map(coupon => coupon.coupon.couponType));
-        });
-
-        // 清除验证提示
-        clearUserValidation();
-    }
-}
-
-function adjustInputChange() {
-    // 如果是修改操作，那么触发更新请求
-    if (form.value.orderId && form.value.orderId !== 0) {
-        updateAdjust(form.value).catch(res => {
-            proxy.notify.error(res.msg);
-        })
-    }
-}
-
-/* 调价输入框输入事件 */
-function adjustInput() {
-    // 强制转换调价字符串为数字
-    form.value.adjust.adjustValueAdd = form.value.adjust.adjustValueAdd ?
-        Number(form.value.adjust.adjustValueAdd) : null;
-
-    form.value.adjust.adjustValueSub = form.value.adjust.adjustValueSub ?
-        Number(form.value.adjust.adjustValueSub) : null;
-
-    // 处理 adjustTotal
-    form.value.adjust.adjustTotal = form.value.adjust.adjustTotal ?
-        Number(form.value.adjust.adjustTotal) : null;
-
-    if (form.value.adjust.adjustTotal) {
-        totalPrice.value = form.value.adjust.adjustTotal;
-        // 截断为两位小数（不四舍五入）
-        totalPrice.value = Math.floor(totalPrice.value * 100) / 100;
-    } else {
-        // 计算原始价格
-        let originalPrice = 0;
-
-        // 如果选择了价格方案
-        if (form.value.priceIds && form.value.priceIds.length > 0) {
-            // 检查是否选择了折扣类型的价格方案
-            const discountPriceItem = priceList.value.find(item =>
-                form.value.priceIds.includes(item.priceId) &&
-                isPriceDiscount(item)
-            );
-
-            if (discountPriceItem) {
-                // 如果是折扣类型，先计算衣物的原始价格总和
-                originalPrice = form.value.cloths.reduce((acc, cur) => {
-                    // 计算总价
-                    // 如果服务要求为加急
-                    let priceValue = cur.priceValue;
-                    if (cur.serviceRequirement == 'Emergency') {
-                        priceValue *= 2;
-                    } else if (cur.serviceRequirement == 'SingleWash') {
-                        priceValue *= 1.5;
-                    }
-                    return acc + priceValue + cur.processMarkup;
-                }, 0);
-
-                // 然后应用折扣
-                const discountFactor = discountPriceItem.priceDiscount / 100; // 将百分比转换为小数
-                originalPrice = originalPrice * discountFactor;
-
-                // 截断为两位小数（不四舍五入）
-                originalPrice = Math.floor(originalPrice * 100) / 100;
-            } else {
-                // 如果是固定价格类型，使用所有选中价格方案的总和
-                originalPrice = form.value.priceIds.reduce((acc, priceId) => {
-                    const item = priceList.value.find(item => item.priceId === priceId);
-                    return acc + (item && item.priceValue ? item.priceValue : 0);
-                }, 0);
-
-                // 截断为两位小数（不四舍五入）
-                originalPrice = Math.floor(originalPrice * 100) / 100;
-            }
-        } else {
-            // 如果没有选择价格方案，计算衣物的原始价格总和
-            originalPrice = form.value.cloths.reduce((acc, cur) => {
-                // 计算总价
-                // 如果服务要求为加急
-                let priceValue = cur.priceValue;
-                if (cur.serviceRequirement == 'Emergency') {
-                    priceValue *= 2;
-                } else if (cur.serviceRequirement == 'SingleWash') {
-                    priceValue *= 1.5;
-                }
-                return acc + priceValue + cur.processMarkup;
-            }, 0);
-
-            // 截断为两位小数（不四舍五入）
-            originalPrice = Math.floor(originalPrice * 100) / 100;
-        }
-
-        // 保存原始价格
-        form.value.originalPrice = originalPrice > 0 ? originalPrice : 0;
-
-        // 计算最终价格（包含调整）
-        let price = originalPrice +
-            Number(form.value.adjust.adjustValueAdd ? form.value.adjust.adjustValueAdd : 0) -
-            Number(form.value.adjust.adjustValueSub ? form.value.adjust.adjustValueSub : 0);
-
-        // 截断为两位小数（不四舍五入）
-        price = Math.floor(price * 100) / 100;
-
-        totalPrice.value = price > 0 ? price : 0;
-    }
-}
-
-async function printCloth() {
-    const length = form.value.cloths.length;
-    let userData;
-
-    // Handle the case when a new user is being created (temporary ID)
-    if (form.value.userId === -999 && showCreateUser.value) {
-        userData = {
-            nickName: form.value.nickName,
-            phonenumber: currentUser.value.phonenumber
-        };
-    } else {
-        // Use the current user information from currentUser ref
-        userData = currentUser.value && Object.keys(currentUser.value).length > 0
-            ? currentUser.value
-            : null;
-
-        // If user not found but we have enough information, create a temporary user object
-        if (!userData && form.value.nickName) {
-            userData = {
-                nickName: form.value.nickName,
-                phonenumber: currentUser.value?.phonenumber || ""
-            };
-        }
-    }
-
-    // Ensure we have at least a name to display
-    if (!userData) {
-        userData = {
-            nickName: form.value.nickName || "顾客",
-            phonenumber: ""
-        };
-    }
-
-    const result = form.value.cloths.map((item, index) => ({
-        cloth_name: item.clothInfo.title,
-        cloth_color: item.clothingColor ? item.clothingColor : 0,
-        cloth_flaw: item.clothingFlawArr,
-        sum: length,
-        num: index + 1,
-        code: item.hangClothCode,
-        time: item.createTime,
-        client: {
-            name: userData.nickName,
-            phone: userData.phonenumber,
-        },
-        shelf: {
-            name: String(item.hangLocationCode),
-            position: item.hangerNumber,
-        }
-    }));
-    try {
-        proxy.$modal.loading('正在打印衣物信息...')
-        await print(result);
-    } catch (error) {
-        console.error("打印失败:", error);
-    } finally {
-        proxy.$modal.closeLoading();
-    }
+// 处理支付失败回调
+function handlePaymentFailed(error) {
+    console.error('支付失败:', error);
+    proxy.notify.error("支付失败: " + (error.message || '未知错误'));
 }
 
 function handleDelete(clothId, name) {
@@ -1177,7 +811,6 @@ function handleDelete(clothId, name) {
         proxy.notify.success("删除成功");
     }).catch(() => { });
 }
-
 
 const handleRouteLeave = (to, from, next) => {
     if (!form.value.userId) {
@@ -1218,104 +851,36 @@ const handleRouteLeave = (to, from, next) => {
         });
 };
 
-// 处理卡券购买成功事件
-function handleCouponPurchase(data) {
-    // 检查是否是当前用户购买的卡券
-    if (data.userId && data.userId == form.value.userId) {
-        // 重新获取用户卡券列表
-        listUserCouponWithValidTime(form.value.userId).then(response => {
-            userCouponList.value = response;
-            mergedCoupons.value = response.reduce((acc, cur) => {
-                const existing = acc.find(item => item.coupon.couponId === cur.coupon.couponId && item.coupon.couponType !== 'StoredValueCard');
-                if (existing) {
-                    existing.ucCount += cur.ucCount;
-                } else {
-                    acc.push(cur);
-                }
-                return acc;
-            }, []);
-            userCouponList.value.filter(item => item.coupon.couponType == 'SessionCard').map(item => {
-                item.selected = false;
-                item.count = 1;
-            });
-            couponTypeList.value = new Set(userCouponList.value.map(coupon => coupon.coupon.couponType));
-
-            // 更新用户信息（余额、积分等可能变化）
-            getUser(form.value.userId).then(res => {
-                currentUser.value = res;
-            });
-        });
-    }
-}
-
-
-// 清除用户选择组件的验证提示
-function clearUserValidation() {
-    // 清除userId字段的验证错误
-    if (ordersRef.value) {
-        ordersRef.value.clearValidate('userId');
-    }
-}
-
-// 处理更新手机号事件，但保留姓名
-const handleUpdatePhone = (phoneNumber) => {
-    // 只更新手机号，保留其他信息
-    if (showCreateUser.value && currentUser.value) {
-        currentUser.value.phonenumber = phoneNumber;
-
-        // 触发事件，通知其他组件更新手机号
-        eventBus.emit('user-phone-updated', {
-            isNewUser: true,
-            phonenumber: phoneNumber,
-            nickName: form.value.nickName
-        });
-    }
-};
-
-// 取消按钮
+// 取消按钮（自身）
 function cancelSelf() {
-    // 检查是否有未保存的数据
-    if (!form.value.userId) {
-        reset();
-        showDialog.value = true;
-        props.toggle();
-        return;
-    }
-
-    // 修改操作不允许反悔
-    if (form.value.orderId) {
-        reset();
-        showDialog.value = true;
-        props.toggle();
-        return;
-    }
-
-    // 弹出确认对话框
-    ElMessageBox.confirm('确认取消创建订单？此操作不可逆！')
-        .then(() => {
-            // 用户确认取消，处理逻辑
-            if (!form.value.orderId && form.value.cloths.length > 0) {
-                // 删除添加的衣物列表
-                delCloths(form.value.cloths.map(item => item.clothId))
-                    .then(() => {
-                        reset();
-                        props.toggle();
-                    })
-                    .catch(res => {
-                        console.error(res);
-                    });
-            } else {
-                reset();
-                props.toggle();
-            }
-        })
-        .catch(() => {
-            // 用户取消操作，不关闭对话框
-        });
+    cancel(false);
 }
 
 function handleClothSelected(cloth) {
     eventBus.emit('cloth-selected', cloth);
+}
+
+// 处理用户选择，添加了用户ID的reactive更新
+async function handleUserSelect(val) {
+    await selectUser(val, form.value);
+    if (val && typeof val === 'object' && val.userId) {
+        currentUserId.value = val.userId;
+        // 确保form.userId被正确设置，这对AddCloth组件非常关键
+        form.value.userId = val.userId;
+    }
+}
+
+// 处理需要创建用户的情况
+function handleNeedCreateUserLocal(phoneNumber) {
+    handleNeedCreateUser(phoneNumber, form.value);
+
+    // 确保form.userId设置了一个临时值，让AddCloth组件可以正常显示
+    if (form.value.userId === -999) {
+        // 强制触发AddCloth组件的重新渲染
+        nextTick(() => {
+            // 如果需要，可以添加额外的处理
+        });
+    }
 }
 
 onMounted(async () => {
@@ -1336,7 +901,7 @@ onMounted(async () => {
     }
 
     // 监听卡券购买成功事件
-    eventBus.on('coupon-purchase-success', handleCouponPurchase);
+    eventBus.on('coupon-purchase-success', (data) => handleCouponPurchase(data, form.value));
 });
 
 // 组件卸载时移除事件监听
